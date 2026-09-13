@@ -1,0 +1,13 @@
+# Reviewed register of dupehound findings that are NOT clones.
+#
+# See scripts/dupehound_ledger.py for what this is and, more importantly,
+# what it is not. Each entry pins the normalized text of BOTH functions:
+# change either one and the entry stops matching, the finding returns, and
+# a human re-reviews it. An entry matching no current finding fails the
+# gate as stale. Nothing here is written or updated by a tool.
+#
+# Currently empty: this repository has no reviewed-distinct pairs yet (it
+# has almost no source at all — see AGENTS.md "Status"). Do not add an
+# entry to force the dupehound gate green; add one only when dupehound
+# genuinely reports a structurally-identical, semantically-unrelated pair
+# that manual review confirms should not be consolidated.

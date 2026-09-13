@@ -64,3 +64,54 @@ warn_unused_ignores = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+# Pinned native scanner contract, read by scripts/scanner_contract.py.
+# Versions MUST match epistemic-graph's scripts/scanner_contract.py /
+# pyproject.toml [tool.epistemic_graph.scanners] exactly (per this lane's
+# instructions) — a hook fails closed on any drift from these exact values
+# (scanner_contract.exact_version). dependency_cruiser_version /
+# import_linter_version / arch_lint_version / cargo_deny_version are
+# deliberately ABSENT: those pin Rust/JS architecture tools this repository
+# has no source for. See AGENTS.md "Scanner hooks" for the full accounting.
+[tool.graph_os.scanners]
+cccc_version = "1.6.0"
+kiss_version = "0.4.10"
+dupehound_version = "0.1.2"
+dupehound_threshold = 0.85
+dupehound_min_tokens = 40
+jscpd_version = "5.0.16"
+jscpd_min_tokens = 50
+jscpd_min_lines = 5
+jscpd_mode = "mild"
+
+# jscpd's differential/census scope. Deliberately excludes this repository's
+# own generated/ephemeral trees (mirrors epistemic-graph's exclusion set,
+# trimmed to what graph-os actually has). MUST precede the subtables below —
+# TOML does not allow re-entering a parent table's keys after a subtable of
+# it has been opened.
+jscpd_exclusions = [
+    "**/.git/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/__pycache__/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/.cache/**",
+    "**/cache/**",
+    "**/*.egg-info/**",
+    "site/**",
+    "**/*.lock",
+    "**/fixtures/**",
+    "**/fixture/**",
+]
+
+[tool.graph_os.scanners.jscpd_formats]
+python = ["py", "pyi"]
+yaml = ["yaml", "yml"]
+toml = ["toml"]
+markdown = ["md"]
+bash = ["sh", "bash"]
+json = ["json"]
+
+[tool.graph_os.scanners.jscpd_filenames]
+docker = ["Dockerfile", "Containerfile"]

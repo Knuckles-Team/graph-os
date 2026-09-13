@@ -16,9 +16,11 @@ it packages, not before.
 - A `docker/Dockerfile` (or a kaniko job manifest, matching whatever the fleet
   convention is by W5) that builds the `graph-os` package built by *this*
   repository's `pyproject.toml`, replacing today's unified AU+webui kaniko build.
-- The image continues to be built to the **internal** registry
-  (`registry.arpa/graph-os-unified` today; the exact repository name is a W5
-  decision, not a scaffold one) — never Docker Hub, per the existing convention.
+- The image continues to be built to the fleet's **private internal
+  registry** (never Docker Hub, per the existing convention) — the exact
+  registry host/repository name is deployment configuration, not something
+  this public repository's docs should hard-code, and is a W5 decision in
+  any case.
 - `services/graph-os` is updated (RF-ADR-009 §6) to build from this repository's
   image instead of `agent-utilities`' unified image. This scaffold does **not**
   touch `services/graph-os` — that is explicitly out of scope per this lane's

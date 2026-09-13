@@ -16,6 +16,20 @@ dist/
 .coverage
 htmlcov/
 
+# `kiss check` writes a self-calibrating .kissconfig the first time it runs
+# with no --config — forbidden anywhere in the tree (check_root_hygiene.py's
+# FORBIDDEN_ANYWHERE), never track it even if one appears locally.
+.kissconfig
+# `kiss check` also writes a .kiss/ working-cache directory. Only the
+# HAND-AUTHORED .kiss/kiss.toml is tracked (it is the gate's thresholds, not
+# a baseline); every other file under .kiss/ is a regenerated analysis cache.
+.kiss/*
+!.kiss/kiss.toml
+
+# Native scanner reports/scratch this repo's own gate scripts may write
+# under a temp dir, never here — listed defensively in case one lands.
+*.kissconfig
+
 # uv
 .uv-workspace-siblings/
 

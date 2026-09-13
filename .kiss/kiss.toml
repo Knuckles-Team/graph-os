@@ -1,0 +1,70 @@
+# KISS thresholds for graph-os.
+#
+# ═══ THIS FILE IS NOT A BASELINE. ═══════════════════════════════════════════
+# No [python] table is declared below: this repository has zero measured
+# functions yet (six docstring-only placeholder packages — see AGENTS.md
+# "Status"), so there is nothing to calibrate a threshold against. Every
+# Python rule therefore runs at KISS 0.4.10's own built-in default (verified
+# via `kiss rules` with no --config: e.g. `returns_per_function <= 9`,
+# `statements_per_function <= 119`). The day this repository has enough real
+# code to measure a distribution, follow epistemic-graph's
+# docs/quality-gate-terms.md precedent: recalibrate a threshold only against
+# a measured percentile, with the measurement written down next to the
+# number, never against "what currently passes."
+#
+# ⚠ NEVER run bare `kiss check` here -- it writes a self-calibrating
+#   .kissconfig that also disables four global rules. ALWAYS pass
+#   `--config .kiss/kiss.toml` and ONE path per invocation (KISS 0.4.10
+#   reports a false clean for a multi-path `check`). The two callers that do
+#   this correctly are scripts/check_kiss_staged.sh (the pre-commit hook)
+#   and the `kiss-census` hook in .pre-commit-config.yaml; go through one of
+#   those.
+#
+# KISS 0.4.10 REQUIRES an explicit [python] table the moment it scans any
+# Python file — bare `kiss check --lang python` (no [python] table at all)
+# fails with "found python files but .kissconfig has no [python] table"
+# rather than falling back to its own defaults silently. Every value below
+# IS that exact shipped default (`kiss rules`, no --config, on this exact
+# 0.4.10 binary) — written down explicitly because the tool requires it,
+# not because any of them has been recalibrated yet.
+
+[global]
+min_similarity          = 0.9      # ON (KISS's own duplicate-code check).
+orphan_module_enabled    = true    # ON — this IS graph-os's Python
+                                    # orphan-module wiring gate: an isolated
+                                    # module (no production fan-in/fan-out,
+                                    # no test-only import edge, not a
+                                    # recognized entry point) fails here. See
+                                    # AGENTS.md "Orphan-module wiring gate".
+duplication_enabled      = true
+comment_removal_enabled  = false
+docs_allowed             = ["./"]  # Every package docstring in this repo
+                                    # states RF-ADR-009 ownership; neutralise
+                                    # `doc == 0` (default [] fires on every
+                                    # docstring in the tree).
+orphan_allowed           = []
+
+[python]
+statements_per_function      = 119
+positional_args              = 37
+keyword_only_args            = 29
+max_indentation               = 8
+branches_per_function         = 8
+local_variables                = 28
+returns_per_function          = 9
+return_values_per_function    = 9
+nested_function_depth         = 2
+statements_per_try_block      = 28
+boolean_parameters            = 8
+decorators_per_function       = 4
+calls_per_function            = 117
+methods_per_class             = 352
+statements_per_file           = 3210
+lines_per_file                 = 9369
+functions_per_file            = 389
+interface_types_per_file      = 4
+concrete_types_per_file       = 33
+imported_names_per_file       = 88
+cycle_size                     = 30
+indirect_dependencies          = 108
+dependency_depth               = 11
