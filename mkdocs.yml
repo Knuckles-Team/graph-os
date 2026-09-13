@@ -13,6 +13,7 @@ theme:
 nav:
   - Home: index.md
   - Status: status.md
+  - Quality gate terms: quality-gate-terms.md
 
 markdown_extensions:
   - tables
