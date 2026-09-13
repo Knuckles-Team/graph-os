@@ -510,23 +510,23 @@ def _is_deployment_doc(path: Path) -> bool:
 
 
 def _persisted_path_category(line: str) -> str | None:
-    """"persisted machine path" if the line assigns a non-neutral path field."""
+    """ "persisted machine path" if the line assigns a non-neutral path field."""
     persisted = _PERSISTED_FIELD_RE.search(line)
     if not persisted or _NEUTRAL_URI_RE.search(persisted.group("value")):
         return None
     value = persisted.group("value").strip(" \t,;)}]\"'").casefold()
     field = persisted.group("field")
     is_template_placeholder = value.startswith("${")
-    runtime_relative = (
-        field.isupper() or is_template_placeholder
-    ) and not re.match(r"^(?:[a-z]:|[/\\]|~)", value, re.IGNORECASE)
+    runtime_relative = (field.isupper() or is_template_placeholder) and not re.match(
+        r"^(?:[a-z]:|[/\\]|~)", value, re.IGNORECASE
+    )
     if value in {"", "none", "null", "unset"} or runtime_relative:
         return None
     return "persisted machine path"
 
 
 def _identifier_category(folded_line: str, identifiers: frozenset[str]) -> str | None:
-    """"local account or host identifier" if any derived identifier appears."""
+    """ "local account or host identifier" if any derived identifier appears."""
     matches = any(
         re.search(rf"(?<![\w-]){re.escape(value)}(?![\w-])", folded_line)
         for value in identifiers
@@ -649,9 +649,7 @@ def _filesystem_files(root: Path) -> list[Path]:
     for directory, directory_names, file_names in os.walk(root, topdown=True):
         current = Path(directory)
         directory_names[:] = sorted(
-            name
-            for name in directory_names
-            if _is_traversable_directory(current, name)
+            name for name in directory_names if _is_traversable_directory(current, name)
         )
         for path in _regular_files_under(current, file_names):
             files.append(path)
@@ -809,64 +807,77 @@ def _relative_posix(path: Path, root: Path) -> tuple[Path, str]:
     return relative, relative.as_posix()
 
 
-def _scan_tracked_artifact(
-    path: Path,
-    root: Path,
-    identifiers: frozenset[str],
-    violations: list[Violation],
-    ordinals: dict[tuple[str, str, str], int],
-) -> None:
+@dataclass(frozen=True)
+class _ScanContext:
+    """The three accumulators both scan passes share.
+
+    graph-os addition: bundling these (rather than passing all three as
+    separate positional parameters, as the epistemic-graph original does)
+    is what gets both scan functions' signatures under jscpd's 5-line
+    duplicate-block threshold — the two functions' bodies genuinely diverge
+    from their second line on, but their signature was, byte-for-byte, the
+    same 5-parameter, 7-line block, which jscpd correctly flagged as new
+    duplication on this file's first introduction here. `violations` and
+    `ordinals` are mutated in place by `_record_violation`; the dataclass
+    itself being frozen only prevents rebinding `ctx.violations` etc., not
+    mutating what they point to.
+    """
+
+    identifiers: frozenset[str]
+    violations: list[Violation]
+    ordinals: dict[tuple[str, str, str], int]
+
+
+def _scan_tracked_artifact(path: Path, root: Path, ctx: _ScanContext) -> None:
     relative, rel_str = _relative_posix(path, root)
     deployment_doc = _is_deployment_doc(relative)
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     for number in _author_metadata_lines(path, lines):
         category = "non-neutral package author identity"
         content_hash = _content_hash(lines[number - 1])
-        _record_violation(violations, ordinals, rel_str, number, category, content_hash)
+        _record_violation(
+            ctx.violations, ctx.ordinals, rel_str, number, category, content_hash
+        )
     for number, line in enumerate(lines, 1):
         for category in classify_line(
             line,
-            identifiers=identifiers,
+            identifiers=ctx.identifiers,
             deployment_doc=deployment_doc,
         ):
             content_hash = _content_hash(line)
             _record_violation(
-                violations, ordinals, rel_str, number, category, content_hash
+                ctx.violations, ctx.ordinals, rel_str, number, category, content_hash
             )
 
 
-def _scan_runtime_source_artifact(
-    path: Path,
-    root: Path,
-    identifiers: frozenset[str],
-    violations: list[Violation],
-    ordinals: dict[tuple[str, str, str], int],
-) -> None:
+def _scan_runtime_source_artifact(path: Path, root: Path, ctx: _ScanContext) -> None:
     relative, rel_str = _relative_posix(path, root)
     if _is_bundled_connector_profile(relative):
         category = "bundled environment-specific connector profile"
         content_hash = _content_hash(rel_str)
-        _record_violation(violations, ordinals, rel_str, 1, category, content_hash)
+        _record_violation(
+            ctx.violations, ctx.ordinals, rel_str, 1, category, content_hash
+        )
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     for number, line in enumerate(lines, 1):
-        for category in classify_runtime_source_line(line, identifiers=identifiers):
+        for category in classify_runtime_source_line(line, identifiers=ctx.identifiers):
             content_hash = _content_hash(line)
             _record_violation(
-                violations, ordinals, rel_str, number, category, content_hash
+                ctx.violations, ctx.ordinals, rel_str, number, category, content_hash
             )
 
 
 def scan(root: Path = ROOT) -> list[Violation]:
-    identifiers = derive_local_identifiers(root)
-    violations: list[Violation] = []
-    ordinals: dict[tuple[str, str, str], int] = {}
+    ctx = _ScanContext(
+        identifiers=derive_local_identifiers(root), violations=[], ordinals={}
+    )
     for path in _tracked_artifacts(root):
         if path.is_file():
-            _scan_tracked_artifact(path, root, identifiers, violations, ordinals)
+            _scan_tracked_artifact(path, root, ctx)
     for path in _runtime_source_artifacts(root):
         if path.is_file():
-            _scan_runtime_source_artifact(path, root, identifiers, violations, ordinals)
-    return violations
+            _scan_runtime_source_artifact(path, root, ctx)
+    return ctx.violations
 
 
 # CX-RAT-09: the baseline/ratchet mechanism is DELETED, not merely emptied. A
