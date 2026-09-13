@@ -796,6 +796,19 @@ def _record_violation(
     violations.append(Violation(rel_str, number, category, content_hash, ordinal))
 
 
+def _relative_posix(path: Path, root: Path) -> tuple[Path, str]:
+    """`(relative, rel_str)` for one scanned path -- shared by both scan passes.
+
+    graph-os addition (not in the epistemic-graph original): jscpd's
+    differential gate flagged the identical relative-path preamble these two
+    functions used to repeat as a new same-file duplicate the moment this
+    file was first introduced here. Extracting it is the fix, never a jscpd
+    exclusion; behavior is unchanged.
+    """
+    relative = path.relative_to(root)
+    return relative, relative.as_posix()
+
+
 def _scan_tracked_artifact(
     path: Path,
     root: Path,
@@ -803,8 +816,7 @@ def _scan_tracked_artifact(
     violations: list[Violation],
     ordinals: dict[tuple[str, str, str], int],
 ) -> None:
-    relative = path.relative_to(root)
-    rel_str = relative.as_posix()
+    relative, rel_str = _relative_posix(path, root)
     deployment_doc = _is_deployment_doc(relative)
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     for number in _author_metadata_lines(path, lines):
@@ -830,8 +842,7 @@ def _scan_runtime_source_artifact(
     violations: list[Violation],
     ordinals: dict[tuple[str, str, str], int],
 ) -> None:
-    relative = path.relative_to(root)
-    rel_str = relative.as_posix()
+    relative, rel_str = _relative_posix(path, root)
     if _is_bundled_connector_profile(relative):
         category = "bundled environment-specific connector profile"
         content_hash = _content_hash(rel_str)

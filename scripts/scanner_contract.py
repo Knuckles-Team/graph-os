@@ -28,6 +28,7 @@ to download, compile, or silently substitute a different scanner version.
 from __future__ import annotations
 
 import fnmatch
+import json
 import math
 import os
 import re
@@ -35,7 +36,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import NoReturn
+from typing import Any, Callable, NoReturn
 
 import tomllib
 
@@ -593,6 +594,28 @@ def resolve_binary(name: str, env_name: str) -> str:
         f"{name!r} is not installed; checked ${env_name}, ~/.local/bin, "
         "/usr/local/bin, and PATH. Hooks never install scanners."
     )
+
+
+def read_json_report(path: Path, fail: Callable[[str], NoReturn]) -> dict[str, Any]:
+    """Read and validate one scanner's JSON report -- shared by the CCCC
+    census reporter and validator.
+
+    graph-os addition (not present in the epistemic-graph original this
+    module is otherwise adapted from): jscpd's differential gate flagged
+    `report_complexity_terms.py`'s and `validate_cccc_census.py`'s
+    identical report-loading preamble as a new duplicate the moment both
+    files were first introduced here. Consolidating it is the fix, never a
+    jscpd exclusion. `fail` is each caller's own error reporter (they use
+    different message prefixes), typed `NoReturn` so a call site's control
+    flow after `fail(...)` is correctly understood as unreachable.
+    """
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        fail(f"cannot read report {path}: {exc}")
+    if not isinstance(document, dict):
+        fail(f"report {path} is not a JSON object")
+    return document
 
 
 def exact_version(executable: str, expected: str, *, cwd: Path = ROOT) -> None:

@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Validate the machine-readable CCCC census report.
 
-Copied verbatim from epistemic-graph's `scripts/validate_cccc_census.py`
-(commit a14e697c6c07c5058e0d1fe6667d69c4fdf4f95b) — language-agnostic, no
-adaptation needed.
+Adapted from epistemic-graph's `scripts/validate_cccc_census.py`
+(commit a14e697c6c07c5058e0d1fe6667d69c4fdf4f95b) — language-agnostic. The
+one change: `_read_report` now delegates to
+`scanner_contract.read_json_report`, shared with `report_complexity_terms.py`
+(jscpd flagged the two files' identical report-loading preamble as a new
+duplicate on first introduction here; see that function's docstring).
 
 CCCC omits a clean file's ``parse_errors`` field, but its top-level summary
 always carries the required ``parse_error_count``.  A missing or malformed
@@ -12,10 +15,13 @@ summary is an environment failure, never an advisory clean result.
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 from typing import Any, NoReturn
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from scanner_contract import read_json_report  # noqa: E402
 
 
 def fail(message: str) -> NoReturn:
@@ -24,13 +30,7 @@ def fail(message: str) -> NoReturn:
 
 
 def _read_report(path: Path) -> dict[str, Any]:
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        fail(f"cannot read report {path}: {exc}")
-    if not isinstance(document, dict):
-        fail(f"report {path} is not a JSON object")
-    return document
+    return read_json_report(path, fail)
 
 
 def _summary(document: dict[str, Any], path: Path) -> dict[str, Any]:

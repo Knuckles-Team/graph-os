@@ -10,7 +10,10 @@ has zero `.rs` files, so porting the exemption machinery would be permanently
 dead code), so there is nothing to split: every function over either cap is
 backlog. This is a REPORT, not a gate: it never fails on a count, holds no
 threshold, and writes nothing — `check_complexity_staged.py` is what
-enforces, on the diff.
+enforces, on the diff. `_document` delegates to
+`scanner_contract.read_json_report`, shared with `validate_cccc_census.py`
+(jscpd flagged the two files' identical report-loading preamble as a new
+duplicate on first introduction here; see that function's docstring).
 
 Exit codes: 0 printed a report, 2 the report could not be produced (an
 ENVIRONMENT fact -- never reported as "no findings").
@@ -18,7 +21,6 @@ ENVIRONMENT fact -- never reported as "no findings").
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 from typing import Any, NoReturn
@@ -28,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from scanner_contract import (  # noqa: E402
     CCCC_MAX_COGNITIVE,
     CCCC_MAX_CYCLOMATIC,
+    read_json_report,
 )
 
 
@@ -70,13 +73,7 @@ def _rows(document: dict[str, Any]) -> list[tuple[str, str, int, int, int]]:
 
 
 def _document(path: Path) -> dict[str, Any]:
-    try:
-        document = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        fail(f"cannot read report {path}: {exc}")
-    if not isinstance(document, dict):
-        fail(f"report {path} is not a JSON object")
-    return document
+    return read_json_report(path, fail)
 
 
 def report(path: Path) -> int:
