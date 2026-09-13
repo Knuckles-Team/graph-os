@@ -1,0 +1,129 @@
+name: Release
+
+# ─────────────────────────────────────────────────────────────────────────
+# Modeled on agent-utilities' release.yml two-workflow split: this file is
+# the ONLY workflow that can block a release (gates -> build -> publish-pypi,
+# wired with `needs:` so a failure names its stage at a glance). Everything
+# else (Pages) lives in its own workflow.
+#
+# Deliberately SMALLER than agent-utilities' release.yml at scaffold size:
+# no clone-scanners (dupehound/jscpd — nothing to scan yet), no
+# secret-history / OSV dependency-audit steps (no committed secrets risk
+# surface, no dependencies to audit — `dependencies = []`), no
+# numeric-runtime-gate (this is a pure-Python package with no native/engine
+# wheel), and no docker publish job (the image build stays in
+# agent-utilities until RF-ADR-009 Migration Wave 5 moves it here — see
+# `docker/DESIGN.md`). AGENTS.md "Quality bar" tracks which of these get
+# added back as this repository gains real content to protect.
+# ─────────────────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - 'graph_os/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/release.yml'
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.11.7'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Sync test environment
+        run: uv sync --frozen --extra test
+
+      - name: Lint (ruff)
+        run: uv run --no-sync ruff check .
+
+      - name: Format check (ruff)
+        run: uv run --no-sync ruff format --check .
+
+      - name: Type check (mypy)
+        run: uv run --no-sync mypy graph_os
+
+      - name: Test suite
+        run: uv run --no-sync pytest
+
+  build:
+    name: build
+    needs: gates
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_DATE_EPOCH: "0"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.11.7'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Build wheel
+        run: uv build --wheel --out-dir dist
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: graph-os-wheel
+          path: dist/graph_os-*.whl
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-pypi:
+    name: publish
+    needs: build
+    if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    runs-on: ubuntu-latest
+    # D-ORC-10-style gate (see agent-utilities release.yml): publishing is
+    # irreversible, so it must never be a side effect of an ordinary green
+    # push to main. Configure required-reviewer protection once on this
+    # environment in Settings > Environments > pypi-publish.
+    environment: pypi-publish
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: graph-os-wheel
+          path: dist
+
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: '0.11.7'
+
+      - name: Publish wheel
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish --check-url https://pypi.org/simple dist/graph_os-*.whl

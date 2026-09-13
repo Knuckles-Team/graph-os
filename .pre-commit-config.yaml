@@ -1,0 +1,126 @@
+# Adopts agent-utilities' combined pre-commit/pre-push suite where it applies to
+# an empty scaffold with zero declared dependencies and no KG/ontology/engine
+# content yet. See AGENTS.md "Pre-commit hooks: adopted vs. dropped" for the
+# full accounting of every hook agent-utilities runs that is NOT reproduced
+# here, and why — most are AU-content-specific gates (concept governance,
+# ontology, backend parity, wheel build, ...) or reference scripts/*.py that
+# live in agent-utilities and have no equivalent here until Migration Wave 5
+# extracts real code (and, where useful, the applicable scripts) into this repo.
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
+  hooks:
+  - id: check-added-large-files
+    args: ["--maxkb=2000"]
+    exclude: ^uv\.lock$
+  - id: check-ast
+    exclude: ^(tests/|test/)
+  - id: check-yaml
+    args: ["--unsafe"]
+  - id: check-toml
+  - id: check-json
+  - id: fix-byte-order-marker
+  - id: check-merge-conflict
+  - id: detect-private-key
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: cb8c523fd4835aba42af70f4cad5568db4df0b6c # v0.16.0
+  hooks:
+  - id: ruff-check
+    args: ["--fix", "--unsafe-fixes"]
+    exclude: ^(tests/|test/)
+  - id: ruff-format
+    exclude: ^(tests/|test/)
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: fc0f09a29bb495f4a91f00266155d6282d52485d # v1.20.2
+  hooks:
+  - id: mypy
+    additional_dependencies: [pydantic==2.13.4]
+    args: ["--ignore-missing-imports"]
+    exclude: ^(tests/|test/)
+
+- repo: https://github.com/jendrikseipp/vulture
+  rev: b0f67ba0044693aa9ec0d38fe460590facc98004 # v2.16
+  hooks:
+  - id: vulture
+    pass_filenames: false
+    args: [".", "--min-confidence", "95", "--exclude", ".venv,build,tests"]
+
+- repo: https://github.com/codespell-project/codespell
+  rev: 2ccb47ff45ad361a21071a7eedda4c37e6ae8c5a # v2.4.2
+  hooks:
+  - id: codespell
+    exclude: ^(tests/|test/)
+
+- repo: https://github.com/PyCQA/bandit
+  rev: 92ae8b82fb422a639f0ed8d99e96cea769594e08 # 1.9.4
+  hooks:
+  - id: bandit
+    args: ["--skip", "B101"]
+    exclude: ^(tests/|test/)
+
+- repo: https://github.com/nbQA-dev/nbQA
+  rev: d31b7eae1767c43460afb3ba130e0a6602933abe # 1.9.1
+  hooks:
+  - id: nbqa-ruff
+    args: ["--fix"]
+
+- repo: https://github.com/AleksaC/hadolint-py
+  rev: 458cb25edf664682e3e856a53a2f9af33e068297 # v2.14.0
+  hooks:
+  - id: hadolint
+
+- repo: https://github.com/astral-sh/uv-pre-commit
+  rev: 6a280ba12b7901e47757c868c8c13c6a624c9ecb # 0.11.7
+  hooks:
+  - id: uv-lock
+    args: ["--locked"]
+    stages: [pre-push, manual]
+
+- repo: local
+  hooks:
+  # RF-ADR-009 §3: "Add a repository-manager validation ... that fails when
+  # any repository's declared or imported dependency points at a LATER
+  # phase. It runs in each repository's pre-push and in CI, so the order is
+  # enforced, not documented." graph-os is phase 5 — this is that check,
+  # wired from day one even though `dependencies = []` makes it trivially
+  # pass today.
+  #
+  # Entry differs from agent-utilities' own `dependency-readiness` hook in
+  # ONE deliberate way: it resolves the sibling `repository-manager`
+  # checkout from `git rev-parse --git-common-dir` (the SHARED git dir,
+  # stable across every linked worktree) rather than a `$PWD`-relative
+  # `../agents/repository-manager`. A plain relative path breaks the moment
+  # this repo is worked from a worktree under
+  # `${XDG_STATE_HOME}/repository-worktrees/graph-os/<branch>` instead of
+  # the canonical `agent-packages/graph-os` checkout — exactly the
+  # "gate discovery breaks in worktrees" defect this workspace has already
+  # hit with AU's own copy of this hook, and exactly the
+  # "per-repository pre-push wiring needs a repository-inferring mode"
+  # follow-up RF-ADR-009 §3 names. Falls back to PyPI (CI) same as AU's.
+  - id: dependency-readiness
+    name: Dependency readiness — no declared/imported dependency points at a later RF-ADR-009 phase
+    entry: >-
+      bash -c '
+      CANON_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)";
+      P="$CANON_ROOT/../agents/repository-manager";
+      [ -d "$P" ] || P=repository-manager;
+      uv run --no-project --python 3.12 --prerelease=allow --with "$P" python -m repository_manager.dependency_readiness .
+      '
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages: [manual, pre-push]
+  - id: pytest
+    name: pytest (full suite)
+    entry: bash -c 'uv run --extra test pytest'
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages: [pre-push, manual]

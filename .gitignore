@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv*/
+.python-version
+
+# Test / lint / type-check caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+
+# uv
+.uv-workspace-siblings/
+
+# Docs build output (published via GitHub Pages CI, not committed)
+site/
+
+# Editors / OS
+.DS_Store
+*.swp

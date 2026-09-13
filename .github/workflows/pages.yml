@@ -1,0 +1,70 @@
+name: Pages
+
+# Builds and publishes the GitHub Pages site from docs/ (mkdocs). Advisory,
+# never release-blocking — mirrors agent-utilities' two-workflow split
+# (release.yml is the only workflow that can block a release; everything else,
+# including Pages, lives outside it). Runs on pushes to `main` only; PRs get no
+# preview deploy at scaffold size.
+#
+# NOTE on action pinning: `actions/checkout`, `actions/setup-python`, and
+# `astral-sh/setup-uv` are pinned to the exact commit SHAs agent-utilities'
+# own release.yml uses (verified there). The three Pages-specific actions
+# below are pinned to major version tags only — this repository does not yet
+# carry the `supply-chain-source-contract` gate that would enforce full SHA
+# pinning (see AGENTS.md "Pre-commit hooks: adopted vs. dropped" for why that
+# gate is deferred to W5, when this repo has its own `scripts/` to port it
+# into). Tighten these to SHAs when that gate lands.
+on:
+  push:
+    branches:
+      - 'main'
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build docs site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+
+      - name: Install mkdocs
+        run: pip install "mkdocs>=1.6,<2"
+
+      - name: Build site
+        run: mkdocs build --strict
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: deploy docs site
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

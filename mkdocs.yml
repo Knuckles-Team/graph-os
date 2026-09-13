@@ -1,0 +1,19 @@
+site_name: graph-os
+site_description: >-
+  The deployable composition for the agent-utilities agent plane — MCP server,
+  REST gateway, control plane, fleet gateway, agent-webui hosting, and
+  deployment tooling (RF-ADR-009).
+repo_url: https://github.com/Knuckles-Team/graph-os
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: readthedocs
+
+nav:
+  - Home: index.md
+  - Status: status.md
+
+markdown_extensions:
+  - tables
+  - fenced_code
