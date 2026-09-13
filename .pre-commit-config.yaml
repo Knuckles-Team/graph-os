@@ -127,6 +127,8 @@ repos:
   # secrets, privacy, dependencies, hygiene
   - id: dependency-audit
     stages: [pre-commit, manual]
+  - id: supply-chain
+    stages: [pre-commit, manual]
   - id: secret-history
     stages: [pre-push, manual]
   - id: security-sanitizer
@@ -148,9 +150,6 @@ repos:
     stages: [pre-commit, manual]
   - id: ci-gate-replica
     stages: [pre-push]
-  # NOT adopted yet: supply-chain. It fails on .github/workflows/pages.yml
-  # (workflow-wide `pages: write` / `id-token: write`, and three Pages actions
-  # pinned to major tags). See AGENTS.md "Shared hooks".
 
 - repo: local
   hooks:

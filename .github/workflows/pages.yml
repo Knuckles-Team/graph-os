@@ -6,14 +6,13 @@ name: Pages
 # including Pages, lives outside it). Runs on pushes to `main` only; PRs get no
 # preview deploy at scaffold size.
 #
-# NOTE on action pinning: `actions/checkout`, `actions/setup-python`, and
-# `astral-sh/setup-uv` are pinned to the exact commit SHAs agent-utilities'
-# own release.yml uses (verified there). The three Pages-specific actions
-# below are pinned to major version tags only — this repository does not yet
-# carry the shared `supply-chain` hook that would enforce full SHA pinning and
-# job-scoped write permissions (see AGENTS.md "Pre-commit hooks: adopted vs.
-# dropped"). Tighten these to SHAs, and scope the permissions, when that hook
-# is adopted.
+# NOTE on action pinning: `actions/checkout` and `actions/setup-python` are
+# pinned to the exact commit SHAs this repository's own release.yml uses
+# (verified there). The three Pages-specific actions below are now pinned to
+# full commit SHAs of each action's current release, and `pages`/`id-token`
+# write is scoped to the `deploy` job only — the shared `supply-chain` hook
+# (RF-ADR-009 SUPPLY-CHAIN lane) enforces both (see AGENTS.md "Pre-commit
+# hooks: adopted vs. dropped").
 on:
   push:
     branches:
@@ -26,8 +25,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages-${{ github.ref }}
@@ -52,9 +49,9 @@ jobs:
       - name: Build site
         run: mkdocs build --strict
 
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site
 
@@ -62,9 +59,12 @@ jobs:
     name: deploy docs site
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -150,16 +150,13 @@ though it trivially passes today), plus a local `pytest` hook (pre-push/manual).
 wiring gate, see below), `jscpd-differential`, `jscpd-census`,
 `scanner-versions`, `no-stub`, `stubs`, `env-sprawl`, `stdout-writes`,
 `swallowed-errors`, `event-loop-blocking`, `import-cycles`, `dependency-audit`
-(OSV — trivially passes today with `dependencies = []`), `secret-history`
+(OSV — trivially passes today with `dependencies = []`), `supply-chain`
+(`.github/workflows/pages.yml`'s three Pages actions are pinned to full commit
+SHAs and `pages`/`id-token` write is scoped to the `deploy` job only — RF-ADR-009
+SUPPLY-CHAIN lane), `secret-history`
 (pre-push), `security-sanitizer`, `tracked-privacy`, `root-hygiene`,
 `gitignore-convergence`, `sprawl`, `mermaid`, `pre-commit-patch-safety`,
 `ci-gate-replica-consistency` and `ci-gate-replica` (pre-push).
-
-**Not adopted yet:** the shared `supply-chain` hook. It fails on
-`.github/workflows/pages.yml` (workflow-wide `pages: write` and `id-token: write`
-instead of job-scoped permissions, and `actions/configure-pages`,
-`actions/upload-pages-artifact` and `actions/deploy-pages` pinned to major tags
-instead of full commit SHAs). Adopt it together with that Pages workflow fix.
 
 **Dropped**, grouped by reason — every hook agent-utilities/epistemic-graph run
 that is NOT in this repository's config:
