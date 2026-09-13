@@ -1,6 +1,6 @@
 # Reviewed register of dupehound findings that are NOT clones.
 #
-# See scripts/dupehound_ledger.py for what this is and, more importantly,
+# See the shared dupehound-changed hook (Knuckles-Team/pipelines) for what this is and, more importantly,
 # what it is not. Each entry pins the normalized text of BOTH functions:
 # change either one and the entry stops matching, the finding returns, and
 # a human re-reviews it. An entry matching no current finding fails the

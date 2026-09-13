@@ -1,5 +1,5 @@
-# Repository-root directory-justification manifest, read by
-# scripts/check_root_hygiene.py.
+# Repository-root justification manifest, read by the shared root-hygiene hook
+# (Knuckles-Team/pipelines).
 #
 # This is NOT a ratchet. A ratchet (a "baseline" a gate compares against
 # instead of an absolute standard) hides existing findings from view and only
@@ -9,22 +9,16 @@
 #     gate FAILURE, not a suppressed one;
 #   * it grows only by a deliberate human (or human-reviewed) edit that adds
 #     a one-line reason, never by a tool re-writing it to match the tree;
-#   * a listed entry that stops being tracked is ALSO a gate failure (see
-#     check_root_hygiene.py's stale-entry check).
+#   * a listed entry that stops being tracked is ALSO a gate failure.
 #
-# Every tracked root directory, and every tracked non-dot root file, must have
-# a line here. Conventional, self-describing dot-FILES (.gitignore,
-# .pre-commit-config.yaml, ...) are instead enumerated in
-# scripts/check_root_hygiene.py's ALLOWED_DOTFILES -- see that module's
-# docstring for why the split. Adapted from agent-utilities'/epistemic-graph's
-# own .repo-layout.toml for this repository's own (much smaller) tracked root.
+# Every tracked root directory, non-dot root file and root dot-file (this
+# manifest itself excepted) must have a line here.
 
 [dirs]
 graph_os = "the graph_os Python package: RF-ADR-009 Phase 5 module skeleton (mcp_server, fleet, gateway, control_plane, webui_host, deployment) plus the graph-os console entry point"
 tests = "the pytest suite: wiring tests proving the console entry point and every package under graph_os/ are live, imported members of the package"
 docker = "docker/DESIGN.md — a design note only; no Dockerfile ships yet (see that file for why, and what moves here in Migration Wave 5)"
 docs = "GitHub Pages source (mkdocs) — the published site is this repository's documentation surface, not this directory read directly (RF-ADR-009 §5)"
-scripts = "gate scripts (check_*.py, scanner_contract.py, ...) invoked by pre-commit/CI — see AGENTS.md 'Scanner hooks' for provenance"
 ".github" = "GitHub Actions workflow definitions (release.yml, pages.yml)"
 ".kiss" = "hand-authored KISS structural-rule thresholds (.kiss/kiss.toml); every other entry would be a regenerated analysis cache and stays gitignored"
 
@@ -33,7 +27,13 @@ scripts = "gate scripts (check_*.py, scanner_contract.py, ...) invoked by pre-co
 "CHANGELOG.md" = "release changelog, updated by the bump2version release flow"
 "CLAUDE.md" = "Claude Code project instructions (@AGENTS.md import)"
 "README.md" = "project readme"
-"pyproject.toml" = "package metadata, dependencies (currently none — see AGENTS.md), and the [tool.graph_os.scanners] pinned-tool contract"
+"pyproject.toml" = "package metadata, dependencies (currently none — see AGENTS.md), and the [tool.pipelines_hooks] shared-hook configuration"
 "mkdocs.yml" = "mkdocs site config for the GitHub Pages source in docs/"
 "uv.lock" = "uv lockfile"
-"dupehound-distinct.toml" = "reviewed-duplicate register read by scripts/check_dupehound.py — currently empty (see that file's own header)"
+"dupehound-distinct.toml" = "reviewed register of dupehound pairs that are not clones, read by the shared dupehound-changed hook — currently empty (see that file's own header)"
+
+[dotfiles]
+".bumpversion.cfg" = "bump2version release configuration"
+".gitignore" = "git exclusion patterns (carries the fleet-shared REQUIRED set)"
+".pre-commit-config.yaml" = "the combined pre-commit and pre-push suite, including the pinned shared hooks"
+".security-audit-allow.txt" = "risk-acceptance ledger read by the shared dependency-audit hook — currently empty"

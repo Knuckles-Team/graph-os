@@ -39,3 +39,14 @@ site/
 # Editors / OS
 .DS_Store
 *.swp
+
+# Fleet-shared entries required by the gitignore-convergence hook
+dist-*/
+target-*/
+.venv/
+.pytest_tmp/
+node_modules/
+reports/
+scratch/
+sdist/
+target/

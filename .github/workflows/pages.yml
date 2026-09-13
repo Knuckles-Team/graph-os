@@ -10,10 +10,10 @@ name: Pages
 # `astral-sh/setup-uv` are pinned to the exact commit SHAs agent-utilities'
 # own release.yml uses (verified there). The three Pages-specific actions
 # below are pinned to major version tags only — this repository does not yet
-# carry the `supply-chain-source-contract` gate that would enforce full SHA
-# pinning (see AGENTS.md "Pre-commit hooks: adopted vs. dropped" for why that
-# gate is deferred to W5, when this repo has its own `scripts/` to port it
-# into). Tighten these to SHAs when that gate lands.
+# carry the shared `supply-chain` hook that would enforce full SHA pinning and
+# job-scoped write permissions (see AGENTS.md "Pre-commit hooks: adopted vs.
+# dropped"). Tighten these to SHAs, and scope the permissions, when that hook
+# is adopted.
 on:
   push:
     branches:

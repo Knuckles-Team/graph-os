@@ -15,10 +15,9 @@
 # ⚠ NEVER run bare `kiss check` here -- it writes a self-calibrating
 #   .kissconfig that also disables four global rules. ALWAYS pass
 #   `--config .kiss/kiss.toml` and ONE path per invocation (KISS 0.4.10
-#   reports a false clean for a multi-path `check`). The two callers that do
-#   this correctly are scripts/check_kiss_staged.sh (the pre-commit hook)
-#   and the `kiss-census` hook in .pre-commit-config.yaml; go through one of
-#   those.
+#   reports a false clean for a multi-path `check`). The shared kiss-staged
+#   and kiss-census hooks (Knuckles-Team/pipelines) do this correctly; go
+#   through them.
 #
 # KISS 0.4.10 REQUIRES an explicit [python] table the moment it scans any
 # Python file — bare `kiss check --lang python` (no [python] table at all)

@@ -1,24 +1,15 @@
-# Adopts agent-utilities'/epistemic-graph's combined pre-commit/pre-push
-# suite where it applies to graph-os's current content. See AGENTS.md
-# "Pre-commit hooks: adopted vs. dropped" for the full accounting of every
-# hook AU/EG run that is NOT reproduced here, and why — the remainder are
-# AU-content-specific gates (concept governance, ontology, backend parity,
-# Rust wheel build, ...) with no equivalent in a pure-Python, pre-extraction
-# repository. Every scanner hook below (complexity, KISS, dupehound, jscpd,
-# security sanitizer, tracked-privacy, root hygiene, dependency audit,
-# secret-history) is copied from epistemic-graph — see AGENTS.md
-# "Scanner hooks: copied files and adaptations" for the source path/commit
-# of each and exactly what, if anything, was adapted.
+# Combined pre-commit and pre-push suite for graph-os.
 #
-# `exclude: ^scripts/` (below) matches the AU/EG convention: the gate
-# scripts themselves are exempt from the general lint/format/type-check
-# suite (ruff/mypy/bandit/codespell) — they carry their own governance
-# (copied-verbatim provenance, the dependency-readiness/pytest wiring
-# checks) and reformatting a verbatim copy would silently break the "copied
-# verbatim" claim in its header comment.
+# Tool hooks are adopted from agent-utilities'/epistemic-graph's suites where
+# they apply to a pure-Python package. Every repository-agnostic gate --
+# complexity, KISS, clones, secrets, privacy, hygiene and code shape -- comes
+# from the shared hook repository Knuckles-Team/pipelines at a pinned commit and
+# is configured in pyproject.toml [tool.pipelines_hooks]; no gate script is
+# copied into this repository. Shared hooks list `manual` so CI runs the
+# identical pinned hook with `--hook-stage manual`. See AGENTS.md "Pre-commit
+# hooks: adopted vs. dropped" for every AU/EG hook NOT reproduced here, and why.
 default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
-exclude: ^scripts/
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -61,7 +52,7 @@ repos:
   hooks:
   - id: vulture
     pass_filenames: false
-    args: [".", "--min-confidence", "95", "--exclude", ".venv,build,tests,scripts"]
+    args: [".", "--min-confidence", "95", "--exclude", ".venv,build,tests"]
 
 - repo: https://github.com/codespell-project/codespell
   rev: 2ccb47ff45ad361a21071a7eedda4c37e6ae8c5a # v2.4.2
@@ -94,27 +85,80 @@ repos:
     args: ["--locked"]
     stages: [pre-push, manual]
 
+# ── Shared gates (Knuckles-Team/pipelines, pinned) ─────────────────────────────
+- repo: https://github.com/Knuckles-Team/pipelines
+  rev: 8f9a755d97a4a03e069799fa853ba64c6bfecbf7 # refactor/shared-hooks (RF-ADR-009 SHARED-HOOKS)
+  hooks:
+  # scanners (pinned versions; never installed by a hook)
+  - id: complexity-staged
+    stages: [pre-commit, manual]
+  - id: kiss-staged
+    stages: [pre-commit, manual]
+  - id: dupehound-changed
+    stages: [pre-commit, manual]
+  - id: complexity-census
+    stages: [pre-push, manual]
+  # also graph-os's Python orphan-module wiring gate (.kiss/kiss.toml
+  # orphan_module_enabled = true): one whole-package pass, enforced
+  - id: kiss-census
+    stages: [pre-push, manual]
+  - id: jscpd-differential
+    stages: [pre-push, manual]
+  - id: jscpd-census
+    stages: [pre-push, manual]
+  - id: scanner-versions
+    stages: [pre-push, manual]
+  # code shape
+  - id: no-stub
+    stages: [pre-commit, manual]
+  - id: stubs
+    exclude: ^tests/
+    stages: [pre-commit, manual]
+  - id: env-sprawl
+    stages: [pre-commit, manual]
+  - id: stdout-writes
+    stages: [pre-commit, manual]
+  - id: swallowed-errors
+    stages: [pre-commit, manual]
+  - id: event-loop-blocking
+    stages: [pre-commit, manual]
+  - id: import-cycles
+    stages: [pre-commit, manual]
+  # secrets, privacy, dependencies, hygiene
+  - id: dependency-audit
+    stages: [pre-commit, manual]
+  - id: secret-history
+    stages: [pre-push, manual]
+  - id: security-sanitizer
+    stages: [pre-commit, manual]
+  - id: tracked-privacy
+    stages: [pre-commit, manual]
+  - id: root-hygiene
+    stages: [pre-commit, manual]
+  - id: gitignore-convergence
+    stages: [pre-commit, manual]
+  - id: sprawl
+    stages: [pre-commit, manual]
+  - id: mermaid
+    stages: [pre-commit, manual]
+  - id: pre-commit-patch-safety
+    stages: [pre-push, manual]
+  # CI replica
+  - id: ci-gate-replica-consistency
+    stages: [pre-commit, manual]
+  - id: ci-gate-replica
+    stages: [pre-push]
+  # NOT adopted yet: supply-chain. It fails on .github/workflows/pages.yml
+  # (workflow-wide `pages: write` / `id-token: write`, and three Pages actions
+  # pinned to major tags). See AGENTS.md "Shared hooks".
+
 - repo: local
   hooks:
-  # RF-ADR-009 §3: "Add a repository-manager validation ... that fails when
-  # any repository's declared or imported dependency points at a LATER
-  # phase. It runs in each repository's pre-push and in CI, so the order is
-  # enforced, not documented." graph-os is phase 5 — this is that check,
-  # wired from day one even though `dependencies = []` makes it trivially
-  # pass today.
-  #
-  # Entry differs from agent-utilities' own `dependency-readiness` hook in
-  # ONE deliberate way: it resolves the sibling `repository-manager`
-  # checkout from `git rev-parse --git-common-dir` (the SHARED git dir,
-  # stable across every linked worktree) rather than a `$PWD`-relative
-  # `../agents/repository-manager`. A plain relative path breaks the moment
-  # this repo is worked from a worktree under
-  # `${XDG_STATE_HOME}/repository-worktrees/graph-os/<branch>` instead of
-  # the canonical `agent-packages/graph-os` checkout — exactly the
-  # "gate discovery breaks in worktrees" defect this workspace has already
-  # hit with AU's own copy of this hook, and exactly the
-  # "per-repository pre-push wiring needs a repository-inferring mode"
-  # follow-up RF-ADR-009 §3 names. Falls back to PyPI (CI) same as AU's.
+  # RF-ADR-009 §3: fails when any declared or imported dependency points at a
+  # LATER phase; graph-os is phase 5. It resolves the sibling
+  # `repository-manager` checkout from `git rev-parse --git-common-dir` (the
+  # shared git dir, stable across linked worktrees) rather than a
+  # `$PWD`-relative path, which breaks in a worktree. Falls back to PyPI (CI).
   - id: dependency-readiness
     name: Dependency readiness — no declared/imported dependency points at a later RF-ADR-009 phase
     entry: >-
@@ -128,193 +172,6 @@ repos:
     pass_filenames: false
     always_run: true
     stages: [manual, pre-push]
-
-  # ---- Complexity (cccc), diff-scoped. Adapted from epistemic-graph's
-  # scripts/check_complexity_staged.py — see AGENTS.md for the exact source
-  # commit and the one adaptation (the Rust exhaustive-dispatch exemption is
-  # removed, not ported: it can never apply to Python source).
-  - id: complexity-staged
-    name: Complexity (cccc) — no NEW function over cyclomatic 10 / cognitive 15, none regressed
-    entry: python3 scripts/check_complexity_staged.py
-    language: system
-    pass_filenames: false
-    always_run: true
-
-  # ---- KISS, diff-scoped (the branch refactor/eg-f56-registry-kiss
-  # behaviour, per this lane's instructions — not EG main's whole-file
-  # kiss-changed-rust). Also THIS REPOSITORY'S PYTHON ORPHAN-MODULE WIRING
-  # GATE: `.kiss/kiss.toml` sets `orphan_module_enabled = true`, and KISS
-  # 0.4.10 natively flags an isolated Python module (no production fan-in/
-  # fan-out, no test-only import edge, not a recognized entry point) — see
-  # AGENTS.md "Orphan-module wiring gate" for why this is used instead of a
-  # hand-written script, and the plant-and-fire proof.
-  - id: kiss-changed-python
-    name: KISS — changed Python source (one path per invocation)
-    entry: bash scripts/check_kiss_staged.sh
-    language: system
-    pass_filenames: false
-    always_run: true
-    stages: [pre-commit]
-
-  # ---- KISS whole-tree census (advisory; also runs the orphan-module rule
-  # over the whole package — graph-os's Python orphan-module wiring gate).
-  #
-  # Deliberately ONE whole-directory invocation (`kiss check ... graph_os`),
-  # NOT a per-file loop: KISS's `orphan_module` rule needs the whole
-  # project's import graph to prove a module has zero production/test-only
-  # fan-in, so checking one file in isolation (no sibling context) never
-  # reports it — verified empirically (a planted orphan file was invisible
-  # to a single-file `kiss check`, and appeared the moment the SAME file was
-  # checked as part of a `kiss check ... graph_os` directory scan, which
-  # ALSO still reports every per-function/per-file finding for every file
-  # under it — a strict superset, not a narrower scan). A directory is ONE
-  # path, so this does not hit KISS 0.4.10's documented "false clean on
-  # multiple paths" defect (that defect is about passing several distinct
-  # path ARGUMENTS on one command line, e.g. `kiss check a.py b.py`).
-  - id: kiss-census
-    name: KISS — tracked Python census + orphan-module gate (advisory findings; orphan_module is enforced)
-    entry: |-
-      bash -c '
-      set -euo pipefail
-      expected="$(PYTHONPATH=scripts python3 -c "from scanner_contract import load_contract; print(load_contract().kiss_version)")" || { echo "kiss census: invalid scanner contract" >&2; exit 2; }
-      kiss_bin="${KISS_BIN:-kiss}"
-      command -v "$kiss_bin" >/dev/null 2>&1 || { echo "kiss census: KISS is not installed; install the pinned tool before running hooks" >&2; exit 2; }
-      got="$("$kiss_bin" --version 2>/dev/null)" || { echo "kiss census: kiss --version failed" >&2; exit 2; }
-      [ "$got" = "kiss $expected" ] || { echo "kiss census: expected kiss $expected, got $got" >&2; exit 2; }
-      [ -f .kiss/kiss.toml ] || { echo "kiss census: missing .kiss/kiss.toml" >&2; exit 2; }
-      [ ! -e .kissconfig ] || { echo "kiss census: .kissconfig is forbidden because it disables measured rules" >&2; exit 2; }
-      mapfile -d "" files < <(python3 scripts/list_scanner_sources.py kiss)
-      [ "${#files[@]}" -gt 0 ] || { echo "kiss census: no tracked Python source files" >&2; exit 2; }
-      set +e
-      output="$("$kiss_bin" check --config .kiss/kiss.toml --lang python graph_os 2>&1)"
-      status=$?
-      set -e
-      if grep -q "Unknown config key" <<< "$output"; then printf "%s\\n" "$output" >&2; echo "kiss census: KISS rejected a config key" >&2; exit 2; fi
-      if [ "$status" -gt 1 ]; then printf "%s\\n" "$output" >&2; echo "kiss census: KISS failed on graph_os with exit $status" >&2; exit 2; fi
-      count="$(grep -c "^VIOLATION:" <<< "$output" || true)"
-      if { [ "$status" -eq 0 ] && [ "$count" -ne 0 ]; } || { [ "$status" -eq 1 ] && [ "$count" -eq 0 ]; }; then printf "%s\\n" "$output" >&2; echo "kiss census: exit status and report disagree" >&2; exit 2; fi
-      orphan_count="$(grep -c "^VIOLATION:orphan_module:" <<< "$output" || true)"
-      printf "kiss census: %s tracked Python file(s), %s violation(s) (%s orphan_module); non-orphan findings are advisory\\n" "${#files[@]}" "$count" "$orphan_count"
-      if [ "$orphan_count" -gt 0 ]; then
-        grep "^VIOLATION:orphan_module:" <<< "$output" >&2
-        echo "kiss census: FAIL: orphan_module is enforced, not advisory (RF-ADR-009 orphan-module wiring gate)" >&2
-        exit 1
-      fi
-      exit 0
-      '
-    language: system
-    pass_filenames: false
-    always_run: true
-    require_serial: true
-    stages: [pre-push, manual]
-
-  # ---- CCCC whole-tree census (advisory). Adapted from epistemic-graph's
-  # inline cccc-census hook: `--lang` here is `cccc_languages_arg()`'s full
-  # registry (unchanged — cccc has one shared multi-language dispatcher),
-  # scoped to whatever `list_scanner_sources.py cccc` actually finds tracked
-  # (today: this repo's own `.py` files).
-  - id: cccc-census
-    name: CCCC — tracked source census (advisory; no baseline)
-    entry: |-
-      bash -c '
-      set -euo pipefail
-      expected="$(PYTHONPATH=scripts python3 -c "from scanner_contract import load_contract; print(load_contract().cccc_version)")" || { echo "cccc census: invalid scanner contract" >&2; exit 2; }
-      cccc_bin="${CCCC_BIN:-cccc}"
-      command -v "$cccc_bin" >/dev/null 2>&1 || { echo "cccc census: CCCC is not installed; install the pinned tool before running hooks" >&2; exit 2; }
-      got="$("$cccc_bin" --version 2>/dev/null)" || { echo "cccc census: cccc --version failed" >&2; exit 2; }
-      [ "$got" = "cccc $expected" ] || { echo "cccc census: expected cccc $expected, got $got" >&2; exit 2; }
-      report="$(mktemp "${TMPDIR:-/tmp}/graphos-cccc-census.XXXXXX.json")"
-      trap "rm -f \"$report\"" EXIT
-      mapfile -d "" files < <(python3 scripts/list_scanner_sources.py cccc)
-      [ "${#files[@]}" -gt 0 ] || { echo "cccc census: no tracked CCCC-supported source files" >&2; exit 2; }
-      languages="$(PYTHONPATH=scripts python3 -c "from scanner_contract import cccc_languages_arg; print(cccc_languages_arg())")" || { echo "cccc census: invalid language registry" >&2; exit 2; }
-      "$cccc_bin" --no-config --min 0 --lang "$languages" "${files[@]}" > "$report"
-      python3 scripts/validate_cccc_census.py "$report"
-      python3 scripts/report_complexity_terms.py "$report"
-      '
-    language: system
-    pass_filenames: false
-    always_run: true
-    require_serial: true
-    stages: [pre-push, manual]
-
-  # ---- Dupehound, changed functions only. Copied verbatim (see AGENTS.md).
-  - id: dupehound-changed-functions
-    name: Dupehound — changed functions only (no new structural clones)
-    entry: python3 scripts/check_dupehound.py
-    language: system
-    pass_filenames: false
-    always_run: true
-    stages: [pre-commit]
-
-  # ---- jscpd, differential + census. Copied verbatim (see AGENTS.md).
-  - id: jscpd-differential
-    name: jscpd — differential clone gate (new pairs only)
-    entry: python3 scripts/check_duplication.py enforce
-    language: system
-    pass_filenames: false
-    require_serial: true
-    stages: [pre-push, manual]
-  - id: jscpd-census
-    name: jscpd — tracked-tree census (advisory; no baseline)
-    entry: python3 scripts/check_duplication.py census
-    language: system
-    pass_filenames: false
-    require_serial: true
-    stages: [pre-push, manual]
-
-  # ---- Security and garbage sanitizer. Copied verbatim (see AGENTS.md).
-  - id: security-sanitizer
-    name: Security and Garbage Sanitizer
-    entry: python scripts/security_sanitizer.py
-    language: python
-    pass_filenames: false
-    always_run: true
-
-  # ---- Tracked-artifact privacy gate. Copied verbatim (see AGENTS.md) —
-  # NOT scoped, despite being expensive: a privacy leak (hostname, local
-  # path, identity) can land in ANY tracked file type, not just one
-  # directory, so no `files:` regex narrower than "everything tracked" can
-  # be proven not to miss one.
-  - id: guardrail-tracked-privacy
-    name: Guardrail — tracked public artifacts contain no host-specific data or local identities
-    entry: python3 scripts/check_tracked_privacy.py
-    language: system
-    pass_filenames: false
-    always_run: true
-
-  # ---- Root hygiene (allowlist-based). Adapted from epistemic-graph's
-  # scripts/check_root_hygiene.py — see AGENTS.md for the one adaptation
-  # (ALLOWED_DOTFILES is this repository's own tracked set).
-  - id: check-root-hygiene
-    name: Repository root hygiene (manifest-declared entries only)
-    entry: python3 scripts/check_root_hygiene.py
-    language: system
-    pass_filenames: false
-    always_run: true
-
-  # ---- Python dependency CVE audit (OSV). Copied verbatim (see AGENTS.md).
-  # No dependencies today (`dependencies = []`), so this trivially passes
-  # once uv.lock exists — wired from day one per the same "enforced, not
-  # documented" reasoning as dependency-readiness above.
-  - id: dependency-audit
-    name: audit Python dependencies for known CVEs (OSV)
-    entry: python3 scripts/audit_dependencies.py uv.lock
-    language: system
-    files: ^(uv\.lock|pyproject\.toml|\.security-audit-allow\.txt|scripts/audit_dependencies\.py)$
-    pass_filenames: false
-
-  # ---- Secret-history scan (D-CIP-13 lineage). Copied verbatim (see
-  # AGENTS.md). Mirrors agent-utilities' own convention: release-critical in
-  # CI (release.yml), and available locally as a manual-stage hook —
-  # `pre-commit run check-secret-history --hook-stage manual --all-files`.
-  - id: check-secret-history
-    name: Secret-history scan (not-yet-pushed commit range)
-    entry: python3 scripts/security/check_secret_history.py --base origin/main
-    language: system
-    pass_filenames: false
-    always_run: true
-    stages: [manual]
 
   - id: pytest
     name: pytest (full suite)

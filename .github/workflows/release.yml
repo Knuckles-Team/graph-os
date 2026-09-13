@@ -7,22 +7,19 @@ name: Release
 # a failure names its stage at a glance). Everything else (Pages) lives in
 # its own workflow.
 #
-# `scanner-quality` mirrors epistemic-graph's job of the same name: it
-# provisions the pinned cccc/kiss/dupehound/jscpd toolchain on the runner
-# (hooks never install scanners) and runs the differential + whole-tree-
-# census forms of every scanner hook in .pre-commit-config.yaml, plus the
-# security/privacy/hygiene gates. It does NOT re-run `complexity-staged`
-# (cccc, diff-scoped) or `kiss-changed-python` (KISS, diff-scoped): both
-# compare the STAGED INDEX against HEAD (`git diff --cached`), which is
-# empty on a fresh CI checkout with nothing staged — exactly why
-# epistemic-graph's own release.yml runs only the CENSUS form of each in
-# CI too (see that repo's `lint-and-architecture` job). The staged-diff
-# forms are real local pre-commit/pre-push gates, not CI-portable ones.
+# Every gate is a shared hook from Knuckles-Team/pipelines, run through
+# pre-commit at the revision pinned in .pre-commit-config.yaml, so CI and the
+# local hooks can never run different gate code. `scanner-quality` provisions
+# the pinned cccc/kiss/dupehound/jscpd toolchain on the runner (hooks never
+# install scanners) and runs the census and differential forms. The
+# diff-scoped `complexity-staged` / `kiss-staged` hooks compare the staged
+# index with HEAD, which is empty on a fresh checkout, so CI runs the census
+# forms instead. The `ci-gate-replica` hook replays `gates` and `build`
+# locally before a push.
 #
-# Deliberately SMALLER than epistemic-graph's release.yml in other ways
-# still appropriate at scaffold size: no numeric-runtime-gate (this is a
-# pure-Python package with no native/engine wheel) and no docker publish
-# job (the image build stays in agent-utilities until RF-ADR-009 Migration
+# Deliberately smaller than epistemic-graph's release.yml at scaffold size:
+# no numeric-runtime-gate (pure-Python package) and no docker publish job
+# (the image build stays in agent-utilities until RF-ADR-009 Migration
 # Wave 5 moves it here — see `docker/DESIGN.md`).
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -38,6 +35,7 @@ on:
       - 'tests/**'
       - 'pyproject.toml'
       - 'uv.lock'
+      - '.pre-commit-config.yaml'
       - '.github/workflows/release.yml'
 
 concurrency:
@@ -52,11 +50,9 @@ jobs:
     name: gates
     runs-on: ubuntu-latest
     steps:
-      # YAML anchors (reused verbatim by `build` below) — jscpd's own
-      # differential gate (jscpd-differential) flagged the un-anchored,
-      # copy-pasted checkout/setup-python/setup-uv preamble as a new
-      # same-file duplicate the first time this workflow grew a second job;
-      # this is the fix, not a jscpd exclusion.
+      # YAML anchors, reused by `scanner-quality` and `build`: jscpd's
+      # differential gate flags a copy-pasted preamble as a new same-file
+      # duplicate; this is the fix, not a jscpd exclusion.
       - &release-checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -68,23 +64,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Secret-history scan (mirrors agent-utilities'/epistemic-graph's
-      # D-CIP-13 gate). Stdlib-only; no environment sync needed. Scans the
-      # patch text this push/PR actually introduces.
-      - name: Secret-history scan
-        run: |
-          set -euo pipefail
-          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
-          if [ -z "${BASE:-}" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE" 2>/dev/null; then
-            if git rev-parse --verify --quiet HEAD~1 >/dev/null; then
-              BASE="HEAD~1"
-            else
-              BASE="$(git rev-list --max-parents=0 HEAD)"
-            fi
-          fi
-          echo "Scanning ${BASE}..HEAD for credential-shaped content"
-          python3 scripts/security/check_secret_history.py --base "$BASE"
-
       - &release-uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
@@ -92,11 +71,42 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
 
+      # The base the differential hooks compare against: the pull request base
+      # or the previous push, else the root commit (a first push scans all of
+      # it). An unavailable object is never an invented empty baseline.
+      - &release-base
+        name: Resolve the published base
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "${BASE:-}" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE" 2>/dev/null; then
+            BASE="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          echo "PRE_COMMIT_FROM_REF=$BASE" >> "$GITHUB_ENV"
+          echo "CX_DUP_BASE_REF=$BASE" >> "$GITHUB_ENV"
+
+      - name: Shared security, code-shape and hygiene hooks
+        run: |
+          set -euo pipefail
+          for hook in secret-history dependency-audit security-sanitizer root-hygiene gitignore-convergence sprawl mermaid no-stub stubs env-sprawl stdout-writes swallowed-errors event-loop-blocking import-cycles ci-gate-replica-consistency; do
+            uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
+          done
+
+      # The prohibited-identity catalog is operator-owned and never committed;
+      # a missing catalog makes the hook fail closed.
+      - name: Tracked-artifact privacy (identity catalog from the repository variable)
+        env:
+          PROHIBITED_IDENTITY_CATALOG: ${{ vars.PROHIBITED_IDENTITY_CATALOG }}
+        run: |
+          set -euo pipefail
+          if [ -n "${PROHIBITED_IDENTITY_CATALOG:-}" ]; then
+            mkdir -p "$HOME/.config/agent-utilities/governance"
+            printf '%s' "$PROHIBITED_IDENTITY_CATALOG" > "$HOME/.config/agent-utilities/governance/prohibited-identities.json"
+          fi
+          uvx --from pre-commit==4.6.0 pre-commit run tracked-privacy --hook-stage manual --all-files
+
       - name: Sync test environment
         run: uv sync --frozen --extra test
-
-      - name: Dependency vulnerability audit (OSV)
-        run: uv run --no-sync python3 scripts/audit_dependencies.py uv.lock
 
       - name: Lint (ruff)
         run: uv run --no-sync ruff check .
@@ -110,32 +120,12 @@ jobs:
       - name: Test suite
         run: uv run --no-sync pytest
 
-      - name: Security and garbage sanitizer
-        run: uv run --no-sync python3 scripts/security_sanitizer.py
-
-      - name: Tracked-artifact privacy gate
-        run: uv run --no-sync python3 scripts/check_tracked_privacy.py
-
-      - name: Repository root hygiene
-        run: uv run --no-sync python3 scripts/check_root_hygiene.py
-
-  # ── Scanner + duplication quality. Mirrors epistemic-graph's job of the
-  # same name: provisions the pinned native scanner toolchain on an
-  # ephemeral runner (this CI lane IS the reproducible provisioning
-  # boundary; pre-commit hooks never download a scanner) and runs the
-  # differential + whole-tree-census form of each.
   scanner-quality:
     name: Scanner quality (cccc, KISS, dupehound, jscpd)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: '3.12'
+      - *release-checkout
+      - *release-python
 
       - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
         with:
@@ -145,41 +135,8 @@ jobs:
         with:
           node-version: '22'
 
-      # Pull-request base SHA is authoritative for the differential clone
-      # gates. On a push, github.event.before is the previous commit. A
-      # zero/empty base (first push) falls back to the immediate parent,
-      # then the root commit; an unavailable object is an environment
-      # failure, never an invented empty baseline.
-      - name: Resolve scanner base commit
-        shell: bash
-        env:
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_BASE_REF: ${{ github.base_ref }}
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          set -euo pipefail
-          base="${PR_BASE_SHA:-${PUSH_BEFORE_SHA:-}}"
-          case "$base" in
-            ""|0000000000000000000000000000000000000000) base="" ;;
-          esac
-          if [ -z "$base" ]; then
-            base="$(git rev-parse --verify HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)"
-          fi
-          if ! git cat-file -e "${base}^{commit}" 2>/dev/null && [ -n "${PR_BASE_REF:-}" ]; then
-            git fetch --no-tags --depth=1 origin "refs/heads/${PR_BASE_REF}:refs/remotes/origin/${PR_BASE_REF}"
-          fi
-          if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
-            git fetch --no-tags --depth=1 origin "$base"
-          fi
-          resolved="$(git rev-parse --verify "${base}^{commit}")"
-          git cat-file -e "${resolved}^{commit}"
-          printf 'CX_DUP_BASE_REF=%s\n' "$resolved" >> "$GITHUB_ENV"
-
-      # Each scanner is installed to its own runner-local --root/prefix,
-      # exactly matching the version pinned in
-      # pyproject.toml [tool.graph_os.scanners] (scripts/scanner_contract.py
-      # fails closed on any drift). Hooks never install scanners themselves;
-      # this CI lane is the reproducible provisioning boundary.
+      # Each scanner is installed to its own runner-local --root/prefix at the
+      # version the shared scanner-versions hook verifies.
       - name: Provision pinned scanner toolchain
         shell: bash
         run: |
@@ -195,53 +152,14 @@ jobs:
             echo "$bin_dir" >> "$GITHUB_PATH"
           done
 
-      - name: Verify scanner versions
-        shell: bash
+      - *release-base
+
+      - name: Shared scanner hooks (versions, censuses incl. orphan modules, clone differentials)
         run: |
           set -euo pipefail
-          test "$(cccc --version)" = "cccc 1.6.0"
-          test "$(kiss --version)" = "kiss 0.4.10"
-          test "$(dupehound --version)" = "dupehound 0.1.2"
-          test "$(jscpd --version)" = "cpd 5.0.16"
-
-      - name: CCCC tracked-tree census (advisory)
-        run: |
-          set -euo pipefail
-          report="$RUNNER_TEMP/graph-os-cccc-census.json"
-          mapfile -d "" files < <(python3 scripts/list_scanner_sources.py cccc)
-          languages="$(PYTHONPATH=scripts python3 -c "from scanner_contract import cccc_languages_arg; print(cccc_languages_arg())")"
-          cccc --no-config --min 0 --lang "$languages" "${files[@]}" > "$report"
-          python3 scripts/validate_cccc_census.py "$report"
-          python3 scripts/report_complexity_terms.py "$report"
-
-      # KISS orphan-module gate + advisory census in one whole-directory
-      # invocation — see the identical .pre-commit-config.yaml `kiss-census`
-      # hook's comment for why this must be a directory scan, not a
-      # per-file loop.
-      - name: KISS tracked-tree census + orphan-module gate
-        run: |
-          set -euo pipefail
-          [ -f .kiss/kiss.toml ] || { echo "missing .kiss/kiss.toml" >&2; exit 2; }
-          [ ! -e .kissconfig ] || { echo ".kissconfig is forbidden" >&2; exit 2; }
-          set +e
-          output="$(kiss check --config .kiss/kiss.toml --lang python graph_os 2>&1)"
-          status=$?
-          set -e
-          if grep -q "Unknown config key" <<< "$output"; then printf '%s\n' "$output" >&2; exit 2; fi
-          if [ "$status" -gt 1 ]; then printf '%s\n' "$output" >&2; exit 2; fi
-          printf '%s\n' "$output"
-          if grep -q "^VIOLATION:orphan_module:" <<< "$output"; then
-            echo "orphan_module is enforced, not advisory" >&2
-            exit 1
-          fi
-
-      - name: Dupehound differential gate (changed functions)
-        run: python3 scripts/check_dupehound.py --base-ref "$CX_DUP_BASE_REF"
-
-      - name: jscpd differential gate (new pairs)
-        run: python3 scripts/check_duplication.py enforce --base-ref "$CX_DUP_BASE_REF"
-      - name: jscpd tracked-tree census (advisory)
-        run: python3 scripts/check_duplication.py census
+          for hook in scanner-versions complexity-census kiss-census dupehound-changed jscpd-differential jscpd-census; do
+            uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
+          done
 
   build:
     name: build

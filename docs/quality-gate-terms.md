@@ -23,28 +23,27 @@ both). The test is mechanical, and identical here:
 * A finding that is accepted is still **counted and printed**.
 * `.kissconfig` must never exist. Bare `kiss check` writes one,
   self-calibrated from what the repo currently passes, and silently
-  disables four global rules. The `kiss-census` hook fails if the file is
+  disables four global rules. The shared KISS hooks fail if the file is
   present.
 
-## CCCC — no exemption here (yet)
+## CCCC — the shared terms of acceptance
 
-Caps are `scanner_contract.CCCC_MAX_CYCLOMATIC = 10` and
-`CCCC_MAX_COGNITIVE = 15`, enforced on the diff by `complexity-staged` and
-reported over the whole tree by `cccc-census`.
+Caps are cyclomatic 10 and cognitive 15, enforced on the diff by the shared
+`complexity-staged` hook and over the whole package by `complexity-census`
+(both from Knuckles-Team/pipelines).
 
-epistemic-graph carries a Rust-only exhaustive-dispatch exemption for the
-cyclomatic cap (`scripts/rust_exhaustive_match.py`) that this repository
-deliberately does **not** port — see `check_complexity_staged.py`'s module
-docstring for why (zero `.rs` files here; the exemption would be
-permanently-dead machinery). Every function in this repository is judged on
-the caps alone, with no discount.
+The shared hooks carry exactly one rule about a class of code, ported from
+epistemic-graph: a Rust exhaustive `match` (no catch-all arm, residual
+cyclomatic complexity within the cap) may exceed the cyclomatic cap, never the
+cognitive cap. It can only apply to `.rs` files, and this repository has none,
+so every function here is judged on the caps alone, with no discount.
 
 If a genuinely irreducible complexity case ever arises here (some class of
 Python code where the cyclomatic/cognitive caps measure the wrong thing —
-the same shape of argument EG makes for Rust `match` dispatch), the fix is
-the same one `check_complexity_staged.py`'s own advice text names: argue for
-a documented rule about that CLASS of code, with the measurement attached,
-and add it to this page. Never raise a threshold, never suppress inline.
+the same shape of argument EG makes for Rust `match` dispatch), argue for a
+documented rule about that CLASS of code, with the measurement attached, add
+it to the shared hook and to this page. Never raise a threshold, never
+suppress inline.
 
 ## KISS — this repository's own thresholds
 
@@ -59,26 +58,22 @@ recalibrate a threshold only against a measured percentile, with the
 measurement written down next to the number, never against "what currently
 passes."
 
-### Orphan-module rule — enforced, not advisory
+### Orphan-module rule — enforced
 
-Unlike every other KISS finding `kiss-census` reports (which are advisory),
-`orphan_module` is a hard failure here — see AGENTS.md "Orphan-module wiring
-gate (Python)" for the full rationale and the plant-and-fire proof.
+`kiss-census` enforces every KISS finding over the package, and with
+`orphan_module_enabled = true` it also runs one whole-package orphan-module
+pass — see AGENTS.md "Orphan-module wiring gate (Python)".
 
 ## Running the scanners
 
 ```bash
-pre-commit run complexity-staged --all-files        # cccc, on the diff
-pre-commit run kiss-changed-python --all-files       # KISS, on the diff
-pre-commit run cccc-census --hook-stage manual        # whole tree
-pre-commit run kiss-census --hook-stage manual        # whole tree + orphan_module
-pre-commit run dupehound-changed-functions --all-files
-pre-commit run jscpd-differential --hook-stage manual
-pre-commit run jscpd-census --hook-stage manual
+pre-commit run complexity-staged                        # cccc, on the staged diff
+pre-commit run kiss-staged                              # KISS, on the staged diff
+pre-commit run complexity-census --hook-stage manual --all-files
+pre-commit run kiss-census --hook-stage manual --all-files    # whole package + orphan_module
+pre-commit run dupehound-changed
+pre-commit run jscpd-differential --hook-stage manual --all-files
+pre-commit run jscpd-census --hook-stage manual --all-files
 ```
 
 Never run bare `kiss check` — it writes the self-calibrating `.kissconfig`.
-Always pass `--config .kiss/kiss.toml`; a directory target is required for
-the `orphan_module` rule to see the whole package's import graph (a
-single-file target reports every other rule normally but never
-`orphan_module` — verified empirically, see AGENTS.md).
