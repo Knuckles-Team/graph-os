@@ -17,6 +17,7 @@
 [dirs]
 graph_os = "the graph_os Python package: RF-ADR-009 Phase 5 module skeleton (mcp_server, fleet, gateway, control_plane, webui_host, deployment) plus the graph-os console entry point"
 tests = "the pytest suite: wiring tests proving the console entry point and every package under graph_os/ are live, imported members of the package"
+deploy = "graph-os deployment profile inputs (dev/test/prod) consumed by graph_os.deployment.genesis_environments"
 docker = "docker/DESIGN.md — a design note only; no Dockerfile ships yet (see that file for why, and what moves here in Migration Wave 5)"
 docs = "GitHub Pages source (mkdocs) — the published site is this repository's documentation surface, not this directory read directly (RF-ADR-009 §5)"
 ".github" = "GitHub Actions workflow definitions (release.yml, pages.yml)"
@@ -27,7 +28,8 @@ docs = "GitHub Pages source (mkdocs) — the published site is this repository's
 "CHANGELOG.md" = "release changelog, updated by the bump2version release flow"
 "CLAUDE.md" = "Claude Code project instructions (@AGENTS.md import)"
 "README.md" = "project readme"
-"pyproject.toml" = "package metadata, dependencies (currently none — see AGENTS.md), and the [tool.pipelines_hooks] shared-hook configuration"
+"genesis.yaml" = "graph-os deployment run-plan manifest consumed by graph_os.deployment.genesis_environments"
+"pyproject.toml" = "package metadata, deployment runtime dependencies/scripts, and the [tool.pipelines_hooks] shared-hook configuration"
 "mkdocs.yml" = "mkdocs site config for the GitHub Pages source in docs/"
 "uv.lock" = "uv lockfile"
 "dupehound-distinct.toml" = "reviewed register of dupehound pairs that are not clones, read by the shared dupehound-changed hook — currently empty (see that file's own header)"

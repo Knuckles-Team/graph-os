@@ -15,12 +15,20 @@ classifiers = [
 ]
 requires-python = ">=3.12,<3.15"
 license = "MIT"
-# W5 extraction follows Wire-First: these are the packages imported by the
-# populated control-plane and gateway surfaces. Connector clients used by
-# individual widgets remain optional and are imported only when configured.
+# W5 extraction follows Wire-First: these are the runtime packages imported by
+# the populated gateway, control-plane, and host-deployment surfaces. Connector
+# clients used by individual widgets remain lazy and optional.
 dependencies = [
-    "agent-utilities>=2.5.0,<3",
+    # Portable development binding below resolves the not-yet-published AU 2.5
+    # workspace release; released wheels retain this real PEP 508 floor.
+    "agent-utilities>=2.5.0,<3.0.0",
+    # Production operations and the canary call the public client/numeric
+    # surface directly; AU's transitive requirement is not enough for this
+    # package's own imports.  The local AU binding supplies the workspace EG
+    # source through its own .uv-workspace-siblings declaration.
+    "epistemic-graph>=2.27.0,<3.0.0",
     "fastapi>=0.139.2",
+    "filelock>=3.32.0",
     "prometheus-client>=0.25.0",
     "pydantic>=2.13.4,<3.0.0",
     "PyYAML>=6.0.3",
@@ -47,6 +55,11 @@ test = [
 [project.scripts]
 graph-os = "graph_os.cli:main"
 graph-os-daemon = "graph_os.gateway.daemon:main"
+graph-os-release-canary = "graph_os.deployment.release_canary:main"
+graph-os-production-ops = "graph_os.deployment.production_ops:main"
+setup-config = "graph_os.deployment.cli:main"
+agent-utilities-doctor = "graph_os.deployment.doctor:main"
+agent-utilities-venv = "graph_os.deployment.venv_sync:main"
 
 # Portable development binding for the not-yet-published AU 2.5 release.
 # The path is ignored and supplied as a local symlink; package metadata keeps
@@ -68,6 +81,11 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# The deployment sources are extracted from AU's intentionally documented
+# operator-facing style (long remediation/doc strings and guarded imports).
+# Keep the same narrow exceptions while retaining import, correctness, and
+# modern-Python checks for the new graph-os wiring.
+ignore = ["E402", "E501", "B007"]
 
 [tool.mypy]
 python_version = "3.12"

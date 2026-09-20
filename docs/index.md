@@ -15,3 +15,8 @@ published via GitHub Pages CI (`.github/workflows/pages.yml`) — per RF-ADR-009
 `/docs` folder read directly on GitHub.
 
 See [Status](status.md) for where this repository stands today.
+
+The deployment lane is the first W5 host-mechanics extraction. Its `setup-config`,
+`agent-utilities-doctor`, `agent-utilities-venv`, `graph-os-release-canary`, and
+`graph-os-production-ops` scripts are implemented in `graph_os.deployment`;
+service/MCP cutover remains a separate lane.

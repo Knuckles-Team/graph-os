@@ -5,10 +5,10 @@
 
 ## Status: Migration Wave 5 extraction in progress
 
-The REST gateway and `graph-os-daemon` host are now populated in
-`graph_os.gateway`. The live deployment still starts the AU entrypoints, and
-the MCP/fleet application adapter remains a G2 cutover obligation. Other
-composition surfaces are being extracted independently. The service is deployed by
+The REST gateway, control plane, WebUI host, fleet catalog adapter, and
+host-facing deployment mechanics are populated here. The live deployment still
+starts the AU MCP/composition entrypoints, and the MCP/fleet application adapter
+remains a G2 cutover obligation. The service is deployed by
 `services/graph-os` — see `services/graph-os/AGENTS.md` and
 `inventory/k8s-migration/GRAPHOS-LOCAL-REDEPLOY.md` in the workspace for the
 current, live topology. Nothing in that deployment changes because this
@@ -17,6 +17,8 @@ repository exists.
 Gateway request handlers consume `GatewayApplicationPort`; they do not import
 AU's `kg_server` or multiplexer implementations. G2 must install the adapter
 before calling `register_graph_routes()`.
+The `graph-os` shell remains non-serving until the MCP lane lands. Deployment
+commands under `graph_os.deployment` are directly owned and tested here.
 
 ## Role in Agent OS Architecture (target, RF-ADR-009 §2/§2.4)
 
@@ -49,7 +51,7 @@ Packages are populated incrementally by the Wave 5 lanes:
 | `graph_os.gateway` | REST gateway + gateway host daemon + dashboard (populated; deployment cutover pending) | `agent_utilities/gateway/` |
 | `graph_os.control_plane` | fleet reconciliation, action-policy enforcement | `agent_utilities/control_plane/` |
 | `graph_os.webui_host` | agent-webui hosting (the webui co-service) | `agent_utilities/server/webui_co_service.py` |
-| `graph_os.deployment` | deployment doctor, release canary, production ops | `agent_utilities/deployment/` |
+| `graph_os.deployment` | deployment doctor, release canary, production ops | **extracted host mechanics** |
 
 ## W5 source measurements (measured 2026-09-12)
 
@@ -64,7 +66,7 @@ the sizes Migration Wave 5 (RF-ADR-009 §7) will actually move — not estimates
 | `agent_utilities/gateway/` | 14,045 | `graph_os.gateway` |
 | `agent_utilities/control_plane/` | 17,856 | `graph_os.control_plane` |
 | `agent_utilities/server/webui_co_service.py` | 176 | `graph_os.webui_host` |
-| `agent_utilities/deployment/` | 18,989 | `graph_os.deployment` |
+| `agent_utilities/deployment/` | 18,989 | `graph_os.deployment` (host mechanics extracted) |
 | **Total** | **65,645** | |
 
 These figures match the RF-ADR-009 §1 subsystem table (`mcp/` 71,100 total —
@@ -73,26 +75,27 @@ being the AU-retained multiplexer skill/prompt-harvest and server-scaffolding
 code that moves to agent-connector-sdk, not here; `gateway/` 14,045;
 `control_plane/` 17,856; `deployment/` 18,989 — all four exact matches).
 
-### Console scripts that belong to graph-os (from agent-utilities' `pyproject.toml`)
+### Console scripts and current ownership
 
-Every `[project.scripts]` entry whose target module falls under one of the six
-paths above — these move to this repository's own `[project.scripts]` in W5,
-replacing today's single placeholder (`graph-os = "graph_os.cli:main"`):
+The host-mechanics entries below now point directly to this repository's
+`graph_os.deployment` modules. The service shell and gateway daemon remain
+separate extraction lanes; AU release/certification and analytics/connector
+certification entries stay in their owning repositories.
 
 | Script | Target (today) | Destination package |
 |---|---|---|
-| `graph-os` | `agent_utilities.mcp.kg_server:mcp_server` | `graph_os.mcp_server` |
+| `graph-os` | `graph_os.cli:main` (temporary non-serving shell) | MCP extraction lane |
 | `graph-os-daemon` | `agent_utilities.gateway.daemon:main` | `graph_os.gateway` |
-| `graph-os-release-canary` | `agent_utilities.deployment.release_canary:main` | `graph_os.deployment` |
-| `graph-os-certify-skills` | `agent_utilities.deployment.skill_validation:main` | `graph_os.deployment` |
-| `graph-os-generate-skill-runtime-profile` | `agent_utilities.deployment.skill_validation_assets:profile_main` | `graph_os.deployment` |
-| `graph-os-generate-skill-certification` | `agent_utilities.deployment.skill_validation_assets:generator_main` | `graph_os.deployment` |
-| `graph-os-skill-readiness` | `agent_utilities.deployment.skill_validation_assets:readiness_main` | `graph_os.deployment` |
-| `graph-os-verify-skill-certification` | `agent_utilities.deployment.skill_validation_assets:verifier_main` | `graph_os.deployment` |
-| `graph-os-production-ops` | `agent_utilities.deployment.production_ops:main` | `graph_os.deployment` |
-| `setup-config` | `agent_utilities.deployment.cli:main` | `graph_os.deployment` |
-| `agent-utilities-doctor` | `agent_utilities.deployment.doctor:main` | `graph_os.deployment` |
-| `agent-utilities-venv` | `agent_utilities.deployment.venv_sync:main` | `graph_os.deployment` |
+| `graph-os-release-canary` | `graph_os.deployment.release_canary:main` | **extracted** |
+| `graph-os-production-ops` | `graph_os.deployment.production_ops:main` | **extracted** |
+| `setup-config` | `graph_os.deployment.cli:main` | **extracted** |
+| `agent-utilities-doctor` | `graph_os.deployment.doctor:main` | **extracted** |
+| `agent-utilities-venv` | `graph_os.deployment.venv_sync:main` | **extracted** |
+
+The skill-certification scripts (`graph-os-certify-skills`,
+`graph-os-generate-skill-runtime-profile`, `graph-os-generate-skill-certification`,
+`graph-os-skill-readiness`, and `graph-os-verify-skill-certification`) remain
+AU-owned and are intentionally not declared by graph-os.
 
 **Named but NOT moving here**, despite the `graph-os-` prefix — a naming
 inconsistency in agent-utilities today, not a graph-os target, worth flagging
@@ -111,9 +114,15 @@ label, not as this repository); they stay in agent-utilities.
 
 ## Target dependencies (Wire-First)
 
-Dependencies are declared only when importing code lands. The gateway declares
-agent-utilities, FastAPI, Starlette, Pydantic, and PyYAML; connector packages
-remain optional because widgets import them only when configured.
+Dependencies are declared only when importing code lands. The gateway and
+deployment surfaces declare agent-utilities, epistemic-graph, FastAPI,
+Starlette, filelock, Pydantic, PyYAML, and Prometheus client. AU remains the
+agent-plane authority consumed by deployment checks; the local
+`.uv-workspace-siblings/agent-utilities` binding supplies the workspace's
+not-yet-published AU release, while released wheels resolve the PEP 508 floors.
+The skill/release certification implementations are not copied here.
+The remaining service extraction will add its own dependencies only when code
+lands (Wire-First):
 
 - **`agent-connector-sdk`** — RF-ADR-009 §3 phase 3 (MCP server factory, action
   dispatch, base config/exceptions). **Does not exist yet** — it is created in
@@ -132,9 +141,9 @@ remain optional because widgets import them only when configured.
 
 `.pre-commit-config.yaml` here adopts every **tool-based, content-agnostic**
 hook from agent-utilities'/epistemic-graph's combined suites that applies to a
-Python package with no KG/ontology/engine/backend content and zero declared
-runtime dependencies yet, and every repository-agnostic gate from the shared
-hook repository (see "Shared hooks" below).
+Python package with no KG/ontology/engine/backend content and the bounded
+deployment runtime dependencies declared above, plus every repository-agnostic
+gate from the shared hook repository (see "Shared hooks" below).
 
 **Adopted tool hooks:** `check-added-large-files`, `check-ast`, `check-yaml`,
 `check-toml`, `check-json`, `fix-byte-order-marker`, `check-merge-conflict`,
