@@ -15,11 +15,16 @@ classifiers = [
 ]
 requires-python = ">=3.12,<3.15"
 license = "MIT"
-# W5 extraction follows Wire-First: dependencies are declared only when code that
-# imports them lands.  The control-plane value boundary uses strict Pydantic models;
-# later EG/SDK/AU dependencies remain deferred until their adapters are integrated.
+# W5 extraction follows Wire-First: these are the packages imported by the
+# populated control-plane and gateway surfaces. Connector clients used by
+# individual widgets remain optional and are imported only when configured.
 dependencies = [
+    "agent-utilities>=2.5.0,<3",
+    "fastapi>=0.139.2",
+    "prometheus-client>=0.25.0",
     "pydantic>=2.13.4,<3.0.0",
+    "PyYAML>=6.0.3",
+    "starlette>=1.3.1",
 ]
 
 [[project.authors]]
@@ -32,13 +37,22 @@ email = "maintainers@example.invalid"
 # so a lockstep upgrade there is easy to mirror here later.
 test = [
     "pytest>=8.4.0",
+    "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.1.0",
     "mypy>=2.3.0",
     "ruff==0.16.0",
+    "types-PyYAML>=6.0.12.20250915",
 ]
 
 [project.scripts]
 graph-os = "graph_os.cli:main"
+graph-os-daemon = "graph_os.gateway.daemon:main"
+
+# Portable development binding for the not-yet-published AU 2.5 release.
+# The path is ignored and supplied as a local symlink; package metadata keeps
+# the real PEP 508 floor above, so released wheels resolve from the index.
+[tool.uv.sources]
+agent-utilities = { path = ".uv-workspace-siblings/agent-utilities", editable = true }
 
 [tool.setuptools.dynamic]
 version = { attr = "graph_os._version.__version__" }

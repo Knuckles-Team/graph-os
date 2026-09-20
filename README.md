@@ -6,8 +6,8 @@ tooling. See [`AGENTS.md`](AGENTS.md) for scope, ownership, and status.
 
 Part of the RF-ADR-009 repository split
 (`plans/refactor/RF-ADR-009-connector-sdk-and-graph-os.md`). This repository is a
-**scaffold** (W0/pre-W5): the deployable composition still runs today from
-`agent-utilities` (`services/graph-os`); code extraction into this repository is
-scheduled for Migration Wave 5.
+in Migration Wave 5. The REST gateway and `graph-os-daemon` host now live in
+`graph_os.gateway`; the deployed service continues to use the AU entrypoints
+until the coordinated consumer cutover.
 
 *Version: 0.1.0*

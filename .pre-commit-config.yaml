@@ -43,7 +43,7 @@ repos:
   rev: fc0f09a29bb495f4a91f00266155d6282d52485d # v1.20.2
   hooks:
   - id: mypy
-    additional_dependencies: [pydantic==2.13.4]
+    additional_dependencies: [pydantic==2.13.4, types-PyYAML==6.0.12.20260906]
     args: ["--ignore-missing-imports"]
     exclude: ^(tests/|test/)
 

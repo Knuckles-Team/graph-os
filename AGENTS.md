@@ -3,20 +3,20 @@
 > Claude Code loads this file via `CLAUDE.md` (`@AGENTS.md` import), following the
 > agent-utilities convention — edit this file, never `CLAUDE.md`'s body.
 
-## Status: pre-extraction scaffold (RF-ADR-009 W0 / W5-prep)
+## Status: Migration Wave 5 extraction in progress
 
-**This repository does not yet run graph-os.** It is an empty-but-real Python
-project skeleton created ahead of Migration Wave 5 (see "Migration wave" below).
-The live MCP server, REST gateway, control plane, fleet gateway, and webui
-hosting all still run out of `agent-utilities` and are deployed by
+The REST gateway and `graph-os-daemon` host are now populated in
+`graph_os.gateway`. The live deployment still starts the AU entrypoints, and
+the MCP/fleet application adapter remains a G2 cutover obligation. Other
+composition surfaces are being extracted independently. The service is deployed by
 `services/graph-os` — see `services/graph-os/AGENTS.md` and
 `inventory/k8s-migration/GRAPHOS-LOCAL-REDEPLOY.md` in the workspace for the
 current, live topology. Nothing in that deployment changes because this
 repository exists.
 
-The one real, tested surface here is the `graph-os` console script
-(`graph_os.cli:main`), which reports the installed version and this
-repository's target composition — see `graph_os/cli.py`.
+Gateway request handlers consume `GatewayApplicationPort`; they do not import
+AU's `kg_server` or multiplexer implementations. G2 must install the adapter
+before calling `register_graph_routes()`.
 
 ## Role in Agent OS Architecture (target, RF-ADR-009 §2/§2.4)
 
@@ -40,14 +40,13 @@ agent-utilities knowledge-graph internals.
 
 ## Module mapping
 
-Each package under `graph_os/` is presently a docstring-only placeholder — see
-"W5 source measurements" below for what it receives:
+Packages are populated incrementally by the Wave 5 lanes:
 
 | Package | Owns | Source today |
 |---|---|---|
 | `graph_os.mcp_server` | the graph-os MCP tool surface (`graph_*`/`ontology_*`/`object_*`/`engine_*`) | `agent_utilities/mcp/kg_server.py` |
 | `graph_os.fleet` | the in-process fleet gateway / multiplexer | `agent_utilities/mcp/multiplexer.py` |
-| `graph_os.gateway` | the REST gateway + gateway host daemon + dashboard | `agent_utilities/gateway/` |
+| `graph_os.gateway` | REST gateway + gateway host daemon + dashboard (populated; deployment cutover pending) | `agent_utilities/gateway/` |
 | `graph_os.control_plane` | fleet reconciliation, action-policy enforcement | `agent_utilities/control_plane/` |
 | `graph_os.webui_host` | agent-webui hosting (the webui co-service) | `agent_utilities/server/webui_co_service.py` |
 | `graph_os.deployment` | deployment doctor, release canary, production ops | `agent_utilities/deployment/` |
@@ -110,11 +109,11 @@ both target `agent_utilities/knowledge_graph/`, which RF-ADR-009 §2 assigns to
 tooling (their name embeds "graphos" as a compatibility-matrix component
 label, not as this repository); they stay in agent-utilities.
 
-## Target dependencies (planned, W5 — not installed today)
+## Target dependencies (Wire-First)
 
-`dependencies = []` in `pyproject.toml` today (Wire-First: a dependency is
-declared only once code that imports it lands). Once Migration Wave 5 extracts
-real code, this repository will need:
+Dependencies are declared only when importing code lands. The gateway declares
+agent-utilities, FastAPI, Starlette, Pydantic, and PyYAML; connector packages
+remain optional because widgets import them only when configured.
 
 - **`agent-connector-sdk`** — RF-ADR-009 §3 phase 3 (MCP server factory, action
   dispatch, base config/exceptions). **Does not exist yet** — it is created in
