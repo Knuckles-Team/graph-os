@@ -109,7 +109,7 @@ class ConnectorRepository(Protocol):
     def cursor_for(
         self,
         scope: AccessScope,
-        _after_server_id: str,
-        _after_version_id: str,
+        after_server_id: str,
+        after_version_id: str,
     ) -> KeysetCursor:
         """Create a scope-bound keyset position without exposing a database token."""

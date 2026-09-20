@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import importlib
+import inspect
 import pkgutil
 from pathlib import Path
 
@@ -78,3 +79,30 @@ def test_extraction_has_no_agent_utilities_dependency() -> None:
         )
 
     assert imported_agent_utilities_modules == set()
+
+
+def test_repository_protocols_keep_keyword_contract_names() -> None:
+    """Static-analysis fixes must not rename keyword-callable API fields."""
+
+    from graph_os.control_plane.agents.repository import AgentRepository
+    from graph_os.control_plane.connectors.repository import ConnectorRepository
+    from graph_os.control_plane.projection.repository import OutboxReader
+
+    assert tuple(inspect.signature(AgentRepository.cursor_for).parameters) == (
+        "self",
+        "scope",
+        "after_agent_id",
+        "after_version_id",
+    )
+    assert tuple(inspect.signature(ConnectorRepository.cursor_for).parameters) == (
+        "self",
+        "scope",
+        "after_server_id",
+        "after_version_id",
+    )
+    assert tuple(inspect.signature(OutboxReader.read_after).parameters) == (
+        "self",
+        "scope",
+        "after_sequence",
+        "limit",
+    )

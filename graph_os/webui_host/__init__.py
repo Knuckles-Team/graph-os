@@ -1,7 +1,10 @@
-"""agent-webui hosting — RF-ADR-009 §2/§2.4 Phase 5 target.
+"""Serve agent-webui from the Graph OS composition boundary.
 
-Owns serving agent-webui as graph-os's one product UI (RF-ADR-009 §2.4:
-"agent-webui: stays one product UI served by graph-os"). Source today:
-`agent_utilities/server/webui_co_service.py` (see AGENTS.md "W5 source
-measurements"). Not yet populated — see AGENTS.md "Status".
+Graph OS owns agent-webui as the product UI (RF-ADR-009 §2.4).  The public
+factory is exported here so composition code does not depend on the module's
+implementation path.
 """
+
+from .webui_co_service import run_web_ui
+
+__all__ = ["run_web_ui"]

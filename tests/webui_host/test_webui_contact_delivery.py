@@ -24,8 +24,11 @@ def _export(module: types.ModuleType, name: str, value: object) -> None:
 
 def test_webui_host_import_is_lazy() -> None:
     """The graph-os package remains importable without the optional ag-ui extra."""
+    package = importlib.import_module("graph_os.webui_host")
     module = importlib.import_module("graph_os.webui_host.webui_co_service")
 
+    assert package.__all__ == ["run_web_ui"]
+    assert package.run_web_ui is module.run_web_ui
     assert module.__all__ == ["run_web_ui"]
     assert callable(module.run_web_ui)
 
