@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import threading
 from collections.abc import Callable, Iterable
-from typing import Protocol, runtime_checkable
+from typing import Protocol, TypeVar, runtime_checkable
 
 from .models import (
     ApprovalDecision,
@@ -32,6 +32,7 @@ __all__ = [
 ]
 
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+_RecordT = TypeVar("_RecordT")
 
 
 class PolicyDomainError(ValueError):
@@ -156,7 +157,8 @@ class PolicyAuthority:
         exception_ref: ExceptionRef | None,
         exception: PolicyException | None,
     ) -> None:
-        """Raise if the rule denies the operation and no valid exception overrides it."""
+        """Raise if the rule denies the operation and no valid exception
+        overrides it."""
         if rule.effect == "deny" and (
             exception_ref is None
             or exception is None
@@ -228,46 +230,53 @@ class PolicyAuthority:
             resolved_at=current,
         )
 
+    def _resolve_recorded_reference(
+        self,
+        *,
+        policy_id: str,
+        reference_id: str,
+        expected_digest: str,
+        records: dict[tuple[str, str], _RecordT],
+        digest_for: Callable[[_RecordT], str],
+        error_code: str,
+    ) -> _RecordT:
+        with self._lock:
+            record = records.get((policy_id, reference_id))
+        if record is None or digest_for(record) != expected_digest:
+            raise PolicyConflictError(error_code)
+        return record
+
     def _resolve_recorded_approval(
         self, authorization: PolicyAuthorization
     ) -> ApprovalDecision | None:
-        """Look up + verify the recorded approval matches ``authorization.approval_ref``."""
-        if authorization.approval_ref is None:
+        """Look up + verify the recorded approval matches the authorization."""
+        reference = authorization.approval_ref
+        if reference is None:
             return None
-        with self._lock:
-            approval = self._approvals.get(
-                (
-                    authorization.policy_ref.policy_id,
-                    authorization.approval_ref.approval_id,
-                )
-            )
-        if (
-            approval is None
-            or approval.decision_digest != authorization.approval_ref.decision_digest
-        ):
-            raise PolicyConflictError("approval_reference_drift")
-        return approval
+        return self._resolve_recorded_reference(
+            policy_id=authorization.policy_ref.policy_id,
+            reference_id=reference.approval_id,
+            expected_digest=reference.decision_digest,
+            records=self._approvals,
+            digest_for=lambda approval: approval.decision_digest,
+            error_code="approval_reference_drift",
+        )
 
     def _resolve_recorded_exception(
         self, authorization: PolicyAuthorization
     ) -> PolicyException | None:
-        """Look up + verify the recorded exception matches ``authorization.exception_ref``."""
-        if authorization.exception_ref is None:
+        """Look up + verify the recorded exception matches the authorization."""
+        reference = authorization.exception_ref
+        if reference is None:
             return None
-        with self._lock:
-            exception = self._exceptions.get(
-                (
-                    authorization.policy_ref.policy_id,
-                    authorization.exception_ref.exception_id,
-                )
-            )
-        if (
-            exception is None
-            or exception.exception_digest
-            != authorization.exception_ref.exception_digest
-        ):
-            raise PolicyConflictError("exception_reference_drift")
-        return exception
+        return self._resolve_recorded_reference(
+            policy_id=authorization.policy_ref.policy_id,
+            reference_id=reference.exception_id,
+            expected_digest=reference.exception_digest,
+            records=self._exceptions,
+            digest_for=lambda exception: exception.exception_digest,
+            error_code="exception_reference_drift",
+        )
 
     def verify_authorization(
         self,

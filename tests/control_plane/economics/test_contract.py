@@ -14,6 +14,7 @@ from graph_os.control_plane.economics import (
     AllocationRef,
     EconomicsContractError,
     InMemoryEconomicsRepository,
+    KeysetCursor,
     PriceCard,
     PriceRate,
     SampleRef,
@@ -197,9 +198,9 @@ def test_cursor_scope_mismatch_is_denied() -> None:
             scope=TenantReadScope(
                 tenant_id="tenant:alpha", principal_ref="principal:one"
             ),
-            after={
-                "tenant_id": "tenant:other",
-                "query_digest": DIGEST_A,
-                "last_key": "aggregate:row",
-            },
+            after=KeysetCursor(
+                tenant_id="tenant:other",
+                query_digest=DIGEST_A,
+                last_key="aggregate:row",
+            ),
         )

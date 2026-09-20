@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated, TypeAlias
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -38,10 +38,10 @@ _REF_RE = re.compile(r"^[A-Za-z][A-Za-z0-9:_./-]{0,255}$")
 _KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9._:/-]{0,255}$")
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
-StableId: TypeAlias = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
-OpaqueRef: TypeAlias = Annotated[str, Field(pattern=_REF_RE.pattern, min_length=1)]
-StableKey: TypeAlias = Annotated[str, Field(pattern=_KEY_RE.pattern, min_length=1)]
-Digest: TypeAlias = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
+type StableId = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
+type OpaqueRef = Annotated[str, Field(pattern=_REF_RE.pattern, min_length=1)]
+type StableKey = Annotated[str, Field(pattern=_KEY_RE.pattern, min_length=1)]
+type Digest = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
 
 
 class _FrozenModel(BaseModel):

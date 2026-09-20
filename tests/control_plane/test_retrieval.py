@@ -219,13 +219,15 @@ def _checkpoint(
     remaining: int,
     complete: bool,
 ) -> CleanupCheckpoint:
+    checkpoint_id = f"checkpoint:{generation.generation_id}"
+    expected_vectors = 2
     values = {
         "tenant_ref": generation.tenant_ref,
         "graph_ref": generation.graph_ref,
         "generation_id": generation.generation_id,
         "index_ref": generation.index_ref.model_dump(mode="json"),
-        "checkpoint_id": f"checkpoint:{generation.generation_id}",
-        "expected_vectors": 2,
+        "checkpoint_id": checkpoint_id,
+        "expected_vectors": expected_vectors,
         "deleted_vectors": deleted,
         "remaining_vectors": remaining,
         "complete": complete,
@@ -236,12 +238,12 @@ def _checkpoint(
         graph_ref=generation.graph_ref,
         generation_id=generation.generation_id,
         index_ref=generation.index_ref,
-        checkpoint_id=values["checkpoint_id"],
-        expected_vectors=values["expected_vectors"],
-        deleted_vectors=values["deleted_vectors"],
-        remaining_vectors=values["remaining_vectors"],
-        complete=values["complete"],
-        recorded_at=values["recorded_at"],
+        checkpoint_id=checkpoint_id,
+        expected_vectors=expected_vectors,
+        deleted_vectors=deleted,
+        remaining_vectors=remaining,
+        complete=complete,
+        recorded_at=100,
         checkpoint_digest=canonical_digest(values),
     )
 
@@ -402,9 +404,9 @@ def test_partial_cleanup_is_not_success_and_stale_vectors_are_denied() -> None:
 
     with pytest.raises(CleanupIncompleteError, match="incomplete"):
         lifecycle.cleanup(old)
-    assert catalog.get("tenant:one", "graph:knowledge", old.generation_id).state == (
-        "cleanup_failed"
-    )
+    record = catalog.get("tenant:one", "graph:knowledge", old.generation_id)
+    assert record is not None
+    assert record.state == "cleanup_failed"
     with pytest.raises(StaleGenerationError):
         GovernedRetriever(
             catalog=catalog,

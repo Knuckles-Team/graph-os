@@ -13,7 +13,7 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping
-from typing import Annotated, Literal, Protocol, TypeAlias
+from typing import Annotated, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -62,15 +62,15 @@ _SENSITIVE_TEXT_RE = re.compile(
     re.IGNORECASE,
 )
 
-StableId: TypeAlias = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
-OpaqueRef: TypeAlias = Annotated[str, Field(pattern=_REF_RE.pattern, min_length=1)]
-StableKey: TypeAlias = Annotated[str, Field(pattern=_KEY_RE.pattern, min_length=1)]
-Version: TypeAlias = Annotated[str, Field(pattern=_VERSION_RE.pattern)]
-Digest: TypeAlias = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
-Signature: TypeAlias = Annotated[str, Field(pattern=_SIGNATURE_RE.pattern)]
-Timestamp: TypeAlias = Annotated[int, Field(ge=0)]
-Privilege: TypeAlias = Literal["read", "write", "admin"]
-BindingKind: TypeAlias = Literal["agent", "skill", "tool", "delegation"]
+type StableId = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
+type OpaqueRef = Annotated[str, Field(pattern=_REF_RE.pattern, min_length=1)]
+type StableKey = Annotated[str, Field(pattern=_KEY_RE.pattern, min_length=1)]
+type Version = Annotated[str, Field(pattern=_VERSION_RE.pattern)]
+type Digest = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
+type Signature = Annotated[str, Field(pattern=_SIGNATURE_RE.pattern)]
+type Timestamp = Annotated[int, Field(ge=0)]
+type Privilege = Literal["read", "write", "admin"]
+type BindingKind = Literal["agent", "skill", "tool", "delegation"]
 
 
 class _FrozenModel(BaseModel):

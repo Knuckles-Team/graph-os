@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,11 +16,11 @@ __all__ = [
 ]
 
 
-Digest: TypeAlias = Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")]
-StableId: TypeAlias = Annotated[
+type Digest = Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")]
+type StableId = Annotated[
     str, Field(pattern=r"^[A-Za-z][A-Za-z0-9:_./-]{0,127}$", min_length=1)
 ]
-OpaqueRef: TypeAlias = Annotated[
+type OpaqueRef = Annotated[
     str, Field(pattern=r"^[A-Za-z][A-Za-z0-9:_./-]{0,255}$", min_length=1)
 ]
 ObservedState = Literal["unknown", "discovered", "pending", "blocked", "drifted"]

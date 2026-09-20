@@ -88,7 +88,7 @@ class AgentRepository(Protocol):
     def cursor_for(
         self,
         scope: AccessScope,
-        after_agent_id: str,
-        after_version_id: str,
+        _after_agent_id: str,
+        _after_version_id: str,
     ) -> AgentKeysetCursor:
         """Create a scope-bound keyset position without exposing storage tokens."""

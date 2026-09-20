@@ -13,7 +13,7 @@ import json
 import math
 import re
 from collections.abc import Mapping
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -57,14 +57,14 @@ _VERSION_RE = re.compile(
 )
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
-StableId: TypeAlias = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
-OpaqueRef: TypeAlias = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
-Version: TypeAlias = Annotated[str, Field(pattern=_VERSION_RE.pattern)]
-Digest: TypeAlias = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
-Timestamp: TypeAlias = Annotated[int, Field(ge=0)]
-Dimension: TypeAlias = Annotated[int, Field(ge=1, le=65_536)]
-Score: TypeAlias = Annotated[float, Field(ge=-1.0, le=1.0)]
-GenerationState: TypeAlias = Literal["active", "retiring", "deleted", "cleanup_failed"]
+type StableId = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
+type OpaqueRef = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
+type Version = Annotated[str, Field(pattern=_VERSION_RE.pattern)]
+type Digest = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
+type Timestamp = Annotated[int, Field(ge=0)]
+type Dimension = Annotated[int, Field(ge=1, le=65_536)]
+type Score = Annotated[float, Field(ge=-1.0, le=1.0)]
+type GenerationState = Literal["active", "retiring", "deleted", "cleanup_failed"]
 
 _FORBIDDEN_INLINE_KEYS = {
     "body",

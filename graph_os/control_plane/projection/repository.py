@@ -78,7 +78,7 @@ class OutboxReader(Protocol):
     def read_after(
         self,
         scope: ProjectionScope,
-        after_sequence: int,
+        _after_sequence: int,
         limit: int,
     ) -> tuple[OutboxEnvelope, ...]:
         """Return at most ``limit`` events strictly after ``after_sequence``."""

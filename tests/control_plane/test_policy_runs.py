@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
+from typing import Literal, cast
 
 import pytest
 from pydantic import ValidationError
@@ -32,6 +33,7 @@ from graph_os.control_plane.runs import (
     ObservationDiscontinuityError,
     RelationalObservation,
     ReplayDriftError,
+    ResolvedAuthorizationVerifier,
     RunResolution,
     TaskRef,
     ToolBindingRef,
@@ -76,7 +78,7 @@ def _binding(letter: str = "a") -> CapabilityBinding:
     )
 
 
-def _policy(*, effect: str = "allow") -> PolicyVersion:
+def _policy(*, effect: Literal["allow", "deny"] = "allow") -> PolicyVersion:
     return PolicyVersion(
         policy_id="policy:research",
         version="1.0.0",
@@ -276,14 +278,16 @@ def test_admission_is_one_run_one_work_item_and_duplicate_delivery_is_idempotent
     admission = InMemoryNativeAdmission(
         audit=AuditChain(max_events=8),
         clock=lambda: 100,
-        authorization_verifier=authority,
+        authorization_verifier=cast(ResolvedAuthorizationVerifier, authority),
     )
 
     first = admission.admit_once(request)
     second = admission.admit_once(request)
     assert first.created is True
     assert second.created is False
-    assert admission.read(resolution.run_id).resolution == resolution
+    record = admission.read(resolution.run_id)
+    assert record is not None
+    assert record.resolution == resolution
 
     # Drift the request digest COHERENTLY: RunResolution's own validator
     # requires authorization.request_digest == request_digest, so updating only

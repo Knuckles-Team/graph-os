@@ -347,7 +347,7 @@ def _request(
         "at": "2026-08-19T01:00:00Z",
     }
     values.update(overrides)
-    return AgentResolutionRequest(**values)
+    return AgentResolutionRequest.model_validate(values)
 
 
 def test_identity_version_and_binding_contracts_are_stable() -> None:

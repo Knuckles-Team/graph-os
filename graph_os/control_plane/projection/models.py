@@ -21,7 +21,7 @@ import math
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Annotated, Final, Literal, TypeAlias
+from typing import Annotated, Final, Literal
 
 from pydantic import (
     Field,
@@ -33,7 +33,7 @@ from pydantic import (
     model_validator,
 )
 
-from agent_utilities.protocols.epistemic_operations import ProtocolModel
+from graph_os.control_plane._model import ControlPlaneModel as ProtocolModel
 
 __all__ = [
     "MAX_BATCH_SIZE",
@@ -127,7 +127,7 @@ _ALLOWED_SUMMARY_KEYS = frozenset(
     }
 )
 
-Identifier: TypeAlias = Annotated[
+type Identifier = Annotated[
     str,
     Field(
         min_length=1,
@@ -135,15 +135,15 @@ Identifier: TypeAlias = Annotated[
         pattern=_IDENTIFIER_RE.pattern,
     ),
 ]
-AggregateType: TypeAlias = Identifier
-EventType: TypeAlias = Annotated[
+type AggregateType = Identifier
+type EventType = Annotated[
     str,
     Field(
         min_length=1, max_length=MAX_EVENT_TYPE_LENGTH, pattern=_EVENT_TYPE_RE.pattern
     ),
 ]
-Digest: TypeAlias = Annotated[str, Field(pattern=_DIGEST_RE)]
-SummaryValue: TypeAlias = StrictBool | StrictInt | StrictFloat | StrictStr
+type Digest = Annotated[str, Field(pattern=_DIGEST_RE)]
+type SummaryValue = StrictBool | StrictInt | StrictFloat | StrictStr
 Timestamp = datetime
 EventOperation = Literal["upsert", "tombstone"]
 MutationOperation = Literal["upsert", "delete", "rollback"]

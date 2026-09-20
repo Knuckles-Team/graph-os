@@ -13,7 +13,7 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -64,17 +64,17 @@ MAX_WIDGETS = 64
 _ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9:_./-]{0,255}$")
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
-OpaqueRef: TypeAlias = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
-Digest: TypeAlias = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
-Version: TypeAlias = Annotated[int, Field(ge=1, le=2_147_483_647)]
-Timestamp: TypeAlias = Annotated[int, Field(ge=0)]
-PageSize: TypeAlias = Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE)]
-Cursor: TypeAlias = Annotated[str, Field(pattern=r"^cursor:(0|[1-9][0-9]{0,9})$")]
-UiPermission: TypeAlias = Literal["read", "write", "feedback", "support", "admin"]
-LifecycleState: TypeAlias = Literal[
+type OpaqueRef = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
+type Digest = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
+type Version = Annotated[int, Field(ge=1, le=2_147_483_647)]
+type Timestamp = Annotated[int, Field(ge=0)]
+type PageSize = Annotated[int, Field(ge=1, le=MAX_PAGE_SIZE)]
+type Cursor = Annotated[str, Field(pattern=r"^cursor:(0|[1-9][0-9]{0,9})$")]
+type UiPermission = Literal["read", "write", "feedback", "support", "admin"]
+type LifecycleState = Literal[
     "active", "retained", "deletion_pending", "deleted", "legal_hold"
 ]
-EntityKind: TypeAlias = Literal[
+type EntityKind = Literal[
     "tenant",
     "workspace",
     "user",
@@ -92,7 +92,7 @@ EntityKind: TypeAlias = Literal[
     "feedback",
     "support",
 ]
-Visibility: TypeAlias = Literal["private", "workspace"]
+type Visibility = Literal["private", "workspace"]
 
 _FORBIDDEN_INLINE_KEYS = {
     "body",
@@ -465,7 +465,7 @@ class PageRequest(_FrozenModel):
     cursor: Cursor | None = None
 
 
-WebUiEntity: TypeAlias = (
+type WebUiEntity = (
     TenantIdentity
     | WorkspaceIdentity
     | UserIdentity
@@ -483,7 +483,7 @@ WebUiEntity: TypeAlias = (
     | FeedbackIdentity
     | SupportIdentity
 )
-UiStateEntity: TypeAlias = (
+type UiStateEntity = (
     PreferenceIdentity | SavedQueryIdentity | DashboardIdentity | WidgetIdentity
 )
 

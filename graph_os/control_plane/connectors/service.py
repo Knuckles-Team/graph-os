@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 from pydantic import model_validator
 
-from agent_utilities.protocols.epistemic_operations import ProtocolModel
+from graph_os.control_plane._model import ControlPlaneModel as ProtocolModel
 
 from .models import (
     AccessScope,

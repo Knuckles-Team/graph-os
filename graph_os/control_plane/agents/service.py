@@ -13,7 +13,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from agent_utilities.protocols.epistemic_operations import ProtocolModel
+from graph_os.control_plane._model import ControlPlaneModel as ProtocolModel
 
 from .models import (
     AccessScope,

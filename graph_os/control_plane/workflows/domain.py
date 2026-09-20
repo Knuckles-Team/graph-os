@@ -18,7 +18,7 @@ import hashlib
 import json
 import re
 from collections import defaultdict, deque
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -74,12 +74,12 @@ _SENSITIVE_SUMMARY_RE = re.compile(
     re.IGNORECASE,
 )
 
-StableId: TypeAlias = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
-OpaqueRef: TypeAlias = Annotated[str, Field(pattern=_REF_RE.pattern, min_length=1)]
-Digest: TypeAlias = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
-Version: TypeAlias = Annotated[str, Field(pattern=_VERSION_RE.pattern)]
-ChannelName: TypeAlias = Annotated[str, Field(pattern=_CHANNEL_RE.pattern)]
-BindingKind: TypeAlias = Literal["agent", "skill", "tool", "policy", "delegation"]
+type StableId = Annotated[str, Field(pattern=_ID_RE.pattern, min_length=1)]
+type OpaqueRef = Annotated[str, Field(pattern=_REF_RE.pattern, min_length=1)]
+type Digest = Annotated[str, Field(pattern=_DIGEST_RE.pattern)]
+type Version = Annotated[str, Field(pattern=_VERSION_RE.pattern)]
+type ChannelName = Annotated[str, Field(pattern=_CHANNEL_RE.pattern)]
+type BindingKind = Literal["agent", "skill", "tool", "policy", "delegation"]
 
 
 class _FrozenModel(BaseModel):

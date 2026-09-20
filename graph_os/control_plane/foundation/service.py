@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol, TypeVar
+from typing import Protocol
 
 from .models import (
     ActivationRecord,
@@ -49,12 +49,9 @@ class _ScopedRecord(Protocol):
     tenant_id: str
 
 
-ScopedT = TypeVar("ScopedT", bound=_ScopedRecord)
-KeyT = TypeVar("KeyT")
-RetainT = TypeVar("RetainT")
-
-
-def _scope_record(scope: TenantScope, record: ScopedT | None) -> ScopedT | None:
+def _scope_record[ScopedT: _ScopedRecord](
+    scope: TenantScope, record: ScopedT | None
+) -> ScopedT | None:
     if record is None:
         return None
     if (
@@ -65,7 +62,9 @@ def _scope_record(scope: TenantScope, record: ScopedT | None) -> ScopedT | None:
     return record
 
 
-def _retain(mapping: dict[KeyT, RetainT], key: KeyT, value: RetainT) -> None:
+def _retain[KeyT, RetainT](
+    mapping: dict[KeyT, RetainT], key: KeyT, value: RetainT
+) -> None:
     prior = mapping.get(key)
     if prior is not None and prior != value:
         raise FoundationRepositoryError("immutable foundation record mutation")

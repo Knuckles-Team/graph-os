@@ -197,7 +197,8 @@ class DriftFixture:
     def __init__(self) -> None:
         self.records: list[DriftRecord] = []
 
-    def record(self, drift: DriftRecord) -> None:
+    def record(self, drift: object) -> None:
+        assert isinstance(drift, DriftRecord)
         self.records.append(drift)
 
 

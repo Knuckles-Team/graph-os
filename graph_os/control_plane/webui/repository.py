@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable
 from threading import RLock
 from time import time
-from typing import Literal, TypeAlias
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -77,7 +77,7 @@ _RETENTION_TARGETS = {
     "legal_hold",
 }
 _RETENTION_ADMIN_TARGETS = {"deletion_pending", "deleted", "legal_hold"}
-RetentionResumeState: TypeAlias = Literal["active", "retained", "deletion_pending"]
+type RetentionResumeState = Literal["active", "retained", "deletion_pending"]
 _STANDARD_RETENTION_TRANSITIONS: dict[
     tuple[LifecycleState, LifecycleState], LifecycleState
 ] = {

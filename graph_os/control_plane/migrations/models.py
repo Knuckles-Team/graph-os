@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -57,13 +57,13 @@ MAX_COHORTS = 256
 _REF_RE = r"^[A-Za-z][A-Za-z0-9:_./-]{0,255}$"
 _DIGEST_RE = r"^sha256:[0-9a-f]{64}$"
 
-OpaqueRef: TypeAlias = Annotated[str, Field(pattern=_REF_RE, min_length=1)]
-Digest: TypeAlias = Annotated[str, Field(pattern=_DIGEST_RE)]
-Version: TypeAlias = Annotated[int, Field(ge=1, le=2_147_483_647)]
-Count: TypeAlias = Annotated[int, Field(ge=0, le=2_147_483_647)]
-Timestamp: TypeAlias = Annotated[int, Field(ge=0)]
+type OpaqueRef = Annotated[str, Field(pattern=_REF_RE, min_length=1)]
+type Digest = Annotated[str, Field(pattern=_DIGEST_RE)]
+type Version = Annotated[int, Field(ge=1, le=2_147_483_647)]
+type Count = Annotated[int, Field(ge=0, le=2_147_483_647)]
+type Timestamp = Annotated[int, Field(ge=0)]
 
-MigrationStage: TypeAlias = Literal[
+type MigrationStage = Literal[
     "stage_0_inventory_freeze",
     "stage_1_read_only_backfill",
     "stage_2_shadow_reconciliation",
@@ -73,7 +73,7 @@ MigrationStage: TypeAlias = Literal[
     "legacy_retirement",
     "rollback",
 ]
-MigrationState: TypeAlias = Literal[
+type MigrationState = Literal[
     "planned",
     "inventory_frozen",
     "backfill_observing",
@@ -84,9 +84,9 @@ MigrationState: TypeAlias = Literal[
     "retired",
     "rolled_back",
 ]
-SourceDisposition: TypeAlias = Literal["accepted", "rejected", "malformed"]
-ApprovalState: TypeAlias = Literal["unreviewed", "approved", "rejected"]
-InventoryState: TypeAlias = Literal[
+type SourceDisposition = Literal["accepted", "rejected", "malformed"]
+type ApprovalState = Literal["unreviewed", "approved", "rejected"]
+type InventoryState = Literal[
     "present", "missing", "duplicate", "rejected", "malformed"
 ]
 

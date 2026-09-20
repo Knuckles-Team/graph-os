@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import Field, StrictBool
 
-from agent_utilities.protocols.epistemic_operations import ProtocolModel
+from graph_os.control_plane._model import ControlPlaneModel as ProtocolModel
 
 from .models import (
     MAX_BATCH_SIZE,

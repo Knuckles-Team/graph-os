@@ -504,7 +504,7 @@ def usage_query_digest(request: object) -> str:
 
     if not hasattr(request, "query_digest"):
         raise TypeError("request must expose query_digest()")
-    return request.query_digest()  # type: ignore[no-any-return]
+    return request.query_digest()
 
 
 __all__ = [

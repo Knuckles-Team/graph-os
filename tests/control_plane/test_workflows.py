@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from graph_os.control_plane.workflows import (
     ApprovedBinding,
     ArtifactRef,
+    BindingKind,
     ExactBindingRegistry,
     InMemoryWorkflowRepository,
     StepContract,
@@ -49,7 +50,7 @@ def _budget(**overrides: int) -> WorkflowBudget:
     return WorkflowBudget(**values)
 
 
-def _binding(kind: str, binding_id: str, letter: str) -> ApprovedBinding:
+def _binding(kind: BindingKind, binding_id: str, letter: str) -> ApprovedBinding:
     return ApprovedBinding(
         kind=kind,
         binding_id=binding_id,

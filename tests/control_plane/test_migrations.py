@@ -21,6 +21,7 @@ from graph_os.control_plane.migrations import (
     MigrationInventory,
     MigrationPlan,
     MigrationRollback,
+    MigrationStage,
     PrerequisiteGate,
     ProjectionCheckpoint,
     SourceFileSnapshot,
@@ -133,7 +134,7 @@ def _gate(
     snapshot: SourceSnapshot,
     *,
     gate_ref: str,
-    stage: str,
+    stage: MigrationStage,
 ) -> PrerequisiteGate:
     check = GateCheck(
         check_ref=f"check:{gate_ref.removeprefix('gate:')}",

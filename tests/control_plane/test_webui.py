@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from typing import cast
 
 import pytest
 from pydantic import ValidationError
@@ -89,33 +90,43 @@ def _conversation(
     )
 
 
+def _conversation_refs(items: tuple[object, ...]) -> list[str]:
+    assert all(isinstance(item, ConversationIdentity) for item in items)
+    conversations = cast(tuple[ConversationIdentity, ...], items)
+    return [item.conversation_ref for item in conversations]
+
+
 def test_models_reject_inline_material_and_scope_drift() -> None:
     context = _context()
     with pytest.raises(
         ValidationError, match="inline_ui_material_or_authority_forbidden"
     ):
-        ContentReference(
-            tenant_ref=context.tenant_ref,
-            workspace_ref=context.workspace_ref,
-            content_ref="content:one",
-            artifact_ref="artifact:one",
-            content_digest=_digest("content"),
-            media_type="text/plain",
-            size_bytes=3,
-            version=1,
-            digest=_digest("identity"),
-            text="raw content",
+        ContentReference.model_validate(
+            {
+                "tenant_ref": context.tenant_ref,
+                "workspace_ref": context.workspace_ref,
+                "content_ref": "content:one",
+                "artifact_ref": "artifact:one",
+                "content_digest": _digest("content"),
+                "media_type": "text/plain",
+                "size_bytes": 3,
+                "version": 1,
+                "digest": _digest("identity"),
+                "text": "raw content",
+            }
         )
     with pytest.raises(ValidationError):
-        SavedQueryIdentity(
-            tenant_ref=context.tenant_ref,
-            workspace_ref=context.workspace_ref,
-            saved_query_ref="query:one",
-            owner_ref="user:one",
-            query_ref="query-ref:one",
-            visibility="public",
-            version=1,
-            digest=_digest("query"),
+        SavedQueryIdentity.model_validate(
+            {
+                "tenant_ref": context.tenant_ref,
+                "workspace_ref": context.workspace_ref,
+                "saved_query_ref": "query:one",
+                "owner_ref": "user:one",
+                "query_ref": "query-ref:one",
+                "visibility": "public",
+                "version": 1,
+                "digest": _digest("query"),
+            }
         )
     with pytest.raises(ValidationError, match="attachment_workspace_drift"):
         AttachmentIdentity(
@@ -198,7 +209,7 @@ def test_cas_and_pagination_are_bounded_and_deterministic() -> None:
         context=context,
         request=PageRequest(limit=1, cursor=page.next_cursor),
     )
-    assert [item.conversation_ref for item in next_page.items] == ["conversation:two"]
+    assert _conversation_refs(next_page.items) == ["conversation:two"]
     with pytest.raises(ValidationError):
         PageRequest(limit=1, cursor="offset:1")
 

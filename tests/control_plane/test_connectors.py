@@ -10,8 +10,11 @@ from pydantic import ValidationError
 from graph_os.control_plane.connectors import (
     AccessScope,
     AuthorizationDecision,
+    AuthorizationKind,
+    AuthorizationOutcome,
     AuthorizationSet,
     CapabilityBinding,
+    CapabilityKind,
     CompatibilityProfile,
     ConnectorControlPlane,
     ConnectorIdentity,
@@ -40,8 +43,10 @@ def _digest(char: str) -> str:
     return "sha256:" + char * 64
 
 
-def _capability(kind: str, name: str, version: str = "1") -> CapabilityBinding:
-    payload = {
+def _capability(
+    kind: CapabilityKind, name: str, version: str = "1"
+) -> CapabilityBinding:
+    payload: dict[str, object] = {
         "kind": kind,
         "name": name,
         "version": version,
@@ -50,7 +55,11 @@ def _capability(kind: str, name: str, version: str = "1") -> CapabilityBinding:
     }
     return CapabilityBinding(
         binding_id=capability_id_for(kind, name, version),
-        **payload,
+        kind=kind,
+        name=name,
+        version=version,
+        schema_digest=_digest("a"),
+        protocol_version="2026-06",
         capability_digest=activation_digest(payload),
     )
 
@@ -264,15 +273,15 @@ def _observation(
         "probe_complete": True,
     }
     values.update(overrides)
-    return Observation(**values)
+    return Observation.model_validate(values)
 
 
 def _decision(
     registration: ConnectorRegistration,
     scope: AccessScope,
-    kind: str,
+    kind: AuthorizationKind,
     *,
-    outcome: str = "approved",
+    outcome: AuthorizationOutcome = "approved",
 ) -> AuthorizationDecision:
     return AuthorizationDecision(
         decision_version="connector-authorization.v1",

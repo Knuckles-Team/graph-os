@@ -253,7 +253,8 @@ class InMemoryMigrationAuthority:
     def _backfill_observation_conflict(
         batch: BackfillBatch, inventory_refs: set[str], snapshot: SourceSnapshot
     ) -> str | None:
-        """The conflict-error key if any observation in ``batch`` is invalid, else ``None``."""
+        """The conflict-error key if any observation in ``batch`` is invalid, else
+        ``None``."""
         if any(
             observation.canonical_ref not in inventory_refs
             for observation in batch.observations
@@ -377,7 +378,8 @@ class InMemoryMigrationAuthority:
         source_records: tuple[CanonicalRecord, ...],
         target_records: tuple[CanonicalRecord, ...],
     ) -> tuple[dict[str, CanonicalRecord], dict[str, CanonicalRecord]]:
-        """Build ``canonical_ref -> record`` maps; raises on any duplicate canonical_ref."""
+        """Build ``canonical_ref -> record`` maps; raises on any duplicate
+        ``canonical_ref``."""
         source_map = {record.canonical_ref: record for record in source_records}
         target_map = {record.canonical_ref: record for record in target_records}
         if len(source_map) != len(source_records) or len(target_map) != len(
@@ -389,7 +391,8 @@ class InMemoryMigrationAuthority:
     def _load_shadow_observations(
         self, plan: MigrationPlan
     ) -> tuple[BackfillObservation, ...]:
-        """Load + validate the plan's backfill observations (non-empty, no duplicate identity)."""
+        """Load + validate the plan's backfill observations (non-empty, no
+        duplicate identity)."""
         observations = self._observations_for(plan)
         if not observations:
             raise MigrationPrerequisiteError("backfill_observations_missing")
@@ -777,7 +780,8 @@ class InMemoryMigrationAuthority:
     def _retirement_proof_invalid(
         retirement: LegacyRetirement, plan: MigrationPlan, gate: PrerequisiteGate
     ) -> bool:
-        """Whether ``retirement`` fails the explicit zero-consumer retirement-proof contract."""
+        """Whether ``retirement`` fails the explicit zero-consumer
+        retirement-proof contract."""
         return (
             retirement.migration_ref != plan.migration_ref
             or retirement.source_snapshot_digest != plan.source_snapshot_digest
@@ -840,7 +844,8 @@ class InMemoryMigrationAuthority:
     def _rolled_back_fence_for(
         self, plan: MigrationPlan, rollback: MigrationRollback
     ) -> WriteCutoverFence | None:
-        """Build the rolled-back ``WriteCutoverFence`` record when the plan has an active fence."""
+        """Build the rolled-back ``WriteCutoverFence`` record when the plan has
+        an active fence."""
         if plan.state not in {"write_fenced", "checkpointed"}:
             return None
         if rollback.fence_ref != plan.write_fence_ref:
@@ -858,7 +863,8 @@ class InMemoryMigrationAuthority:
 
     @staticmethod
     def _applied_rollback(rollback: MigrationRollback) -> MigrationRollback:
-        """Mark a ``requested`` rollback record ``applied`` (no-op for any other decision)."""
+        """Mark a ``requested`` rollback record ``applied`` (no-op for any
+        other decision)."""
         if rollback.decision != "requested":
             return rollback
         applied_data = rollback.model_dump(mode="python")

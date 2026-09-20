@@ -16,13 +16,13 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable, Mapping
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
 
-from agent_utilities.protocols.epistemic_operations import ProtocolModel
+from graph_os.control_plane._model import ControlPlaneModel as ProtocolModel
 
-Identifier: TypeAlias = Annotated[
+type Identifier = Annotated[
     str,
     Field(
         min_length=1,
@@ -30,12 +30,12 @@ Identifier: TypeAlias = Annotated[
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]*$",
     ),
 ]
-Digest: TypeAlias = Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")]
-VersionText: TypeAlias = Annotated[
+type Digest = Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")]
+type VersionText = Annotated[
     str,
     Field(min_length=1, max_length=96, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:+-]*$"),
 ]
-Timestamp: TypeAlias = Annotated[
+type Timestamp = Annotated[
     str,
     Field(
         min_length=20,

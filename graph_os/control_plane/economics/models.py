@@ -21,7 +21,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field, StrictBool, StrictInt, field_validator, model_validator
 
-from agent_utilities.protocols.epistemic_operations import ProtocolModel
+from graph_os.control_plane._model import ControlPlaneModel as ProtocolModel
 
 SCHEMA_VERSION: Literal["1"] = "1"
 MAX_REF_LENGTH = 256

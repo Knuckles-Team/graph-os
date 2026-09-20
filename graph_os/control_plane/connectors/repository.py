@@ -56,7 +56,8 @@ class ConnectorRepository(Protocol):
         """Record one controlled package inventory reference."""
 
     def put_version(self, version: ConnectorVersion) -> None:
-        """Record one immutable release; mutation of an existing version is forbidden."""
+        """Record one immutable release; mutation of an existing version is
+        forbidden."""
 
     def put_desired(self, desired: DesiredConnectorState) -> None:
         """Replace desired state only through an explicit versioned change."""
@@ -108,7 +109,7 @@ class ConnectorRepository(Protocol):
     def cursor_for(
         self,
         scope: AccessScope,
-        after_server_id: str,
-        after_version_id: str,
+        _after_server_id: str,
+        _after_version_id: str,
     ) -> KeysetCursor:
         """Create a scope-bound keyset position without exposing a database token."""

@@ -9,11 +9,11 @@ Kubernetes dependencies.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Literal, Protocol, TypeVar, runtime_checkable
+from typing import Literal, Protocol, runtime_checkable
 
 from pydantic import Field
 
-from agent_utilities.protocols.epistemic_operations import ProtocolModel
+from graph_os.control_plane._model import ControlPlaneModel as ProtocolModel
 
 from .models import (
     EconomicsConflict,
@@ -81,15 +81,12 @@ class EconomicsRepository(Protocol):
     def get_watermark(self, *, tenant_id: str, source_ref: str) -> Watermark | None: ...
 
 
-_T = TypeVar("_T")
-
-
-def _append(
-    store: dict[str, tuple[str, _T]],
+def _append[T](
+    store: dict[str, tuple[str, T]],
     *,
     identity: str,
     digest: str,
-    value: _T,
+    value: T,
 ) -> AppendReceipt:
     previous = store.get(identity)
     if previous is not None:
