@@ -181,11 +181,11 @@ class FleetCatalogReadPort(Protocol):
     async def read_context(self) -> ReadContext: ...
 
     async def query_registered_servers(
-        self, *, graph: str, limit: int, cursor: str | None
+        self, graph: str, _limit: int, cursor: str | None, /
     ) -> ServerPage: ...
 
     async def search_components(
-        self, request: ComponentSearchRequest
+        self, _request: ComponentSearchRequest, /
     ) -> ComponentPage: ...
 
     async def current_component(
@@ -415,9 +415,7 @@ class FleetCatalogReader:
         seen: set[str] = set()
         for _ in range(self._max_pages):
             page = await self._port.query_registered_servers(
-                graph=COMMONS_GRAPH,
-                limit=self._page_size,
-                cursor=cursor,
+                COMMONS_GRAPH, self._page_size, cursor
             )
             if len(page.entries) > self._page_size or page.observed_at_ms <= 0:
                 raise FleetCatalogIntegrityError("server query violated its page bound")

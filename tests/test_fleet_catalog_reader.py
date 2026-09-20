@@ -149,7 +149,7 @@ class FakeFleetCatalogPort:
         return self.context
 
     async def query_registered_servers(
-        self, *, graph: str, limit: int, cursor: str | None
+        self, graph: str, limit: int, cursor: str | None, /
     ) -> ServerPage:
         self.server_calls.append((graph, limit, cursor))
         return self.server_pages.pop(0)
