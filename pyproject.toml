@@ -21,7 +21,7 @@ license = "MIT"
 dependencies = [
     # Portable development binding below resolves the not-yet-published AU 2.5
     # workspace release; released wheels retain this real PEP 508 floor.
-    "agent-utilities>=2.5.0,<3.0.0",
+    "agent-utilities[mcp]>=2.5.0,<3.0.0",
     # Production operations and the canary call the public client/numeric
     # surface directly; AU's transitive requirement is not enough for this
     # package's own imports.  The local AU binding supplies the workspace EG
@@ -51,6 +51,10 @@ test = [
     "ruff==0.16.0",
     "types-PyYAML>=6.0.12.20250915",
 ]
+webui = [
+    "agent-webui>=2.6.0,<3.0.0",
+    "uvicorn>=0.51.0",
+]
 
 [project.scripts]
 graph-os = "graph_os.cli:main"
@@ -66,6 +70,7 @@ agent-utilities-venv = "graph_os.deployment.venv_sync:main"
 # the real PEP 508 floor above, so released wheels resolve from the index.
 [tool.uv.sources]
 agent-utilities = { path = ".uv-workspace-siblings/agent-utilities", editable = true }
+agent-webui = { path = ".uv-workspace-siblings/agent-webui", editable = true }
 
 [tool.setuptools.dynamic]
 version = { attr = "graph_os._version.__version__" }

@@ -157,7 +157,7 @@ _PROFILE_PRESETS: dict[str, dict[str, Any]] = {
         "ENABLE_OTEL": True,
         "OTEL_EXPORTER_OTLP_ENDPOINT": _PLACEHOLDER_OTEL,
         "LANGFUSE_PUBLIC_KEY_REF": "env://LANGFUSE_PUBLIC_KEY",
-        "LANGFUSE_SECRET_KEY_REF": "env://LANGFUSE_SECRET_KEY",
+        "LANGFUSE_SECRET_KEY_REF": "env://LANGFUSE_SECRET_KEY",  # nosec B105
         "LANGFUSE_MCP_ENABLED": True,
         "TRACE_EXPORT_ENABLED": True,
         **_SAFE_PROPOSE_ONLY_EVOLUTION,
@@ -194,7 +194,7 @@ _PROFILE_PRESETS: dict[str, dict[str, Any]] = {
         "OTEL_EXPORTER_OTLP_ENDPOINT": _PLACEHOLDER_OTEL,
         "ENABLE_OTEL": True,
         "LANGFUSE_PUBLIC_KEY_REF": "env://LANGFUSE_PUBLIC_KEY",
-        "LANGFUSE_SECRET_KEY_REF": "env://LANGFUSE_SECRET_KEY",
+        "LANGFUSE_SECRET_KEY_REF": "env://LANGFUSE_SECRET_KEY",  # nosec B105
         "LANGFUSE_MCP_ENABLED": True,
         "TRACE_EXPORT_ENABLED": True,
         **_SAFE_PROPOSE_ONLY_EVOLUTION,
@@ -1149,7 +1149,7 @@ def secret_reference_scheme_counts(cfg: Any) -> dict[str, int]:
     ``secrets_backend`` check to flag that scheme/backend mismatch; reference
     names/values never leave this function, only per-scheme counts.
     """
-    counts = {"env": 0, "vault": 0, "secret": 0}
+    counts = {"env": 0, "vault": 0, "secret": 0}  # nosec B105
     for reference in _collect_secret_references(cfg):
         scheme = reference.partition("://")[0]
         if scheme in counts:

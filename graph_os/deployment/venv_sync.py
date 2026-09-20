@@ -65,7 +65,7 @@ import logging
 import os
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404 -- fixed-argv environment synchronization
 import sys
 import time
 import tomllib
@@ -1316,7 +1316,7 @@ def run_uv(
     _assert_sanctioned(argv)
     logger.debug("running %s", " ".join(argv))
     try:
-        completed = subprocess.run(  # noqa: S603 — argv is constructed, never shell
+        completed = subprocess.run(  # nosec B603 -- reviewed argv, never shell
             argv,
             cwd=str(workspace.root),
             capture_output=True,
@@ -1828,7 +1828,7 @@ class ImportProbe:
     ) -> tuple[Any, ProbeResult | None]:
         """Returns ``(completed, error)``; exactly one is falsy."""
         try:
-            completed = subprocess.run(  # noqa: S603 — argv is constructed, never shell
+            completed = subprocess.run(  # nosec B603 -- fixed Python executable/script
                 [str(python), "-c", script],
                 cwd=str(workspace.root),
                 capture_output=True,
@@ -1859,7 +1859,7 @@ class ImportProbe:
                     name=self.name,
                     ok=False,
                     detail=(
-                        f"import probe produced unparseable output ({exc}): "
+                        f"import probe produced unparsable output ({exc}): "
                         f"{(completed.stdout or completed.stderr)[-400:]}"
                     ),
                 ),
@@ -1936,7 +1936,7 @@ class SdkFloorProbe:
             "    json.dump(check_mcp_sdk_floor(), sys.stdout)\n"
         )
         try:
-            completed = subprocess.run(  # noqa: S603 — argv is constructed, never shell
+            completed = subprocess.run(  # nosec B603 -- fixed Python executable/script
                 [str(python), "-c", script],
                 cwd=str(workspace.root),
                 capture_output=True,

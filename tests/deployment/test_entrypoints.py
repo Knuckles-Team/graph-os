@@ -20,6 +20,7 @@ def test_host_deployment_scripts_point_to_graph_os_modules() -> None:
         "agent-utilities-doctor": "graph_os.deployment.doctor:main",
         "agent-utilities-venv": "graph_os.deployment.venv_sync:main",
         "graph-os": "graph_os.cli:main",
+        "graph-os-daemon": "graph_os.gateway.daemon:main",
         "graph-os-production-ops": "graph_os.deployment.production_ops:main",
         "graph-os-release-canary": "graph_os.deployment.release_canary:main",
         "setup-config": "graph_os.deployment.cli:main",

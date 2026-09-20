@@ -2844,7 +2844,7 @@ def _check_production_certification() -> dict[str, Any]:
         if trust is not None:
             try:
                 trust.cleanup()
-            except Exception:  # noqa: BLE001 - cleanup cannot disclose material
+            except Exception:  # noqa: BLE001 - best-effort cleanup cannot disclose material  # nosec B110
                 pass
 
     return _result(
@@ -5992,7 +5992,7 @@ def _apply_auto_fixes(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
             fixes.append(_auto_fix(res["name"]))
             try:
                 res.update(CHECKS[res["name"]]())  # re-run after fix
-            except Exception:  # noqa: BLE001
+            except Exception:  # noqa: BLE001 - auto-fix report remains failed  # nosec B110
                 pass
     return fixes
 

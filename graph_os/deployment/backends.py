@@ -265,7 +265,7 @@ def render_compose(
                 "--transport",
                 transport,
                 "--host",
-                "0.0.0.0",
+                "0.0.0.0",  # nosec B104 -- published container listener
                 "--port",
                 str(port),
             ],
@@ -390,7 +390,7 @@ def render_k8s_manifest(
                                     "--transport",
                                     "streamable-http",
                                     "--host",
-                                    "0.0.0.0",
+                                    "0.0.0.0",  # nosec B104 -- pod listener
                                     "--port",
                                     str(port),
                                 ],

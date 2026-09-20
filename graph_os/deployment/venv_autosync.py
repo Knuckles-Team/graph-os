@@ -59,7 +59,7 @@ import logging
 import os
 import secrets
 import shlex
-import subprocess
+import subprocess  # nosec B404 -- fixed-argv workspace process control
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
@@ -316,7 +316,7 @@ class TriggerBackend(Protocol):
 
 def _git(repo: Path, *args: str) -> str:
     try:
-        completed = subprocess.run(  # noqa: S603 — argv is constructed, never shell
+        completed = subprocess.run(  # nosec B603 B607 -- fixed git argv, never shell
             ["git", "-C", str(repo), *args],
             capture_output=True,
             text=True,
@@ -700,7 +700,7 @@ def _spawn_reconciler(workspace: Workspace) -> int | None:
     log.parent.mkdir(parents=True, exist_ok=True)
     try:
         with log.open("a", encoding="utf-8") as handle:
-            process = subprocess.Popen(  # noqa: S603 — argv is constructed, never shell
+            process = subprocess.Popen(  # nosec B603 -- reviewed argv, never shell
                 argv,
                 cwd=str(workspace.root),
                 stdout=handle,

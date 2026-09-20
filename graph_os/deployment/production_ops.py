@@ -16,7 +16,7 @@ import os
 import secrets
 import shutil
 import socket
-import subprocess
+import subprocess  # nosec B404 -- fixed-argv backup/restore binaries
 import time
 from pathlib import Path
 from typing import Any
@@ -300,7 +300,7 @@ async def _restore_validate(archive_root: Path, scratch_root: Path) -> dict[str,
         # source cannot disappear midway through the offline restore.
         with _archive_lock(archive_root, timeout_seconds=60):
             bundle = _latest_bundle(archive_root)
-            restored = subprocess.run(
+            restored = subprocess.run(  # nosec B603 -- validated binary and paths
                 [
                     restore_bin,
                     "--bundle",
@@ -325,7 +325,7 @@ async def _restore_validate(archive_root: Path, scratch_root: Path) -> dict[str,
                 )
             bundle_digest, file_count, byte_count = _tree_digest(bundle)
         env = dict(os.environ)
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # nosec B603 -- validated server and local args
             [
                 server_bin,
                 "--tcp-addr",

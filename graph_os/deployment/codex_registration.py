@@ -10,7 +10,7 @@ all deployment settings continue to resolve through :class:`AgentConfig`.
 from __future__ import annotations
 
 import json
-import subprocess
+import subprocess  # nosec B404 -- fixed-argv Codex CLI registration
 from collections.abc import Callable, Sequence
 from typing import Any
 

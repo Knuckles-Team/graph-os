@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import platform
 import shutil
-import subprocess
+import subprocess  # nosec B404 -- fixed-argv local prerequisite probes
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -199,7 +199,7 @@ def _node_version() -> tuple[int, ...] | None:
     if not node:
         return None
     try:
-        out = subprocess.run(
+        out = subprocess.run(  # nosec B603 -- resolved node executable, fixed flag
             [node, "--version"], capture_output=True, text=True, timeout=5
         ).stdout.strip()
         return tuple(int(p) for p in out.lstrip("v").split(".") if p.isdigit())
@@ -243,7 +243,7 @@ def _check_geniusbot() -> dict[str, Any]:
         ldconfig = shutil.which("ldconfig")
         if ldconfig:
             try:
-                out = subprocess.run(
+                out = subprocess.run(  # nosec B603 -- resolved ldconfig, fixed flag
                     [ldconfig, "-p"], capture_output=True, text=True, timeout=5
                 ).stdout
                 libgl = "libGL.so" in out
