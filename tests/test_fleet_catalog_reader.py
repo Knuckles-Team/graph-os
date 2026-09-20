@@ -154,9 +154,7 @@ class FakeFleetCatalogPort:
         self.server_calls.append((graph, limit, cursor))
         return self.server_pages.pop(0)
 
-    async def search_components(
-        self, request: ComponentSearchRequest
-    ) -> ComponentPage:
+    async def search_components(self, request: ComponentSearchRequest) -> ComponentPage:
         self.search_calls.append(request)
         return self.component_pages.pop(0)
 

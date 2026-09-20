@@ -21,9 +21,7 @@ COMPONENT_SEARCH_SOURCE: Final = "AgentComponent.Search"
 COMPONENT_CURRENT_SOURCE: Final = "AgentComponent.Current"
 COMPONENT_CONTENT_SOURCE: Final = "AgentComponent.Content"
 
-ComponentKind = Literal[
-    "mcp_server", "tool", "skill", "mcp_prompt", "mcp_resource"
-]
+ComponentKind = Literal["mcp_server", "tool", "skill", "mcp_prompt", "mcp_resource"]
 FLEET_COMPONENT_KINDS: Final[tuple[ComponentKind, ...]] = (
     "mcp_server",
     "tool",
@@ -465,9 +463,7 @@ class FleetCatalogReader:
         return cursor
 
     @staticmethod
-    def _validate_server(
-        server: ServerRegistration, *, observed_at_ms: int
-    ) -> None:
+    def _validate_server(server: ServerRegistration, *, observed_at_ms: int) -> None:
         malformed = (
             not server.server_id.startswith("srv:")
             or server.server_id != f"srv:{server.name}"
