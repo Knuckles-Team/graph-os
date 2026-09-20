@@ -46,7 +46,7 @@ class Actor:
 
 
 class Placement:
-    def __init__(self, owner: "Client") -> None:
+    def __init__(self, owner: Client) -> None:
         self.owner = owner
 
     async def route(
@@ -68,7 +68,7 @@ class Placement:
 
 
 class Topology:
-    def __init__(self, owner: "Client") -> None:
+    def __init__(self, owner: Client) -> None:
         self.owner = owner
 
     async def members(self, **_expectations: Any) -> dict[str, Any]:

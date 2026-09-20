@@ -149,9 +149,7 @@ class ClientContext:
             raise AuthorityError("verified actor has no credential freshness check")
         ensure_current()
         principal = _non_empty("actor.actor_id", getattr(actor, "actor_id", None))
-        actor_tenant = _non_empty(
-            "actor.tenant_id", getattr(actor, "tenant_id", None)
-        )
+        actor_tenant = _non_empty("actor.tenant_id", getattr(actor, "tenant_id", None))
         requested_tenant = _non_empty("tenant", tenant)
         if actor_tenant != requested_tenant:
             raise AuthorityError(
@@ -305,9 +303,7 @@ class EpistemicClientPool:
     def graph_count(self) -> int:
         return len(self._clients)
 
-    async def _client_for(
-        self, context: ClientContext, graph: str
-    ) -> EpistemicClient:
+    async def _client_for(self, context: ClientContext, graph: str) -> EpistemicClient:
         target = _non_empty("graph", graph)
         async with self._lock:
             if self._closed:
@@ -396,9 +392,7 @@ class TopologyAdapter:
             )
         return ClusterTopology.from_engine(payload)
 
-    async def health(
-        self, context: ClientContext, graph: str
-    ) -> Mapping[str, Any]:
+    async def health(self, context: ClientContext, graph: str) -> Mapping[str, Any]:
         async with self._pool.bind(
             context, graph, required_scope=SERVICE_CONTROL_SCOPE
         ) as client:
