@@ -54,6 +54,7 @@ _STOP_POLL_SECONDS = 0.5
 #: loses crash-loops. A dedicated variable keeps them independent.
 WEB_UI_PORT_ENV = "GRAPH_OS_WEBUI_PORT"
 DEFAULT_WEB_UI_PORT = 8080
+DEFAULT_WEB_UI_HOST = "127.0.0.1"
 
 #: agent-webui refuses a non-loopback listener until the raw-query logging
 #: decision is explicit. Mirrors ``agent_webui.server._ACCESS_LOG_POLICY_ENV``.
@@ -85,7 +86,7 @@ def run_web_ui(
     import uvicorn
     from agent_utilities.core.config import config
 
-    bind_host = host or str(getattr(config, "host", None) or "0.0.0.0")  # noqa: S104
+    bind_host = host or str(getattr(config, "host", None) or DEFAULT_WEB_UI_HOST)
     if port:
         bind_port = int(port)
     else:
@@ -168,7 +169,7 @@ def run_web_ui(
     )
     # Signal handlers may only be installed from the main thread, and the
     # supervisor owns shutdown through ``stop_event`` regardless.
-    server.install_signal_handlers = lambda: None  # type: ignore[method-assign]
+    server.install_signal_handlers = lambda: None
 
     async def _serve() -> None:
         task = asyncio.ensure_future(server.serve())

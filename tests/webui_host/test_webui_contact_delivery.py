@@ -7,13 +7,19 @@ import os
 import sys
 import types
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 
 def _package(name: str) -> types.ModuleType:
     package = types.ModuleType(name)
-    package.__path__ = []  # type: ignore[attr-defined]
+    _export(package, "__path__", [])
     return package
+
+
+def _export(module: types.ModuleType, name: str, value: object) -> None:
+    """Populate a synthetic module through its runtime namespace."""
+
+    vars(module)[name] = value
 
 
 def test_webui_host_import_is_lazy() -> None:
@@ -60,21 +66,21 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
             stop_event.set()
 
     uvicorn = types.ModuleType("uvicorn")
-    uvicorn.Config = _Config  # type: ignore[attr-defined]
-    uvicorn.Server = _Server  # type: ignore[attr-defined]
+    _export(uvicorn, "Config", _Config)
+    _export(uvicorn, "Server", _Server)
     monkeypatch.setitem(sys.modules, "uvicorn", uvicorn)
 
     au = _package("agent_utilities")
     au_core = _package("agent_utilities.core")
     au_server = _package("agent_utilities.server")
-    au.core = au_core  # type: ignore[attr-defined]
-    au.server = au_server  # type: ignore[attr-defined]
+    _export(au, "core", au_core)
+    _export(au, "server", au_server)
     monkeypatch.setitem(sys.modules, "agent_utilities", au)
     monkeypatch.setitem(sys.modules, "agent_utilities.core", au_core)
     monkeypatch.setitem(sys.modules, "agent_utilities.server", au_server)
 
     config_module = types.ModuleType("agent_utilities.core.config")
-    config_module.config = SimpleNamespace(host="127.0.0.1", port=8000)
+    _export(config_module, "config", SimpleNamespace(host="127.0.0.1", port=8000))
     monkeypatch.setitem(sys.modules, "agent_utilities.core.config", config_module)
 
     contextual_model = types.ModuleType("agent_utilities.core.contextual_model")
@@ -83,7 +89,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         calls["agent_model"] = model
         return "context-agent"
 
-    contextual_model.create_context_agent = create_context_agent  # type: ignore[attr-defined]
+    _export(contextual_model, "create_context_agent", create_context_agent)
     monkeypatch.setitem(
         sys.modules, "agent_utilities.core.contextual_model", contextual_model
     )
@@ -97,7 +103,9 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         calls["contact_runner"] = sync_runner
         return {"contact_delivery": "governed-contact-delivery"}
 
-    governance.contact_delivery_factory_kwargs = contact_delivery_factory_kwargs  # type: ignore[attr-defined]
+    _export(
+        governance, "contact_delivery_factory_kwargs", contact_delivery_factory_kwargs
+    )
     monkeypatch.setitem(
         sys.modules,
         "agent_utilities.server.webui_contact_governance",
@@ -105,8 +113,10 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     )
 
     mcp_delegation = types.ModuleType("agent_utilities.server.webui_mcp_delegation")
-    mcp_delegation.webui_mcp_delegation_helpers = (  # type: ignore[attr-defined]
-        lambda: {"call_mcp_tool": "mcp-helper"}
+    _export(
+        mcp_delegation,
+        "webui_mcp_delegation_helpers",
+        lambda: {"call_mcp_tool": "mcp-helper"},
     )
     monkeypatch.setitem(
         sys.modules,
@@ -115,8 +125,10 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     )
 
     voice_delegation = types.ModuleType("agent_utilities.server.webui_voice_delegation")
-    voice_delegation.webui_voice_delegation_helpers = (  # type: ignore[attr-defined]
-        lambda: {"transcribe_voice": "voice-helper"}
+    _export(
+        voice_delegation,
+        "webui_voice_delegation_helpers",
+        lambda: {"transcribe_voice": "voice-helper"},
     )
     monkeypatch.setitem(
         sys.modules,
@@ -126,25 +138,29 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
 
     webui = _package("agent_webui")
     webui_api = types.ModuleType("agent_webui.api_extensions")
-    webui_api._get_engine_bounded = "bounded-engine"  # type: ignore[attr-defined]
-    webui_api._invoke_governed_helper = (  # type: ignore[attr-defined]
-        lambda operation, *, deadline: (operation, deadline)
+    _export(webui_api, "_get_engine_bounded", "bounded-engine")
+    _export(
+        webui_api,
+        "_invoke_governed_helper",
+        lambda operation, *, deadline: (operation, deadline),
     )
-    webui.orchestrator_model = types.ModuleType("agent_webui.orchestrator_model")  # type: ignore[attr-defined]
-    webui.server = types.ModuleType("agent_webui.server")  # type: ignore[attr-defined]
+    _export(
+        webui, "orchestrator_model", types.ModuleType("agent_webui.orchestrator_model")
+    )
+    _export(webui, "server", types.ModuleType("agent_webui.server"))
     monkeypatch.setitem(sys.modules, "agent_webui", webui)
     monkeypatch.setitem(sys.modules, "agent_webui.api_extensions", webui_api)
 
-    orchestrator = webui.orchestrator_model
+    orchestrator = cast(types.ModuleType, vars(webui)["orchestrator_model"])
 
     def build_orchestrator_model(engine_getter: object) -> object:
         calls["engine_getter"] = engine_getter
         return "orchestrator-model"
 
-    orchestrator.build_orchestrator_model = build_orchestrator_model  # type: ignore[attr-defined]
+    _export(orchestrator, "build_orchestrator_model", build_orchestrator_model)
     monkeypatch.setitem(sys.modules, "agent_webui.orchestrator_model", orchestrator)
 
-    server_module = webui.server
+    server_module = cast(types.ModuleType, vars(webui)["server"])
 
     def create_agent_web_app(
         agent: object,
@@ -161,7 +177,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         }
         return "webui-app"
 
-    server_module.create_agent_web_app = create_agent_web_app  # type: ignore[attr-defined]
+    _export(server_module, "create_agent_web_app", create_agent_web_app)
     monkeypatch.setitem(sys.modules, "agent_webui.server", server_module)
 
     monkeypatch.delenv(module.ACCESS_LOG_POLICY_ENV, raising=False)
