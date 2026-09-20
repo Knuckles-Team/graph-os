@@ -129,8 +129,8 @@ def run_web_ui(
         webui_voice_delegation_helpers,
     )
     from agent_webui.api_extensions import (
-        _get_engine_bounded,
-        _invoke_governed_helper,
+        get_engine_bounded,
+        invoke_governed_helper,
     )
     from agent_webui.orchestrator_model import build_orchestrator_model
     from agent_webui.server import create_agent_web_app
@@ -145,14 +145,14 @@ def run_web_ui(
     # dashboard is a frontend facade over routers that are already served; it
     # needs the orchestrator-model agent and the delegation helpers, nothing
     # more. Same measurement, this path: 11 seconds to a built app.
-    agent = create_context_agent(model=build_orchestrator_model(_get_engine_bounded))
+    agent = create_context_agent(model=build_orchestrator_model(get_engine_bounded))
     helpers = {
         **webui_mcp_delegation_helpers(),
         **webui_voice_delegation_helpers(),
     }
     contact_kwargs = contact_delivery_factory_kwargs(
         create_agent_web_app,
-        lambda operation: _invoke_governed_helper(operation, deadline=10.0),
+        lambda operation: invoke_governed_helper(operation, deadline=10.0),
     )
     app = create_agent_web_app(
         agent,

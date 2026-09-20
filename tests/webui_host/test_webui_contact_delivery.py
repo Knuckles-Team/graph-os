@@ -141,10 +141,10 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
 
     webui = _package("agent_webui")
     webui_api = types.ModuleType("agent_webui.api_extensions")
-    _export(webui_api, "_get_engine_bounded", "bounded-engine")
+    _export(webui_api, "get_engine_bounded", "bounded-engine")
     _export(
         webui_api,
-        "_invoke_governed_helper",
+        "invoke_governed_helper",
         lambda operation, *, deadline: (operation, deadline),
     )
     _export(

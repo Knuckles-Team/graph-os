@@ -31,6 +31,7 @@ docs = "GitHub Pages source (mkdocs) — the published site is this repository's
 "mkdocs.yml" = "mkdocs site config for the GitHub Pages source in docs/"
 "uv.lock" = "uv lockfile"
 "dupehound-distinct.toml" = "reviewed register of dupehound pairs that are not clones, read by the shared dupehound-changed hook — currently empty (see that file's own header)"
+"vulture_whitelist.py" = "load-bearing keyword-callable Protocol parameter names consumed by the shared vulture hook"
 
 [dotfiles]
 ".bumpversion.cfg" = "bump2version release configuration"
