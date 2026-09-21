@@ -14,7 +14,7 @@ the current deployment).
 | `graph_os.mcp_server` | the graph-os MCP tool/REST surface and serving lifecycle | **Yes — extracted; cutover pending** |
 | `graph_os.fleet` | the fleet gateway / multiplexer | Yes — native runtime + EG catalog seam; composition cutover pending |
 | `graph_os.gateway` | REST gateway + host daemon | Yes — extracted; cutover pending |
-| `graph_os.control_plane` | fleet reconciliation / action policy | Yes — authoritative; AU copy removal validated for landing |
+| `graph_os.control_plane` | fleet reconciliation / action policy | Yes — authoritative; AU runtime copy removed in `4d930326c` |
 | `graph_os.webui_host` | agent-webui hosting | Yes — extracted; composition cutover pending |
 | `graph_os.deployment` | host deployment, doctor, release canary, production ops | **Yes — extracted** |
 

@@ -53,28 +53,32 @@ Wave 5 implementation ownership now lives in this repository:
 | `graph_os.webui_host` | agent-webui hosting (the webui co-service) | `graph_os/webui_host/` |
 | `graph_os.deployment` | deployment doctor, release canary, production ops | `graph_os/deployment/` |
 
-## W5 source measurements (measured 2026-09-12)
+## W5 historical source measurements (measured 2026-09-12)
 
-Historical line counts against `agent-utilities` `HEAD` at measurement time
-(`wc -l` over every `.py` file in the directory; single files counted
-directly). These were the measured extraction baselines for Migration Wave 5
-(RF-ADR-009 §7); the table is retained as provenance, not current ownership.
+These are historical line counts against `agent-utilities` `HEAD` at the
+measurement time (`wc -l` over every `.py` file in the directory; single files
+counted directly). They were the measured extraction baselines for Migration
+Wave 5 (RF-ADR-009 §7); the table is retained as provenance, not as a current
+source or ownership map.
 
-| Source | Lines | Moves to |
+| Historical subsystem snapshot | Lines | Current implementation authority |
 |---|---:|---|
 | `agent_utilities/mcp/kg_server.py` | 6,443 | `graph_os.mcp_server` (split into modules per §2.4) |
 | `agent_utilities/mcp/multiplexer.py` | 8,136 | `graph_os.fleet` |
 | `agent_utilities/gateway/` | 14,045 | `graph_os.gateway` |
-| `agent_utilities/control_plane/` | 17,856 | `graph_os.control_plane` |
+| control-plane subsystem (AU snapshot; removed from AU in `4d930326c`) | 17,856 | `graph_os.control_plane` |
 | `agent_utilities/server/webui_co_service.py` | 176 | `graph_os.webui_host` |
 | `agent_utilities/deployment/` | 18,989 | `graph_os.deployment` (host mechanics extracted) |
 | **Total** | **65,645** | |
 
-These figures match the RF-ADR-009 §1 subsystem table (`mcp/` 71,100 total —
-`kg_server.py` + `multiplexer.py` above account for 14,579 of it, the rest
-being the AU-retained multiplexer skill/prompt-harvest and server-scaffolding
-code that moves to agent-connector-sdk, not here; `gateway/` 14,045;
-`control_plane/` 17,856; `deployment/` 18,989 — all four exact matches).
+At the measurement time, these figures matched the RF-ADR-009 §1 subsystem
+table (`mcp/` 71,100 total — `kg_server.py` + `multiplexer.py` above account
+for 14,579 of it, the rest being the AU-retained multiplexer
+skill/prompt-harvest and server-scaffolding code that moves to
+agent-connector-sdk, not here; `gateway/` 14,045; the control-plane snapshot
+17,856; `deployment/` 18,989 — all four exact matches). The control-plane
+runtime copy has since been removed from AU; `graph_os.control_plane` is the
+current authority.
 
 ### Console scripts and current ownership
 
