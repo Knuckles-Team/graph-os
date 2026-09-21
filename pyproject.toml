@@ -22,6 +22,11 @@ dependencies = [
     # Portable development binding below resolves the not-yet-published AU 2.5
     # workspace release; released wheels retain this real PEP 508 floor.
     "agent-utilities[mcp]>=2.5.0,<3.0.0",
+    # GraphOS is the deployment composition root for connector workers.  The
+    # SDK owns source transport and runner construction; GraphOS supplies its
+    # authenticated epistemic-graph client through the SDK's public injection
+    # seam and never imports connector implementations.
+    "agent-connector-sdk>=0.1.0,<1.0.0",
     # The fleet gateway imports the MCP protocol/client and FastMCP middleware
     # directly; keep these first-party runtime requirements explicit rather
     # than relying on AU's optional extra to expose them transitively.
@@ -78,6 +83,7 @@ agent-utilities-venv = "graph_os.deployment.venv_sync:main"
 # the real PEP 508 floor above, so released wheels resolve from the index.
 [tool.uv.sources]
 agent-utilities = { path = ".uv-workspace-siblings/agent-utilities", editable = true }
+agent-connector-sdk = { path = ".uv-workspace-siblings/agent-connector-sdk", editable = true }
 agent-webui = { path = ".uv-workspace-siblings/agent-webui", editable = true }
 
 [tool.setuptools.dynamic]
