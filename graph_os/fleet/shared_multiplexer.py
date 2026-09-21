@@ -13,15 +13,19 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
-from collections.abc import Callable, Coroutine
+from collections.abc import AsyncIterator, Callable, Coroutine
 from concurrent.futures import Future
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import TypeVar
+
+from fastmcp.server.extensions import ServerExtension
 
 from graph_os.fleet.multiplexer import MCPMultiplexer
 
 __all__ = [
     "ServedMultiplexerBindingError",
+    "ServedMultiplexerLoopExtension",
     "bind_served_multiplexer",
     "claim_served_multiplexer_loop",
     "get_served_multiplexer",
@@ -33,6 +37,20 @@ _T = TypeVar("_T")
 
 class ServedMultiplexerBindingError(RuntimeError):
     """The serving authority or its owner loop is unavailable."""
+
+
+class ServedMultiplexerLoopExtension(ServerExtension):
+    """Claim the served multiplexer loop as part of FastMCP startup."""
+
+    identifier = "graph-os/fleet-loop"
+
+    def __init__(self, multiplexer: MCPMultiplexer) -> None:
+        self._multiplexer = multiplexer
+
+    @asynccontextmanager
+    async def lifespan(self) -> AsyncIterator[None]:
+        claim_served_multiplexer_loop(self._multiplexer)
+        yield
 
 
 @dataclass(slots=True)

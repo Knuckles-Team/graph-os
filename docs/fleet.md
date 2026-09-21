@@ -25,7 +25,7 @@ on `Future.result()`. Raw multiplexer access from a foreign loop fails closed.
 
 ```mermaid
 flowchart LR
-    MCP[MCP request] --> Owner[FastMCP owner loop]
+    MCP[FastMCP lifespan and requests] --> Owner[FastMCP owner loop]
     UI[Agent WebUI ASGI loop] -->|async submit| Binding[served multiplexer binding]
     Binding --> Owner
     Owner --> Mux[one MCPMultiplexer]
@@ -51,8 +51,9 @@ a second process-local durability store.
    and refreshes the catalog before child startup.
 2. The MCP composition binds the returned instance through
    `graph_os.fleet.shared_multiplexer` so REST and WebUI consumers observe the
-   same lifecycle, health, OAuth, and discovery state. The first served request
-   claims the FastMCP owner loop; co-services use only the async submission API.
+   same lifecycle, health, OAuth, and discovery state. A FastMCP extension
+   claims the owner loop during server lifespan startup; co-services use only
+   the async submission API.
 3. Gateway route composition installs its `GatewayApplicationPort` before
    `register_graph_routes()` and delegates fleet OAuth/toggle reads to that
    same instance.

@@ -110,12 +110,29 @@ async def test_attached_serving_middleware_claims_loop_for_same_instance(
     async def call_next(_context: object) -> list[object]:
         return []
 
-    assert await middleware.on_list_tools(SimpleNamespace(), call_next) == []
-
     async def identity(served: MCPMultiplexer) -> bool:
         return served is mux
 
-    assert await run_on_served_multiplexer(identity) is True
+    async with host._lifespan_manager():
+        assert await run_on_served_multiplexer(identity) is True
+        assert await middleware.on_list_tools(SimpleNamespace(), call_next) == []
+
+
+@pytest.mark.asyncio
+async def test_lifespan_claims_owner_before_any_mcp_request(tmp_path: Any) -> None:
+    from fastmcp import FastMCP
+
+    config = tmp_path / "mcp.json"
+    config.write_text('{"mcpServers": {}}', encoding="utf-8")
+    host = FastMCP("startup-owner-proof")
+    mux = attach_fleet_loader(host, config_path=str(config))
+
+    async with host._lifespan_manager():
+
+        async def identity(served: MCPMultiplexer) -> bool:
+            return served is mux
+
+        assert await run_on_served_multiplexer(identity) is True
 
 
 def test_webui_helpers_use_one_owner_loop_for_inventory_call_and_resource() -> None:

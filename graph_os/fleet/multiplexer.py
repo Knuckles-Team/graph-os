@@ -8445,6 +8445,7 @@ def attach_fleet_loader(
     import graph_os.fleet.shared_multiplexer as _shared_multiplexer
 
     _shared_multiplexer.bind_served_multiplexer(mux)
+    mcp.add_extension(_shared_multiplexer.ServedMultiplexerLoopExtension(mux))
     mux._claim_serving_loop = lambda: _shared_multiplexer.claim_served_multiplexer_loop(
         mux
     )
