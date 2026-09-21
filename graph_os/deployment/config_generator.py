@@ -550,6 +550,21 @@ def _configuration_changed(
     return any((renamed, removed, unknown_removed))
 
 
+def _strip_unknown_configuration_keys(
+    cleaned: dict[str, Any],
+    unknown: list[str],
+    *,
+    enabled: bool,
+) -> tuple[dict[str, Any], list[str], list[str]]:
+    if not enabled or not unknown:
+        return cleaned, [], unknown
+    unknown_set = set(unknown)
+    stripped = {
+        key: value for key, value in cleaned.items() if str(key) not in unknown_set
+    }
+    return stripped, unknown, []
+
+
 def migrate_config_file(
     config_path: str | Path, *, backup: bool = True, strip_unknown: bool = False
 ) -> dict[str, Any]:
@@ -585,11 +600,11 @@ def migrate_config_file(
     # value must be relocated to the secret store by a human-gated step, and
     # dropping it would silently discard live credentials.
     plaintext_secrets = plaintext_secret_keys(cleaned)
-    unknown_removed: list[str] = []
-    if strip_unknown and unknown:
-        cleaned = {k: v for k, v in cleaned.items() if str(k) not in set(unknown)}
-        unknown_removed = unknown
-        unknown = []
+    cleaned, unknown_removed, unknown = _strip_unknown_configuration_keys(
+        cleaned,
+        unknown,
+        enabled=strip_unknown,
+    )
 
     if not _configuration_changed(renamed, removed, unknown_removed):
         return {

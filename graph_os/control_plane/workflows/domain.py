@@ -395,6 +395,24 @@ def _budget_within(requested: WorkflowBudget, approved: WorkflowBudget) -> bool:
 def _graph_stats(steps: tuple[WorkflowStep, ...]) -> WorkflowGraphStats:
     """Return deterministic DAG statistics or fail closed on a cycle."""
 
+    step_ids, children, indegree = _graph_adjacency(steps)
+    visited, longest = _topological_stats(step_ids, children, indegree)
+    if len(visited) != len(step_ids):
+        raise ValueError("workflow_cycle")
+
+    return WorkflowGraphStats(
+        step_count=len(step_ids),
+        depth=max(longest.values()),
+        max_fanout=max(
+            (len(children.get(step_id, ())) for step_id in step_ids), default=0
+        ),
+        tool_step_count=sum(1 for step in steps if step.binding.kind == "tool"),
+    )
+
+
+def _graph_adjacency(
+    steps: tuple[WorkflowStep, ...],
+) -> tuple[tuple[str, ...], dict[str, list[str]], dict[str, int]]:
     step_ids = tuple(step.step_id for step in steps)
     children: dict[str, list[str]] = defaultdict(list)
     indegree = {step_id: 0 for step_id in step_ids}
@@ -407,7 +425,14 @@ def _graph_stats(steps: tuple[WorkflowStep, ...]) -> WorkflowGraphStats:
 
     for child_ids in children.values():
         child_ids.sort()
+    return step_ids, children, indegree
 
+
+def _topological_stats(
+    step_ids: tuple[str, ...],
+    children: dict[str, list[str]],
+    indegree: dict[str, int],
+) -> tuple[list[str], dict[str, int]]:
     ready = deque(
         sorted(step_id for step_id, degree in indegree.items() if degree == 0)
     )
@@ -424,18 +449,7 @@ def _graph_stats(steps: tuple[WorkflowStep, ...]) -> WorkflowGraphStats:
                 # small ready set keeps traversal and its digest reproducible.
                 ready.append(child)
                 ready = deque(sorted(ready))
-
-    if len(visited) != len(step_ids):
-        raise ValueError("workflow_cycle")
-
-    return WorkflowGraphStats(
-        step_count=len(step_ids),
-        depth=max(longest.values()),
-        max_fanout=max(
-            (len(children.get(step_id, ())) for step_id in step_ids), default=0
-        ),
-        tool_step_count=sum(1 for step in steps if step.binding.kind == "tool"),
-    )
+    return visited, longest
 
 
 def _enforce_graph_bounds(stats: WorkflowGraphStats, budget: WorkflowBudget) -> None:

@@ -77,52 +77,15 @@ class InMemoryNativeAdmission:
         with self._lock:
             run_id = request.resolution.run_id
             work_item_id = request.work_item.work_item_id
-            existing = self._records.get(run_id)
-            if existing is not None:
-                if (
-                    existing.resolution != request.resolution
-                    or existing.work_item != request.work_item
-                ):
-                    raise ReplayDriftError("replay_or_body_drift")
-                return self._receipt(existing, created=False)
+            replay = self._replay_receipt(run_id, request)
+            if replay is not None:
+                return replay
 
-            owner = self._work_items.get(work_item_id)
-            if owner is not None:
-                raise NativeAdmissionError("work_item_identity_conflict")
-            if self.authorization_verifier is not None:
-                try:
-                    self.authorization_verifier.verify_authorization(
-                        request.resolution.authorization,
-                        now=self.clock(),
-                    )
-                except Exception as exc:  # fail closed at the admission boundary
-                    raise NativeAdmissionError(
-                        "authorization_stale_or_invalid"
-                    ) from exc
-            if self.audit is not None:
-                try:
-                    self.audit.require_valid()
-                except AuditDiscontinuityError as exc:
-                    raise NativeAdmissionError("audit_discontinuity") from exc
-                if not self.audit.can_append(2):
-                    raise NativeAdmissionError("audit_capacity_exceeded")
-
-            audit_ids: list[str] = []
+            self._ensure_work_item_available(work_item_id)
+            self._verify_authorization(request)
+            self._ensure_audit_capacity()
             now = self.clock()
-            if self.audit is not None:
-                run_event = self.audit.append(
-                    kind="run.admitted",
-                    subject_ref=run_id,
-                    payload_digest=request.resolution.resolution_digest,
-                    observed_at=now,
-                )
-                item_event = self.audit.append(
-                    kind="work_item.admitted",
-                    subject_ref=work_item_id,
-                    payload_digest=canonical_digest(request.work_item),
-                    observed_at=now,
-                )
-                audit_ids.extend((run_event.event_id, item_event.event_id))
+            audit_ids = self._append_audit(request, now=now)
 
             record = RunRecord(
                 resolution=request.resolution,
@@ -132,6 +95,61 @@ class InMemoryNativeAdmission:
             self._records[run_id] = record
             self._work_items[work_item_id] = run_id
             return self._receipt(record, created=True)
+
+    def _replay_receipt(
+        self, run_id: str, request: NativeAdmissionRequest
+    ) -> AdmissionReceipt | None:
+        existing = self._records.get(run_id)
+        if existing is None:
+            return None
+        if (
+            existing.resolution != request.resolution
+            or existing.work_item != request.work_item
+        ):
+            raise ReplayDriftError("replay_or_body_drift")
+        return self._receipt(existing, created=False)
+
+    def _ensure_work_item_available(self, work_item_id: str) -> None:
+        if self._work_items.get(work_item_id) is not None:
+            raise NativeAdmissionError("work_item_identity_conflict")
+
+    def _verify_authorization(self, request: NativeAdmissionRequest) -> None:
+        if self.authorization_verifier is None:
+            return
+        try:
+            self.authorization_verifier.verify_authorization(
+                request.resolution.authorization,
+                now=self.clock(),
+            )
+        except Exception as exc:  # fail closed at the admission boundary
+            raise NativeAdmissionError("authorization_stale_or_invalid") from exc
+
+    def _ensure_audit_capacity(self) -> None:
+        if self.audit is None:
+            return
+        try:
+            self.audit.require_valid()
+        except AuditDiscontinuityError as exc:
+            raise NativeAdmissionError("audit_discontinuity") from exc
+        if not self.audit.can_append(2):
+            raise NativeAdmissionError("audit_capacity_exceeded")
+
+    def _append_audit(self, request: NativeAdmissionRequest, *, now: int) -> list[str]:
+        if self.audit is None:
+            return []
+        run_event = self.audit.append(
+            kind="run.admitted",
+            subject_ref=request.resolution.run_id,
+            payload_digest=request.resolution.resolution_digest,
+            observed_at=now,
+        )
+        item_event = self.audit.append(
+            kind="work_item.admitted",
+            subject_ref=request.work_item.work_item_id,
+            payload_digest=canonical_digest(request.work_item),
+            observed_at=now,
+        )
+        return [run_event.event_id, item_event.event_id]
 
     def read(self, run_id: str) -> RunRecord | None:
         """Return the exact persisted resolution for crash/reclaim recovery."""

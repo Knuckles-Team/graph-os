@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import NoReturn
 
 from .errors import (
     CleanupIncompleteError,
@@ -225,6 +226,18 @@ class GenerationLifecycle:
     def cleanup(self, generation: GenerationManifest) -> GenerationRecord:
         """Delete one retired generation only after complete engine proof."""
 
+        self._prepare_cleanup(generation)
+        checkpoint: CleanupCheckpoint | None = None
+        try:
+            checkpoint = self.engine.cleanup_generation(generation)
+            checkpoint = self._validate_cleanup_checkpoint(generation, checkpoint)
+            return self.catalog.finish_cleanup(generation, checkpoint)
+        except CleanupIncompleteError:
+            raise
+        except Exception as exc:  # noqa: BLE001 — cleanup failure is fail closed
+            self._fail_cleanup(generation, checkpoint, cause=exc)
+
+    def _prepare_cleanup(self, generation: GenerationManifest) -> None:
         record = self.catalog.get(
             generation.tenant_ref,
             generation.graph_ref,
@@ -235,33 +248,41 @@ class GenerationLifecycle:
         if record.manifest != generation:
             raise GenerationConflictError("generation_manifest_drift")
         if record.state == "active":
-            record = self.catalog.retire(generation)
-        elif record.state not in {"retiring", "cleanup_failed"}:
+            self.catalog.retire(generation)
+            return
+        if record.state not in {"retiring", "cleanup_failed"}:
             raise GenerationConflictError("generation_not_cleanup_eligible")
 
-        checkpoint: CleanupCheckpoint | None = None
+    def _validate_cleanup_checkpoint(
+        self,
+        generation: GenerationManifest,
+        checkpoint: CleanupCheckpoint,
+    ) -> CleanupCheckpoint:
+        if not isinstance(checkpoint, CleanupCheckpoint):
+            self.catalog.fail_cleanup(generation, None)
+            raise CleanupIncompleteError("cleanup_checkpoint_invalid")
+        if checkpoint.expected_vectors != generation.expected_chunks:
+            self.catalog.fail_cleanup(generation, None)
+            raise CleanupIncompleteError("cleanup_expected_count_drift")
+        if not checkpoint.complete:
+            self.catalog.fail_cleanup(generation, checkpoint)
+            raise CleanupIncompleteError("cleanup_checkpoint_incomplete")
+        return checkpoint
+
+    def _fail_cleanup(
+        self,
+        generation: GenerationManifest,
+        checkpoint: CleanupCheckpoint | None,
+        *,
+        cause: Exception,
+    ) -> NoReturn:
         try:
-            checkpoint = self.engine.cleanup_generation(generation)
-            if not isinstance(checkpoint, CleanupCheckpoint):
-                self.catalog.fail_cleanup(generation, None)
-                raise CleanupIncompleteError("cleanup_checkpoint_invalid")
-            if checkpoint.expected_vectors != generation.expected_chunks:
-                self.catalog.fail_cleanup(generation, None)
-                raise CleanupIncompleteError("cleanup_expected_count_drift")
-            if not checkpoint.complete:
-                self.catalog.fail_cleanup(generation, checkpoint)
-                raise CleanupIncompleteError("cleanup_checkpoint_incomplete")
-            return self.catalog.finish_cleanup(generation, checkpoint)
-        except CleanupIncompleteError:
-            raise
-        except Exception as exc:  # noqa: BLE001 — cleanup failure is fail closed
-            try:
-                self.catalog.fail_cleanup(generation, checkpoint)
-            except Exception as state_exc:  # noqa: BLE001 — preserve fail-closed state
-                raise CleanupIncompleteError(
-                    "cleanup_failure_state_unrecorded"
-                ) from state_exc
-            raise CleanupIncompleteError("cleanup_failed") from exc
+            self.catalog.fail_cleanup(generation, checkpoint)
+        except Exception as state_exc:  # noqa: BLE001 — preserve fail-closed state
+            raise CleanupIncompleteError(
+                "cleanup_failure_state_unrecorded"
+            ) from state_exc
+        raise CleanupIncompleteError("cleanup_failed") from cause
 
     def reembed(
         self,
