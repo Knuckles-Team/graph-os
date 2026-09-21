@@ -109,6 +109,16 @@ async def test_work_item_authority_reuses_one_store_for_lifecycle(
             decision=decision,
         )
 
+    second = await authority.dispatch(
+        message=_message("other"), idempotency_key="other", decision=decision
+    )
+    first_page, next_cursor = await authority.list(cursor=None, limit=1)
+    second_page, final_cursor = await authority.list(cursor=next_cursor, limit=1)
+    listed_ids = [first_page[0].id, second_page[0].id]
+    assert sorted(listed_ids) == sorted([first.id, second.id])
+    assert next_cursor is not None
+    assert final_cursor is None
+
 
 @pytest.mark.asyncio
 async def test_selected_tool_subset_is_refused_before_durable_admission() -> None:

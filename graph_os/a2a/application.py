@@ -86,6 +86,52 @@ async def _request_envelope(
     return request_id, method, params
 
 
+async def _invoke_method(
+    service: A2AService,
+    request: Request,
+    method: str,
+    raw_params: dict[str, Any],
+    request_id: Any,
+) -> Any:
+    """Validate and invoke one unary method on the shared service."""
+    if method == "message/send":
+        send_params = _SendParams.model_validate(raw_params)
+        key = request.headers.get("Idempotency-Key", "")
+        if not key:
+            raise ValueError("Idempotency-Key is required")
+        return await service.send_message(
+            message=send_params.message,
+            idempotency_key=key,
+            context_budget_tokens=send_params.context_budget_tokens,
+        )
+    if method == "tasks/get":
+        task_params = _TaskParams.model_validate(raw_params)
+        result = await service.get_task(task_params.id)
+        return result or _error(request_id, -32001, "Task not found", 404)
+    if method == "tasks/list":
+        list_params = _ListParams.model_validate(raw_params)
+        return await service.list_tasks(
+            cursor=list_params.cursor, limit=list_params.limit
+        )
+    if method == "tasks/cancel":
+        cancel_params = _TaskParams.model_validate(raw_params)
+        return await service.cancel_task(cancel_params.id)
+    return _error(request_id, -32601, "Method not found", 404)
+
+
+def _application_error(request_id: Any, error: Exception) -> JSONResponse:
+    """Translate known service failures without echoing caller input."""
+    if isinstance(error, A2AIdempotencyConflict):
+        return _error(request_id, -32009, str(error), 409)
+    if isinstance(error, A2AAssemblyUnavailable):
+        return _error(request_id, -32003, str(error), 503)
+    if isinstance(error, A2ATaskNotCancelable):
+        return _error(request_id, -32002, str(error), 409)
+    # Pydantic errors may echo caller text in ``input_value``. Keep the wire
+    # error stable and privacy-safe; details belong in local logs.
+    return _error(request_id, -32602, "Invalid params")
+
+
 def create_a2a_handlers(
     *, service: A2AService, authenticator: A2AAuthenticator
 ) -> tuple[Any, Any]:
@@ -109,41 +155,20 @@ def create_a2a_handlers(
         scope = "kg:write" if method in {"message/send", "tasks/cancel"} else "kg:read"
         await authenticator.authenticate(request, scope=scope)
         try:
-            if method == "message/send":
-                send_params = _SendParams.model_validate(raw_params)
-                key = request.headers.get("Idempotency-Key", "")
-                if not key:
-                    raise ValueError("Idempotency-Key is required")
-                result: Any = await service.send_message(
-                    message=send_params.message,
-                    idempotency_key=key,
-                    context_budget_tokens=send_params.context_budget_tokens,
-                )
-            elif method == "tasks/get":
-                task_params = _TaskParams.model_validate(raw_params)
-                result = await service.get_task(task_params.id)
-                if result is None:
-                    return _error(request_id, -32001, "Task not found", 404)
-            elif method == "tasks/list":
-                list_params = _ListParams.model_validate(raw_params)
-                result = await service.list_tasks(
-                    cursor=list_params.cursor, limit=list_params.limit
-                )
-            elif method == "tasks/cancel":
-                cancel_params = _TaskParams.model_validate(raw_params)
-                result = await service.cancel_task(cancel_params.id)
-            else:
-                return _error(request_id, -32601, "Method not found", 404)
-        except A2AIdempotencyConflict as exc:
-            return _error(request_id, -32009, str(exc), 409)
-        except A2AAssemblyUnavailable as exc:
-            return _error(request_id, -32003, str(exc), 503)
-        except A2ATaskNotCancelable as exc:
-            return _error(request_id, -32002, str(exc), 409)
-        except (ValidationError, TypeError, ValueError):
-            # Pydantic errors may echo caller text in ``input_value``. Keep the
-            # wire error stable and privacy-safe; details belong in local logs.
-            return _error(request_id, -32602, "Invalid params")
+            result = await _invoke_method(
+                service, request, method, raw_params, request_id
+            )
+        except (
+            A2AIdempotencyConflict,
+            A2AAssemblyUnavailable,
+            A2ATaskNotCancelable,
+            ValidationError,
+            TypeError,
+            ValueError,
+        ) as error:
+            return _application_error(request_id, error)
+        if isinstance(result, JSONResponse):
+            return result
         payload = result.model_dump(mode="json", by_alias=True)
         return JSONResponse(
             {"jsonrpc": "2.0", "id": request_id, "result": payload},

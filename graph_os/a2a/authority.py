@@ -420,6 +420,46 @@ class WorkItemA2AAuthority:
             },
         )
 
+    @staticmethod
+    def _validated_list_rows(rows: Any, limit: int) -> list[Any]:
+        if not isinstance(rows, list) or len(rows) > limit + 1:
+            raise RuntimeError("canonical WorkItem list returned invalid data")
+        return rows
+
+    @classmethod
+    def _project_list_row(cls, row: Any, *, tenant: str, owner_ref: str) -> A2ATask:
+        if not isinstance(row, dict):
+            raise RuntimeError("canonical WorkItem list returned an invalid row")
+        metadata = row.get("metadata")
+        authorized = (
+            row.get("tenant") == tenant
+            and row.get("created_by") == owner_ref
+            and isinstance(metadata, dict)
+            and metadata.get("a2a_schema") == _A2A_METADATA_SCHEMA
+            and metadata.get("a2a_owner_ref") == owner_ref
+        )
+        if not authorized:
+            raise RuntimeError("canonical WorkItem list crossed its authority scope")
+        item_id = str(row.get("id") or "")
+        task_id = item_id.removeprefix(_WORK_ITEM_PREFIX)
+        cls._work_item_id(task_id)
+        return cls._project(row, task_id=task_id)
+
+    @classmethod
+    def _next_cursor(
+        cls,
+        rows: list[Any],
+        tasks: list[A2ATask],
+        *,
+        limit: int,
+        owner_ref: str,
+        tenant: str,
+    ) -> str | None:
+        if len(rows) <= limit or not tasks:
+            return None
+        item_id = str(rows[limit - 1].get("id") or "")
+        return cls._cursor(owner_ref, tenant, item_id)
+
     async def list(
         self, *, cursor: str | None, limit: int
     ) -> tuple[list[A2ATask], str | None]:
@@ -435,31 +475,22 @@ class WorkItemA2AAuthority:
             tenant=session.tenant,
             owner_ref=owner_ref,
         )
-        if not isinstance(rows, list) or len(rows) > limit + 1:
-            raise RuntimeError("canonical WorkItem list returned invalid data")
-        tasks: list[A2ATask] = []
-        for row in rows[:limit]:
-            if not isinstance(row, dict):
-                raise RuntimeError("canonical WorkItem list returned an invalid row")
-            metadata = row.get("metadata")
-            if not (
-                row.get("tenant") == session.tenant
-                and row.get("created_by") == owner_ref
-                and isinstance(metadata, dict)
-                and metadata.get("a2a_schema") == _A2A_METADATA_SCHEMA
-                and metadata.get("a2a_owner_ref") == owner_ref
-            ):
-                raise RuntimeError(
-                    "canonical WorkItem list crossed its authority scope"
-                )
-            item_id = str(row.get("id") or "")
-            task_id = item_id.removeprefix(_WORK_ITEM_PREFIX)
-            self._work_item_id(task_id)
-            tasks.append(self._project(row, task_id=task_id))
-        next_cursor = None
-        if len(rows) > limit and tasks:
-            next_cursor = self._cursor(owner_ref, session.tenant, rows[limit - 1]["id"])
-        return tasks, next_cursor
+        page = self._validated_list_rows(rows, limit)
+        tasks = [
+            self._project_list_row(
+                row,
+                tenant=session.tenant,
+                owner_ref=owner_ref,
+            )
+            for row in page[:limit]
+        ]
+        return tasks, self._next_cursor(
+            page,
+            tasks,
+            limit=limit,
+            owner_ref=owner_ref,
+            tenant=session.tenant,
+        )
 
     async def cancel(self, task_id: str) -> A2ATask:
         item = await asyncio.to_thread(self._authorized_item, task_id, "kg:write")

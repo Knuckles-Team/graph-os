@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from graph_os.a2a.application import create_a2a_application
+from graph_os.a2a.authority import A2AIdempotencyConflict
 from graph_os.a2a.models import A2ARouteDecision, A2ATask, A2ATaskStatus
 from graph_os.a2a.service import A2AService
 
@@ -142,3 +143,46 @@ def test_json_rpc_rejects_missing_idempotency_invalid_shape_and_unknown_task() -
     )
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == -32001
+
+    unknown = client.post(
+        "/a2a",
+        headers=headers,
+        json={"jsonrpc": "2.0", "id": 3, "method": "tasks/unknown", "params": {}},
+    )
+    assert unknown.status_code == 404
+    assert unknown.json()["error"]["code"] == -32601
+
+
+def test_json_rpc_preserves_service_error_translation() -> None:
+    class ConflictAuthority(Authority):
+        async def dispatch(self, **kwargs: Any) -> A2ATask:
+            raise A2AIdempotencyConflict("idempotency conflict")
+
+    app = create_a2a_application(
+        service=A2AService(authority=ConflictAuthority(), router=Router()),
+        authenticator=Authenticator(),
+    )
+    response = TestClient(app).post(
+        "/a2a",
+        headers={
+            "Authorization": "Bearer verified",
+            "Idempotency-Key": "send-key",
+        },
+        json={
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "message/send",
+            "params": {
+                "message": {
+                    "role": "user",
+                    "parts": [{"kind": "text", "text": "do work"}],
+                    "messageId": "message-1",
+                }
+            },
+        },
+    )
+    assert response.status_code == 409
+    assert response.json()["error"] == {
+        "code": -32009,
+        "message": "idempotency conflict",
+    }
