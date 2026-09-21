@@ -29,6 +29,12 @@ def test_host_deployment_scripts_point_to_graph_os_modules() -> None:
 
 def test_release_canary_checks_the_same_direct_entrypoints() -> None:
     assert release_canary._ENTRY_POINTS == {
-        "graph-os": "graph_os.cli:main",
+        "graph-os": "graph_os.mcp_server.server:mcp_server",
         "agent-utilities-doctor": "graph_os.deployment.doctor:main",
     }
+
+
+def test_graph_os_entrypoint_resolves_to_the_native_server() -> None:
+    from graph_os.mcp_server.server import mcp_server
+
+    assert callable(mcp_server)

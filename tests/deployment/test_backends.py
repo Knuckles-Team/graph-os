@@ -1,6 +1,6 @@
 """Tests for the multi-backend deployment planner (in_process/container/kubernetes/native_shell).
 
-Scope note (see the module docstring in ``agent_utilities/deployment/backends.py``
+Scope note (see the module docstring in ``graph_os/deployment/backends.py``
 for the full honesty statement): only :class:`InProcessBackend` is genuinely
 live-tested end to end. The other three are PLAN-ONLY by design — these tests
 assert the plans are correct/renderable and that ``apply(dry_run=False)``

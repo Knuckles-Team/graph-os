@@ -77,7 +77,7 @@ def mount_rest_routes(app, prefix: str = "") -> None:
 
     This is the single source of truth for the KG REST route table. The
     ``graph-os`` MCP server itself is now a thin FastMCP wrapper (MCP tools
-    only); the REST API is served centrally by ``agent_utilities.gateway`` so the
+    only); the REST API is served centrally by :mod:`graph_os.gateway` so the
     table never drifts between the two.
     """
     from agent_utilities.core.sessions import (

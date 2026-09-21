@@ -1,15 +1,10 @@
-"""Fleet gateway (multiplexer) — RF-ADR-009 §2.4 Phase 5 target.
+"""Fleet gateway and child lifecycle — RF-ADR-009 §2.4.
 
 Owns the in-process fleet loader that lazily fronts every `*-mcp` service
-(`find_tools` / `list_catalog` / `load_tools`). Source today:
-the extracted :mod:`graph_os.fleet.multiplexer` (formerly
-``agent_utilities/mcp/multiplexer.py``; see AGENTS.md "W5 source measurements").
-Per RF-ADR-009 §2.4, the loader itself stays; its catalog moves from a static
-file to the epistemic-graph server registry, and the multiplexer's skill/
-prompt harvest path (`fleet_skill_harvest.py`, `fleet_prompt_harvest.py`) is
-deleted once the agent-connector-sdk sync runner imports packs natively (W2,
-§2.1 item 5). The first native seam is :mod:`graph_os.fleet.catalog_reader`,
-an EG-only joined view over live server registrations and current components.
+(`find_tools` / `list_catalog` / `load_tools`). Child transport and session
+visibility are live here. The EG-backed catalog reader is capability-gated
+until the generated joined registry/component query is public; it refuses
+rather than substituting the served static declaration as durable authority.
 """
 
 from .catalog_reader import (
@@ -22,6 +17,7 @@ from .catalog_reader import (
     ComponentRecord,
     ComponentSearchRequest,
     CurrentComponent,
+    DeferredFleetCatalogReader,
     FleetCatalog,
     FleetCatalogIntegrityError,
     FleetCatalogReader,
@@ -49,6 +45,7 @@ __all__ = [
     "ComponentPin",
     "ComponentRecord",
     "ComponentSearchRequest",
+    "DeferredFleetCatalogReader",
     "CurrentComponent",
     "FleetCatalog",
     "FleetCatalogIntegrityError",

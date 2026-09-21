@@ -94,6 +94,9 @@ where = ["."]
 include = ["graph_os*"]
 exclude = ["tests*"]
 
+[tool.setuptools.package-data]
+graph_os = ["ontology/**/*.ttl"]
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"

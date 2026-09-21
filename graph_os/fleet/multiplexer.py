@@ -6,7 +6,7 @@ into a single unified server, delegating tool calls dynamically based on
 prefixed tool names. This speeds up boot times and avoids per-server process
 resource contention for clients with tool-count limits.
 
-Built on the standard ``mcp_server.py`` scaffolding: it uses
+Composed by the native GraphOS MCP server: it uses
 ``create_mcp_server()`` for the standard ``--transport/--host/--port`` args and
 middleware, and exposes the aggregated tools through a FastMCP instance so the
 multiplexer can be deployed as either a **stdio** or **streamable-http** server.
@@ -2239,7 +2239,11 @@ class MCPMultiplexer:
         self,
         config_path: Path,
         *,
-        catalog_reader: _catalog_reader.FleetCatalogReader | None = None,
+        catalog_reader: (
+            _catalog_reader.FleetCatalogReader
+            | _catalog_reader.DeferredFleetCatalogReader
+            | None
+        ) = None,
     ):
         self.config_path = config_path
         # The EG reader is the native catalog authority.  ``None`` is retained
@@ -2439,6 +2443,8 @@ class MCPMultiplexer:
         therefore a valid metadata shape with the minimal remote transport.
         """
         config = _decode_engine_server_config(server.content.body)
+        if server.registration is None:
+            raise RuntimeError("unavailable fleet server has no runnable endpoint")
         config["url"] = server.registration.url
         config.setdefault("transport", "streamable-http")
         if server.registration.resources:
@@ -2453,6 +2459,7 @@ class MCPMultiplexer:
         return {
             server.registration.name: cls._catalog_config_from_server(server)
             for server in catalog.servers
+            if server.registration is not None
         }
 
     async def refresh_engine_catalog(self) -> dict[str, dict[str, _typing.Any]]:
@@ -8259,7 +8266,11 @@ def attach_fleet_loader(
     mcp,
     *,
     config_path: str | None = None,
-    catalog_reader: _catalog_reader.FleetCatalogReader | None = None,
+    catalog_reader: (
+        _catalog_reader.FleetCatalogReader
+        | _catalog_reader.DeferredFleetCatalogReader
+        | None
+    ) = None,
     self_server: str = "graph-os",
     embed_fn=None,
     authority_scope=None,

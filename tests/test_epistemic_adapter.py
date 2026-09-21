@@ -1,35 +1,15 @@
-"""Focused contract tests for graph-os's epistemic client adapter.
-
-The scaffold cannot declare its EG runtime dependency until the integration
-lane owns ``pyproject.toml``.  Load the module by path so these tests still
-exercise the complete adapter contract without changing shared package files.
-"""
+"""Focused contract tests for GraphOS's direct epistemic-graph adapter."""
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
-import importlib.util
-import sys
 from dataclasses import dataclass
-from pathlib import Path
-from types import ModuleType
 from typing import Any
 
 import pytest
 
-
-def _load_adapter() -> ModuleType:
-    path = Path(__file__).parents[1] / "graph_os" / "epistemic.py"
-    spec = importlib.util.spec_from_file_location("graph_os_epistemic_test", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-adapter = _load_adapter()
+from graph_os import epistemic as adapter
 
 
 @dataclass

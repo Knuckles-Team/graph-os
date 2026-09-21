@@ -3031,6 +3031,7 @@ _TABULAR_QUERY_SERVICE_LOCK = threading.Lock()
 _ensure_process_authority_current = cast(Any, None)
 _get_engine = cast(Any, None)
 _mint_process_session = cast(Any, None)
+_release_readiness_authority = cast(Any, None)
 _set_readiness_authority = cast(Any, None)
 _start_engine_bootstrap = cast(Any, None)
 _start_process_authority_supervisor = cast(Any, None)
@@ -3040,8 +3041,27 @@ set_process_session = cast(Any, None)
 
 import graph_os.mcp_server.bootstrap as _bootstrap
 
-for _bootstrap_name, _bootstrap_value in tuple(globals().items()):
-    _bootstrap.__dict__.setdefault(_bootstrap_name, _bootstrap_value)
+for _bootstrap_name in (
+    "REGISTERED_TOOLS",
+    "_AGENT_ID",
+    "_AUTHORITY_KEEPALIVE_ACTIVE",
+    "_ENGINE_LOCK",
+    "_PROCESS_AUTHORITY_STOP",
+    "_PROCESS_AUTHORITY_THREAD",
+    "_PROCESS_SESSION",
+    "_PROCESS_SESSION_REFRESH_LOCK",
+    "_SESSION_ID",
+    "_TABULAR_QUERY_SERVICE_LOCK",
+    "_TABULAR_QUERY_SERVICE",
+    "_TABULAR_QUERY_SERVICE_KEY",
+    "get_existing_disabled_batch",
+    "setting",
+):
+    # ``bootstrap`` declares these names as explicit cycle-breaking host slots.
+    # Assign them rather than using ``setdefault``: the declarations exist with
+    # a ``None`` sentinel by design, so setdefault would retain that sentinel
+    # and make the first native dispatch fail before reaching a tool.
+    _bootstrap.__dict__[_bootstrap_name] = globals()[_bootstrap_name]
 for _bootstrap_name in _bootstrap.BOOTSTRAP_EXPORTS:
     globals()[_bootstrap_name] = getattr(_bootstrap, _bootstrap_name)
 

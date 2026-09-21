@@ -20,6 +20,7 @@ from graph_os.fleet.catalog_reader import (
     ComponentRecord,
     ComponentSearchRequest,
     CurrentComponent,
+    DeferredFleetCatalogReader,
     FleetCatalogIntegrityError,
     FleetCatalogReader,
     ReadContext,
@@ -50,11 +51,15 @@ def server_page(
     *entries: ServerRegistration,
     cursor: str | None = None,
     context: ReadContext = CONTEXT,
+    total_live: int | None = None,
 ) -> ServerPage:
     return ServerPage(
         entries=tuple(entries),
         next_cursor=cursor,
         observed_at_ms=3_000,
+        total_live=len(entries) if total_live is None else total_live,
+        registry_revision=1,
+        registry_digest="sha256:" + "9" * 64,
         receipt=receipt(SERVER_QUERY_SOURCE, COMMONS_GRAPH, context),
     )
 
@@ -174,7 +179,10 @@ class FakeFleetCatalogPort:
 
 def test_reader_joins_liveness_current_records_and_content_with_bounded_pages() -> None:
     port = FakeFleetCatalogPort(
-        server_pages=[server_page(cursor="server-2"), server_page(SERVER)],
+        server_pages=[
+            server_page(cursor="server-2", total_live=1),
+            server_page(SERVER, total_live=1),
+        ],
         component_pages=[
             component_page(SERVER_COMPONENT, cursor="component-2"),
             component_page(TOOL_COMPONENT),
@@ -255,3 +263,18 @@ def test_reader_rejects_cyclic_cursor_without_unbounded_io() -> None:
     with pytest.raises(FleetCatalogIntegrityError, match="cyclic"):
         asyncio.run(FleetCatalogReader(port).read())
     assert len(port.server_calls) == 2
+
+
+def test_deferred_reader_has_no_static_or_uninstalled_fallback() -> None:
+    deferred = DeferredFleetCatalogReader()
+
+    with pytest.raises(RuntimeError, match="not installed"):
+        asyncio.run(deferred.read())
+
+    reader = FleetCatalogReader(FakeFleetCatalogPort())
+    deferred.install(reader)
+    catalog = asyncio.run(deferred.read())
+    assert catalog.context == CONTEXT
+
+    with pytest.raises(RuntimeError, match="already installed"):
+        deferred.install(reader)

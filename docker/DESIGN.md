@@ -1,36 +1,27 @@
-# docker/ — design note (no Dockerfile yet)
+# Container delivery boundary
 
-This directory intentionally holds **no Dockerfile and no compose file** at scaffold
-time. graph-os is not yet a runnable image: the deployable composition (MCP server,
-REST gateway, control plane, fleet gateway, webui hosting) still lives in and is
-built from `agent-utilities`, via
-`agent-packages/agent-utilities/docker/graphos-unified-kaniko-job.yaml` (the one
-canonical kaniko job — see
-`inventory/k8s-migration/GRAPHOS-LOCAL-REDEPLOY.md`). Copying that job here now
-would be a fake implementation with no code behind it; RF-ADR-009 §2.4/§6 is
-explicit that the image build **moves in Migration Wave 5**, alongside the code
-it packages, not before.
+GraphOS is a runnable Python distribution. Its native `graph-os` command serves
+the MCP composition over `stdio` or `streamable-http`, and its optional WebUI
+co-service is composed by the same process. The wheel and runtime code are
+owned by this repository.
 
-## What moves here, in W5
+This directory does not currently publish an authoritative Dockerfile or
+Compose manifest. Fleet image construction and workload deployment remain in
+the deployment repositories that own those environments. That separation is a
+packaging boundary, not an indication that GraphOS is a scaffold or that its
+runtime still lives in agent-utilities.
 
-- A `docker/Dockerfile` (or a kaniko job manifest, matching whatever the fleet
-  convention is by W5) that builds the `graph-os` package built by *this*
-  repository's `pyproject.toml`, replacing today's unified AU+webui kaniko build.
-- The image continues to be built to the fleet's **private internal
-  registry** (never Docker Hub, per the existing convention) — the exact
-  registry host/repository name is deployment configuration, not something
-  this public repository's docs should hard-code, and is a W5 decision in
-  any case.
-- `services/graph-os` is updated (RF-ADR-009 §6) to build from this repository's
-  image instead of `agent-utilities`' unified image. This scaffold does **not**
-  touch `services/graph-os` — that is explicitly out of scope per this lane's
-  instructions.
+An eventual image definition here must:
 
-## Why a placeholder note instead of nothing
+- install exact released GraphOS, epistemic-graph, agent-connector-sdk,
+  agent-utilities, and optional agent-webui artifacts;
+- run the public `graph-os` entrypoint rather than an agent-utilities alias;
+- resolve endpoints and credentials from deployment configuration and secret
+  references, never from values embedded in the image;
+- retain the same fail-closed capability checks documented in
+  `docs/status.md`; and
+- be adopted atomically by the owning deployment manifests before this
+  repository claims container delivery is complete.
 
-`docker/` is a fleet convention every `agents/*`/`agent-packages/*` repository
-ships (see `agent-packages/CLAUDE.md` "Fleet conventions" — "Every repo ships …
-`docker/` …"). This note satisfies that convention's *intent* (a place documenting
-how the repository is containerized) without shipping a Dockerfile that builds
-nothing, references source that does not exist in this repository yet, or
-silently drifts from the real kaniko job it would have been copied from.
+Until that image-owner cutover is designed and validated, adding a second
+Dockerfile here would create two competing deployment authorities.

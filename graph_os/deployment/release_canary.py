@@ -20,10 +20,9 @@ from pathlib import Path
 from typing import Any
 
 _ENTRY_POINTS = {
-    # The graph-os MCP server is a later extraction lane.  This deployment
-    # lane must certify the real graph-os entry point that is installed today,
-    # without reaching back through an AU compatibility alias.
-    "graph-os": "graph_os.cli:main",
+    # Certify the native serving composition, not the removed informational
+    # shell and never an AU compatibility alias.
+    "graph-os": "graph_os.mcp_server.server:mcp_server",
     "agent-utilities-doctor": "graph_os.deployment.doctor:main",
 }
 

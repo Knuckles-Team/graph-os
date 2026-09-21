@@ -363,6 +363,15 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     register_registry_routes(app, prefix=prefix)
 
+    # Clean-break browser projection over the same typed authorities: current
+    # AgentComponent entries plus GraphOS workflow/agent catalogs. WebUI owns
+    # no fallback routes or filesystem discovery.
+    from graph_os.gateway.enhanced_catalog_api import (
+        register_enhanced_catalog_routes,
+    )
+
+    register_enhanced_catalog_routes(app, prefix=prefix)
+
     # Browser OAuth callbacks are part of the same authenticated gateway
     # surface; pass the graph prefix explicitly so providers register the
     # exact deployed callback path without accidental double-prefixing.
