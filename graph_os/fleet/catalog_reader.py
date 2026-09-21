@@ -481,17 +481,19 @@ class FleetCatalogReader:
         context: ReadContext,
         kinds: tuple[ComponentKind, ...],
     ) -> None:
-        malformed = (
-            entry.tenant_id != context.tenant_id
-            or entry.kind not in kinds
-            or entry.lifecycle != "published"
-            or entry.entry_revision < 1
-            or not entry.component_id
-            or not entry.server_name
-            or not FleetCatalogReader._is_digest(entry.definition_digest)
-            or not FleetCatalogReader._is_digest(entry.content_digest)
+        valid = all(
+            (
+                entry.tenant_id == context.tenant_id,
+                entry.kind in kinds,
+                entry.lifecycle == "published",
+                entry.entry_revision >= 1,
+                bool(entry.component_id),
+                bool(entry.server_name),
+                FleetCatalogReader._is_digest(entry.definition_digest),
+                FleetCatalogReader._is_digest(entry.content_digest),
+            )
         )
-        if malformed:
+        if not valid:
             raise FleetCatalogIntegrityError(
                 f"component {entry.component_id!r} is malformed or out of scope"
             )

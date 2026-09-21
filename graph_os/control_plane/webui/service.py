@@ -65,32 +65,29 @@ class WebUiService:
             raise WebUiAuthorizationError()
         if not context.anonymous_pilot:
             return
-        if getattr(entity, "visibility", "private") != "private":
-            raise WebUiPilotBoundaryError()
-        if getattr(entity, "session_ref", context.session_ref) != context.session_ref:
-            raise WebUiPilotBoundaryError()
-        if (
-            getattr(entity, "user_ref", "user:anonymous-pilot")
-            != "user:anonymous-pilot"
-        ):
-            raise WebUiPilotBoundaryError()
-        if (
-            getattr(entity, "owner_ref", "user:anonymous-pilot")
-            != "user:anonymous-pilot"
-        ):
-            raise WebUiPilotBoundaryError()
-        if (
-            getattr(entity, "actor_ref", "actor:anonymous-pilot")
-            != "actor:anonymous-pilot"
-        ):
-            raise WebUiPilotBoundaryError()
-        if (
-            getattr(entity, "requester_ref", "actor:anonymous-pilot")
-            != "actor:anonymous-pilot"
-        ):
+        if not WebUiService._pilot_entity_is_bound(entity, context):
             raise WebUiPilotBoundaryError()
         if isinstance(entity, SessionIdentity) and not entity.anonymous_pilot:
             raise WebUiPilotBoundaryError()
+
+    @staticmethod
+    def _pilot_entity_is_bound(entity: WebUiEntity, context: AccessContext) -> bool:
+        requirements = (
+            ("visibility", "private", "private"),
+            ("session_ref", context.session_ref, context.session_ref),
+            ("user_ref", "user:anonymous-pilot", "user:anonymous-pilot"),
+            ("owner_ref", "user:anonymous-pilot", "user:anonymous-pilot"),
+            ("actor_ref", "actor:anonymous-pilot", "actor:anonymous-pilot"),
+            (
+                "requester_ref",
+                "actor:anonymous-pilot",
+                "actor:anonymous-pilot",
+            ),
+        )
+        return all(
+            getattr(entity, field, default) == expected
+            for field, default, expected in requirements
+        )
 
     def save_entity(
         self,

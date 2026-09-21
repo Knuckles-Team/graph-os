@@ -367,24 +367,47 @@ class AuthorizationEvidence(_FrozenModel):
     def _authorization_is_exact(self) -> AuthorizationEvidence:
         if self.expires_at <= self.evaluated_at:
             raise ValueError("authorization_expiry_invalid")
-        if self.index_ref.tenant_ref != self.tenant_ref:
-            raise ValueError("authorization_tenant_drift")
-        if self.index_ref.graph_ref != self.graph_ref:
-            raise ValueError("authorization_graph_drift")
-        if self.index_ref.generation_id != self.generation_id:
-            raise ValueError("authorization_generation_drift")
-        keys = []
-        for chunk in self.allowed_chunks:
-            if chunk.document.tenant_ref != self.tenant_ref:
-                raise ValueError("authorization_chunk_tenant_drift")
-            if chunk.document.graph_ref != self.graph_ref:
-                raise ValueError("authorization_chunk_graph_drift")
-            if chunk.document.generation_id != self.generation_id:
-                raise ValueError("authorization_chunk_generation_drift")
-            keys.append(chunk.chunk_key)
+        self._validate_authorization_scope()
+        keys = [self._validate_authorized_chunk(chunk) for chunk in self.allowed_chunks]
         if len(keys) != len(set(keys)):
             raise ValueError("authorization_chunk_duplicate")
         return self
+
+    def _validate_authorization_scope(self) -> None:
+        checks = (
+            (
+                self.index_ref.tenant_ref == self.tenant_ref,
+                "authorization_tenant_drift",
+            ),
+            (self.index_ref.graph_ref == self.graph_ref, "authorization_graph_drift"),
+            (
+                self.index_ref.generation_id == self.generation_id,
+                "authorization_generation_drift",
+            ),
+        )
+        for valid, error in checks:
+            if not valid:
+                raise ValueError(error)
+
+    def _validate_authorized_chunk(self, chunk: ChunkRef) -> str:
+        checks = (
+            (
+                chunk.document.tenant_ref == self.tenant_ref,
+                "authorization_chunk_tenant_drift",
+            ),
+            (
+                chunk.document.graph_ref == self.graph_ref,
+                "authorization_chunk_graph_drift",
+            ),
+            (
+                chunk.document.generation_id == self.generation_id,
+                "authorization_chunk_generation_drift",
+            ),
+        )
+        for valid, error in checks:
+            if not valid:
+                raise ValueError(error)
+        return chunk.chunk_key
 
     @property
     def evidence_digest(self) -> str:
@@ -439,25 +462,57 @@ class EngineCandidate(_FrozenModel):
     def _candidate_bindings_match(self) -> EngineCandidate:
         if not math.isfinite(self.score):
             raise ValueError("candidate_score_non_finite")
-        if self.chunk.document.tenant_ref != self.index_ref.tenant_ref:
-            raise ValueError("candidate_tenant_drift")
-        if self.chunk.document.graph_ref != self.index_ref.graph_ref:
-            raise ValueError("candidate_graph_drift")
-        if self.chunk.document.generation_id != self.index_ref.generation_id:
-            raise ValueError("candidate_generation_drift")
-        if self.vector_ref.tenant_ref != self.index_ref.tenant_ref:
-            raise ValueError("candidate_vector_tenant_drift")
-        if self.vector_ref.graph_ref != self.index_ref.graph_ref:
-            raise ValueError("candidate_vector_graph_drift")
-        if self.vector_ref.generation_id != self.index_ref.generation_id:
-            raise ValueError("candidate_vector_generation_drift")
-        if self.vector_ref.model != self.index_ref.model:
-            raise ValueError("candidate_embedding_model_drift")
-        if self.vector_ref.dimension != self.index_ref.dimension:
-            raise ValueError("candidate_dimension_drift")
-        if self.vector_ref.source_content_digest != self.chunk.content_digest:
-            raise ValueError("candidate_content_hash_drift")
+        self._validate_candidate_document()
+        self._validate_candidate_vector()
         return self
+
+    def _validate_candidate_document(self) -> None:
+        document = self.chunk.document
+        checks = (
+            (
+                document.tenant_ref == self.index_ref.tenant_ref,
+                "candidate_tenant_drift",
+            ),
+            (document.graph_ref == self.index_ref.graph_ref, "candidate_graph_drift"),
+            (
+                document.generation_id == self.index_ref.generation_id,
+                "candidate_generation_drift",
+            ),
+        )
+        for valid, error in checks:
+            if not valid:
+                raise ValueError(error)
+
+    def _validate_candidate_vector(self) -> None:
+        checks = (
+            (
+                self.vector_ref.tenant_ref == self.index_ref.tenant_ref,
+                "candidate_vector_tenant_drift",
+            ),
+            (
+                self.vector_ref.graph_ref == self.index_ref.graph_ref,
+                "candidate_vector_graph_drift",
+            ),
+            (
+                self.vector_ref.generation_id == self.index_ref.generation_id,
+                "candidate_vector_generation_drift",
+            ),
+            (
+                self.vector_ref.model == self.index_ref.model,
+                "candidate_embedding_model_drift",
+            ),
+            (
+                self.vector_ref.dimension == self.index_ref.dimension,
+                "candidate_dimension_drift",
+            ),
+            (
+                self.vector_ref.source_content_digest == self.chunk.content_digest,
+                "candidate_content_hash_drift",
+            ),
+        )
+        for valid, error in checks:
+            if not valid:
+                raise ValueError(error)
 
     @property
     def candidate_digest(self) -> str:
