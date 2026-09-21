@@ -50,6 +50,7 @@ from .repo_templates import (
     runner_plan,
     standard_repos,
 )
+from .self_deploy import execute_redeploy, plan_redeploy
 
 if TYPE_CHECKING:
     from .doctor import CHECKS, run_doctor
@@ -85,6 +86,8 @@ __all__ = [
     "provision_plan",
     "render_skeleton",
     "register_codex_graphos",
+    "execute_redeploy",
+    "plan_redeploy",
     "run_doctor",
     "run_preflight",
     "runner_plan",

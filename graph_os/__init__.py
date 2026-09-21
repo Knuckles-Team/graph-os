@@ -32,4 +32,6 @@ version and the target composition it will host.
 
 from graph_os._version import __version__
 
-__all__ = ["__version__"]
+from . import epistemic
+
+__all__ = ["__version__", "epistemic"]

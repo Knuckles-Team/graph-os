@@ -341,6 +341,21 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     register_research_routes(app, prefix=prefix)
 
+    # Live Refreshable Artifacts (CONCEPT:AU-KG.memory.live-refreshable-artifact-models)
+    # are gateway-owned routes in graph-os.  Keep the router and its KG-backed
+    # refresh resolver mounted together, matching the AU server composition that
+    # this repository replaces.  The router's paths already include ``/api``;
+    # do not apply ``prefix`` a second time.
+    from agent_utilities.knowledge_graph.live_artifacts.kg_source import (
+        install_kg_artifact_source,
+    )
+
+    from graph_os.gateway.artifacts_api import artifacts_router
+
+    if hasattr(app, "include_router"):
+        app.include_router(artifacts_router)
+        install_kg_artifact_source()
+
     # Read-only tenant/principal-scoped view over the engine-native fleet
     # catalog.  The registry module owns only transport/schema shaping; its
     # writer remains ``fleet_catalog_tables`` and no live MCP probing occurs.
