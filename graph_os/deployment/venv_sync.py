@@ -76,6 +76,21 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
 
+from .venv_sync_types import (
+    Backup,
+    CommandResult,
+    DriftFinding,
+    DriftReport,
+    MemberInstallState,
+    ProbeResult,
+    PruneCandidate,
+    PruneOutcome,
+    PrunePlan,
+    SyncOutcome,
+    UpgradeOutcome,
+    _InstalledRecord,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -1120,30 +1135,6 @@ def exclusive_lock(workspace: Workspace, *, blocking: bool = False) -> Iterator[
 # ─────────────────────────────────────────────────────────────────────────────
 # Lock backups — the only rollback path an untracked lock has
 # ─────────────────────────────────────────────────────────────────────────────
-@dataclass(frozen=True)
-class Backup:
-    """One archived ``uv.lock`` plus the metadata needed to trust it."""
-
-    id: str
-    path: Path
-    created_at: str
-    digest: str
-    reason: str
-    verified: bool = False
-    meta: dict[str, Any] = field(default_factory=dict)
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "id": self.id,
-            "path": str(self.path),
-            "created_at": self.created_at,
-            "digest": self.digest,
-            "reason": self.reason,
-            "verified": self.verified,
-            "meta": self.meta,
-        }
-
-
 class LockBackupStore:
     """Content-addressed archive of ``uv.lock`` revisions.
 
@@ -1291,22 +1282,6 @@ def _unlink_quietly(path: Path) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # uv invocation
 # ─────────────────────────────────────────────────────────────────────────────
-@dataclass(frozen=True)
-class CommandResult:
-    argv: tuple[str, ...]
-    returncode: int
-    stdout: str
-    stderr: str
-
-    @property
-    def ok(self) -> bool:
-        return self.returncode == 0
-
-    @property
-    def output(self) -> str:
-        return f"{self.stdout}\n{self.stderr}".strip()
-
-
 def run_uv(
     workspace: Workspace, args: Sequence[str], *, timeout: float = 3600.0
 ) -> CommandResult:
@@ -1358,38 +1333,6 @@ def plan_sync(workspace: Workspace) -> SyncPlan:
 # ─────────────────────────────────────────────────────────────────────────────
 # Sync
 # ─────────────────────────────────────────────────────────────────────────────
-@dataclass(frozen=True)
-class SyncOutcome:
-    """The result of asking for the environment to be made current."""
-
-    verdict: Verdict
-    plan: SyncPlan | None
-    applied: bool
-    detail: str = ""
-    duration_s: float = 0.0
-
-    @property
-    def ok(self) -> bool:
-        return self.verdict.decision in (ALLOW,) and (
-            self.applied or (self.plan is not None and self.plan.is_empty)
-        )
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "verdict": self.verdict.as_dict(),
-            "applied": self.applied,
-            "detail": self.detail,
-            "duration_s": round(self.duration_s, 3),
-            "plan": {
-                "installs": [d.name for d in (self.plan.installs if self.plan else ())],
-                "uninstalls": [
-                    d.name for d in (self.plan.uninstalls if self.plan else ())
-                ],
-                "empty": self.plan.is_empty if self.plan else None,
-            },
-        }
-
-
 def sync(
     workspace: Workspace,
     *,
@@ -1540,30 +1483,6 @@ def _sync_locked(
 # removals, computed without ever touching `uv sync` at all — so it can never
 # produce the destructive bare-sync argv `_assert_sanctioned` exists to catch.
 # ─────────────────────────────────────────────────────────────────────────────
-@dataclass(frozen=True)
-class PruneCandidate:
-    """An installed distribution that is neither locked nor a workspace member."""
-
-    name: str
-    version: str
-
-
-@dataclass(frozen=True)
-class PrunePlan:
-    """What `prune()` would remove — computed by set difference, not `uv sync`."""
-
-    candidates: tuple[PruneCandidate, ...]
-
-    @property
-    def is_empty(self) -> bool:
-        return not self.candidates
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "candidates": [f"{c.name}=={c.version}" for c in self.candidates],
-        }
-
-
 def plan_prune(workspace: Workspace) -> PrunePlan:
     """Find installed distributions `--inexact` deliberately leaves behind.
 
@@ -1585,24 +1504,6 @@ def plan_prune(workspace: Workspace) -> PrunePlan:
         if canon not in locked and canon not in member_names
     )
     return PrunePlan(candidates=candidates)
-
-
-@dataclass(frozen=True)
-class PruneOutcome:
-    """The result of asking for extraneous packages to be removed."""
-
-    plan: PrunePlan
-    applied: bool
-    refused: bool = False
-    detail: str = ""
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "plan": self.plan.as_dict(),
-            "applied": self.applied,
-            "refused": self.refused,
-            "detail": self.detail,
-        }
 
 
 def _prune_activity_gate(
@@ -1705,18 +1606,6 @@ def prune(
 # ─────────────────────────────────────────────────────────────────────────────
 # Verify probes
 # ─────────────────────────────────────────────────────────────────────────────
-@dataclass(frozen=True)
-class ProbeResult:
-    """One post-change health assertion."""
-
-    name: str
-    ok: bool | None
-    detail: str
-
-    def as_dict(self) -> dict[str, Any]:
-        return {"name": self.name, "ok": self.ok, "detail": self.detail}
-
-
 @runtime_checkable
 class VerifyProbe(Protocol):
     """Asserts the environment is healthy after a change."""
@@ -2039,24 +1928,6 @@ def classify_change(paths: Sequence[str]) -> str:
     return SOURCE_ONLY
 
 
-@dataclass(frozen=True)
-class MemberInstallState:
-    """How one editable workspace member is actually installed right now."""
-
-    member: Member
-    installed: bool
-    editable: bool
-    source_version: str | None
-    installed_version: str | None
-    source_entry_points: tuple[str, ...]
-    installed_entry_points: tuple[str, ...]
-    differences: tuple[str, ...]
-
-    @property
-    def stale(self) -> bool:
-        return bool(self.differences)
-
-
 def _member_install_differences(
     record: _InstalledRecord,
     source_version: str | None,
@@ -2134,14 +2005,6 @@ def member_install_states(workspace: Workspace) -> tuple[MemberInstallState, ...
     return tuple(
         _member_install_state(member, installed) for member in workspace.members()
     )
-
-
-@dataclass(frozen=True)
-class _InstalledRecord:
-    name: str
-    version: str
-    editable: bool
-    entry_points: tuple[str, ...]
 
 
 def _installed_distributions(site: Path) -> dict[str, _InstalledRecord]:
@@ -2236,47 +2099,6 @@ def _source_metadata(path: Path) -> tuple[str | None, tuple[str, ...], bool]:
 # ─────────────────────────────────────────────────────────────────────────────
 # Drift detection
 # ─────────────────────────────────────────────────────────────────────────────
-@dataclass(frozen=True)
-class DriftFinding:
-    code: str
-    severity: str
-    detail: str
-    data: dict[str, Any] = field(default_factory=dict)
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "code": self.code,
-            "severity": self.severity,
-            "detail": self.detail,
-            "data": self.data,
-        }
-
-
-@dataclass(frozen=True)
-class DriftReport:
-    findings: tuple[DriftFinding, ...]
-
-    @property
-    def status(self) -> str:
-        ranks = {"ok": 0, "warn": 1, "fail": 2}
-        worst = max((ranks[f.severity] for f in self.findings), default=0)
-        return {0: "ok", 1: "warn", 2: "fail"}[worst]
-
-    @property
-    def summary(self) -> str:
-        problems = [f for f in self.findings if f.severity != "ok"]
-        if not problems:
-            return "shared venv is current with uv.lock"
-        return "; ".join(f.detail for f in problems)
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "status": self.status,
-            "summary": self.summary,
-            "findings": [f.as_dict() for f in self.findings],
-        }
-
-
 def _drift_lock_finding(check: Any) -> DriftFinding:
     return DriftFinding(
         code="lock_current",
@@ -2460,33 +2282,6 @@ def session_start_hint(workspace: Workspace) -> str | None:
 # ─────────────────────────────────────────────────────────────────────────────
 # Upgrade / relock / rollback
 # ─────────────────────────────────────────────────────────────────────────────
-@dataclass(frozen=True)
-class UpgradeOutcome:
-    """Result of moving the lock forward and proving the result works."""
-
-    verdict: Verdict
-    backup: Backup | None
-    plan: SyncPlan | None
-    probes: tuple[ProbeResult, ...]
-    applied: bool
-    rolled_back: bool
-    detail: str
-
-    @property
-    def ok(self) -> bool:
-        return self.applied and not self.rolled_back
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "verdict": self.verdict.as_dict(),
-            "backup": self.backup.as_dict() if self.backup else None,
-            "applied": self.applied,
-            "rolled_back": self.rolled_back,
-            "detail": self.detail,
-            "probes": [p.as_dict() for p in self.probes],
-        }
-
-
 def upgrade(
     workspace: Workspace,
     packages: Sequence[str] = (),
