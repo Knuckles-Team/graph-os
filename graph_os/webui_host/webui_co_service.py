@@ -147,9 +147,6 @@ def run_web_ui(
     from agent_utilities.server.webui_contact_governance import (
         contact_delivery_factory_kwargs,
     )
-    from agent_utilities.server.webui_mcp_delegation import (
-        webui_mcp_delegation_helpers,
-    )
     from agent_utilities.server.webui_voice_delegation import (
         webui_voice_delegation_helpers,
     )
@@ -172,6 +169,7 @@ def run_web_ui(
         browser_control_factory_kwargs,
     )
     from graph_os.mcp_server import runtime as mcp_runtime
+    from graph_os.webui_host.mcp_delegation import webui_mcp_delegation_helpers
 
     # Assemble exactly what agent-webui's own entrypoint assembles.
     #

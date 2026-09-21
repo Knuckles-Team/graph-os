@@ -13,6 +13,37 @@ and awaits `MCPMultiplexer.refresh_engine_catalog()` before starting children.
 The reader path fails closed until a verified snapshot exists and never falls
 back to a static config file.
 
+## Served-loop ownership
+
+The FastMCP server owns the only live multiplexer event loop. The colocated
+Agent WebUI runs on its own ASGI loop, so its GraphOS-native inventory, call,
+and resource helpers submit asynchronous operations through
+`graph_os.fleet.shared_multiplexer.run_on_served_multiplexer`. The submitted
+coroutine is created as a task on the serving loop with the caller's verified
+context; the WebUI awaits the concurrent completion and never blocks a thread
+on `Future.result()`. Raw multiplexer access from a foreign loop fails closed.
+
+```mermaid
+flowchart LR
+    MCP[MCP request] --> Owner[FastMCP owner loop]
+    UI[Agent WebUI ASGI loop] -->|async submit| Binding[served multiplexer binding]
+    Binding --> Owner
+    Owner --> Mux[one MCPMultiplexer]
+    Mux --> Snapshot[one four-family immutable snapshot]
+    Snapshot --> Tools[tools]
+    Snapshot --> Resources[resources]
+    Snapshot --> Templates[resource templates]
+    Snapshot --> Prompts[prompts]
+```
+
+Catalog reconciliation still requires the durable writer to acknowledge the
+candidate's exact `catalog_generation` and `snapshot_digest` before atomic
+publication. GraphOS no longer imports AU's source-sync writer. Until
+epistemic-graph exposes the governed generic MCP resource/template durability
+operation, the writer capability is absent and refresh returns the typed
+`reingestion-unreconciled` failure. It does not claim convergence or maintain
+a second process-local durability store.
+
 ## G2 cutover checklist
 
 1. The graph-os MCP composition imports `attach_fleet_loader` and
@@ -20,7 +51,8 @@ back to a static config file.
    and refreshes the catalog before child startup.
 2. The MCP composition binds the returned instance through
    `graph_os.fleet.shared_multiplexer` so REST and WebUI consumers observe the
-   same lifecycle, health, OAuth, and discovery state.
+   same lifecycle, health, OAuth, and discovery state. The first served request
+   claims the FastMCP owner loop; co-services use only the async submission API.
 3. Gateway route composition installs its `GatewayApplicationPort` before
    `register_graph_routes()` and delegates fleet OAuth/toggle reads to that
    same instance.

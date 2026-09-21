@@ -2445,6 +2445,9 @@ class MCPMultiplexer:
         # long session's tool surface doesn't monotonically grow.
         self._auto_unload: dict[str, set[str]] = {}
         self._authority_scope: _typing.Any = None
+        # Serving composition replaces this no-op with the process singleton's
+        # event-loop claim. Standalone multiplexers retain local-loop behavior.
+        self._claim_serving_loop: _typing.Callable[[], None] = lambda: None
         # Optional process-owned bridge into source_sync's ONE fleet-catalog
         # writer.  Serving GraphOS and the REST process inject it at composition
         # time; a standalone/probe-only multiplexer reports ingestion unavailable
@@ -4687,6 +4690,67 @@ class MCPMultiplexer:
         return await self._reconcile_catalog(
             deadline_ms=deadline_ms, request_id=request_id
         )
+
+    async def delegated_server_tools(
+        self, server_name: str
+    ) -> list[dict[str, _typing.Any]]:
+        """Return one child's bounded tools through the served probe cache."""
+        _require_fleet_capability("discover")
+        info = await self.probe_server(server_name)
+        if info.get("error"):
+            raise RuntimeError("MCP server probe failed")
+        return [dict(item) for item in info.get("tools", ()) if isinstance(item, dict)]
+
+    async def delegate_server_tool(
+        self,
+        *,
+        server_name: str,
+        tool_name: str,
+        arguments: dict[str, _typing.Any],
+        timeout: float,
+    ) -> _typing.Any:
+        """Invoke one original child tool through this served child pool."""
+        _require_fleet_capability("delegate")
+        _assert_bounded_delegated_value(arguments)
+        await self.mount_child(server_name)
+        public_name = next(
+            (
+                name
+                for name, target in self.tool_to_server.items()
+                if target == (server_name, tool_name)
+            ),
+            None,
+        )
+        if public_name is None:
+            raise _fastmcp_exceptions.ToolError("MCP child tool is not available")
+        result = await asyncio.wait_for(
+            self.call_proxied_tool(public_name, arguments), timeout=timeout
+        )
+        return _child_result_payload(result)
+
+    async def read_server_resource(
+        self, *, server_name: str, uri: str, timeout: float
+    ) -> dict[str, str]:
+        """Read one text resource through this served child connection."""
+        _require_fleet_capability("delegate")
+        if not uri or len(uri.encode("utf-8")) > 8_192:
+            raise _fastmcp_exceptions.ToolError("MCP resource URI is invalid")
+        await self.mount_child(server_name)
+        session = self._live_primary_session(server_name)
+        result = await asyncio.wait_for(session.read_resource(uri), timeout=timeout)
+        contents = getattr(result, "contents", result)
+        first = next(iter(contents or ()), None)
+        text = getattr(first, "text", None)
+        if not isinstance(text, str):
+            raise _fastmcp_exceptions.ToolError("MCP resource carried no text")
+        if len(text.encode("utf-8")) > _MAX_DELEGATED_VALUE_BYTES:
+            raise _fastmcp_exceptions.ToolError(
+                "MCP resource exceeds the size boundary"
+            )
+        mime_type = getattr(first, "mime_type", None) or getattr(
+            first, "mimeType", None
+        )
+        return {"uri": uri, "text": text, "mimeType": str(mime_type or "text/plain")}
 
     async def dispatch_catalog_tool(
         self,
@@ -7120,6 +7184,10 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
         raises, and this is a belt-and-braces second guard, because an eager
         convenience must never be able to break a request.
         """
+        # This is the first common async seam for both tools/list and
+        # tools/call. Bind the process singleton to FastMCP's actual serving
+        # loop before a co-service may submit catalog work.
+        self.mux._claim_serving_loop()
         if not self.mux.always_load_declared():
             return
         try:
@@ -8374,9 +8442,12 @@ def attach_fleet_loader(
     # CONCEPT:AU-ECO.mcp.intent-surface-condensed-collapse) can best-effort widen its search to the
     # whole fleet catalog without a second multiplexer instance.
     mcp._fleet_mux = mux
-    from graph_os.fleet.shared_multiplexer import bind_served_multiplexer
+    import graph_os.fleet.shared_multiplexer as _shared_multiplexer
 
-    bind_served_multiplexer(mux)
+    _shared_multiplexer.bind_served_multiplexer(mux)
+    mux._claim_serving_loop = lambda: _shared_multiplexer.claim_served_multiplexer_loop(
+        mux
+    )
     mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
     logger.info(
         "graph-os fleet loader ready: %d MCP server(s) mountable on demand via "

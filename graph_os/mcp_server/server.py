@@ -126,36 +126,6 @@ def _preflight_mcp_sdk_floor() -> None:
     raise RuntimeError(message)
 
 
-async def _write_refreshed_fleet_catalog(
-    catalog,
-    configs,
-    bindings,
-    *,
-    catalog_generation: int | None = None,
-    snapshot_digest: str | None = None,
-):
-    """Bridge the served GraphOS mux into source-sync's canonical writer.
-
-    Forwards the candidate's exact ``catalog_generation``/``snapshot_digest``
-    through unchanged so the returned receipt acknowledges precisely the
-    generation this call ingested (multiplexer._write_catalog_candidate
-    verifies the echo before treating reingestion as reconciled).
-    """
-    from agent_utilities.knowledge_graph.core.source_sync import (
-        write_fleet_catalog_snapshot,
-    )
-
-    return await asyncio.to_thread(
-        write_fleet_catalog_snapshot,
-        runtime._get_engine(),
-        catalog,
-        configs=configs,
-        discovery_bindings=bindings,
-        catalog_generation=catalog_generation,
-        snapshot_digest=snapshot_digest,
-    )
-
-
 def mcp_server() -> None:
     """``graph-os`` MCP server entry point (registered as console_scripts).
 
@@ -206,7 +176,6 @@ def mcp_server() -> None:
             mcp,
             embed_fn=_fleet_embed_fn(),
             authority_scope=runtime.verified_tool_session_scope,
-            catalog_writer=_write_refreshed_fleet_catalog,
         )
     except Exception as exc:
         raise RuntimeError(

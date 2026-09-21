@@ -115,18 +115,6 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         governance,
     )
 
-    mcp_delegation = types.ModuleType("agent_utilities.server.webui_mcp_delegation")
-    _export(
-        mcp_delegation,
-        "webui_mcp_delegation_helpers",
-        lambda: {"call_mcp_tool": "mcp-helper"},
-    )
-    monkeypatch.setitem(
-        sys.modules,
-        "agent_utilities.server.webui_mcp_delegation",
-        mcp_delegation,
-    )
-
     voice_delegation = types.ModuleType("agent_utilities.server.webui_voice_delegation")
     _export(
         voice_delegation,
@@ -200,6 +188,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     service = object()
     from graph_os.browser_control import browser_control_service
     from graph_os.mcp_server import runtime
+    from graph_os.webui_host import mcp_delegation
 
     def browser_control_factory_kwargs(
         app_factory: object,
@@ -219,6 +208,11 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         browser_control_factory_kwargs,
     )
     monkeypatch.setattr(runtime, "_get_engine", lambda: "graph-os-engine")
+    monkeypatch.setattr(
+        mcp_delegation,
+        "webui_mcp_delegation_helpers",
+        lambda: {"call_mcp_tool": "mcp-helper"},
+    )
 
     monkeypatch.delenv(module.ACCESS_LOG_POLICY_ENV, raising=False)
     module.run_web_ui(stop_event, host="0.0.0.0", port=8181)

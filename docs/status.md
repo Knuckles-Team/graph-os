@@ -35,6 +35,14 @@ the reader requires. The served composition now uses the native graph-os
 multiplexer and fails closed at that typed catalog seam; it does not fall back
 to AU's former multiplexer or fabricate a static-to-EG adapter.
 
+The served multiplexer now has one explicit FastMCP-loop owner. The WebUI
+co-service's MCP inventory, invocation, and resource reads use GraphOS-native
+async submission to that exact instance; there is no AU WebUI adapter import,
+detached multiplexer, or synchronous cross-loop wait. Durable four-family
+re-ingestion remains capability-gated until EG exposes its generic MCP
+resource/template authority, so refresh fails with
+`reingestion-unreconciled` instead of fabricating a convergence receipt.
+
 Remaining source this repository will receive in **Migration Wave 5** (line
 counts measured 2026-09-12 against `agent-utilities` `HEAD`) is tracked in
 [`AGENTS.md`](https://github.com/Knuckles-Team/graph-os/blob/main/AGENTS.md#w5-source-measurements-measured-2026-09-12)
