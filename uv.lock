@@ -7,6 +7,40 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "agent-connector-sdk"
+source = { editable = ".uv-workspace-siblings/agent-connector-sdk" }
+dependencies = [
+    { name = "anyio" },
+    { name = "cryptography" },
+    { name = "epistemic-graph" },
+    { name = "fastmcp" },
+    { name = "httpx" },
+    { name = "httpx2" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anyio", specifier = ">=4.13.0" },
+    { name = "cryptography", specifier = ">=50.0.1" },
+    { name = "epistemic-graph", specifier = ">=2.27.0,<3" },
+    { name = "fastmcp", specifier = ">=4.0.3,<5" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "httpx2", specifier = ">=2.12.0" },
+    { name = "pydantic", specifier = ">=2.13.4,<3" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
+]
+
+[package.metadata.requires-dev]
+docs = [{ name = "mkdocs-material", specifier = "==9.7.7" }]
+test = [
+    { name = "pytest", specifier = ">=9.1.1" },
+    { name = "pytest-asyncio", specifier = ">=1.4.0" },
+    { name = "pytest-timeout", specifier = ">=2.4.0" },
+]
+
+[[package]]
 name = "agent-utilities"
 source = { editable = ".uv-workspace-siblings/agent-utilities" }
 dependencies = [
@@ -1019,6 +1053,7 @@ wheels = [
 name = "graph-os"
 source = { editable = "." }
 dependencies = [
+    { name = "agent-connector-sdk" },
     { name = "agent-utilities", extra = ["mcp"] },
     { name = "anyio" },
     { name = "epistemic-graph" },
@@ -1050,6 +1085,7 @@ webui = [
 
 [package.metadata]
 requires-dist = [
+    { name = "agent-connector-sdk", editable = ".uv-workspace-siblings/agent-connector-sdk" },
     { name = "agent-utilities", extras = ["mcp"], editable = ".uv-workspace-siblings/agent-utilities" },
     { name = "agent-webui", marker = "extra == 'webui'", editable = ".uv-workspace-siblings/agent-webui" },
     { name = "anyio", specifier = ">=4.13.0" },
