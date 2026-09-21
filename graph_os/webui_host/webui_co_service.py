@@ -62,6 +62,30 @@ DEFAULT_WEB_UI_HOST = "127.0.0.1"
 ACCESS_LOG_POLICY_ENV = "AGENT_WEBUI_ACCESS_LOG_POLICY"
 
 
+async def _serve_until_stopped(
+    server: Any,
+    stop_event: threading.Event,
+    browser_control_service: Any,
+    register_browser_control_service: Any,
+    unregister_browser_control_service: Any,
+) -> None:
+    import asyncio
+
+    if browser_control_service is not None:
+        register_browser_control_service(browser_control_service)
+    task = asyncio.ensure_future(server.serve())
+    try:
+        while not stop_event.is_set() and not task.done():
+            await asyncio.sleep(_STOP_POLL_SECONDS)
+    finally:
+        server.should_exit = True
+        try:
+            await task
+        finally:
+            if browser_control_service is not None:
+                unregister_browser_control_service(browser_control_service)
+
+
 def run_web_ui(
     stop_event: threading.Event,
     *,
@@ -133,8 +157,21 @@ def run_web_ui(
         get_engine_bounded,
         invoke_governed_helper,
     )
+    from agent_webui.browser_control import (
+        BrowserControlPort,
+        revalidate_browser_control_session,
+    )
     from agent_webui.orchestrator_model import build_orchestrator_model
     from agent_webui.server import create_agent_web_app
+
+    from graph_os.browser_control.browser_control_runtime import (
+        register_browser_control_service,
+        unregister_browser_control_service,
+    )
+    from graph_os.browser_control.browser_control_service import (
+        browser_control_factory_kwargs,
+    )
+    from graph_os.mcp_server import runtime as mcp_runtime
 
     # Assemble exactly what agent-webui's own entrypoint assembles.
     #
@@ -155,11 +192,18 @@ def run_web_ui(
         create_agent_web_app,
         lambda operation: invoke_governed_helper(operation, deadline=10.0),
     )
+    browser_control_kwargs = browser_control_factory_kwargs(
+        create_agent_web_app,
+        mcp_runtime._get_engine(),
+        lambda operation: invoke_governed_helper(operation, deadline=10.0),
+        session_revalidator=revalidate_browser_control_session,
+    )
     app = create_agent_web_app(
         agent,
         workspace_helpers=helpers,
         listener_host=bind_host,
         **contact_kwargs,
+        **browser_control_kwargs,
     )
 
     # Uvicorn access records include the raw query string, which can carry user
@@ -172,16 +216,20 @@ def run_web_ui(
     # supervisor owns shutdown through ``stop_event`` regardless.
     cast(Any, server).install_signal_handlers = lambda: None
 
-    async def _serve() -> None:
-        task = asyncio.ensure_future(server.serve())
-        try:
-            while not stop_event.is_set() and not task.done():
-                await asyncio.sleep(_STOP_POLL_SECONDS)
-        finally:
-            server.should_exit = True
-            await task
+    browser_control_service = cast(
+        BrowserControlPort | None,
+        browser_control_kwargs.get("browser_control"),
+    )
 
     logger.info(
         "agent-webui co-service serving in-process on %s:%s", bind_host, bind_port
     )
-    asyncio.run(_serve())
+    asyncio.run(
+        _serve_until_stopped(
+            server,
+            stop_event,
+            browser_control_service,
+            register_browser_control_service,
+            unregister_browser_control_service,
+        )
+    )

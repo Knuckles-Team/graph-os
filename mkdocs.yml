@@ -16,6 +16,7 @@ nav:
   - Fleet gateway: fleet.md
   - Gateway: gateway.md
   - MCP server: mcp-server.md
+  - Browser control: browser-control-service.md
   - Quality gate terms: quality-gate-terms.md
 
 markdown_extensions:

@@ -151,8 +151,20 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         webui, "orchestrator_model", types.ModuleType("agent_webui.orchestrator_model")
     )
     _export(webui, "server", types.ModuleType("agent_webui.server"))
+    browser_control = types.ModuleType("agent_webui.browser_control")
+
+    async def revalidate_browser_control_session(_binding: object) -> bool:
+        return True
+
+    _export(
+        browser_control,
+        "revalidate_browser_control_session",
+        revalidate_browser_control_session,
+    )
+    _export(browser_control, "BrowserControlPort", object)
     monkeypatch.setitem(sys.modules, "agent_webui", webui)
     monkeypatch.setitem(sys.modules, "agent_webui.api_extensions", webui_api)
+    monkeypatch.setitem(sys.modules, "agent_webui.browser_control", browser_control)
 
     orchestrator = cast(types.ModuleType, vars(webui)["orchestrator_model"])
 
@@ -171,17 +183,42 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         workspace_helpers: dict[str, object],
         listener_host: str,
         contact_delivery: object | None = None,
+        browser_control: object | None = None,
     ) -> object:
         calls["app"] = {
             "agent": agent,
             "workspace_helpers": workspace_helpers,
             "listener_host": listener_host,
             "contact_delivery": contact_delivery,
+            "browser_control": browser_control,
         }
         return "webui-app"
 
     _export(server_module, "create_agent_web_app", create_agent_web_app)
     monkeypatch.setitem(sys.modules, "agent_webui.server", server_module)
+
+    service = object()
+    from graph_os.browser_control import browser_control_service
+    from graph_os.mcp_server import runtime
+
+    def browser_control_factory_kwargs(
+        app_factory: object,
+        engine: object,
+        sync_runner: object,
+        session_revalidator: object,
+    ) -> dict[str, object]:
+        calls["browser_factory"] = app_factory
+        calls["browser_engine"] = engine
+        calls["browser_runner"] = sync_runner
+        calls["browser_revalidator"] = session_revalidator
+        return {"browser_control": service}
+
+    monkeypatch.setattr(
+        browser_control_service,
+        "browser_control_factory_kwargs",
+        browser_control_factory_kwargs,
+    )
+    monkeypatch.setattr(runtime, "_get_engine", lambda: "graph-os-engine")
 
     monkeypatch.delenv(module.ACCESS_LOG_POLICY_ENV, raising=False)
     module.run_web_ui(stop_event, host="0.0.0.0", port=8181)
@@ -197,9 +234,14 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         },
         "listener_host": "0.0.0.0",
         "contact_delivery": "governed-contact-delivery",
+        "browser_control": service,
     }
     assert calls["contact_factory"] is create_agent_web_app
     assert callable(calls["contact_runner"])
+    assert calls["browser_factory"] is create_agent_web_app
+    assert calls["browser_engine"] == "graph-os-engine"
+    assert callable(calls["browser_runner"])
+    assert calls["browser_revalidator"] is revalidate_browser_control_session
     assert calls["uvicorn_config"] == {
         "app": "webui-app",
         "host": "0.0.0.0",

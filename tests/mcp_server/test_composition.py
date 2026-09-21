@@ -20,7 +20,10 @@ from graph_os.mcp_server.composition import (
 def test_native_action_route_contract_matches_cutover_source() -> None:
     from agent_utilities.mcp.kg_server import ACTION_TOOL_ROUTES as source_routes
 
-    assert runtime.ACTION_TOOL_ROUTES == source_routes
+    graph_os_routes = dict(runtime.ACTION_TOOL_ROUTES)
+    browser_route = graph_os_routes.pop("browser_control")
+    assert graph_os_routes == source_routes
+    assert browser_route == "/browser/control"
     assert len(runtime.ACTION_TOOL_ROUTES) >= 60
 
 
