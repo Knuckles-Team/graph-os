@@ -4,9 +4,19 @@ GraphOS is the deployable composition layer for the Knuckles agent platform.
 This file defines its durable source boundaries and development rules. Public
 operator documentation lives at <https://knuckles-team.github.io/graph-os/>.
 
-## Source of truth
+## What this repository owns
 
-The repository owns the serving process and the code under `graph_os/`:
+This repository owns the GraphOS serving process and the code under
+`graph_os/`: MCP and REST composition, MCP fleet supervision, control-plane
+policy, optional Agent WebUI hosting, unary A2A, governed browser control, and
+deployment operations.
+
+Current capability limits are documented in `docs/status.md`. A capability
+waiting on another repository's public contract must fail closed and remain
+marked unavailable. Do not add a compatibility alias, static fallback, or
+fabricated receipt to make it appear complete.
+
+## Architecture and module map
 
 | Package | Responsibility |
 |---|---|
@@ -19,28 +29,16 @@ The repository owns the serving process and the code under `graph_os/`:
 | `graph_os.browser_control` | Governed browser catalog, lease, dispatch, and outcome orchestration |
 | `graph_os.deployment` | Configuration, diagnostics, canaries, environment plans, and production operations |
 
-The current capability limits are documented in `docs/status.md`. A capability
-that is waiting on an upstream contract must fail closed and remain marked
-unavailable; do not add a compatibility alias, static fallback, or fabricated
-receipt to make it appear complete.
+GraphOS authenticates, composes, routes, supervises, and projects. Durable
+graph state and RDF/OWL/SHACL semantics belong to `epistemic-graph`; agent
+decisions and workflows belong to `agent-utilities`; source-specific transport
+and effects belong to `agent-connector-sdk` and connector services; browser
+presentation belongs to `agent-webui`.
 
-## Architecture boundary
-
-GraphOS authenticates, composes, routes, supervises, and projects. It does not
-own:
-
-- durable graph data, RDF/OWL/SHACL semantics, graph query execution, proofs,
-  or provenance — those belong to `epistemic-graph`;
-- agent decisions, workflows, skills, or model-provider policy — those belong
-  to `agent-utilities`;
-- source-specific transport, paging, credential exchange, or writeback
-  effects — those belong to `agent-connector-sdk` and connector services;
-- browser-local UI state — that belongs to `agent-webui`.
-
-Dependencies point toward those authorities through their public contracts.
-Do not copy their implementations into this repository. Connector dashboard
-widgets call admitted fleet tools; they never import vendor clients. MCP and
-REST routes use the same application service and authorization decision.
+Dependencies point toward those authorities through public contracts. Do not
+copy their implementations here. Connector widgets invoke admitted fleet tools
+instead of importing vendor clients. MCP and REST routes share the same
+application service and authorization decision.
 
 ```mermaid
 flowchart LR
@@ -51,9 +49,26 @@ flowchart LR
     Fleet --> Sources["connector services"]
 ```
 
-## Entrypoints
+The serving lifecycle owns one FastMCP event loop and one multiplexer instance.
+Co-services submit work to that owner loop; they must not construct a second
+multiplexer or block another loop on `Future.result()`.
 
-The package publishes these console commands:
+Security is fail closed:
+
+- Resolve settings through the shared XDG configuration model. Add an
+  environment variable only when configuration cannot express the value.
+- Never commit credentials, bearer tokens, private endpoints, operator
+  inventories, generated live configuration, or plaintext secrets.
+- Network transports require validated identity, tenant isolation, and the
+  configured TLS and authorization posture.
+- `stdio` stdout is protocol output; diagnostics use logging or stderr.
+- Preserve deterministic request identities, idempotency fences, bounded
+  payloads, and privacy-safe receipts. Unknown effects never claim rollback.
+- Apply action policy and durable provenance before governed mutation dispatch.
+
+## Commands
+
+The package publishes these operator commands:
 
 | Command | Purpose |
 |---|---|
@@ -62,49 +77,12 @@ The package publishes these console commands:
 | `setup-config` | Generate, validate, and describe deployment configuration |
 | `agent-utilities-doctor` | Run deployment and dependency diagnostics |
 | `agent-utilities-venv` | Inspect and reconcile managed runtime environments |
-| `graph-os-release-canary` | Verify a candidate release against its declared catalog |
+| `graph-os-release-canary` | Verify a candidate release and catalog |
 | `graph-os-production-ops` | Run guarded backup, restore, and production checks |
 
-The `graph-os` entrypoint is `graph_os.mcp_server.server:mcp_server`. The serving
-lifecycle owns one FastMCP event loop and one multiplexer instance. Co-services
-submit work to that owner loop; they must not construct a second multiplexer or
-block another loop on `Future.result()`.
+The `graph-os` entrypoint is `graph_os.mcp_server.server:mcp_server`.
 
-## Configuration and security
-
-- Resolve configuration through the shared XDG configuration model. Add an
-  environment variable only when configuration cannot represent the setting.
-- Commit examples with secret references only. Never commit credentials,
-  bearer tokens, private endpoints, operator inventories, or generated live
-  configuration.
-- Network transports require server-validated identity, tenant isolation, and
-  the configured TLS/authentication posture. Missing authority fails startup or
-  the request; it never degrades to anonymous access.
-- `stdio` stdout is protocol output. Application diagnostics go to logging or
-  stderr, never `print()` from served packages.
-- Preserve deterministic request identities, idempotency fences, bounded
-  payloads, and privacy-safe receipts. A timeout or cancellation must not claim
-  rollback when the external effect is unknown.
-- Keep action-policy checks and durable provenance ahead of dispatch for
-  governed mutations.
-
-## Documentation
-
-`README.md` is the concise public entry page. Detailed public material belongs
-under `docs/` and is published with MkDocs. Keep prose about the current product
-and its contracts; internal program history, local paths, temporary branch
-names, and repository-transition notes belong outside this repository.
-
-Build the site locally with:
-
-```bash
-uv run --no-project --with "mkdocs>=1.6,<2" mkdocs build --strict
-```
-
-Update `mkdocs.yml` whenever adding or removing a public page. Links in the
-README must resolve either within this repository or to a public URL.
-
-## Development setup
+Install and run focused development checks with:
 
 ```bash
 uv sync --extra test
@@ -114,25 +92,16 @@ uv run ruff format --check .
 uv run mypy graph_os
 ```
 
-For an implementation change, trace a real entrypoint through composition to
-the owning service. A test that only imports a class is not wiring evidence.
-When a behavior is exposed through both MCP and REST, change and test both in
-the same commit.
-
-The dependency graph, public package metadata, `uv.lock`, generated manifests,
-and tests must agree. Change generated artifacts through their generator rather
-than hand-editing them.
-
 ## Quality gates
 
 Install the repository hooks once:
 
 ```bash
-uvx --from pre-commit==4.6.0 pre-commit install --hook-type pre-commit --hook-type pre-push
+uvx --from pre-commit==4.6.0 pre-commit install \
+  --hook-type pre-commit --hook-type pre-push
 ```
 
-Before committing, run the normal hooks over the files in the change. Before a
-push or handoff, run the full local release evidence:
+Run the normal hooks and release evidence before handoff:
 
 ```bash
 uvx --from pre-commit==4.6.0 pre-commit run --all-files
@@ -141,21 +110,51 @@ uv run --no-project --with "mkdocs>=1.6,<2" mkdocs build --strict
 uv build --wheel --out-dir dist
 ```
 
-The pre-push suite also runs dependency readiness, scanner censuses, clone
-checks, secret history, lock verification, and the local CI replica. Do not
-bypass a failing gate, add an inline suppression, freeze a baseline, or weaken
-a threshold to make a change pass. The scanner acceptance policy is documented
-in `docs/quality-gate-terms.md`.
+The pre-push suite adds dependency readiness, scanner censuses, clone checks,
+secret history, lock verification, and the local CI replica. Do not bypass a
+failure, add an inline suppression, freeze a baseline, or weaken a threshold.
+Scanner acceptance rules live in `docs/quality-gate-terms.md`.
 
-The shared hooks come from `Knuckles-Team/pipelines` at the immutable revision
-in `.pre-commit-config.yaml`. CI must run the same revision. On a development
-host where that revision is not published, use a command-local Git URL rewrite
-to the reviewed local pipelines checkout; never mutate repository or global Git
-configuration for the workaround.
+Shared hooks come from `Knuckles-Team/pipelines` at the immutable revision in
+`.pre-commit-config.yaml`; CI and local checks use that same revision. A local
+checkout substitution must be command-local and must never mutate repository
+or global Git configuration.
 
-## Branching and shared-worktree safety
+## Development rules
 
-Work in a dedicated Git worktree created from the current local `main`:
+- Confirm that a change belongs to GraphOS and identify its public entrypoint.
+- Update the single owning implementation; do not add a parallel fallback.
+- Trace a real entrypoint through composition to its owning service. A test
+  that only imports a class is not wiring evidence.
+- Change and test MCP and REST together when both expose the behavior.
+- Keep package metadata, `uv.lock`, generated manifests, and tests consistent.
+  Regenerate derived artifacts rather than editing them by hand.
+- Preserve fail-closed authority checks, deterministic effects, and tenant
+  isolation.
+- Update current public status without overstating availability.
+- Run focused tests first, then every applicable full gate.
+- Stage only an explicit reviewed path allowlist and inspect the staged diff.
+- Push, tag, publish, and deploy only when explicitly requested.
+
+## Documentation
+
+`README.md` is the concise public entry page. Detailed public material belongs
+under `docs/` and is published with MkDocs. Keep prose about the current
+product and its contracts. Internal planning history, local paths, temporary
+branches, and repository-transition notes do not belong on the public surface.
+
+Build the site with:
+
+```bash
+uv run --no-project --with "mkdocs>=1.6,<2" mkdocs build --strict
+```
+
+Update `mkdocs.yml` when adding or removing a page. README links must resolve
+within the repository or to a public URL.
+
+## Branching & isolation
+
+Work in a dedicated Git worktree created from current local `main`:
 
 ```bash
 git worktree add "${XDG_STATE_HOME}/repository-worktrees/graph-os/<lane>" \
@@ -163,25 +162,12 @@ git worktree add "${XDG_STATE_HOME}/repository-worktrees/graph-os/<lane>" \
 ```
 
 - Never use an orchestration tool's automatic worktree isolation against this
-  shared checkout. It can mutate `core.bare` in the common Git directory.
-- Never use `git stash`; all linked worktrees share one `refs/stash`.
+  shared checkout; it can mutate `core.bare` in the common Git directory.
+- Never use `git stash`; linked worktrees share one `refs/stash`.
 - Never stage with `git add .` or `git add -A`.
-- Inspect `git status --short` and the complete diff, then stage an explicit
-  allowlist of reviewed paths.
-- Re-read `git diff --cached --name-status` and `git diff --cached` before every
-  commit.
-- Do not commit logs, caches, reports, generated site output, scratch files,
-  local configuration, or handoff notes.
-- Preserve unrelated changes. Do not reset, revert, delete, merge, push, tag,
-  or publish another lane's work without explicit ownership.
-
-## Delivery checklist
-
-1. Confirm the change belongs to GraphOS and identify its public entrypoint.
-2. Update the single owning implementation; do not add a parallel fallback.
-3. Prove live wiring and MCP/REST parity where applicable.
-4. Update the status and public documentation without overstating availability.
-5. Run focused tests, then the applicable full gates.
-6. Inspect and stage only the reviewed path allowlist.
-7. Commit with a descriptive message and report the commit and verification
-   evidence. Push, tag, release, and deploy only when explicitly requested.
+- Inspect `git status --short`, stage explicit paths, then re-read
+  `git diff --cached --name-status` and `git diff --cached`.
+- Do not commit logs, caches, reports, generated sites, scratch files, local
+  configuration, or handoff notes.
+- Preserve unrelated work. Do not reset, revert, delete, merge, push, tag, or
+  publish another lane's changes without explicit ownership.

@@ -8,18 +8,20 @@
 [![GitHub contributors](https://img.shields.io/github/contributors/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os/graphs/contributors)
 [![PyPI - License](https://img.shields.io/pypi/l/graph-os)](https://pypi.org/project/graph-os/)
 [![GitHub license](https://img.shields.io/github/license/Knuckles-Team/graph-os)](LICENSE)
-[![GitHub last commit](https://img.shields.io/github/last-commit/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os/commits/main)
+[![GitHub last commit (by committer)](https://img.shields.io/github/last-commit/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os/commits/main)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os/pulls)
 [![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os/pulls?q=is%3Apr+is%3Aclosed)
 [![GitHub issues](https://img.shields.io/github/issues/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os/issues)
 [![GitHub top language](https://img.shields.io/github/languages/top/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os)
 [![GitHub language count](https://img.shields.io/github/languages/count/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os)
 [![GitHub repo size](https://img.shields.io/github/repo-size/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os)
-[![GitHub repo file count](https://img.shields.io/github/directory-file-count/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os)
+[![GitHub repo file count (file type)](https://img.shields.io/github/directory-file-count/Knuckles-Team/graph-os)](https://github.com/Knuckles-Team/graph-os)
 [![PyPI - Wheel](https://img.shields.io/pypi/wheel/graph-os)](https://pypi.org/project/graph-os/)
 [![PyPI - Implementation](https://img.shields.io/pypi/implementation/graph-os)](https://pypi.org/project/graph-os/)
 [![Build](https://github.com/Knuckles-Team/graph-os/actions/workflows/release.yml/badge.svg)](https://github.com/Knuckles-Team/graph-os/actions/workflows/release.yml)
 [![Documentation](https://github.com/Knuckles-Team/graph-os/actions/workflows/pages.yml/badge.svg)](https://knuckles-team.github.io/graph-os/)
+
+## Overview
 
 GraphOS is the deployable composition layer for the Knuckles agent platform. It
 hosts the MCP and REST boundaries, supervises the dynamic MCP fleet, applies
@@ -29,7 +31,7 @@ tooling around the agent and graph services.
 It is intentionally a composition layer—not a second knowledge engine, agent
 harness, or connector implementation.
 
-## What GraphOS owns
+## Key capabilities
 
 - A native MCP server with `stdio` and authenticated `streamable-http`
   transports.
@@ -63,7 +65,7 @@ reconciliation, and A2A budget-selected tool subset are not yet generally
 available. See the [capability status](https://knuckles-team.github.io/graph-os/status/)
 for the exact boundaries.
 
-## Install
+## Quick start
 
 GraphOS requires Python 3.12 through 3.14.
 

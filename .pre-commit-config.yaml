@@ -87,7 +87,7 @@ repos:
 
 # ── Shared gates (Knuckles-Team/pipelines, pinned) ─────────────────────────────
 - repo: https://github.com/Knuckles-Team/pipelines
-  rev: 8f9a755d97a4a03e069799fa853ba64c6bfecbf7 # reviewed shared-hooks revision
+  rev: 35209bf6d85569a3c1fe3d5cd31771cacfdc3731 # public-surface gate
   hooks:
   # scanners (pinned versions; never installed by a hook)
   - id: complexity-staged
@@ -123,6 +123,9 @@ repos:
   - id: event-loop-blocking
     stages: [pre-commit, manual]
   - id: import-cycles
+    stages: [pre-commit, manual]
+  # public documentation
+  - id: public-surface
     stages: [pre-commit, manual]
   # secrets, privacy, dependencies, hygiene
   - id: dependency-audit

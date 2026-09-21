@@ -113,6 +113,12 @@ asyncio_mode = "auto"
 [tool.pipelines_hooks]
 packages = ["graph_os"]
 
+[tool.pipelines_hooks.public_surface]
+repository = "Knuckles-Team/graph-os"
+distribution = "graph-os"
+pages_url = "https://knuckles-team.github.io/graph-os/"
+mcp_server = true
+
 # The MCP server and gateway serve stdio/HTTP; stdout there is protocol output.
 [tool.pipelines_hooks.stdout_writes]
 served_paths = ["graph_os/mcp_server", "graph_os/gateway"]
