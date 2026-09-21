@@ -158,63 +158,11 @@ class RunResolution(_FrozenModel):
 
     @model_validator(mode="after")
     def _validate_resolution(self) -> RunResolution:
-        if self.authorization.request_digest != self.request_digest:
-            raise ValueError("authorization_request_digest_mismatch")
-        if len(self.tasks) > self.authorization.budget.max_tasks:
-            raise ValueError("run_task_budget_exceeded")
-
-        task_ids = [task.task_id for task in self.tasks]
-        if len(task_ids) != len(set(task_ids)):
-            raise ValueError("run_task_duplicate")
-        task_map = {task.task_id: task for task in self.tasks}
-        for task in self.tasks:
-            if task.job_id != self.job.job_id:
-                raise ValueError("task_job_reference_mismatch")
-            if set(task.depends_on) - set(task_ids):
-                raise ValueError("task_dependency_missing")
-        depth, fanout = _graph_shape(self.tasks)
-        if depth > self.authorization.budget.max_depth:
-            raise ValueError("run_depth_budget_exceeded")
-        if fanout > self.authorization.budget.max_fanout:
-            raise ValueError("run_fanout_budget_exceeded")
-
-        binding_map = {binding.binding_id: binding for binding in self.tool_bindings}
-        if len(binding_map) != len(self.tool_bindings):
-            raise ValueError("tool_binding_duplicate")
-        allowed = {
-            (
-                binding.kind,
-                binding.binding_id,
-                binding.version,
-                binding.digest,
-                binding.privilege,
-            )
-            for binding in self.authorization.bindings
-        }
-        for tool in self.tool_bindings:
-            exact = tool.binding
-            if (
-                exact.kind,
-                exact.binding_id,
-                exact.version,
-                exact.digest,
-                exact.privilege,
-            ) not in allowed:
-                raise ValueError("tool_binding_not_in_authorization")
-
-        if len(self.invocations) > self.authorization.budget.max_tool_calls:
-            raise ValueError("run_tool_budget_exceeded")
-        for invocation in self.invocations:
-            if invocation.task_id not in task_map:
-                raise ValueError("invocation_task_reference_missing")
-            binding = binding_map.get(invocation.tool_binding_id)
-            if binding is None or binding.digest != invocation.tool_binding_digest:
-                raise ValueError("invocation_tool_binding_drift")
-        artifact_ids = [
-            (artifact.artifact_id, artifact.digest) for artifact in self.artifact_refs
-        ]
-        if len(artifact_ids) != len(set(artifact_ids)):
-            raise ValueError("run_artifact_duplicate")
+        _validate_resolution_request(self)
+        task_map = _validate_resolution_tasks(self)
+        binding_map = _validate_resolution_bindings(self)
+        _validate_resolution_invocations(self, task_map, binding_map)
+        _validate_resolution_artifacts(self)
         return self
 
     @property
@@ -228,6 +176,83 @@ class RunResolution(_FrozenModel):
     @property
     def ref(self) -> RunRef:
         return RunRef(run_id=self.run_id, resolution_digest=self.resolution_digest)
+
+
+def _validate_resolution_request(resolution: RunResolution) -> None:
+    if resolution.authorization.request_digest != resolution.request_digest:
+        raise ValueError("authorization_request_digest_mismatch")
+    if len(resolution.tasks) > resolution.authorization.budget.max_tasks:
+        raise ValueError("run_task_budget_exceeded")
+
+
+def _validate_resolution_tasks(resolution: RunResolution) -> dict[str, TaskRef]:
+    task_ids = [task.task_id for task in resolution.tasks]
+    if len(task_ids) != len(set(task_ids)):
+        raise ValueError("run_task_duplicate")
+    task_map = {task.task_id: task for task in resolution.tasks}
+    for task in resolution.tasks:
+        if task.job_id != resolution.job.job_id:
+            raise ValueError("task_job_reference_mismatch")
+        if set(task.depends_on) - set(task_ids):
+            raise ValueError("task_dependency_missing")
+    depth, fanout = _graph_shape(resolution.tasks)
+    if depth > resolution.authorization.budget.max_depth:
+        raise ValueError("run_depth_budget_exceeded")
+    if fanout > resolution.authorization.budget.max_fanout:
+        raise ValueError("run_fanout_budget_exceeded")
+    return task_map
+
+
+def _validate_resolution_bindings(
+    resolution: RunResolution,
+) -> dict[str, ToolBindingRef]:
+    binding_map = {binding.binding_id: binding for binding in resolution.tool_bindings}
+    if len(binding_map) != len(resolution.tool_bindings):
+        raise ValueError("tool_binding_duplicate")
+    allowed = {
+        (
+            binding.kind,
+            binding.binding_id,
+            binding.version,
+            binding.digest,
+            binding.privilege,
+        )
+        for binding in resolution.authorization.bindings
+    }
+    for tool in resolution.tool_bindings:
+        exact = tool.binding
+        if (
+            exact.kind,
+            exact.binding_id,
+            exact.version,
+            exact.digest,
+            exact.privilege,
+        ) not in allowed:
+            raise ValueError("tool_binding_not_in_authorization")
+    return binding_map
+
+
+def _validate_resolution_invocations(
+    resolution: RunResolution,
+    task_map: dict[str, TaskRef],
+    binding_map: dict[str, ToolBindingRef],
+) -> None:
+    if len(resolution.invocations) > resolution.authorization.budget.max_tool_calls:
+        raise ValueError("run_tool_budget_exceeded")
+    for invocation in resolution.invocations:
+        if invocation.task_id not in task_map:
+            raise ValueError("invocation_task_reference_missing")
+        binding = binding_map.get(invocation.tool_binding_id)
+        if binding is None or binding.digest != invocation.tool_binding_digest:
+            raise ValueError("invocation_tool_binding_drift")
+
+
+def _validate_resolution_artifacts(resolution: RunResolution) -> None:
+    artifact_ids = [
+        (artifact.artifact_id, artifact.digest) for artifact in resolution.artifact_refs
+    ]
+    if len(artifact_ids) != len(set(artifact_ids)):
+        raise ValueError("run_artifact_duplicate")
 
 
 class NativeWorkItemAdmission(_FrozenModel):

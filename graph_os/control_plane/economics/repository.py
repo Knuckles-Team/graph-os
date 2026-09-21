@@ -258,15 +258,10 @@ class InMemoryEconomicsRepository:
         rows = [
             rollup
             for _, rollup in self._rollups.values()
-            if rollup.tenant_id == request.scope.tenant_id
-            and (
-                request.objective_id is None
-                or rollup.objective_id == request.objective_id
-            )
+            if _matches_slo_rollup(rollup, request)
         ]
         rows.sort(key=lambda row: (row.window.window_start, row.rollup_id))
-        if request.after is not None:
-            rows = [row for row in rows if _rollup_key(row) > request.after.last_key]
+        rows = _slo_rows_after_cursor(rows, request.after)
         page_rows = tuple(rows[: request.limit])
         exhausted = len(rows) <= request.limit
         next_cursor = None
@@ -303,6 +298,20 @@ def _aggregate_key(aggregate: WindowAggregate) -> str:
 
 def _rollup_key(rollup: SloWindowRollup) -> str:
     return f"{rollup.window.window_start.isoformat()}/{rollup.rollup_id}"
+
+
+def _matches_slo_rollup(rollup: SloWindowRollup, request: SloReadRequest) -> bool:
+    return rollup.tenant_id == request.scope.tenant_id and (
+        request.objective_id is None or rollup.objective_id == request.objective_id
+    )
+
+
+def _slo_rows_after_cursor(
+    rows: list[SloWindowRollup], cursor: KeysetCursor | None
+) -> list[SloWindowRollup]:
+    if cursor is None:
+        return rows
+    return [row for row in rows if _rollup_key(row) > cursor.last_key]
 
 
 def _intervals_overlap(first: PriceCard, second: PriceCard) -> bool:

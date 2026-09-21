@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable
 
 from .codex_registration import CodexRegistrationError, register_codex_graphos
 from .config_generator import (
@@ -26,6 +27,89 @@ from .genesis_environments import (
     load_environment_profile,
     profile_summary,
 )
+
+
+def _run_generate(args: argparse.Namespace) -> int:
+    res = write_config(args.profile, args.out)
+    print(json.dumps(res, indent=2))
+    return 0
+
+
+def _run_doctor(args: argparse.Namespace) -> int:
+    res = config_doctor(args.profile, args.config)
+    print(json.dumps(res, indent=2, default=str))
+    return 0 if res.get("healthy") else 1
+
+
+def _run_reference(_: argparse.Namespace) -> int:
+    print(json.dumps(config_reference(), indent=2, default=str))
+    return 0
+
+
+def _run_codex(_: argparse.Namespace) -> int:
+    try:
+        result = register_codex_graphos()
+    except CodexRegistrationError as exc:
+        print(json.dumps({"status": "error", "message": str(exc)}))
+        return 1
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def _run_harness_fence(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from agent_utilities.claude_harness.claude_fence import write_fence
+    from agent_utilities.orchestration.action_policy import ActionPolicy
+
+    target = args.target or str(Path.home() / ".claude")
+    policy = ActionPolicy(policy_path=args.policy) if args.policy else ActionPolicy()
+    res = write_fence(target, policy, dry_run=args.dry_run)
+    print(json.dumps(res, indent=2, default=str))
+    return 0
+
+
+def _run_environments(args: argparse.Namespace) -> int:
+    if args.environments_command == "list":
+        catalog = list_environment_profiles()
+        print(
+            json.dumps(
+                {name: str(path) for name, path in sorted(catalog.items())},
+                indent=2,
+            )
+        )
+        return 0
+    try:
+        profile = load_environment_profile(args.name)
+    except EnvironmentProfileError as exc:
+        print(json.dumps({"status": "error", "message": str(exc)}))
+        return 1
+    if args.environments_command == "show":
+        print(json.dumps(profile_summary(profile), indent=2))
+        return 0
+    if args.environments_command == "validate":
+        print(
+            json.dumps(
+                {
+                    "status": "ok",
+                    "profile": args.name,
+                    "source": str(profile.source),
+                },
+                indent=2,
+            )
+        )
+        return 0
+    return 2
+
+
+_COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace], int]] = {
+    "generate": _run_generate,
+    "doctor": _run_doctor,
+    "reference": _run_reference,
+    "codex": _run_codex,
+    "harness-fence": _run_harness_fence,
+    "environments": _run_environments,
+}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -94,70 +178,8 @@ def main(argv: list[str] | None = None) -> int:
     env_validate.add_argument("name", help="Profile name to validate.")
 
     args = parser.parse_args(argv)
-
-    if args.command == "generate":
-        res = write_config(args.profile, args.out)
-        print(json.dumps(res, indent=2))
-        return 0
-    if args.command == "doctor":
-        res = config_doctor(args.profile, args.config)
-        print(json.dumps(res, indent=2, default=str))
-        return 0 if res.get("healthy") else 1
-    if args.command == "reference":
-        print(json.dumps(config_reference(), indent=2, default=str))
-        return 0
-    if args.command == "codex":
-        try:
-            result = register_codex_graphos()
-        except CodexRegistrationError as exc:
-            print(json.dumps({"status": "error", "message": str(exc)}))
-            return 1
-        print(json.dumps(result, indent=2))
-        return 0
-    if args.command == "harness-fence":
-        from pathlib import Path
-
-        from agent_utilities.claude_harness.claude_fence import write_fence
-        from agent_utilities.orchestration.action_policy import ActionPolicy
-
-        target = args.target or str(Path.home() / ".claude")
-        policy = (
-            ActionPolicy(policy_path=args.policy) if args.policy else ActionPolicy()
-        )
-        res = write_fence(target, policy, dry_run=args.dry_run)
-        print(json.dumps(res, indent=2, default=str))
-        return 0
-    if args.command == "environments":
-        if args.environments_command == "list":
-            catalog = list_environment_profiles()
-            print(
-                json.dumps(
-                    {name: str(path) for name, path in sorted(catalog.items())},
-                    indent=2,
-                )
-            )
-            return 0
-        try:
-            profile = load_environment_profile(args.name)
-        except EnvironmentProfileError as exc:
-            print(json.dumps({"status": "error", "message": str(exc)}))
-            return 1
-        if args.environments_command == "show":
-            print(json.dumps(profile_summary(profile), indent=2))
-            return 0
-        if args.environments_command == "validate":
-            print(
-                json.dumps(
-                    {
-                        "status": "ok",
-                        "profile": args.name,
-                        "source": str(profile.source),
-                    },
-                    indent=2,
-                )
-            )
-            return 0
-    return 2
+    handler = _COMMAND_HANDLERS.get(args.command)
+    return handler(args) if handler is not None else 2
 
 
 if __name__ == "__main__":  # pragma: no cover

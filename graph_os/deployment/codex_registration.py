@@ -43,20 +43,22 @@ def _is_canonical_registration(payload: Any) -> bool:
     if not isinstance(transport, dict):
         return False
 
-    return (
-        payload.get("name") == CODEX_GRAPHOS_SERVER
-        and payload.get("enabled", True) is True
-        and not payload.get("disabled_reason")
-        and not payload.get("startup_timeout_sec")
-        and not payload.get("tool_timeout_sec")
-        and not payload.get("enabled_tools")
-        and not payload.get("disabled_tools")
-        and transport.get("type") == "stdio"
-        and transport.get("command") == CODEX_GRAPHOS_COMMAND[0]
-        and transport.get("args") == list(CODEX_GRAPHOS_COMMAND[1:])
-        and transport.get("cwd") is None
-        and not transport.get("env")
-        and not transport.get("env_vars")
+    return all(
+        (
+            payload.get("name") == CODEX_GRAPHOS_SERVER,
+            payload.get("enabled", True) is True,
+            not payload.get("disabled_reason"),
+            not payload.get("startup_timeout_sec"),
+            not payload.get("tool_timeout_sec"),
+            not payload.get("enabled_tools"),
+            not payload.get("disabled_tools"),
+            transport.get("type") == "stdio",
+            transport.get("command") == CODEX_GRAPHOS_COMMAND[0],
+            transport.get("args") == list(CODEX_GRAPHOS_COMMAND[1:]),
+            transport.get("cwd") is None,
+            not transport.get("env"),
+            not transport.get("env_vars"),
+        )
     )
 
 
