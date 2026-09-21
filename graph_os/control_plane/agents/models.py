@@ -441,10 +441,19 @@ class EvaluationEvidence(ProtocolModel):
 
     @model_validator(mode="after")
     def evidence_is_complete(self) -> EvaluationEvidence:
+        self._validate_reference_uniqueness()
+        self._validate_reference_order()
+        self._validate_dataset_links()
+        self._validate_evidence_digest()
+        return self
+
+    def _validate_reference_uniqueness(self) -> None:
         if len({item.dataset_ref for item in self.datasets}) != len(self.datasets):
             raise ValueError("evaluation dataset references must be unique")
         if len({item.run_ref for item in self.runs}) != len(self.runs):
             raise ValueError("evaluation run references must be unique")
+
+    def _validate_reference_order(self) -> None:
         if (
             tuple(sorted(self.datasets, key=lambda item: item.dataset_ref))
             != self.datasets
@@ -452,13 +461,16 @@ class EvaluationEvidence(ProtocolModel):
             raise ValueError("evaluation dataset references must be sorted")
         if tuple(sorted(self.runs, key=lambda item: item.run_ref)) != self.runs:
             raise ValueError("evaluation run references must be sorted")
+
+    def _validate_dataset_links(self) -> None:
         dataset_digests = {item.dataset_digest for item in self.datasets}
         if any(item.dataset_digest not in dataset_digests for item in self.runs):
             raise ValueError("evaluation run references an unknown dataset artifact")
+
+    def _validate_evidence_digest(self) -> None:
         expected = evaluation_evidence_digest_for(self.datasets, self.runs)
         if self.evidence_digest != expected:
             raise ValueError("evaluation evidence digest does not match its references")
-        return self
 
 
 class AgentVersion(ProtocolModel):

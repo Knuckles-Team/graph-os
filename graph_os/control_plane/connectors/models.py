@@ -385,6 +385,12 @@ class Observation(ProtocolModel):
         normalized = normalize_capabilities(self.capabilities)
         if normalized != self.capabilities:
             raise ValueError("observed capabilities must be normalized")
+        self._validate_empty_snapshot()
+        self._validate_failure_state()
+        self._validate_ready_state()
+        return self
+
+    def _validate_empty_snapshot(self) -> None:
         if self.verified_empty and not (
             self.status == "empty"
             and self.probe_complete
@@ -393,16 +399,20 @@ class Observation(ProtocolModel):
             raise ValueError(
                 "only a complete authoritative empty snapshot may be verified"
             )
-        if self.status in {"unreachable", "failed"} and self.verified_empty:
-            raise ValueError("failed or transient probes cannot be verified empty")
         if (
             self.status == "empty"
             and self.authoritative_snapshot
             and not self.probe_complete
         ):
             raise ValueError("authoritative empty snapshots must be complete")
+
+    def _validate_failure_state(self) -> None:
+        if self.status in {"unreachable", "failed"} and self.verified_empty:
+            raise ValueError("failed or transient probes cannot be verified empty")
         if self.status in {"unreachable", "failed"} and self.failure_code is None:
             raise ValueError("failed observations require a bounded failure code")
+
+    def _validate_ready_state(self) -> None:
         if self.status == "ready" and self.failure_code is not None:
             raise ValueError("ready observations cannot carry a failure code")
         if self.status == "ready" and (
@@ -411,7 +421,6 @@ class Observation(ProtocolModel):
             raise ValueError(
                 "ready observations require manifest and compatibility evidence"
             )
-        return self
 
 
 DriftCode = Literal[

@@ -605,6 +605,22 @@ def _secret_reference_from_mapping(
     raw: Any, *, index: int, source: Path
 ) -> SecretReference:
     section = f"secrets.required[{index}]"
+    mapping = _validated_secret_mapping(raw, section=section, source=source)
+    name = _str(mapping, "name", section=section, source=source)
+    ref = mapping.get("ref")
+    if not isinstance(ref, str) or not ref.strip():
+        raise MissingSecretReferenceError(
+            f"{source}: {section} (name={name!r}) has no ref. We do not infer "
+            "credentials — declare env://VAR, vault://<path>, secret://<path>, or "
+            "k8s-secret://<namespace>/<name>."
+        )
+    keys = _secret_keys_from_mapping(mapping, section=section, source=source)
+    return SecretReference(name=name, ref=ref, keys=keys)
+
+
+def _validated_secret_mapping(
+    raw: Any, *, section: str, source: Path
+) -> Mapping[Any, Any]:
     if not isinstance(raw, Mapping):
         raise EnvironmentProfileError(
             f"{source}: {section} must be a mapping, got {type(raw).__name__}."
@@ -620,20 +636,18 @@ def _secret_reference_from_mapping(
             f"{source}: {section} unrecognized key(s) {extra}. Expected: "
             "['name', 'ref', 'keys']."
         )
-    name = _str(raw, "name", section=section, source=source)
-    ref = raw.get("ref")
-    if not isinstance(ref, str) or not ref.strip():
-        raise MissingSecretReferenceError(
-            f"{source}: {section} (name={name!r}) has no ref. We do not infer "
-            "credentials — declare env://VAR, vault://<path>, secret://<path>, or "
-            "k8s-secret://<namespace>/<name>."
-        )
+    return raw
+
+
+def _secret_keys_from_mapping(
+    raw: Mapping[Any, Any], *, section: str, source: Path
+) -> tuple[str, ...]:
     keys = raw.get("keys", [])
     if not isinstance(keys, list) or not all(isinstance(k, str) for k in keys):
         raise EnvironmentProfileError(
             f"{source}: {section}.keys must be a list of strings, got {keys!r}."
         )
-    return SecretReference(name=name, ref=ref, keys=tuple(keys))
+    return tuple(keys)
 
 
 def _secrets_from_mapping(raw: Any, source: Path) -> SecretsInputs:

@@ -114,7 +114,16 @@ def _retention_count() -> int:
 
 def _prune_bundles(archive_root: Path, *, keep: int) -> int:
     """Bound mounted full bundles; object-store versioning owns long retention."""
-    candidates = sorted(
+    candidates = _complete_bundle_candidates(archive_root)
+    removed = _remove_bundles(candidates[keep:], archive_root)
+    cutoff = time.time() - 86400
+    return removed + _remove_bundles(
+        _incomplete_bundle_candidates(archive_root, cutoff=cutoff), archive_root
+    )
+
+
+def _complete_bundle_candidates(archive_root: Path) -> list[Path]:
+    return sorted(
         (
             path
             for path in archive_root.iterdir()
@@ -126,22 +135,26 @@ def _prune_bundles(archive_root: Path, *, keep: int) -> int:
         key=lambda path: path.stat().st_mtime_ns,
         reverse=True,
     )
-    removed = 0
-    for candidate in candidates[keep:]:
-        shutil.rmtree(_inside(archive_root, candidate))
-        removed += 1
-    cutoff = time.time() - 86400
-    for candidate in archive_root.iterdir():
+
+
+def _incomplete_bundle_candidates(archive_root: Path, *, cutoff: float) -> list[Path]:
+    return [
+        candidate
+        for candidate in archive_root.iterdir()
         if (
             candidate.is_dir()
             and not candidate.is_symlink()
             and candidate.name.startswith("bundle-")
             and not (candidate / "MANIFEST.json").exists()
             and candidate.stat().st_mtime < cutoff
-        ):
-            shutil.rmtree(_inside(archive_root, candidate))
-            removed += 1
-    return removed
+        )
+    ]
+
+
+def _remove_bundles(candidates: list[Path], archive_root: Path) -> int:
+    for candidate in candidates:
+        shutil.rmtree(_inside(archive_root, candidate))
+    return len(candidates)
 
 
 def _recovery_manifest(bundle: Path) -> dict[str, int]:
