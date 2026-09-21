@@ -1020,9 +1020,12 @@ name = "graph-os"
 source = { editable = "." }
 dependencies = [
     { name = "agent-utilities", extra = ["mcp"] },
+    { name = "anyio" },
     { name = "epistemic-graph" },
     { name = "fastapi" },
+    { name = "fastmcp" },
     { name = "filelock" },
+    { name = "mcp" },
     { name = "prometheus-client" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -1047,9 +1050,12 @@ webui = [
 requires-dist = [
     { name = "agent-utilities", extras = ["mcp"], editable = ".uv-workspace-siblings/agent-utilities" },
     { name = "agent-webui", marker = "extra == 'webui'", editable = ".uv-workspace-siblings/agent-webui" },
+    { name = "anyio", specifier = ">=4.13.0" },
     { name = "epistemic-graph", specifier = ">=2.27.0,<3.0.0" },
     { name = "fastapi", specifier = ">=0.139.2" },
+    { name = "fastmcp", specifier = ">=4.0.0b1" },
     { name = "filelock", specifier = ">=3.32.0" },
+    { name = "mcp", specifier = ">=2.0.0" },
     { name = "mypy", marker = "extra == 'test'", specifier = ">=2.3.0" },
     { name = "prometheus-client", specifier = ">=0.25.0" },
     { name = "pydantic", specifier = ">=2.13.4,<3.0.0" },

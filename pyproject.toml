@@ -22,6 +22,10 @@ dependencies = [
     # Portable development binding below resolves the not-yet-published AU 2.5
     # workspace release; released wheels retain this real PEP 508 floor.
     "agent-utilities[mcp]>=2.5.0,<3.0.0",
+    # The fleet gateway imports the MCP protocol/client and FastMCP middleware
+    # directly; keep these first-party runtime requirements explicit rather
+    # than relying on AU's optional extra to expose them transitively.
+    "anyio>=4.13.0",
     # Production operations and the canary call the public client/numeric
     # surface directly; AU's transitive requirement is not enough for this
     # package's own imports.  The local AU binding supplies the workspace EG
@@ -33,6 +37,8 @@ dependencies = [
     "pydantic>=2.13.4,<3.0.0",
     "PyYAML>=6.0.3",
     "starlette>=1.3.1",
+    "fastmcp>=4.0.0b1",
+    "mcp>=2.0.0",
 ]
 
 [[project.authors]]
@@ -100,6 +106,7 @@ warn_unused_ignores = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+asyncio_mode = "auto"
 
 # Inputs of the shared hooks (Knuckles-Team/pipelines .pre-commit-hooks.yaml).
 [tool.pipelines_hooks]
