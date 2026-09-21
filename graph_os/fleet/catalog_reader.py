@@ -320,12 +320,9 @@ class FleetCatalogReader:
                 components[entry.component_id] = entry
         return components
 
-    async def _join(
-        self,
-        context: ReadContext,
-        registrations: dict[str, ServerRegistration],
-        components: dict[str, ComponentRecord],
-    ) -> FleetCatalog:
+    def _partition_components(
+        self, components: dict[str, ComponentRecord]
+    ) -> tuple[dict[str, ComponentRecord], dict[str, list[ComponentRecord]]]:
         server_components: dict[str, ComponentRecord] = {}
         children: dict[str, list[ComponentRecord]] = {}
         for component in components.values():
@@ -351,7 +348,42 @@ class FleetCatalogReader:
                     f"component {component.component_id!r} disagrees on server identity"
                 )
             children.setdefault(parent.component_id, []).append(component)
+        return server_components, children
 
+    async def _join_server(
+        self,
+        context: ReadContext,
+        registration: ServerRegistration,
+        server_component: ComponentRecord,
+        children: dict[str, list[ComponentRecord]],
+    ) -> CatalogServer:
+        server_content = await self._read_content(context, server_component)
+        provided = []
+        ordered_children = sorted(
+            children.get(server_component.component_id, []),
+            key=lambda item: (item.kind, item.upstream_name, item.component_id),
+        )
+        for child in ordered_children:
+            provided.append(
+                CatalogComponent(
+                    entry=child,
+                    content=await self._read_content(context, child),
+                )
+            )
+        return CatalogServer(
+            registration=registration,
+            component=server_component,
+            content=server_content,
+            provides=tuple(provided),
+        )
+
+    async def _join(
+        self,
+        context: ReadContext,
+        registrations: dict[str, ServerRegistration],
+        components: dict[str, ComponentRecord],
+    ) -> FleetCatalog:
+        server_components, children = self._partition_components(components)
         joined: list[CatalogServer] = []
         for name, registration in registrations.items():
             server_component = server_components.get(name)
@@ -359,25 +391,9 @@ class FleetCatalogReader:
                 raise FleetCatalogIntegrityError(
                     f"live server {name!r} has no current mcp_server component"
                 )
-            server_content = await self._read_content(context, server_component)
-            provided = []
-            ordered_children = sorted(
-                children.get(server_component.component_id, []),
-                key=lambda item: (item.kind, item.upstream_name, item.component_id),
-            )
-            for child in ordered_children:
-                provided.append(
-                    CatalogComponent(
-                        entry=child,
-                        content=await self._read_content(context, child),
-                    )
-                )
             joined.append(
-                CatalogServer(
-                    registration=registration,
-                    component=server_component,
-                    content=server_content,
-                    provides=tuple(provided),
+                await self._join_server(
+                    context, registration, server_component, children
                 )
             )
         joined.sort(key=lambda item: item.registration.name)

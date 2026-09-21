@@ -339,7 +339,9 @@ def native_work_item_id(run_id: str) -> str:
     return f"work_item:{canonical_digest(run_id).removeprefix('sha256:')}"
 
 
-def _graph_shape(tasks: tuple[TaskRef, ...]) -> tuple[int, int]:
+def _graph_edges(
+    tasks: tuple[TaskRef, ...],
+) -> tuple[dict[str, list[str]], dict[str, int]]:
     children: dict[str, list[str]] = {task.task_id: [] for task in tasks}
     indegree = {task.task_id: len(task.depends_on) for task in tasks}
     for task in tasks:
@@ -347,6 +349,12 @@ def _graph_shape(tasks: tuple[TaskRef, ...]) -> tuple[int, int]:
             if dependency not in children:
                 raise ValueError("task_dependency_missing")
             children[dependency].append(task.task_id)
+    return children, indegree
+
+
+def _graph_depth(
+    children: dict[str, list[str]], indegree: dict[str, int], task_count: int
+) -> dict[str, int]:
     ready = sorted(task_id for task_id, degree in indegree.items() if degree == 0)
     depth = {task_id: 1 for task_id in indegree}
     visited: list[str] = []
@@ -359,8 +367,15 @@ def _graph_shape(tasks: tuple[TaskRef, ...]) -> tuple[int, int]:
             if indegree[child] == 0:
                 ready.append(child)
                 ready.sort()
-    if len(visited) != len(tasks):
+    if len(visited) != task_count:
         raise ValueError("task_cycle")
+
+    return depth
+
+
+def _graph_shape(tasks: tuple[TaskRef, ...]) -> tuple[int, int]:
+    children, indegree = _graph_edges(tasks)
+    depth = _graph_depth(children, indegree, len(tasks))
     return max(depth.values(), default=0), max(
         (len(children[task_id]) for task_id in children), default=0
     )

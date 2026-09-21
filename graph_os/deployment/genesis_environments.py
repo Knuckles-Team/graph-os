@@ -857,16 +857,8 @@ def _genesis_run_plan(key: str) -> list[str]:
     return value
 
 
-def validate_environment_profile(profile: EnvironmentProfile) -> None:
-    """Fail loudly on anything this schema promises never to allow through silently.
-
-    Raises :class:`EnvironmentProfileError` (or :class:`MissingSecretReferenceError`
-    for the credential-specific case) naming the exact problem. Returns ``None`` on
-    success — never a partial-success value; see AGENTS.md "Fail closed".
-    """
-    source = profile.source
-
-    # -- secrets: every ref must use a recognized reference scheme, never a value.
+def _validate_secret_references(profile: EnvironmentProfile, source: Path) -> set[str]:
+    """Validate secret references and return their declared names."""
     secret_names = {s.name for s in profile.secrets.required}
     for secret in profile.secrets.required:
         if not _SECRET_REF_RE.match(secret.ref):
@@ -881,8 +873,13 @@ def validate_environment_profile(profile: EnvironmentProfile) -> None:
         raise EnvironmentProfileError(
             f"{source}: secrets.required has duplicate secret name(s)."
         )
+    return secret_names
 
-    # -- identity: a declared client_secret_ref must name a real secrets.required entry.
+
+def _validate_identity_secret_reference(
+    profile: EnvironmentProfile, source: Path, secret_names: set[str]
+) -> None:
+    """Ensure identity credentials point to a declared secret."""
     if (
         profile.identity.client_secret_ref is not None
         and profile.identity.client_secret_ref not in secret_names
@@ -894,7 +891,9 @@ def validate_environment_profile(profile: EnvironmentProfile) -> None:
             "reference there first — identity never carries its own credential ref."
         )
 
-    # -- configuration: non-secret section must not carry secret-shaped keys.
+
+def _validate_configuration(profile: EnvironmentProfile, source: Path) -> None:
+    """Keep secret-shaped values out of the non-secret configuration section."""
     for key in profile.configuration.env:
         if _is_secret(key):
             raise EnvironmentProfileError(
@@ -903,7 +902,9 @@ def validate_environment_profile(profile: EnvironmentProfile) -> None:
                 "secrets.required as a reference instead."
             )
 
-    # -- filesystem: every writable-path exception must be justified and typed.
+
+def _validate_writable_paths(profile: EnvironmentProfile, source: Path) -> None:
+    """Require every writable filesystem exception to be typed and justified."""
     for wp in profile.filesystem.writable_paths:
         if wp.medium not in _WRITABLE_MEDIA:
             raise EnvironmentProfileError(
@@ -918,12 +919,9 @@ def validate_environment_profile(profile: EnvironmentProfile) -> None:
                 "justified in the file so a reviewer can see why it exists."
             )
 
-    # -- filesystem: every runtime-path binding must be a known env var, unique,
-    #    an absolute path, and anchored under an already-declared writable path —
-    #    never an unreviewed location dreamed up only in this sub-section. Every
-    #    var in RUNTIME_PATH_ENV_VARS must be bound exactly once (BUG-ROFS-1's
-    #    whole point: nothing here is left to be rediscovered from a live
-    #    container's /etc/passwd).
+
+def _validate_runtime_path_index(profile: EnvironmentProfile, source: Path) -> set[str]:
+    """Validate the closed runtime-path environment-variable binding set."""
     writable_mount_paths = {wp.mount_path for wp in profile.filesystem.writable_paths}
     bound_env_vars = [rp.env_var for rp in profile.filesystem.runtime_paths]
     unknown_env_vars = sorted(set(bound_env_vars) - RUNTIME_PATH_ENV_VARS)
@@ -945,6 +943,13 @@ def validate_environment_profile(profile: EnvironmentProfile) -> None:
         raise EnvironmentProfileError(
             f"{source}: filesystem.runtime_paths has duplicate env_var binding(s)."
         )
+    return writable_mount_paths
+
+
+def _validate_runtime_path_entries(
+    profile: EnvironmentProfile, source: Path, writable_mount_paths: set[str]
+) -> None:
+    """Validate each runtime path's absolute location and mount anchoring."""
     for rp in profile.filesystem.runtime_paths:
         if not rp.path.startswith("/"):
             raise EnvironmentProfileError(
@@ -969,7 +974,15 @@ def validate_environment_profile(profile: EnvironmentProfile) -> None:
                 "below the writable mount it claims to be anchored under."
             )
 
-    # -- target/identity: cross-check against genesis.yaml's own run_plan enums.
+
+def _validate_runtime_paths(profile: EnvironmentProfile, source: Path) -> None:
+    """Validate explicit runtime-path bindings against writable mounts."""
+    writable_mount_paths = _validate_runtime_path_index(profile, source)
+    _validate_runtime_path_entries(profile, source, writable_mount_paths)
+
+
+def _validate_genesis_bindings(profile: EnvironmentProfile, source: Path) -> None:
+    """Cross-check target and identity values against genesis.yaml enums."""
     orchestrators = _genesis_run_plan("orchestrators")
     if profile.target.orchestrator not in orchestrators:
         raise EnvironmentProfileError(
@@ -989,7 +1002,9 @@ def validate_environment_profile(profile: EnvironmentProfile) -> None:
             f"genesis.yaml's run_plan.idp {idps}."
         )
 
-    # -- release: prod tier must pin by digest, never a floating tag.
+
+def _validate_release(profile: EnvironmentProfile, source: Path) -> None:
+    """Require production releases to identify an immutable image."""
     if profile.environment.tier == "prod":
         if profile.release.tag_policy != "digest-pinned":
             raise EnvironmentProfileError(
@@ -1004,8 +1019,9 @@ def validate_environment_profile(profile: EnvironmentProfile) -> None:
                 "release must name the digest."
             )
 
-    # -- validation: every profile must prove more than liveness — a real MCP
-    #    tools/list, not merely /health (standing rule, not prod-only).
+
+def _validate_functional_checks(profile: EnvironmentProfile, source: Path) -> None:
+    """Require a post-deploy MCP tools/list proof in every environment."""
     if not any(
         fc.kind == "mcp-tools-list" for fc in profile.validation.functional_checks
     ):
@@ -1014,6 +1030,24 @@ def validate_environment_profile(profile: EnvironmentProfile) -> None:
             "entry. A real MCP tools/list call must be proven post-deploy — "
             "checking only readiness/liveness (/health) is not sufficient."
         )
+
+
+def validate_environment_profile(profile: EnvironmentProfile) -> None:
+    """Fail loudly on anything this schema promises never to allow through silently.
+
+    Raises :class:`EnvironmentProfileError` (or :class:`MissingSecretReferenceError`
+    for the credential-specific case) naming the exact problem. Returns ``None`` on
+    success — never a partial-success value; see AGENTS.md "Fail closed".
+    """
+    source = profile.source
+    secret_names = _validate_secret_references(profile, source)
+    _validate_identity_secret_reference(profile, source, secret_names)
+    _validate_configuration(profile, source)
+    _validate_writable_paths(profile, source)
+    _validate_runtime_paths(profile, source)
+    _validate_genesis_bindings(profile, source)
+    _validate_release(profile, source)
+    _validate_functional_checks(profile, source)
 
 
 def profile_summary(profile: EnvironmentProfile) -> dict[str, Any]:
