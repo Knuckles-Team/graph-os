@@ -2404,7 +2404,7 @@ def _patch_langfuse_mcp_probe(monkeypatch, responses):
             return None
 
     monkeypatch.setattr(
-        "agent_utilities.mcp.multiplexer.MCPMultiplexer",
+        "graph_os.fleet.multiplexer.MCPMultiplexer",
         Multiplexer,
     )
     monkeypatch.setattr(
@@ -2445,7 +2445,7 @@ def test_langfuse_mcp_live_probe_invokes_posture_and_bounded_trace_list(monkeypa
 
 
 def test_langfuse_mcp_live_probe_attests_runtime_materialized_child(monkeypatch):
-    from agent_utilities.mcp import multiplexer as multiplexer_module
+    from graph_os.fleet import multiplexer as multiplexer_module
 
     observed: dict[str, bool] = {}
 

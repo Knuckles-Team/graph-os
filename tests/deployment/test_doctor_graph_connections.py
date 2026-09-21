@@ -56,7 +56,7 @@ def test_doctor_probes_kg_connections_only_and_returns_aggregate_metadata(
     registry = _Registry()
     monkeypatch.setattr("agent_utilities.core.config.AgentConfig", _config)
     monkeypatch.setattr(
-        "agent_utilities.mcp.kg_server.get_connection_registry", lambda: registry
+        "graph_os.mcp_server.bootstrap.get_connection_registry", lambda: registry
     )
 
     result = doctor_module._check_graph_connections(live=True)
@@ -88,7 +88,7 @@ def test_doctor_fails_closed_without_leaking_connection_probe_errors(
     registry = _Registry(probe_error=True)
     monkeypatch.setattr("agent_utilities.core.config.AgentConfig", _config)
     monkeypatch.setattr(
-        "agent_utilities.mcp.kg_server.get_connection_registry", lambda: registry
+        "graph_os.mcp_server.bootstrap.get_connection_registry", lambda: registry
     )
 
     result = doctor_module._check_graph_connections(live=True)
@@ -106,7 +106,7 @@ def test_doctor_static_check_never_opens_connection_transport(monkeypatch) -> No
     registry = _Registry(probe_error=True)
     monkeypatch.setattr("agent_utilities.core.config.AgentConfig", _config)
     monkeypatch.setattr(
-        "agent_utilities.mcp.kg_server.get_connection_registry", lambda: registry
+        "graph_os.mcp_server.bootstrap.get_connection_registry", lambda: registry
     )
 
     result = doctor_module._check_graph_connections(live=False)

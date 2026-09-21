@@ -3505,7 +3505,7 @@ def _langfuse_child_runtime(mux: Any) -> Any:
 
 async def _langfuse_posture_metadata_only(runtime: Any) -> bool:
     """The mounted child must report the metadata-only, no-content posture."""
-    from agent_utilities.mcp.multiplexer import _child_result_payload
+    from graph_os.fleet.multiplexer import _child_result_payload
 
     posture_result = await runtime.call_tool(
         "langfuse_observability",
@@ -3526,7 +3526,7 @@ async def _langfuse_trace_read_bounded(runtime: Any) -> bool:
     credential, and TLS contract. The response stays bounded and transient; no
     returned row enters doctor output.
     """
-    from agent_utilities.mcp.multiplexer import _child_result_payload
+    from graph_os.fleet.multiplexer import _child_result_payload
 
     trace_result = await runtime.call_tool(
         "langfuse_observability",
@@ -3548,12 +3548,13 @@ def _probe_langfuse_mcp_visibility(cfg: Any) -> bool:
     """Prove the mounted child can execute the current privacy-safe contract."""
     from pathlib import Path
 
-    from agent_utilities.mcp.multiplexer import (
-        MCPMultiplexer,
-        attest_runtime_child_config,
-    )
     from agent_utilities.observability.langfuse_trust import (
         native_langfuse_mcp_config,
+    )
+
+    from graph_os.fleet.multiplexer import (
+        MCPMultiplexer,
+        attest_runtime_child_config,
     )
 
     child = native_langfuse_mcp_config(agent_config=cfg)
@@ -4149,7 +4150,7 @@ def _graph_connection_inventory(cfg: Any) -> SimpleNamespace:
     declaration with the same alias. Duplicates within either source are invalid
     and cannot be hidden by that precedence rule.
     """
-    from agent_utilities.mcp.kg_server import get_connection_registry
+    from graph_os.mcp_server.bootstrap import get_connection_registry
 
     external_declarations, kg_declarations = _graph_connection_declarations(cfg)
     invalid_declaration_count = _invalid_declaration_count(

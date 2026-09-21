@@ -40,3 +40,12 @@ def test_serving_packages_do_not_import_legacy_au_multiplexer() -> None:
     ]
 
     assert offenders == []
+
+
+def test_deployment_doctor_uses_native_graph_os_hosts() -> None:
+    doctor = (
+        Path(__file__).parents[1] / "graph_os" / "deployment" / "doctor.py"
+    ).read_text(encoding="utf-8")
+
+    assert "agent_utilities.mcp.multiplexer" not in doctor
+    assert "agent_utilities.mcp.kg_server" not in doctor
