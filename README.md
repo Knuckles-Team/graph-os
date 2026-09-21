@@ -6,8 +6,9 @@ tooling. See [`AGENTS.md`](AGENTS.md) for scope, ownership, and status.
 
 Part of the RF-ADR-009 repository split
 (`plans/refactor/RF-ADR-009-connector-sdk-and-graph-os.md`). This repository is a
-Migration Wave 5 extraction. The REST gateway, control plane, WebUI host, and
-host-deployment mechanics now live here. The deployed service continues to use
-the AU MCP/composition entrypoints until the coordinated consumer cutover.
+Migration Wave 5 extraction. The native MCP/REST composition, REST gateway,
+control plane, WebUI host, and host-deployment mechanics now live here. The
+deployed service continues to use the AU entrypoint until coordinated consumer
+cutover.
 
 *Version: 0.1.0*

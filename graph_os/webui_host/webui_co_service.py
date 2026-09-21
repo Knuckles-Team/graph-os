@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from typing import Any, cast
 
 __all__ = ["run_web_ui"]
 
@@ -169,7 +170,7 @@ def run_web_ui(
     )
     # Signal handlers may only be installed from the main thread, and the
     # supervisor owns shutdown through ``stop_event`` regardless.
-    server.install_signal_handlers = lambda: None
+    cast(Any, server).install_signal_handlers = lambda: None
 
     async def _serve() -> None:
         task = asyncio.ensure_future(server.serve())

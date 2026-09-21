@@ -14,6 +14,7 @@ nav:
   - Home: index.md
   - Status: status.md
   - Gateway: gateway.md
+  - MCP server: mcp-server.md
   - Quality gate terms: quality-gate-terms.md
 
 markdown_extensions:

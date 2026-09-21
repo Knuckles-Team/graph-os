@@ -5,19 +5,19 @@
 
 ## Status: Migration Wave 5 extraction in progress
 
-The REST gateway, control plane, WebUI host, fleet catalog adapter, and
-host-facing deployment mechanics are populated here. The live deployment still
-starts the AU MCP/composition entrypoints, and the MCP/fleet application adapter
-remains a G2 cutover obligation. The service is deployed by
+The MCP/REST composition, REST gateway, control plane, WebUI host, fleet catalog
+reader, and host-facing deployment mechanics are populated here. The live
+deployment still starts the AU entrypoint pending coordinated consumer cutover.
+The service is deployed by
 `services/graph-os` — see `services/graph-os/AGENTS.md` and
 `inventory/k8s-migration/GRAPHOS-LOCAL-REDEPLOY.md` in the workspace for the
 current, live topology. Nothing in that deployment changes because this
 repository exists.
 
 Gateway request handlers consume `GatewayApplicationPort`; they do not import
-AU's `kg_server` or multiplexer implementations. G2 must install the adapter
-before calling `register_graph_routes()`.
-The `graph-os` shell remains non-serving until the MCP lane lands. Deployment
+AU's `kg_server` or multiplexer implementations. The native MCP composition
+installs that adapter before serving.
+The `graph-os` shell now serves the native MCP composition. Deployment
 commands under `graph_os.deployment` are directly owned and tested here.
 
 ## Role in Agent OS Architecture (target, RF-ADR-009 §2/§2.4)
@@ -84,7 +84,7 @@ certification entries stay in their owning repositories.
 
 | Script | Target (today) | Destination package |
 |---|---|---|
-| `graph-os` | `graph_os.cli:main` (temporary non-serving shell) | MCP extraction lane |
+| `graph-os` | `graph_os.cli:main` (native MCP serving composition) | **extracted** |
 | `graph-os-daemon` | `agent_utilities.gateway.daemon:main` | `graph_os.gateway` |
 | `graph-os-release-canary` | `graph_os.deployment.release_canary:main` | **extracted** |
 | `graph-os-production-ops` | `graph_os.deployment.production_ops:main` | **extracted** |
