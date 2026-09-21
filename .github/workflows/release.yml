@@ -143,7 +143,9 @@ jobs:
           set -euo pipefail
           scanner_root="$RUNNER_TEMP/graph-os-scanners"
           mkdir -p "$scanner_root"
-          cargo install --locked --version 1.6.0 --root "$scanner_root/cccc" cccc-cli
+          # cccc 1.6.0 is not published to crates.io (cccc-cli stops at 1.0.0);
+          # install the upstream v1.6.0 tag by its immutable commit.
+          cargo install --locked --git https://github.com/moznion/cccc --rev d728759323be5d9977b7390a27133e8eaf481f26 --root "$scanner_root/cccc" cccc-cli
           cargo install --locked --version 0.4.10 --root "$scanner_root/kiss" kiss-ai
           cargo install --locked --version 0.1.2 --root "$scanner_root/dupehound" dupehound
           npm install --prefix "$scanner_root/npm" --no-package-lock --ignore-scripts --no-save --no-audit --no-fund \

@@ -31,7 +31,7 @@ tenant and task owner.
 
 ```mermaid
 flowchart LR
-    Client[A2A, MCP, or REST client] --> Auth[verified bearer GraphSession]
+    Client["A2A, MCP, or REST client"] --> Auth[verified bearer GraphSession]
     Auth --> Service[typed unary A2A service]
     Service --> Router[canonical capability router]
     Router --> WorkItem[canonical WorkItem authority]
