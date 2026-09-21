@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -12,16 +13,15 @@ from graph_os.browser_control.browser_control_api import BrowserLeaseReceipt
 from graph_os.mcp_server import runtime
 
 
-class _Mcp:
-    def __init__(self) -> None:
-        self.tools: dict[str, Any] = {}
-
-    def tool(self, *, name: str, **_kwargs: Any) -> Any:
+def _recording_mcp(tools: dict[str, Any]) -> SimpleNamespace:
+    def tool(*, name: str, **_kwargs: Any) -> Any:
         def decorate(function: Any) -> Any:
-            self.tools[name] = function
+            tools[name] = function
             return function
 
         return decorate
+
+    return SimpleNamespace(tool=tool)
 
 
 @pytest.mark.asyncio
@@ -43,15 +43,14 @@ async def test_browser_control_registers_one_mcp_rest_workflow_dispatch(
         )
 
     monkeypatch.setattr(browser_control_mcp, "dispatch_browser_control", dispatch)
-    mcp = _Mcp()
+    tools: dict[str, Any] = {}
+    mcp = _recording_mcp(tools)
     prior_tool = runtime.REGISTERED_TOOLS.get("browser_control")
     try:
         browser_control_mcp.register_browser_control_tools(mcp)
-        assert (
-            runtime.REGISTERED_TOOLS["browser_control"] is mcp.tools["browser_control"]
-        )
+        assert runtime.REGISTERED_TOOLS["browser_control"] is tools["browser_control"]
         assert runtime.ACTION_TOOL_ROUTES["browser_control"] == "/browser/control"
-        raw = await mcp.tools["browser_control"](
+        raw = await tools["browser_control"](
             action="issue_lease",
             payload={
                 "document_ref": "document_" + "a" * 64,
