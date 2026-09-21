@@ -5,15 +5,17 @@ servers are live. ``AgentComponent.Search`` / ``Current`` / ``Content`` answer
 what those servers provide. This module joins those two authorities without
 an SQL, change-envelope, static-file, or live-probe fallback.
 
-The protocol is the temporary integration boundary while epistemic-graph's
-generated Python request adds kind-only ``AgentComponent.Search``.
+The protocol is GraphOS's narrow application boundary over epistemic-graph's
+generated ``AgentComponent`` and registered-server read contracts.  Concrete
+wire DTOs remain owned by epistemic-graph and are translated only by the
+composition-root adapter.
 """
 
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
-from typing import Final, Literal, Protocol
+from typing import Any, Final, Literal, Protocol
 
 COMMONS_GRAPH: Final = "__commons__"
 SERVER_QUERY_SOURCE: Final = "RegisterServer:ServerQuery"
@@ -73,8 +75,11 @@ class ServerPage:
     """One bounded page from the ``__commons__`` server query."""
 
     entries: tuple[ServerRegistration, ...]
-    next_cursor: str | None
+    next_cursor: Any | None
     observed_at_ms: int
+    total_live: int
+    registry_revision: int
+    registry_digest: str
     receipt: ReadReceipt
 
 
@@ -111,7 +116,7 @@ class ComponentSearchRequest:
     tenant_id: str
     kinds: tuple[ComponentKind, ...]
     limit: int
-    cursor: str | None = None
+    cursor: Any | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,7 +124,7 @@ class ComponentPage:
     """One bounded AgentComponent.Search page."""
 
     entries: tuple[ComponentRecord, ...]
-    next_cursor: str | None
+    next_cursor: Any | None
     receipt: ReadReceipt
 
 
@@ -154,9 +159,9 @@ class CatalogComponent:
 
 @dataclass(frozen=True, slots=True)
 class CatalogServer:
-    """A live registration joined to its current component surface."""
+    """A current server component plus its optional live registration."""
 
-    registration: ServerRegistration
+    registration: ServerRegistration | None
     component: ComponentRecord
     content: ComponentContent
     provides: tuple[CatalogComponent, ...]
@@ -181,7 +186,7 @@ class FleetCatalogReadPort(Protocol):
     async def read_context(self) -> ReadContext: ...
 
     async def query_registered_servers(
-        self, graph: str, _limit: int, cursor: str | None, /
+        self, graph: str, _limit: int, cursor: Any | None, /
     ) -> ServerPage: ...
 
     async def search_components(
@@ -267,6 +272,7 @@ class FleetCatalogReader:
     ) -> dict[str, ServerRegistration]:
         servers: dict[str, ServerRegistration] = {}
         server_ids: set[str] = set()
+        snapshot: tuple[int, int, str] | None = None
         async for page in self._server_pages():
             self._verify_receipt(
                 page.receipt,
@@ -274,6 +280,17 @@ class FleetCatalogReader:
                 source=SERVER_QUERY_SOURCE,
                 graph=COMMONS_GRAPH,
             )
+            identity = (
+                page.total_live,
+                page.registry_revision,
+                page.registry_digest,
+            )
+            if snapshot is None:
+                snapshot = identity
+            elif identity != snapshot:
+                raise FleetCatalogIntegrityError(
+                    "registered-server snapshot changed during catalog read"
+                )
             for server in page.entries:
                 self._validate_server(server, observed_at_ms=page.observed_at_ms)
                 if server.name in servers or server.server_id in server_ids:
@@ -282,6 +299,10 @@ class FleetCatalogReader:
                     )
                 servers[server.name] = server
                 server_ids.add(server.server_id)
+        if snapshot is None or len(servers) != snapshot[0]:
+            raise FleetCatalogIntegrityError(
+                "registered-server pages did not exhaust the live snapshot"
+            )
         return servers
 
     async def _read_components(
@@ -353,7 +374,7 @@ class FleetCatalogReader:
     async def _join_server(
         self,
         context: ReadContext,
-        registration: ServerRegistration,
+        registration: ServerRegistration | None,
         server_component: ComponentRecord,
         children: dict[str, list[ComponentRecord]],
     ) -> CatalogServer:
@@ -384,19 +405,20 @@ class FleetCatalogReader:
         components: dict[str, ComponentRecord],
     ) -> FleetCatalog:
         server_components, children = self._partition_components(components)
+        missing_components = set(registrations).difference(server_components)
+        if missing_components:
+            name = min(missing_components)
+            raise FleetCatalogIntegrityError(
+                f"live server {name!r} has no current mcp_server component"
+            )
         joined: list[CatalogServer] = []
-        for name, registration in registrations.items():
-            server_component = server_components.get(name)
-            if server_component is None:
-                raise FleetCatalogIntegrityError(
-                    f"live server {name!r} has no current mcp_server component"
-                )
+        for name, server_component in server_components.items():
             joined.append(
                 await self._join_server(
-                    context, registration, server_component, children
+                    context, registrations.get(name), server_component, children
                 )
             )
-        joined.sort(key=lambda item: item.registration.name)
+        joined.sort(key=lambda item: item.component.server_name)
         return FleetCatalog(context=context, servers=tuple(joined))
 
     async def _read_content(
@@ -427,13 +449,19 @@ class FleetCatalogReader:
         return content
 
     async def _server_pages(self) -> AsyncIterator[ServerPage]:
-        cursor: str | None = None
+        cursor: Any | None = None
         seen: set[str] = set()
         for _ in range(self._max_pages):
             page = await self._port.query_registered_servers(
                 COMMONS_GRAPH, self._page_size, cursor
             )
-            if len(page.entries) > self._page_size or page.observed_at_ms <= 0:
+            if (
+                len(page.entries) > self._page_size
+                or page.observed_at_ms <= 0
+                or page.total_live < 0
+                or page.registry_revision < 0
+                or not self._is_digest(page.registry_digest)
+            ):
                 raise FleetCatalogIntegrityError("server query violated its page bound")
             yield page
             cursor = self._next_cursor(page.next_cursor, seen)
@@ -444,7 +472,7 @@ class FleetCatalogReader:
     async def _component_pages(
         self, context: ReadContext, kinds: tuple[ComponentKind, ...]
     ) -> AsyncIterator[ComponentPage]:
-        cursor: str | None = None
+        cursor: Any | None = None
         seen: set[str] = set()
         for _ in range(self._max_pages):
             page = await self._port.search_components(
@@ -466,14 +494,21 @@ class FleetCatalogReader:
         raise FleetCatalogIntegrityError("component search exceeded its page bound")
 
     @staticmethod
-    def _next_cursor(cursor: str | None, seen: set[str]) -> str | None:
+    def _next_cursor(cursor: Any | None, seen: set[str]) -> Any | None:
         if cursor is None:
             return None
-        if not cursor or len(cursor) > 4096 or cursor in seen:
+        if isinstance(cursor, str):
+            key = cursor
+        else:
+            dump = getattr(cursor, "model_dump_json", None)
+            if not callable(dump):
+                raise FleetCatalogIntegrityError("page cursor is not contract-typed")
+            key = dump()
+        if not key or len(key.encode("utf-8")) > 4096 or key in seen:
             raise FleetCatalogIntegrityError(
                 "page cursor is empty, oversized, or cyclic"
             )
-        seen.add(cursor)
+        seen.add(key)
         return cursor
 
     @staticmethod
@@ -539,3 +574,31 @@ class FleetCatalogReader:
             return False
         digest = value[len(prefix) :]
         return all(character in "0123456789abcdef" for character in digest)
+
+
+class DeferredFleetCatalogReader:
+    """One startup-only binding cell for the process fleet authority.
+
+    The MCP surface is constructed before the engine transport exists. Passing
+    this reader into ``MCPMultiplexer`` disables its static-file path from the
+    first instruction; startup later installs exactly one EG-backed reader and
+    performs the initial refresh before readiness. Calls before installation
+    fail closed rather than discovering another catalog.
+    """
+
+    def __init__(self) -> None:
+        self._reader: FleetCatalogReader | None = None
+
+    def install(self, reader: FleetCatalogReader) -> None:
+        if self._reader is not None:
+            raise RuntimeError("fleet catalog authority is already installed")
+        self._reader = reader
+
+    async def read(
+        self,
+        *,
+        kinds: Sequence[ComponentKind] = FLEET_COMPONENT_KINDS,
+    ) -> FleetCatalog:
+        if self._reader is None:
+            raise RuntimeError("fleet catalog authority is not installed")
+        return await self._reader.read(kinds=kinds)

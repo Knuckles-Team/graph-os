@@ -27,9 +27,11 @@ def test_webui_host_import_is_lazy() -> None:
     package = importlib.import_module("graph_os.webui_host")
     module = importlib.import_module("graph_os.webui_host.webui_co_service")
 
-    assert package.__all__ == ["run_web_ui"]
+    assert package.__all__ == ["compose_web_application", "run_web_ui"]
+    assert package.compose_web_application is module.compose_web_application
     assert package.run_web_ui is module.run_web_ui
-    assert module.__all__ == ["run_web_ui"]
+    assert module.__all__ == ["compose_web_application", "run_web_ui"]
+    assert callable(module.compose_web_application)
     assert callable(module.run_web_ui)
 
 
@@ -182,6 +184,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         *,
         workspace_helpers: dict[str, object],
         listener_host: str,
+        application_composer: object,
         contact_delivery: object | None = None,
         browser_control: object | None = None,
     ) -> object:
@@ -189,6 +192,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
             "agent": agent,
             "workspace_helpers": workspace_helpers,
             "listener_host": listener_host,
+            "application_composer": application_composer,
             "contact_delivery": contact_delivery,
             "browser_control": browser_control,
         }
@@ -233,6 +237,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
             "transcribe_voice": "voice-helper",
         },
         "listener_host": "0.0.0.0",
+        "application_composer": module.compose_web_application,
         "contact_delivery": "governed-contact-delivery",
         "browser_control": service,
     }
@@ -250,3 +255,22 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     }
     assert calls["served"] is True
     assert calls["server"].should_exit is True
+
+
+def test_graph_os_application_composer_mounts_native_routes(monkeypatch: Any) -> None:
+    """The injected WebUI seam reaches GraphOS's one REST composition path."""
+
+    module = importlib.import_module("graph_os.webui_host.webui_co_service")
+    from graph_os.gateway import graph_api
+
+    app = object()
+    calls: list[tuple[object, str]] = []
+    monkeypatch.setattr(
+        graph_api,
+        "register_graph_routes",
+        lambda value, prefix="/api": calls.append((value, prefix)),
+    )
+
+    module.compose_web_application(app)
+
+    assert calls == [(app, "/api")]

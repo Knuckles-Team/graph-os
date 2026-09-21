@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -15,6 +16,7 @@ from graph_os.mcp_server.composition import (
     install_gateway_application,
     start_composed_services,
 )
+from graph_os.mcp_server.server import _register_semantic_content
 
 
 def test_native_action_route_contract_matches_cutover_source() -> None:
@@ -27,6 +29,21 @@ def test_native_action_route_contract_matches_cutover_source() -> None:
     assert browser_route == "/browser/control"
     assert a2a_route == "/graph/a2a"
     assert len(runtime.ACTION_TOOL_ROUTES) >= 60
+
+
+def test_bootstrap_exports_bind_runtime_host_state() -> None:
+    """Cycle-breaking bootstrap slots must hold the real runtime authorities."""
+
+    assert (
+        runtime.authority_keepalive_scope.__wrapped__.__globals__[
+            "_AUTHORITY_KEEPALIVE_ACTIVE"
+        ]
+        is runtime._AUTHORITY_KEEPALIVE_ACTIVE
+    )
+    assert (
+        runtime._ensure_process_authority_current.__globals__["REGISTERED_TOOLS"]
+        is runtime.REGISTERED_TOOLS
+    )
 
 
 @pytest.mark.asyncio
@@ -96,3 +113,57 @@ def test_gateway_adapter_uses_native_oauth_binding_source(
 def test_console_script_targets_native_serving_entrypoint() -> None:
     pyproject = Path(__file__).parents[2] / "pyproject.toml"
     assert 'graph-os = "graph_os.mcp_server.server:mcp_server"' in pyproject.read_text()
+
+
+def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
+    from agent_connector_sdk.mcp.content import register_connector_content
+
+    from graph_os.content import connector_content
+
+    class Mcp:
+        def __init__(self) -> None:
+            self.resources: list[Any] = []
+
+        def add_resource(self, resource: Any) -> None:
+            self.resources.append(resource)
+
+        def add_provider(self, provider: Any) -> None:
+            raise AssertionError("GraphOS does not package an SDK skill provider")
+
+        def add_prompt(self, prompt: Any) -> None:
+            raise AssertionError("GraphOS does not package an SDK prompt")
+
+    mcp = Mcp()
+    register_connector_content(mcp, connector_content())
+
+    assert len(mcp.resources) == 1
+    resource = mcp.resources[0]
+    body = Path(resource.path).read_bytes()
+    assert str(resource.uri) == "shapes://graph-os/runtime.shapes.ttl"
+    assert resource.name == "shapes://graph-os/runtime.shapes.ttl"
+    assert resource.mime_type == "text/turtle"
+    assert len(body) == 2757
+    assert hashlib.sha256(body).hexdigest() == (
+        "e02ad6e9c8cad76af5eb0960bdd47a08346a7ce550532c832cc0b6792bc0aa73"
+    )
+
+
+def test_public_mcp_registers_each_declared_provider_without_relabelling(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graphos = object()
+    au = object()
+    calls: list[tuple[object, object]] = []
+    mcp = object()
+    monkeypatch.setattr(
+        "graph_os.mcp_server.server.default_content_providers",
+        lambda: (lambda: graphos, lambda: au),
+    )
+    monkeypatch.setattr(
+        "graph_os.mcp_server.server.register_connector_content",
+        lambda target, content: calls.append((target, content)),
+    )
+
+    _register_semantic_content(mcp)
+
+    assert calls == [(mcp, graphos), (mcp, au)]

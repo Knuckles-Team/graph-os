@@ -171,15 +171,8 @@ class InProcessBackend:
         composition = detect_composition(engine)
         steps = (
             DeploymentStep(
-                description=(
-                    "run `graph-os` (the directly-owned console shell); the MCP "
-                    "extraction lane will make this the serving composition "
-                    "before service cutover"
-                ),
-                # The current graph-os script is the directly-owned shell.  The
-                # MCP extraction lane will replace this target with the real
-                # graph_os.mcp_server entry point before service cutover.
-                local_action="graph_os.cli:main",
+                description="run the directly-owned native `graph-os` MCP server",
+                local_action="graph_os.mcp_server.server:mcp_server",
             ),
         )
         return DeploymentPlan(

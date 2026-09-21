@@ -9,9 +9,9 @@ Every piece of this was already built and only the last wire was missing:
 * ``agent-utilities[ag-ui]`` already declares ``agent-webui`` as an optional
   dependency, so the package is installable alongside graph-os with no new
   distribution work.
-* the gateway routers the dashboard fronts (``agent_utilities.gateway.*``) are
-  already served from this process — agent-webui is the frontend facade over
-  them, which is why serving it here duplicates nothing.
+* GraphOS owns the gateway routers the dashboard fronts and injects them through
+  agent-webui's public application-composer seam, so the frontend has no
+  reverse dependency on GraphOS and no duplicate route implementation.
 * ``ENABLE_WEB_UI`` is already real config, and
   :func:`agent_utilities.mcp.co_service_supervisor.detect_composition` already
   reports it as part of the composition plan.
@@ -41,7 +41,7 @@ import logging
 import threading
 from typing import Any, cast
 
-__all__ = ["run_web_ui"]
+__all__ = ["compose_web_application", "run_web_ui"]
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,21 @@ DEFAULT_WEB_UI_HOST = "127.0.0.1"
 #: agent-webui refuses a non-loopback listener until the raw-query logging
 #: decision is explicit. Mirrors ``agent_webui.server._ACCESS_LOG_POLICY_ENV``.
 ACCESS_LOG_POLICY_ENV = "AGENT_WEBUI_ACCESS_LOG_POLICY"
+
+
+def compose_web_application(app: Any) -> None:
+    """Mount GraphOS-owned REST routes into an Agent WebUI application.
+
+    Agent WebUI owns browser/session presentation while GraphOS owns the
+    gateway routes it exposes. The WebUI factory invokes this composer before
+    installing its SPA catch-all and security middleware, so GraphOS does not
+    import or modify WebUI internals and WebUI has no reverse dependency on
+    GraphOS.
+    """
+
+    from graph_os.gateway.graph_api import register_graph_routes
+
+    register_graph_routes(app)
 
 
 async def _serve_until_stopped(
@@ -178,9 +193,9 @@ def run_web_ui(
     # dashboard as one part of it. Measured in the live pod, that path had not
     # finished building after 32 minutes against a contended engine (16s
     # commits), so the listener never bound and the co-service looked hung. The
-    # dashboard is a frontend facade over routers that are already served; it
-    # needs the orchestrator-model agent and the delegation helpers, nothing
-    # more. Same measurement, this path: 11 seconds to a built app.
+    # dashboard is a frontend facade over routes composed below; it needs the
+    # orchestrator-model agent and the delegation helpers, nothing more. Same
+    # measurement, this path: 11 seconds to a built app.
     agent = create_context_agent(model=build_orchestrator_model(get_engine_bounded))
     helpers = {
         **webui_mcp_delegation_helpers(),
@@ -200,6 +215,7 @@ def run_web_ui(
         agent,
         workspace_helpers=helpers,
         listener_host=bind_host,
+        application_composer=compose_web_application,
         **contact_kwargs,
         **browser_control_kwargs,
     )

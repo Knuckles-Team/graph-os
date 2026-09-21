@@ -31,7 +31,10 @@ work to the exact multiplexer instance owned by the serving loop.
 
 | Capability | Current behavior | Required authority |
 |---|---|---|
-| EG-backed fleet catalog read | Serving refuses the catalog operation when the typed reader is unavailable | Generated kind-only `AgentComponent.Search` client contract from epistemic-graph |
+| EG-backed fleet and browser catalog | Native startup injects the verified process clients into the generated registry/AgentComponent adapter, verifies an exhaustive stable snapshot, composes the public agent/workflow read ports, and refreshes before readiness; any missing authority aborts startup | Released `ListRegisteredServers` and typed AgentComponent-current generated contracts plus the matching AU public catalog port release |
+| Authenticated connector runner | GraphOS validates the endpoint, secret reference, request context, and scope before injecting its EG client and dynamic pack-import authority into the SDK; missing authority is refused | Released generated ConnectorPack/SourceIngest contracts, the matching SDK release, and a live catalog/policy resolver |
+| Semantic content packs | The serving lifecycle performs read-only status and GraphSchema checks for the independently identified `graph-os` and `agent-utilities` packs; it refuses absent, unprojected, or stale attachments and never imports or attaches during startup | A deployment provisioning pass with policy-issued ConnectorPack mutation contexts and GraphSchema write authority |
+| WebUI GraphOS route composition | GraphOS supplies one public application composer; it does not patch WebUI internals or restore WebUI-owned gateway fallbacks | An agent-webui release exposing the matching `application_composer` factory seam |
 | Durable four-family catalog reconciliation | Refresh returns `reingestion-unreconciled`; it does not claim publication | Governed generic MCP resource/template durability in epistemic-graph |
 | A2A budget-selected tool subset | A request with a context budget or non-empty selected-tool set is refused before admission | Live `AgentAssemble` support and a signed agent envelope that binds the allowed tool subset |
 

@@ -7,6 +7,7 @@ import logging
 import os
 from typing import Any
 
+from agent_connector_sdk.mcp.content import register_connector_content
 from agent_utilities.core.config import setting
 
 from graph_os.mcp_server import runtime
@@ -14,10 +15,23 @@ from graph_os.mcp_server.composition import (
     install_gateway_application,
     start_composed_services,
 )
+from graph_os.semantic_content import default_content_providers
 
 logger = logging.getLogger(__name__)
 
 _FLEET_EMBED_MODEL: Any = None
+
+
+def _register_semantic_content(mcp: Any) -> None:
+    """Expose independently owned semantic artifacts through the SDK contract.
+
+    ConnectorPack capture consumes these MCP resources and EG ``AttachPack``
+    remains the sole authority that interprets/activates their SHACL content.
+    GraphOS deliberately performs no local shape parsing or attachment.
+    """
+
+    for provider in default_content_providers():
+        register_connector_content(mcp, provider())
 
 
 def _fleet_embed_fn():
@@ -134,7 +148,7 @@ def mcp_server() -> None:
     selected by the standard ``--transport/--host/--port`` args
     from :func:`create_mcp_server`. The REST API (``/graph/*``, ``/sessions``,
     ``/goals``, ``/tools``) is centralized in the API gateway
-    (``agent_utilities.gateway``) — see :func:`_mount_rest_routes`.
+    (:mod:`graph_os.gateway`) — see :func:`_mount_rest_routes`.
     """
     from agent_utilities.core.config import load_config
 
@@ -145,6 +159,10 @@ def mcp_server() -> None:
     _configure_telemetry_engine_otel()
     os.environ["IS_KG_SERVER"] = "true"
     args, mcp, middlewares = runtime._build_server()
+    _register_semantic_content(mcp)
+    from graph_os.fleet.catalog_reader import DeferredFleetCatalogReader
+
+    fleet_catalog_reader = DeferredFleetCatalogReader()
 
     # Apply the middleware stack assembled by the factory.
     for middleware in middlewares:
@@ -174,6 +192,7 @@ def mcp_server() -> None:
         # query↔description MEANING (semantic), not just literal token overlap.
         fleet_mux = attach_fleet_loader(
             mcp,
+            catalog_reader=fleet_catalog_reader,
             embed_fn=_fleet_embed_fn(),
             authority_scope=runtime.verified_tool_session_scope,
         )
@@ -202,7 +221,7 @@ def mcp_server() -> None:
     # Without this the probe measured its own missing identity instead of the
     # authority, reported the goal store `unavailable`, and held /health/ready
     # at 503 forever on every served deployment.
-    runtime._set_readiness_authority(bootstrap_session)
+    readiness_authority_owner = runtime._set_readiness_authority(bootstrap_session)
 
     co_service_supervisor = None
     try:
@@ -245,6 +264,19 @@ def mcp_server() -> None:
         with use_actor(bootstrap_session.actor), use_session(bootstrap_session):
             runtime._start_engine_bootstrap(bootstrap_session)
 
+            from graph_os.mcp_server.catalog_composition import (
+                compose_catalog_authorities,
+            )
+
+            asyncio.run(
+                compose_catalog_authorities(
+                    engine=runtime._get_engine(),
+                    session=bootstrap_session,
+                    deferred_fleet=fleet_catalog_reader,
+                    multiplexer=fleet_mux,
+                )
+            )
+
             # Self-composing co-services, phase 2: messaging now that a real engine
             # exists. Credentials keep outbound sending available, but the explicit
             # MESSAGING_INTAKE_ENABLED deployment intent (false by default) is the
@@ -275,6 +307,7 @@ def mcp_server() -> None:
         runtime._PROCESS_SESSION = None
         runtime.set_process_session(None)
         runtime._stop_process_authority_supervisor()
+        runtime._release_readiness_authority(readiness_authority_owner)
         # Best-effort teardown of any lazily-mounted fleet children.
         if fleet_mux is not None:
             try:

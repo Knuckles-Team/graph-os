@@ -1,10 +1,4 @@
-"""Wiring test: every RF-ADR-009 §2 Phase 5 submodule package is a live import.
-
-Each package below is presently a docstring-only placeholder (no runtime
-logic — see `AGENTS.md` "Status" and "W5 source measurements"); importing it
-here is what makes it a real, tested member of `graph_os` rather than an
-orphan module the orphan-module wiring gate would otherwise have to flag.
-"""
+"""Wiring tests for every RF-ADR-009 §2 GraphOS runtime package."""
 
 from __future__ import annotations
 
