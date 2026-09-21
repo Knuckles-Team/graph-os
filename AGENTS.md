@@ -42,22 +42,23 @@ agent-utilities knowledge-graph internals.
 
 ## Module mapping
 
-Packages are populated incrementally by the Wave 5 lanes:
+Wave 5 implementation ownership now lives in this repository:
 
-| Package | Owns | Source today |
+| Package | Owns | Current implementation authority |
 |---|---|---|
-| `graph_os.mcp_server` | the graph-os MCP tool surface (`graph_*`/`ontology_*`/`object_*`/`engine_*`) | `agent_utilities/mcp/kg_server.py` |
-| `graph_os.fleet` | the in-process fleet gateway / multiplexer | `agent_utilities/mcp/multiplexer.py` |
-| `graph_os.gateway` | REST gateway + gateway host daemon + dashboard (populated; deployment cutover pending) | `agent_utilities/gateway/` |
-| `graph_os.control_plane` | fleet reconciliation, action-policy enforcement | `agent_utilities/control_plane/` |
-| `graph_os.webui_host` | agent-webui hosting (the webui co-service) | `agent_utilities/server/webui_co_service.py` |
-| `graph_os.deployment` | deployment doctor, release canary, production ops | **extracted host mechanics** |
+| `graph_os.mcp_server` | the graph-os MCP tool surface (`graph_*`/`ontology_*`/`object_*`/`engine_*`) | `graph_os/mcp_server/` |
+| `graph_os.fleet` | the in-process fleet gateway / multiplexer | `graph_os/fleet/` |
+| `graph_os.gateway` | REST gateway + gateway host daemon + dashboard (deployment cutover pending) | `graph_os/gateway/` |
+| `graph_os.control_plane` | fleet reconciliation, action-policy enforcement | `graph_os/control_plane/` |
+| `graph_os.webui_host` | agent-webui hosting (the webui co-service) | `graph_os/webui_host/` |
+| `graph_os.deployment` | deployment doctor, release canary, production ops | `graph_os/deployment/` |
 
 ## W5 source measurements (measured 2026-09-12)
 
-Line counts against `agent-utilities` `HEAD` at measurement time (`wc -l` over
-every `.py` file in the directory; single files counted directly). These are
-the sizes Migration Wave 5 (RF-ADR-009 §7) will actually move — not estimates.
+Historical line counts against `agent-utilities` `HEAD` at measurement time
+(`wc -l` over every `.py` file in the directory; single files counted
+directly). These were the measured extraction baselines for Migration Wave 5
+(RF-ADR-009 §7); the table is retained as provenance, not current ownership.
 
 | Source | Lines | Moves to |
 |---|---:|---|

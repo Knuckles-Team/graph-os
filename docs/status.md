@@ -14,7 +14,7 @@ the current deployment).
 | `graph_os.mcp_server` | the graph-os MCP tool/REST surface and serving lifecycle | **Yes — extracted; cutover pending** |
 | `graph_os.fleet` | the fleet gateway / multiplexer | Yes — native runtime + EG catalog seam; composition cutover pending |
 | `graph_os.gateway` | REST gateway + host daemon | Yes — extracted; cutover pending |
-| `graph_os.control_plane` | fleet reconciliation / action policy | Yes — extracted; AU deletion pending |
+| `graph_os.control_plane` | fleet reconciliation / action policy | Yes — authoritative; AU copy removal validated for landing |
 | `graph_os.webui_host` | agent-webui hosting | Yes — extracted; composition cutover pending |
 | `graph_os.deployment` | host deployment, doctor, release canary, production ops | **Yes — extracted** |
 
@@ -31,9 +31,9 @@ owning repositories.
 
 The native EG fleet-catalog reader is present, but the generated EG client on
 this base does not yet expose the kind-only `AgentComponent.Search` read adapter
-the reader requires. Until that lands, the server preserves the current fleet
-meta-tool contract through AU's lazy multiplexer at the composition boundary;
-there is no fabricated static-to-EG adapter in graph-os.
+the reader requires. The served composition now uses the native graph-os
+multiplexer and fails closed at that typed catalog seam; it does not fall back
+to AU's former multiplexer or fabricate a static-to-EG adapter.
 
 Remaining source this repository will receive in **Migration Wave 5** (line
 counts measured 2026-09-12 against `agent-utilities` `HEAD`) is tracked in
