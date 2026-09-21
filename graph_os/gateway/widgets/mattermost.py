@@ -32,11 +32,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from mattermost_mcp.api_client import Api as MattermostApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = MattermostApi(base_url=url, token=token)
+        client = self._fleet_client()
 
         try:
             users = client.get_users(per_page=1) or {}

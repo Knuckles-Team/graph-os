@@ -31,9 +31,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from documentdb_mcp.api_client import DocumentDBApi
-
-        client = DocumentDBApi()
+        client = self._fleet_client()
         try:
             dbs = client.list_databases() or []
         except Exception as e:

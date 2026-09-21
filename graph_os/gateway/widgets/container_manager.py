@@ -27,16 +27,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("container_manager")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        # No `container_manager_mcp.api_client` module exists — the package's
-        # real public entry point is the `create_manager()` factory
-        # (container_manager_mcp/container_manager.py), which auto-detects and
-        # connects to the local Docker/Podman runtime and returns a
-        # DockerManager/PodmanManager (both ContainerManagerBase). It raises
-        # ImportError/ValueError/RuntimeError when no runtime is reachable —
-        # all handled by BaseWidget._safe_fetch.
-        from container_manager_mcp import create_manager
-
-        client = create_manager()
+        client = self._fleet_client()
         try:
             containers = client.list_containers(all=True) or []
             images = client.list_images() or []

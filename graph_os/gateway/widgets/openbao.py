@@ -27,11 +27,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("openbao")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from openbao_mcp.api_client import Api as OpenBaoApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = OpenBaoApi(base_url=url, token=token)
+        client = self._fleet_client()
 
         try:
             health = client.get_health() or {}

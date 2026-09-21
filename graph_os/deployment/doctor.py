@@ -132,28 +132,20 @@ def _langfuse_rows(*args: Any, **kwargs: Any) -> Any:
     return _doctor_observability._langfuse_rows(*args, **kwargs)
 
 
-def _child_call_failed(*args: Any, **kwargs: Any) -> Any:
-    return _doctor_observability._child_call_failed(*args, **kwargs)
+def _langfuse_posture_metadata_only(*args: Any, **kwargs: Any) -> Any:
+    return _doctor_observability._langfuse_posture_metadata_only(*args, **kwargs)
 
 
-def _langfuse_child_runtime(*args: Any, **kwargs: Any) -> Any:
-    return _doctor_observability._langfuse_child_runtime(*args, **kwargs)
+def _langfuse_trace_read_bounded(*args: Any, **kwargs: Any) -> Any:
+    return _doctor_observability._langfuse_trace_read_bounded(*args, **kwargs)
 
 
-async def _langfuse_posture_metadata_only(*args: Any, **kwargs: Any) -> Any:
-    return await _doctor_observability._langfuse_posture_metadata_only(*args, **kwargs)
-
-
-async def _langfuse_trace_read_bounded(*args: Any, **kwargs: Any) -> Any:
-    return await _doctor_observability._langfuse_trace_read_bounded(*args, **kwargs)
+async def _call_langfuse_child(*args: Any, **kwargs: Any) -> Any:
+    return await _doctor_observability._call_langfuse_child(*args, **kwargs)
 
 
 def _probe_langfuse_mcp_visibility(*args: Any, **kwargs: Any) -> Any:
     return _doctor_observability._probe_langfuse_mcp_visibility(*args, **kwargs)
-
-
-def _langfuse_api_handshake(*args: Any, **kwargs: Any) -> Any:
-    return _doctor_observability._langfuse_api_handshake(*args, **kwargs)
 
 
 def _langfuse_expected_trace_name(*args: Any, **kwargs: Any) -> Any:

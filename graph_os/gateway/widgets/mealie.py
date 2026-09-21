@@ -32,11 +32,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from mealie_mcp.api_client import Api as MealieApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = MealieApi(base_url=url, token=token)
+        client = self._fleet_client()
 
         try:
             recipes = client.get_recipes(page=1, per_page=1) or {}

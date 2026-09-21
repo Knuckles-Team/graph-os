@@ -31,16 +31,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("technitium")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from technitium_dns_mcp.api_client import Api as TechnitiumDnsApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-
-        client = TechnitiumDnsApi(
-            base_url=url,
-            token=token,
-            verify=self._requests_tls_verify(config),
-        )
+        client = self._fleet_client()
 
         total_queries = 0
         blocked = 0

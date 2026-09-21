@@ -27,12 +27,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("servicenow")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from servicenow_api.api_client import Api as ServiceNowApi
-
-        url = self._resolve_url(config)
-        username = self._resolve_env(config, "username")
-        password = self._resolve_env(config, "password")
-        client = ServiceNowApi(base_url=url, username=username, password=password)
+        client = self._fleet_client()
 
         try:
             incidents = client.get_incidents(query="state=1", limit=1) or {}

@@ -27,17 +27,8 @@ class Widget(BaseWidget):
         return self.get_widget_fields("repository_manager")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        # No `repository_manager.api_client` module exists. The package's real
-        # public client is `Git` (repository_manager/repository_manager.py),
-        # which reads the workspace manifest (workspace.yml) rather than
-        # calling a remote URL/token. `DEFAULT_WORKSPACE_YML` resolves the
-        # same canonical manifest the CLI/MCP surface uses.
-        from repository_manager.repository_manager import DEFAULT_WORKSPACE_YML, Git
-
-        client = Git()
+        client = self._fleet_client()
         try:
-            if not client.load_projects_from_yaml(DEFAULT_WORKSPACE_YML):
-                raise RuntimeError("workspace manifest not found")
             repos = client.get_workspace_projects() or []
         except Exception as e:
             logger.warning("Repository Manager fetch: %s", e)

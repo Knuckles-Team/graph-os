@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from agent_utilities.core.config import resolve_langfuse_host
-
 from graph_os.gateway.models import (
     ServiceCategory,
     ServiceConfig,
@@ -15,6 +13,13 @@ from graph_os.gateway.models import (
 from graph_os.gateway.widgets.base import BaseWidget
 
 logger = logging.getLogger(__name__)
+
+
+def _langfuse_summary(posture: object, traces: object) -> tuple[int, str]:
+    rows = traces.get("data", []) if isinstance(traces, dict) else []
+    total_traces = len(rows) if isinstance(rows, list) else 0
+    metadata_only = isinstance(posture, dict) and posture.get("metadata_only") is True
+    return total_traces, "OK" if metadata_only else "unknown"
 
 
 class Widget(BaseWidget):
@@ -33,34 +38,12 @@ class Widget(BaseWidget):
             WidgetField(key="status", label="Status", format="text", highlight=True),
         ]
 
-    def _resolve_url(self, config: ServiceConfig) -> str:
-        """Prefer an explicit widget URL, then the shared Langfuse host policy."""
-        resolved = getattr(config, "url", "") or resolve_langfuse_host("")
-        if not resolved:
-            raise RuntimeError("service URL is not configured")
-        return resolved
-
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        url = self._resolve_url(config)
-        public_key = self._resolve_env(config, "public_key")
-        secret_key = self._resolve_env(config, "secret_key")
-
+        client = self._fleet_client()
         try:
-            from langfuse_agent.api_client import LangfuseApi
-
-            client = LangfuseApi(
-                base_url=url, public_key=public_key, secret_key=secret_key
-            )
-            health = client.health() or {}
-            traces = client.get_traces(limit=1) or {}
-            total_traces = (
-                traces.get("totalItems", 0) if isinstance(traces, dict) else 0
-            )
-            status_text = (
-                health.get("status", "unknown")
-                if isinstance(health, dict)
-                else "unknown"
-            )
+            posture = client.runtime_posture() or {}
+            traces = client.trace_list(page=1, limit=1, fields="core") or {}
+            total_traces, status_text = _langfuse_summary(posture, traces)
         except Exception as e:  # noqa: BLE001 — status widgets must degrade cleanly
             logger.warning("Langfuse fetch failed (%s).", e)
             return WidgetData(status="error", error="Langfuse request failed")

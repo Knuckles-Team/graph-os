@@ -31,11 +31,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from postiz_agent.api_client import PostizApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = PostizApi(base_url=url, token=token)
+        client = self._fleet_client()
         try:
             integrations = client.get_integrations() or []
         except Exception as e:

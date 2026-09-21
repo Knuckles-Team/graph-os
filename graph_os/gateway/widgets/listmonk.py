@@ -31,12 +31,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from listmonk_api.api_client import ListmonkAPI as ListmonkApi
-
-        url = self._resolve_url(config)
-        username = self._resolve_env(config, "username", "admin")
-        password = self._resolve_env(config, "password")
-        client = ListmonkApi(base_url=url, username=username, password=password)
+        client = self._fleet_client()
         try:
             subscribers = client.get_subscribers(page=1, per_page=1) or {}
             lists = client.get_lists() or []

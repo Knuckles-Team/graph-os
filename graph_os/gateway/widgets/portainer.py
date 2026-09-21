@@ -56,16 +56,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("portainer")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from portainer_agent.api_client import PortainerApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-
-        client = PortainerApi(
-            base_url=url,
-            token=token,
-            verify=self._requests_tls_verify(config),
-        )
+        client = self._fleet_client()
 
         # Fetch endpoints (environments)
         try:

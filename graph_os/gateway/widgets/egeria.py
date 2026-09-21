@@ -10,8 +10,8 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
-from graph_os.gateway.widgets._optional_client import count_items, import_client
 from graph_os.gateway.widgets.base import BaseWidget
+from graph_os.gateway.widgets.fleet_client import count_items
 
 logger = logging.getLogger(__name__)
 
@@ -31,25 +31,8 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        client_cls, missing = import_client("egeria_mcp.api_client", "EgeriaApi")
-        if client_cls is None:
-            return WidgetData(status="skipped", error=f"{missing} not installed")
-
-        url = self._resolve_url(config)
-        user_id = self._resolve_env(config, "username")
-        user_pwd = self._resolve_env(config, "password") or self._resolve_token(config)
-        view_server = self._resolve_env(config, "view_server", "view-server")
-        if not url or not user_id or not user_pwd:
-            return WidgetData(status="skipped", error="Missing Egeria url/credentials")
-
+        client = self._fleet_client()
         try:
-            client = client_cls(
-                platform_url=url,
-                view_server=view_server,
-                user_id=user_id,
-                user_pwd=user_pwd,
-                tls_profile=self._resolve_tls_profile(config),
-            )
             assets = client.list_assets() or []
         except Exception as e:
             return self._error_data(e)

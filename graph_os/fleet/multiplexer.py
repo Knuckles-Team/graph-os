@@ -400,15 +400,6 @@ _PROVIDER_RESOLUTION_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
     thread_name_prefix="provider-runtime",
 )
 _PROVIDER_RESOLUTION_CAPACITY = threading.BoundedSemaphore(8)
-_LANGFUSE_PARENT_INGEST_ACTIONS = frozenset(
-    {
-        "observations_get_many",
-        "scores_get_many",
-        "sessions_list",
-        "trace_get",
-        "trace_list",
-    }
-)
 
 
 def _sensitive_config_key(name: str) -> bool:
@@ -706,49 +697,6 @@ def _child_tool_admitted(
         logger.info("Skipping a disabled MCP child tool")
         return False
     return True
-
-
-def _mediate_langfuse_kg_ingestion(
-    *,
-    child_config: dict[str, _typing.Any],
-    original_name: str,
-    arguments: dict[str, _typing.Any],
-    result: _typing.Any,
-) -> None:
-    """Persist a Langfuse read only under GraphOS's verified parent authority."""
-
-    from agent_utilities.observability.langfuse_trust import (
-        langfuse_parent_kg_ingestion_enabled,
-    )
-
-    if not langfuse_parent_kg_ingestion_enabled(child_config):
-        return
-    if not _runtime_materialized(child_config):
-        raise _fastmcp_exceptions.ToolError(
-            "Langfuse parent ingestion declaration is not attested"
-        )
-    if original_name != "langfuse_observability":
-        return
-    action = str(arguments.get("action") or "")
-    if action not in _LANGFUSE_PARENT_INGEST_ACTIONS:
-        return
-    if bool(getattr(result, "isError", False)) or bool(
-        getattr(result, "is_error", False)
-    ):
-        raise _fastmcp_exceptions.ToolError(
-            "Langfuse read failed before parent ingestion"
-        )
-
-    # No process identity, child claim, or caller field is accepted here. The
-    # graph write inherits the GraphOS request's already-verified session and
-    # additionally requires its explicit write scope.
-    from agent_utilities.knowledge_graph.core.session import resolve_session
-
-    resolve_session(required_scope="kg:write")
-    payload = _child_result_payload(result)
-    from langfuse_agent.kg_ingest import ingest_read_result
-
-    ingest_read_result(action, payload)
 
 
 def _bounded_catalog_name(name: _typing.Any) -> bool:
@@ -2595,12 +2543,6 @@ class MCPMultiplexer:
             # reconnect.  A detached recovery queues a durable revision;
             # use this live request to deliver it to this session.
             await self.notify_pending_tools_changed()
-        _mediate_langfuse_kg_ingestion(
-            child_config=child_config,
-            original_name=original_name,
-            arguments=arguments,
-            result=result,
-        )
         return result
 
     async def call_proxied_tool(

@@ -27,13 +27,9 @@ class Widget(BaseWidget):
         return self.get_widget_fields("github")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from github_agent.api_client import Api as GitHubApi
-
-        token = self._resolve_token(config)
-        client = GitHubApi(token=token)
+        client = self._fleet_client()
 
         try:
-            client.get_authenticated_user() or {}
             repos = client.list_repos() or []
         except Exception as e:
             logger.warning("GitHub fetch: %s", e)

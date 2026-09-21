@@ -34,12 +34,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from keycloak_agent.api_client import Api as KeycloakApi
-
-        url = self._resolve_url(config)
-        username = self._resolve_env(config, "username", "admin")
-        password = self._resolve_env(config, "password")
-        client = KeycloakApi(base_url=url, username=username, password=password)
+        client = self._fleet_client()
 
         try:
             realms = client.get_realms() or []

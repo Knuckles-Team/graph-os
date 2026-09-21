@@ -40,11 +40,7 @@ class Widget(BaseWidget):
         return [WidgetField.model_validate(spec) for spec in self._FIELD_SPECS]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from jellyfin_mcp.api_client import Api as JellyfinApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = JellyfinApi(base_url=url, api_key=token)
+        client = self._fleet_client()
 
         try:
             counts = client.get_item_counts()

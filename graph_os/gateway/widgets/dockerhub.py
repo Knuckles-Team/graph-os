@@ -10,8 +10,8 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
-from graph_os.gateway.widgets._optional_client import count_items, import_client
 from graph_os.gateway.widgets.base import BaseWidget
+from graph_os.gateway.widgets.fleet_client import count_items
 
 logger = logging.getLogger(__name__)
 
@@ -31,26 +31,13 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        client_cls, missing = import_client("dockerhub_api.api_client", "Api")
-        if client_cls is None:
-            return WidgetData(status="skipped", error=f"{missing} not installed")
-
-        token = self._resolve_token(config)
         namespace = self._resolve_env(config, "namespace") or self._resolve_env(
             config, "username"
         )
-        if not token or not namespace:
-            return WidgetData(
-                status="skipped", error="Missing Docker Hub token/namespace"
-            )
-
-        client = client_cls(
-            token=token,
-            tls_profile=self._resolve_tls_profile(config),
-        )
+        client = self._fleet_client()
 
         try:
-            repos = client.get_repositories(namespace) or {}
+            repos = client.get_repositories(namespace=namespace) or {}
         except Exception as e:
             return self._error_data(e)
 

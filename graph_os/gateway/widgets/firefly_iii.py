@@ -10,7 +10,6 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
-from graph_os.gateway.widgets._optional_client import import_client
 from graph_os.gateway.widgets.base import BaseWidget
 
 logger = logging.getLogger(__name__)
@@ -33,23 +32,8 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        client_cls, missing = import_client(
-            "firefly_iii_mcp.api_client", "ApiClientFireflyIii"
-        )
-        if client_cls is None:
-            return WidgetData(status="skipped", error=f"{missing} not installed")
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        if not url or not token:
-            return WidgetData(status="skipped", error="Missing Firefly III url/token")
-
+        client = self._fleet_client()
         try:
-            client = client_cls(
-                base_url=url,
-                token=token,
-                tls_profile=self._resolve_tls_profile(config),
-            )
             summary = client.get_basic_summary() or {}
         except Exception as e:
             return self._error_data(e)

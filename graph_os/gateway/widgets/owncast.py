@@ -27,11 +27,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("owncast")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from owncast_agent.api_client import OwncastApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = OwncastApi(base_url=url, admin_token=token)
+        client = self._fleet_client()
 
         try:
             status = client.get_status() or {}

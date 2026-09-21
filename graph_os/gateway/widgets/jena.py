@@ -10,7 +10,6 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
-from graph_os.gateway.widgets._optional_client import import_client
 from graph_os.gateway.widgets.base import BaseWidget
 
 logger = logging.getLogger(__name__)
@@ -30,20 +29,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        client_cls, missing = import_client("jena_mcp.api_client", "Api")
-        if client_cls is None:
-            return WidgetData(status="skipped", error=f"{missing} not installed")
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        if not url:
-            return WidgetData(status="skipped", error="Missing Jena url")
-
-        client = client_cls(
-            base_url=url,
-            token=token or None,
-            tls_profile=self._resolve_tls_profile(config),
-        )
+        client = self._fleet_client()
 
         try:
             client.ping()

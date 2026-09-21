@@ -27,6 +27,7 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
+from graph_os.gateway.widgets.fleet_client import FleetConnectorClient
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +204,10 @@ class BaseWidget(ABC):
     description: str = ""
     env_prefix: str = ""
     supports_websocket: bool = False
+
+    def _fleet_client(self) -> FleetConnectorClient:
+        """Use the EG-catalogued connector behind the served multiplexer."""
+        return FleetConnectorClient(self.service_type)
 
     @staticmethod
     def get_widget_fields(service_type: str) -> list[WidgetField]:

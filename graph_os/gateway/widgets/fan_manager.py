@@ -15,7 +15,6 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
-from graph_os.gateway.widgets._optional_client import import_client
 from graph_os.gateway.widgets.base import BaseWidget
 
 logger = logging.getLogger(__name__)
@@ -38,12 +37,8 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        client_cls, missing = import_client("fan_manager.api_client", "Api")
-        if client_cls is None:
-            return WidgetData(status="skipped", error=f"{missing} not installed")
-
+        client = self._fleet_client()
         try:
-            client = client_cls()
             temp = client.get_temp() or {}
         except Exception as e:
             return self._error_data(e)

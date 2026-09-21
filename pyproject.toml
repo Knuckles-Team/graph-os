@@ -17,7 +17,7 @@ requires-python = ">=3.12,<3.15"
 license = "MIT"
 # W5 extraction follows Wire-First: these are the runtime packages imported by
 # the populated gateway, control-plane, and host-deployment surfaces. Connector
-# clients used by individual widgets remain lazy and optional.
+# widgets delegate through the served fleet and never install connector clients.
 dependencies = [
     # Portable development binding below resolves the not-yet-published AU 2.5
     # workspace release; released wheels retain this real PEP 508 floor.

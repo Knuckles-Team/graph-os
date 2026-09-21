@@ -32,11 +32,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from erpnext_agent.api_client import Api as ERPNextApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = ERPNextApi(base_url=url, api_key=token)
+        client = self._fleet_client()
 
         try:
             info = client.get_info() or {}

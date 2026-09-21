@@ -37,11 +37,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("ansible_tower")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from ansible_tower_mcp.api_client import Api as AnsibleTowerApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = AnsibleTowerApi(base_url=url, token=token)
+        client = self._fleet_client()
         try:
             templates = client.list_job_templates() or []
             jobs = client.list_jobs(status="running") or []

@@ -46,11 +46,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("home_assistant")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from home_assistant_agent.api_client import HomeAssistantApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = HomeAssistantApi(base_url=url, token=token)
+        client = self._fleet_client()
 
         try:
             states = client.get_states() or []

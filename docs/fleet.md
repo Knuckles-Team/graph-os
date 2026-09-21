@@ -44,6 +44,15 @@ operation, the writer capability is absent and refresh returns the typed
 `reingestion-unreconciled` failure. It does not claim convergence or maintain
 a second process-local durability store.
 
+The gateway dashboard and Langfuse deployment doctor are consumers of this
+same served authority. Widget calls discover the child's admitted schema before
+delegation. The doctor proves `langfuse_observability` posture and a bounded
+trace read through the child MCP tool. The release canary independently checks
+the catalog declaration, launcher, and advertised tool; none of these paths
+imports a connector package. Langfuse reads no longer trigger a GraphOS-owned
+knowledge-graph ingestion side effect—durable ingestion remains the SDK/EG
+runner contract from RF-ADR-009.
+
 ## G2 cutover checklist
 
 1. The graph-os MCP composition imports `attach_fleet_loader` and

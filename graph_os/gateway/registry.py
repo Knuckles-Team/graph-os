@@ -103,8 +103,9 @@ _BUILTIN_WIDGETS: dict[str, str] = {
 class Registry:
     """Global registry of available service widgets.
 
-    Provides lazy loading — widgets are only imported when first accessed,
-    so frontends don't pay import cost for unused agent-packages.
+    Provides lazy loading — widgets are only imported when first accessed.
+    Connector packages are never imported; live availability comes from the
+    EG-backed fleet catalog when the widget delegates its MCP operation.
     """
 
     def __init__(self) -> None:
@@ -115,8 +116,8 @@ class Registry:
     def discover_all(self) -> dict[str, WidgetRegistration]:
         """Attempt to load all builtin widgets and return their registrations.
 
-        Widgets whose agent-package dependencies aren't installed are
-        silently skipped (graceful degradation).
+        Module-load failures are isolated. Connector runtime availability is
+        evaluated later through the served fleet catalog, not Python imports.
         """
         for widget_type, module_path in _BUILTIN_WIDGETS.items():
             if widget_type not in self._loaded:

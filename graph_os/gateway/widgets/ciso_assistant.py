@@ -10,8 +10,8 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
-from graph_os.gateway.widgets._optional_client import count_items, import_client
 from graph_os.gateway.widgets.base import BaseWidget
+from graph_os.gateway.widgets.fleet_client import count_items
 
 logger = logging.getLogger(__name__)
 
@@ -36,22 +36,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        client_cls, missing = import_client("ciso_assistant_api.api_client", "Api")
-        if client_cls is None:
-            return WidgetData(status="skipped", error=f"{missing} not installed")
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        if not url or not token:
-            return WidgetData(
-                status="skipped", error="Missing CISO Assistant url/token"
-            )
-
-        client = client_cls(
-            url=url,
-            token=token,
-            tls_profile=self._resolve_tls_profile(config),
-        )
+        client = self._fleet_client()
 
         try:
             assets = client.api_assets_list() or {}

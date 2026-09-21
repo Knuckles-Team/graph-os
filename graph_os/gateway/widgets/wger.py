@@ -31,11 +31,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from wger_agent.api_client import WgerApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = WgerApi(base_url=url, token=token)
+        client = self._fleet_client()
 
         try:
             workouts = client.get_workouts() or []

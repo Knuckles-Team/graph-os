@@ -32,12 +32,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from nextcloud_agent.api_client import NextcloudAPI as NextcloudApi
-
-        url = self._resolve_url(config)
-        username = self._resolve_env(config, "username")
-        password = self._resolve_env(config, "password")
-        client = NextcloudApi(base_url=url, username=username, password=password)
+        client = self._fleet_client()
 
         try:
             files = client.list_files(path="/") or []

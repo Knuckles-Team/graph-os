@@ -32,9 +32,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("uptime_kuma")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from uptime_kuma_agent.auth import get_client
-
-        client = get_client()
+        client = self._fleet_client()
 
         try:
             monitors = client.get_monitors()

@@ -27,10 +27,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("microsoft")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from microsoft_agent.api_client import MicrosoftGraphApi as MicrosoftApi
-
-        token = self._resolve_token(config)
-        client = MicrosoftApi(token=token)
+        client = self._fleet_client()
         try:
             mail = client.get_unread_count() or 0
             events = client.get_today_events() or []

@@ -31,16 +31,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("gitlab")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from gitlab_api.api_client import Api as GitLabApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-
-        client = GitLabApi(
-            base_url=url,
-            token=token,
-            verify=self._requests_tls_verify(config),
-        )
+        client = self._fleet_client()
 
         projects = 0
         open_mrs = 0

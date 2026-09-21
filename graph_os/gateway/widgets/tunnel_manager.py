@@ -27,14 +27,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("tunnel_manager")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        # No `tunnel_manager.api_client` module exists. The package's real
-        # public client is `HostManager` (tunnel_manager/tunnel_manager.py),
-        # which loads the local SSH host inventory on construction — no
-        # remote URL/token. It has no session-listing API, so "sessions"
-        # stays a placeholder like several other stubbed fields in this file.
-        from tunnel_manager import HostManager
-
-        client = HostManager()
+        client = self._fleet_client()
         try:
             hosts = client.list_hosts() or {}
         except Exception as e:

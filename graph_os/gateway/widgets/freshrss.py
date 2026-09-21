@@ -10,14 +10,9 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
-from graph_os.gateway.widgets._optional_client import import_client
 from graph_os.gateway.widgets.base import BaseWidget
 
 logger = logging.getLogger(__name__)
-
-
-def _credentials(url: str, username: str, password: str) -> bool:
-    return all((url, username, password))
 
 
 def _subscription_list(subscriptions: object) -> list:
@@ -49,25 +44,8 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        client_cls, missing = import_client("freshrss_agent.api_client", "FreshRSSApi")
-        if client_cls is None:
-            return WidgetData(status="skipped", error=f"{missing} not installed")
-
-        url = self._resolve_url(config)
-        username = self._resolve_env(config, "username")
-        api_password = self._resolve_token(config) or self._resolve_env(
-            config, "password"
-        )
-        if not _credentials(url, username, api_password):
-            return WidgetData(status="skipped", error="Missing FreshRSS credentials")
-
+        client = self._fleet_client()
         try:
-            client = client_cls(
-                base_url=url,
-                username=username,
-                api_password=api_password,
-                verify=self._requests_tls_verify(config),
-            )
             subscriptions = client.subscription_list() or {}
         except Exception as e:
             return self._error_data(e)

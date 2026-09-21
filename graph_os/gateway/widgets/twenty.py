@@ -27,11 +27,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from twenty_mcp.api_client import Api as TwentyApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = TwentyApi(base_url=url, api_key=token)
+        client = self._fleet_client()
         try:
             people = client.list_people() or {}
             companies = client.list_companies() or {}

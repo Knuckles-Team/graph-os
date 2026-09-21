@@ -212,135 +212,58 @@ def _langfuse_rows(payload: Any) -> list[dict[str, Any]]:
     return [row for row in rows[:100] if isinstance(row, dict)]
 
 
-def _child_call_failed(result: Any) -> bool:
-    """A mounted-child tool result reporting an error, under either spelling."""
-    return bool(getattr(result, "isError", False)) or bool(
-        getattr(result, "is_error", False)
-    )
-
-
-def _langfuse_child_runtime(mux: Any) -> Any:
-    """The mounted langfuse child, or ``None`` unless exactly one tool matched."""
-    matches = [
-        prefixed
-        for prefixed, (server, original) in mux.tool_to_server.items()
-        if server == "langfuse-mcp" and original == "langfuse_observability"
-    ]
-    if len(matches) != 1:
-        return None
-    return mux.children.get("langfuse-mcp")
-
-
-async def _langfuse_posture_metadata_only(runtime: Any) -> bool:
-    """The mounted child must report the metadata-only, no-content posture."""
-    from graph_os.fleet.multiplexer import _child_result_payload
-
-    posture_result = await runtime.call_tool(
-        "langfuse_observability",
-        {"action": "runtime_posture"},
-    )
-    if _child_call_failed(posture_result):
-        return False
-    return _child_result_payload(posture_result) == {
+def _langfuse_posture_metadata_only(payload: Any) -> bool:
+    """The child must report the metadata-only, no-content posture."""
+    return payload == {
         "content_capture_enabled": False,
         "metadata_only": True,
     }
 
 
-async def _langfuse_trace_read_bounded(runtime: Any) -> bool:
-    """Execute the read through the mounted child itself.
-
-    Direct API reachability cannot prove that the child received the same host,
-    credential, and TLS contract. The response stays bounded and transient; no
-    returned row enters doctor output.
-    """
-    from graph_os.fleet.multiplexer import _child_result_payload
-
-    trace_result = await runtime.call_tool(
-        "langfuse_observability",
-        {
-            "action": "trace_list",
-            "page": 1,
-            "limit": 1,
-            "fields": "core",
-        },
-    )
-    if _child_call_failed(trace_result):
-        return False
-    trace_payload = _child_result_payload(trace_result)
-    rows = trace_payload.get("data") if isinstance(trace_payload, dict) else None
+def _langfuse_trace_read_bounded(payload: Any) -> bool:
+    """Accept only the bounded transient response from the child tool."""
+    rows = payload.get("data") if isinstance(payload, dict) else None
     return isinstance(rows, list) and len(rows) <= 1
 
 
-def _probe_langfuse_mcp_visibility(cfg: Any) -> bool:
-    """Prove the mounted child can execute the current privacy-safe contract."""
-    from pathlib import Path
+async def _call_langfuse_child(action: str, **arguments: Any) -> Any:
+    """Call the Langfuse child through the exact multiplexer GraphOS serves."""
+    from graph_os.fleet.multiplexer import MCPMultiplexer
+    from graph_os.fleet.shared_multiplexer import run_on_served_multiplexer
 
-    from agent_utilities.observability.langfuse_trust import (
-        native_langfuse_mcp_config,
-    )
+    async def call(mux: MCPMultiplexer) -> Any:
+        tools = await mux.delegated_server_tools("langfuse-mcp")
+        matches = [
+            tool for tool in tools if tool.get("name") == "langfuse_observability"
+        ]
+        if len(matches) != 1:
+            raise RuntimeError("Langfuse MCP tool is unavailable")
+        return await mux.delegate_server_tool(
+            server_name="langfuse-mcp",
+            tool_name="langfuse_observability",
+            arguments={"action": action, **arguments},
+            timeout=30.0,
+        )
 
-    from graph_os.fleet.multiplexer import (
-        MCPMultiplexer,
-        attest_runtime_child_config,
-    )
+    return await run_on_served_multiplexer(call)
 
-    child = native_langfuse_mcp_config(agent_config=cfg)
-    if child is None:
-        return False
-    # Bound the diagnostic child startup independently of its operational
-    # profile. The cached catalog avoids reading or persisting any local path.
-    child = dict(child)
-    child["timeout"] = min(float(child.get("timeout", 60.0)), 30.0)
-    child = attest_runtime_child_config(child)
+
+def _probe_langfuse_mcp_visibility(_cfg: Any) -> bool:
+    """Prove the served child can execute the privacy-safe read contract."""
 
     async def probe() -> bool:
-        mux = MCPMultiplexer(Path())
-        mux._catalog = {"langfuse-mcp": child}
-        try:
-            await mux.mount_child("langfuse-mcp")
-            runtime = _langfuse_child_runtime(mux)
-            if runtime is None:
-                return False
-            if not await _langfuse_posture_metadata_only(runtime):
-                return False
-            return await _langfuse_trace_read_bounded(runtime)
-        finally:
-            await mux.aclose()
-
-    return bool(_run_async_doctor_probe(probe))
-
-
-def _langfuse_api_handshake(cfg: Any) -> tuple[Any, tuple[str, str], str]:
-    """``(api, credentials, error_code)``; ``error_code`` is "" only on a proven read.
-
-    The two failure codes stay distinct -- an unreachable API is
-    ``api_handshake_failed`` and a reachable API answering with a non-mapping is
-    ``api_response_invalid`` -- so the reported code does not depend on which
-    fault the caller happens to observe first.
-    """
-    from agent_utilities.observability.langfuse_trust import (
-        resolve_langfuse_credentials,
-        resolve_langfuse_requests_transport,
-    )
-    from langfuse_agent.api_client import LangfuseApi
+        posture = await _call_langfuse_child("runtime_posture")
+        if not _langfuse_posture_metadata_only(posture):
+            return False
+        traces = await _call_langfuse_child(
+            "trace_list", page=1, limit=1, fields="core"
+        )
+        return _langfuse_trace_read_bounded(traces)
 
     try:
-        public_key, secret_key = resolve_langfuse_credentials(agent_config=cfg)
-        transport_kwargs = resolve_langfuse_requests_transport(agent_config=cfg)
-        api = LangfuseApi(
-            public_key=public_key,
-            secret_key=secret_key,
-            host=cfg.langfuse_host,
-            timeout=10.0,
-            transport_kwargs=transport_kwargs,
-        )
-        handshake = api.trace_list(page=1, limit=1, fields="core")
-    except Exception:  # noqa: BLE001 - expose only a stable diagnostic code
-        return None, ("", ""), "api_handshake_failed"
-    if not isinstance(handshake, dict):
-        return None, ("", ""), "api_response_invalid"
-    return api, (public_key, secret_key), ""
+        return bool(_run_async_doctor_probe(probe))
+    except Exception:
+        return False
 
 
 def _langfuse_expected_trace_name(source_run_id: str) -> str:
@@ -356,18 +279,21 @@ def _langfuse_expected_trace_name(source_run_id: str) -> str:
     return f"graph_run:{normalize_run_id(source_run_id, tenant_id=tenant_id)}"
 
 
-def _langfuse_await_trace(api: Any, expected_name: str, started_at: str) -> bool:
+def _langfuse_await_trace(expected_name: str, started_at: str) -> bool:
     """Poll for the exported trace by name; ``False`` if it never lands."""
     import time
 
     for _ in range(10):
-        traces = api.trace_list(
-            page=1,
-            limit=10,
-            name=expected_name,
-            from_timestamp=started_at,
-            order_by="timestamp.desc",
-            fields="core,basic",
+        traces = _run_async_doctor_probe(
+            lambda: _call_langfuse_child(
+                "trace_list",
+                page=1,
+                limit=10,
+                name=expected_name,
+                from_timestamp=started_at,
+                order_by="timestamp.desc",
+                fields="core,basic",
+            )
         )
         if any(row.get("name") == expected_name for row in _langfuse_rows(traces)):
             return True
@@ -375,9 +301,7 @@ def _langfuse_await_trace(api: Any, expected_name: str, started_at: str) -> bool
     return False
 
 
-def _probe_langfuse_trace_round_trip(
-    cfg: Any, api: Any, credentials: tuple[str, str]
-) -> tuple[bool, str]:
+def _probe_langfuse_trace_round_trip(cfg: Any) -> tuple[bool, str]:
     """``(round_trip_ok, error_code)``; ``error_code`` is "" only on success.
 
     The source token is random and never leaves this function. The exporter
@@ -388,8 +312,11 @@ def _probe_langfuse_trace_round_trip(
     from datetime import UTC, datetime
 
     from agent_utilities.observability.langfuse_exporter import LangfuseExporter
+    from agent_utilities.observability.langfuse_trust import (
+        resolve_langfuse_credentials,
+    )
 
-    public_key, secret_key = credentials
+    public_key, secret_key = resolve_langfuse_credentials(agent_config=cfg)
     source_run_id = uuid.uuid4().hex
     expected_name = _langfuse_expected_trace_name(source_run_id)
     started_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
@@ -407,7 +334,7 @@ def _probe_langfuse_trace_round_trip(
     exporter.flush()
     if not emitted:
         return False, "trace_export_failed"
-    if _langfuse_await_trace(api, expected_name, started_at):
+    if _langfuse_await_trace(expected_name, started_at):
         return True, ""
     return False, "trace_round_trip_failed"
 
@@ -421,28 +348,20 @@ def _probe_langfuse_live(cfg: Any) -> dict[str, Any]:
         "trace_round_trip": None,
         "redacted": True,
     }
-    api, credentials, handshake_error = _langfuse_api_handshake(cfg)
-    if handshake_error:
-        result["error_code"] = handshake_error
+    try:
+        result["mcp_visible"] = _probe_langfuse_mcp_visibility(cfg)
+    except Exception:  # noqa: BLE001 - child details may contain local material
+        result["mcp_visible"] = False
+    result["api_reachable"] = bool(result["mcp_visible"])
+    if not result["mcp_visible"]:
+        result["error_code"] = "mcp_visibility_failed"
         return result
-    result["api_reachable"] = True
-
-    if cfg.langfuse_mcp_enabled:
-        try:
-            result["mcp_visible"] = _probe_langfuse_mcp_visibility(cfg)
-        except Exception:  # noqa: BLE001 - child details may contain local material
-            result["mcp_visible"] = False
-        if not result["mcp_visible"]:
-            result["error_code"] = "mcp_visibility_failed"
-            return result
 
     if not cfg.trace_export_enabled:
         return result
 
     try:
-        round_trip, trace_error = _probe_langfuse_trace_round_trip(
-            cfg, api, credentials
-        )
+        round_trip, trace_error = _probe_langfuse_trace_round_trip(cfg)
     except Exception:  # noqa: BLE001 - never expose response, endpoint, or identity
         round_trip, trace_error = False, "trace_round_trip_failed"
     result["trace_round_trip"] = round_trip

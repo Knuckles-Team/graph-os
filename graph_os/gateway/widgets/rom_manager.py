@@ -15,7 +15,6 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
-from graph_os.gateway.widgets._optional_client import import_client
 from graph_os.gateway.widgets.base import BaseWidget
 
 logger = logging.getLogger(__name__)
@@ -29,10 +28,6 @@ def _stat(stats: dict, *names: str) -> int:
         if isinstance(value, int):
             return value
     return 0
-
-
-def _has_credentials(url: str, token: str, username: str, password: str) -> bool:
-    return bool(url and (token or (username and password)))
 
 
 class Widget(BaseWidget):
@@ -50,25 +45,8 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        client_cls, missing = import_client("rom_manager.romm.api", "RommApi")
-        if client_cls is None:
-            return WidgetData(status="skipped", error=f"{missing} not installed")
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        username = self._resolve_env(config, "username")
-        password = self._resolve_env(config, "password")
-        if not _has_credentials(url, token, username, password):
-            return WidgetData(status="skipped", error="Missing ROM Manager credentials")
-
+        client = self._fleet_client()
         try:
-            client = client_cls(
-                url=url,
-                token=token or None,
-                username=username or None,
-                password=password or None,
-                tls_profile=self._resolve_tls_profile(config),
-            )
             stats = client.stats() or {}
         except Exception as e:
             return self._error_data(e)

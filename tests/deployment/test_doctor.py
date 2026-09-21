@@ -2375,41 +2375,15 @@ def test_langfuse_live_check_accepts_api_mcp_and_trace_proof(monkeypatch):
 def _patch_langfuse_mcp_probe(monkeypatch, responses):
     calls = []
 
-    class Runtime:
-        async def call_tool(self, name, arguments):
-            calls.append((name, arguments))
-            payload, is_error = responses[len(calls) - 1]
-            return SimpleNamespace(
-                isError=is_error,
-                structuredContent=payload,
-                content=[],
-            )
-
-    class Multiplexer:
-        def __init__(self, _path):
-            self._catalog = {}
-            self.tool_to_server = {}
-            self.children = {}
-
-        async def mount_child(self, _server):
-            self.tool_to_server = {
-                "langfuse_observability": (
-                    "langfuse-mcp",
-                    "langfuse_observability",
-                )
-            }
-            self.children = {"langfuse-mcp": Runtime()}
-
-        async def aclose(self):
-            return None
+    async def call(action, **arguments):
+        calls.append((action, arguments))
+        payload, is_error = responses[len(calls) - 1]
+        if is_error:
+            raise RuntimeError("synthetic child error")
+        return payload
 
     monkeypatch.setattr(
-        "graph_os.fleet.multiplexer.MCPMultiplexer",
-        Multiplexer,
-    )
-    monkeypatch.setattr(
-        "agent_utilities.observability.langfuse_trust.native_langfuse_mcp_config",
-        lambda **_kwargs: {"command": "synthetic"},
+        "graph_os.deployment.doctor_observability._call_langfuse_child", call
     )
     return calls
 
@@ -2431,65 +2405,16 @@ def test_langfuse_mcp_live_probe_invokes_posture_and_bounded_trace_list(monkeypa
 
     assert D._probe_langfuse_mcp_visibility(SimpleNamespace()) is True
     assert calls == [
-        ("langfuse_observability", {"action": "runtime_posture"}),
+        ("runtime_posture", {}),
         (
-            "langfuse_observability",
+            "trace_list",
             {
-                "action": "trace_list",
                 "page": 1,
                 "limit": 1,
                 "fields": "core",
             },
         ),
     ]
-
-
-def test_langfuse_mcp_live_probe_attests_runtime_materialized_child(monkeypatch):
-    from graph_os.fleet import multiplexer as multiplexer_module
-
-    observed: dict[str, bool] = {}
-
-    class Runtime:
-        async def call_tool(self, name, arguments):
-            payload: dict[str, object]
-            if arguments["action"] == "runtime_posture":
-                payload = {
-                    "content_capture_enabled": False,
-                    "metadata_only": True,
-                }
-            else:
-                payload = {"data": []}
-            return SimpleNamespace(
-                isError=False,
-                structuredContent=payload,
-                content=[],
-            )
-
-        async def aclose(self):
-            return None
-
-    async def mount_child(self, server_name):
-        child = self._catalog[server_name]
-        observed["attested"] = multiplexer_module._runtime_materialized(child)
-        self.tool_to_server = {
-            "langfuse_observability": (
-                "langfuse-mcp",
-                "langfuse_observability",
-            )
-        }
-        self.children = {"langfuse-mcp": Runtime()}
-
-    monkeypatch.setattr(multiplexer_module.MCPMultiplexer, "mount_child", mount_child)
-    monkeypatch.setattr(
-        "agent_utilities.observability.langfuse_trust.native_langfuse_mcp_config",
-        lambda **_kwargs: {
-            "command": "synthetic",
-            "env": {"LANGFUSE_SECRET_KEY": "runtime-only"},
-        },
-    )
-
-    assert D._probe_langfuse_mcp_visibility(SimpleNamespace()) is True
-    assert observed == {"attested": True}
 
 
 @pytest.mark.parametrize(

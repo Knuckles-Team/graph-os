@@ -27,12 +27,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("qbittorrent")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from qbittorrent_agent.api_client import QbittorrentApi as QBittorrentApi
-
-        url = self._resolve_url(config)
-        username = self._resolve_env(config, "username", "admin")
-        password = self._resolve_env(config, "password")
-        client = QBittorrentApi(base_url=url, username=username, password=password)
+        client = self._fleet_client()
 
         try:
             torrents = client.list_torrents() or []

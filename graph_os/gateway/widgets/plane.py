@@ -28,11 +28,7 @@ class Widget(BaseWidget):
         return self.get_widget_fields("plane")
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        from plane_agent.api_client import Api as PlaneApi
-
-        url = self._resolve_url(config)
-        token = self._resolve_token(config)
-        client = PlaneApi(base_url=url, token=token)
+        client = self._fleet_client()
 
         try:
             workspaces = client.get_workspaces() or []

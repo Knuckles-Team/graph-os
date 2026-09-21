@@ -10,7 +10,6 @@ from graph_os.gateway.models import (
     WidgetData,
     WidgetField,
 )
-from graph_os.gateway.widgets._optional_client import import_client
 from graph_os.gateway.widgets.base import BaseWidget
 
 logger = logging.getLogger(__name__)
@@ -31,17 +30,7 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        client_cls, missing = import_client(
-            "hdhomerun_mcp.api_client", "ApiClientSystem"
-        )
-        if client_cls is None:
-            return WidgetData(status="skipped", error=f"{missing} not installed")
-
-        url = self._resolve_url(config)
-        if not url:
-            return WidgetData(status="skipped", error="Missing HDHomeRun url")
-
-        client = client_cls(url=url, verify=self._requests_tls_verify(config))
+        client = self._fleet_client()
 
         try:
             lineup = client.get_lineup() or []
