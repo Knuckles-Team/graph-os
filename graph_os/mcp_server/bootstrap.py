@@ -136,10 +136,11 @@ def _bind_ontology_package_sync(value: Any) -> None:
 def _bind_mcp_probe_port(value: Any) -> None:
     """Bind canonical multiplexer/config/async seams for KG MCP consumers."""
     from agent_utilities.knowledge_graph.core.engine_mcp_discovery import MCPProbePort
-    from agent_utilities.mcp.multiplexer import MCPMultiplexer, _resolve_config_path
     from agent_utilities.protocols.source_connectors.connectors.mcp_package import (
         _run_async,
     )
+
+    from graph_os.fleet.multiplexer import MCPMultiplexer, _resolve_config_path
 
     port = MCPProbePort(
         probe_declaration=MCPMultiplexer.probe_declaration,

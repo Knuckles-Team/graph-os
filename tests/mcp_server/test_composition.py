@@ -75,6 +75,19 @@ def test_gateway_adapter_satisfies_runtime_protocol() -> None:
     assert isinstance(NativeGatewayApplication(), GatewayApplicationPort)
 
 
+def test_gateway_adapter_uses_native_oauth_binding_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    actor = object()
+    expected = (object(),)
+    monkeypatch.setattr(
+        "graph_os.fleet.multiplexer.current_remote_oauth_grant_bindings",
+        lambda value: expected if value is actor else (),
+    )
+
+    assert NativeGatewayApplication().remote_oauth_grant_bindings(actor) is expected
+
+
 def test_console_script_targets_native_serving_entrypoint() -> None:
     pyproject = Path(__file__).parents[2] / "pyproject.toml"
     assert 'graph-os = "graph_os.mcp_server.server:mcp_server"' in pyproject.read_text()

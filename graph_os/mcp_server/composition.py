@@ -36,7 +36,7 @@ class NativeGatewayApplication:
         mount_rest_routes(app, prefix=prefix)
 
     def remote_oauth_grant_bindings(self, actor: Any) -> Sequence[Any]:
-        from agent_utilities.mcp.multiplexer import (
+        from graph_os.fleet.multiplexer import (
             current_remote_oauth_grant_bindings,
         )
 

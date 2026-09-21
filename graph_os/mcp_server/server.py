@@ -198,7 +198,7 @@ def mcp_server() -> None:
     # load_tools at all). Fail loud, preserving __cause__.
     # CONCEPT:AU-ECO.mcp.fleet-meta-tools-always-on
     try:
-        from agent_utilities.mcp.multiplexer import attach_fleet_loader
+        from graph_os.fleet.multiplexer import attach_fleet_loader
 
         # Inject graph-os's own embedding model so find_tools ranks fleet tools by
         # query↔description MEANING (semantic), not just literal token overlap.
