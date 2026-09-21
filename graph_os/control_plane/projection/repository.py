@@ -1,24 +1,24 @@
-"""Persistence and GraphOS adapter seams for control-plane projection.
+"""Validation helpers and errors for control-plane projection repositories.
 
-The interfaces in this module are deliberately small.  A relational adapter
-implements one atomic authority-plus-outbox call; it must not expose a second
-write path.  A GraphOS adapter receives only an :class:`OutboxEnvelope` and a
-fencing term.  Checkpoint advancement is a separate compare-and-set operation,
-so a failed projection never changes relational authority and a lost lease
-cannot move a cursor.
+The persistence interfaces live in :mod:`.protocols`; they are re-exported
+here for compatibility with existing adapters.  This module owns only the
+contract validation and authority commit helpers used by the projector.
 """
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
-
+from .authority import AtomicAuthorityRepository
 from .models import (
     AtomicCommitReceipt,
     AuthoritativeMutation,
-    GraphProjectionReceipt,
     OutboxEnvelope,
-    ProjectionCheckpoint,
-    ProjectionScope,
+)
+from .observability import DriftSink
+from .protocols import (
+    CheckpointStore,
+    GraphOSProjection,
+    OutboxReader,
+    TombstoneReader,
 )
 
 __all__ = [
@@ -51,93 +51,6 @@ class CheckpointConflict(ProjectionContractError):
 
 class ReverseSyncRejected(ProjectionContractError):
     """GraphOS projection data cannot become authority through reverse sync."""
-
-
-@runtime_checkable
-class AtomicAuthorityRepository(Protocol):
-    """The sole persistence seam for an authoritative mutation.
-
-    ``commit_authority_and_outbox`` is one transaction from the adapter's point
-    of view: the authoritative row and its event are committed together, or
-    neither is visible.  ``event`` is ``None`` only for a rollback, which is a
-    local authority action and intentionally emits no projection event.
-    """
-
-    def commit_authority_and_outbox(
-        self,
-        mutation: AuthoritativeMutation,
-        event: OutboxEnvelope | None,
-    ) -> AtomicCommitReceipt:
-        """Atomically commit authority and its optional outbox event."""
-
-
-@runtime_checkable
-class OutboxReader(Protocol):
-    """Bounded keyset reader over immutable events for one aggregate scope."""
-
-    def read_after(
-        self,
-        scope: ProjectionScope,
-        after_sequence: int,
-        limit: int,
-    ) -> tuple[OutboxEnvelope, ...]:
-        """Return at most ``limit`` events strictly after ``after_sequence``."""
-
-
-@runtime_checkable
-class TombstoneReader(Protocol):
-    """Bounded reader for already-projected tombstones eligible for cleanup."""
-
-    def read_tombstones_before(
-        self,
-        scope: ProjectionScope,
-        before_sequence: int,
-        limit: int,
-    ) -> tuple[OutboxEnvelope, ...]:
-        """Return tombstones in ascending sequence order, never raw records."""
-
-
-@runtime_checkable
-class CheckpointStore(Protocol):
-    """Durable fenced keyset checkpoint authority."""
-
-    def read_checkpoint(self, scope: ProjectionScope) -> ProjectionCheckpoint | None:
-        """Read one checkpoint or ``None`` before the first event."""
-
-    def save_checkpoint(
-        self,
-        scope: ProjectionScope,
-        expected: ProjectionCheckpoint | None,
-        checkpoint: ProjectionCheckpoint,
-    ) -> None:
-        """CAS-save a checkpoint and reject stale fence/expected state."""
-
-    def reset_checkpoint(self, scope: ProjectionScope, fence_token: int) -> None:
-        """Reset one projection cursor under the current fencing term."""
-
-
-@runtime_checkable
-class GraphOSProjection(Protocol):
-    """GraphOS write projection with event-id idempotency."""
-
-    def apply_event(
-        self, event: OutboxEnvelope, fence_token: int
-    ) -> GraphProjectionReceipt:
-        """Apply one event, returning a replay receipt for an existing event ID."""
-
-    def reset_projection(self, scope: ProjectionScope, fence_token: int) -> None:
-        """Clear only this projection scope for deterministic rebuild."""
-
-    def cleanup_tombstone(self, event: OutboxEnvelope, fence_token: int) -> None:
-        """Remove one previously projected tombstone under the same fence."""
-
-
-@runtime_checkable
-class DriftSink(Protocol):
-    """Durable/observable sink for bounded projection discrepancies."""
-
-    def record(self, drift: object) -> None:
-        """Persist one typed drift record without raw exception text."""
 
 
 def reject_reverse_sync(*, source: str) -> None:

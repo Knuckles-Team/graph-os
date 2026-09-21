@@ -17,6 +17,7 @@ from pydantic import Field, StrictBool
 
 from graph_os.control_plane._model import ControlPlaneModel as ProtocolModel
 
+from .authority import AtomicAuthorityRepository
 from .models import (
     MAX_BATCH_SIZE,
     AtomicCommitReceipt,
@@ -32,15 +33,16 @@ from .models import (
     SummaryValue,
     sha256_digest,
 )
-from .repository import (
-    AtomicAuthorityRepository,
-    CheckpointConflict,
+from .observability import DriftSink
+from .protocols import (
     CheckpointStore,
-    DriftSink,
     GraphOSProjection,
     OutboxReader,
-    ProjectionContractError,
     TombstoneReader,
+)
+from .repository import (
+    CheckpointConflict,
+    ProjectionContractError,
     _commit_validated_change,
     _validate_event_matches_mutation,
 )

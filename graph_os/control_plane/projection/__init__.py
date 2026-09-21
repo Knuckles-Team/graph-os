@@ -1,5 +1,6 @@
 """Transactional control-plane outbox and ordered GraphOS projection core."""
 
+from .authority import AtomicAuthorityRepository
 from .models import (
     MAX_BATCH_SIZE,
     MAX_SUMMARY_FIELDS,
@@ -27,23 +28,24 @@ from .models import (
     observation_promotion_id_for,
     sha256_digest,
 )
+from .observability import DriftSink
 from .projector import (
     ProjectionBatchResult,
     ProjectionCleanupResult,
     ProjectionService,
     promote_graph_observation,
 )
-from .repository import (
-    AtomicAuthorityRepository,
-    CheckpointConflict,
+from .protocols import (
     CheckpointStore,
-    DriftSink,
     GraphOSProjection,
     OutboxReader,
+    TombstoneReader,
+)
+from .repository import (
+    CheckpointConflict,
     ProjectionContractError,
     ProjectionRepositoryUnavailable,
     ReverseSyncRejected,
-    TombstoneReader,
     commit_authoritative_change,
     reject_reverse_sync,
 )
