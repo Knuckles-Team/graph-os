@@ -193,6 +193,16 @@ def _commit_validated_change(
 ) -> AtomicCommitReceipt:
     """Commit an already-policy-validated mutation through the one adapter seam."""
 
+    _validate_commit_event(mutation, event)
+    receipt = _commit_authority_and_outbox(repository, mutation, event)
+    _validate_commit_receipt(receipt, mutation, event)
+    return receipt
+
+
+def _validate_commit_event(
+    mutation: AuthoritativeMutation,
+    event: OutboxEnvelope | None,
+) -> None:
     if mutation.operation == "rollback":
         if event is not None:
             raise ProjectionContractError("rollback_must_not_emit_event")
@@ -200,8 +210,15 @@ def _commit_validated_change(
         raise ProjectionContractError("forward_mutation_requires_outbox_event")
     else:
         _validate_event_matches_mutation(mutation, event)
+
+
+def _commit_authority_and_outbox(
+    repository: AtomicAuthorityRepository,
+    mutation: AuthoritativeMutation,
+    event: OutboxEnvelope | None,
+) -> AtomicCommitReceipt:
     try:
-        receipt = repository.commit_authority_and_outbox(mutation, event)
+        return repository.commit_authority_and_outbox(mutation, event)
     except ReverseSyncRejected:
         raise
     except ProjectionContractError:
@@ -212,6 +229,13 @@ def _commit_validated_change(
         raise ProjectionRepositoryUnavailable(
             "authority_transaction_unavailable"
         ) from exc
+
+
+def _validate_commit_receipt(
+    receipt: AtomicCommitReceipt,
+    mutation: AuthoritativeMutation,
+    event: OutboxEnvelope | None,
+) -> None:
     if receipt.mutation_id != mutation.mutation_id:
         raise ProjectionContractError("authority_receipt_mutation_mismatch")
     if (
@@ -225,4 +249,3 @@ def _commit_validated_change(
         raise ProjectionContractError("rollback_receipt_contains_event")
     if event is not None and receipt.event_id != event.event_id:
         raise ProjectionContractError("authority_receipt_event_mismatch")
-    return receipt

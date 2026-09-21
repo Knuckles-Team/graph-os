@@ -549,6 +549,11 @@ class RetrievalResult(_FrozenModel):
 
     @model_validator(mode="after")
     def _result_is_authorized(self) -> RetrievalResult:
+        self._validate_result_identity()
+        self._validate_result_hits()
+        return self
+
+    def _validate_result_identity(self) -> None:
         if self.authorization.request_id != self.request.request_id:
             raise ValueError("result_request_identity_drift")
         if self.authorization.tenant_ref != self.request.tenant_ref:
@@ -559,6 +564,8 @@ class RetrievalResult(_FrozenModel):
             raise ValueError("result_index_drift")
         if self.authorization.generation_id != self.request.index_ref.generation_id:
             raise ValueError("result_generation_drift")
+
+    def _validate_result_hits(self) -> None:
         if len(self.hits) > self.request.limit:
             raise ValueError("result_limit_exceeded")
         seen = set()
@@ -574,7 +581,6 @@ class RetrievalResult(_FrozenModel):
             if hit.chunk.chunk_key in seen:
                 raise ValueError("result_duplicate_chunk")
             seen.add(hit.chunk.chunk_key)
-        return self
 
     @property
     def retrieval_digest(self) -> str:

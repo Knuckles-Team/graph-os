@@ -217,20 +217,7 @@ class InMemoryEconomicsRepository:
         rows = [
             aggregate
             for _, aggregate in self._aggregates.values()
-            if aggregate.tenant_id == request.scope.tenant_id
-            and (
-                request.granularity is None
-                or aggregate.window.granularity == request.granularity
-            )
-            and (
-                request.allocation_project_ref is None
-                or aggregate.allocation.project_ref == request.allocation_project_ref
-            )
-            and (
-                request.allocation_cost_center_ref is None
-                or aggregate.allocation.cost_center_ref
-                == request.allocation_cost_center_ref
-            )
+            if _matches_usage_window(aggregate, request)
         ]
         rows.sort(key=lambda row: (row.window.window_start, row.aggregate_id))
         if request.after is not None:
@@ -303,6 +290,27 @@ def _rollup_key(rollup: SloWindowRollup) -> str:
 def _matches_slo_rollup(rollup: SloWindowRollup, request: SloReadRequest) -> bool:
     return rollup.tenant_id == request.scope.tenant_id and (
         request.objective_id is None or rollup.objective_id == request.objective_id
+    )
+
+
+def _matches_usage_window(
+    aggregate: WindowAggregate, request: UsageReadRequest
+) -> bool:
+    return (
+        aggregate.tenant_id == request.scope.tenant_id
+        and (
+            request.granularity is None
+            or aggregate.window.granularity == request.granularity
+        )
+        and (
+            request.allocation_project_ref is None
+            or aggregate.allocation.project_ref == request.allocation_project_ref
+        )
+        and (
+            request.allocation_cost_center_ref is None
+            or aggregate.allocation.cost_center_ref
+            == request.allocation_cost_center_ref
+        )
     )
 
 

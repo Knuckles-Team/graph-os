@@ -239,7 +239,16 @@ class AgentBindings(ProtocolModel):
 
     @model_validator(mode="after")
     def bindings_are_normalized_and_acyclic(self) -> AgentBindings:
-        groups = (
+        all_items = self.all_bindings
+        groups = self._binding_groups()
+        self._validate_binding_groups(groups, all_items)
+        self._validate_binding_dependencies(all_items)
+        return self
+
+    def _binding_groups(
+        self,
+    ) -> tuple[tuple[str, tuple[ArtifactBinding, ...]], ...]:
+        return (
             ("configuration", (self.configuration,)),
             ("model", (self.model,)),
             ("prompt", (self.prompt,)),
@@ -248,7 +257,12 @@ class AgentBindings(ProtocolModel):
             ("connector", self.connectors),
             ("workflow", self.workflows),
         )
-        all_items = self.all_bindings
+
+    def _validate_binding_groups(
+        self,
+        groups: tuple[tuple[str, tuple[ArtifactBinding, ...]], ...],
+        all_items: tuple[ArtifactBinding, ...],
+    ) -> None:
         ids = [item.binding_id for item in all_items]
         if len(set(ids)) != len(ids):
             raise ValueError("agent binding identities must be unique")
@@ -263,6 +277,10 @@ class AgentBindings(ProtocolModel):
             if tuple(sorted(items, key=lambda item: item.binding_id)) != items:
                 raise ValueError("agent binding groups must be sorted by binding id")
 
+    def _validate_binding_dependencies(
+        self, all_items: tuple[ArtifactBinding, ...]
+    ) -> None:
+        ids = [item.binding_id for item in all_items]
         known = set(ids)
         dependencies = {item.binding_id: set(item.depends_on) for item in all_items}
         if any(
@@ -274,21 +292,25 @@ class AgentBindings(ProtocolModel):
 
         visiting: set[str] = set()
         visited: set[str] = set()
-
-        def visit(binding_id: str) -> None:
-            if binding_id in visiting:
-                raise ValueError("agent binding dependency graph contains a cycle")
-            if binding_id in visited:
-                return
-            visiting.add(binding_id)
-            for dependency in dependencies[binding_id]:
-                visit(dependency)
-            visiting.remove(binding_id)
-            visited.add(binding_id)
-
         for binding_id in ids:
-            visit(binding_id)
-        return self
+            _visit_binding(binding_id, dependencies, visiting, visited)
+
+
+def _visit_binding(
+    binding_id: str,
+    dependencies: dict[str, set[str]],
+    visiting: set[str],
+    visited: set[str],
+) -> None:
+    if binding_id in visiting:
+        raise ValueError("agent binding dependency graph contains a cycle")
+    if binding_id in visited:
+        return
+    visiting.add(binding_id)
+    for dependency in dependencies[binding_id]:
+        _visit_binding(dependency, dependencies, visiting, visited)
+    visiting.remove(binding_id)
+    visited.add(binding_id)
 
 
 def binding_set_digest(bindings: AgentBindings) -> str:
