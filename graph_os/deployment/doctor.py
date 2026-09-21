@@ -5144,11 +5144,12 @@ def _check_a2a_persistence() -> dict[str, Any]:
 
     try:
         from agent_utilities.core.config import AgentConfig
-        from agent_utilities.protocols.a2a_epistemic import (
+        from epistemic_graph.client import BrokerClient, NodeClient, TxnClient
+
+        from graph_os.a2a import (
             EpistemicGraphA2ABroker,
             EpistemicGraphA2AStorage,
         )
-        from epistemic_graph.client import BrokerClient, NodeClient, TxnClient
 
         cfg = AgentConfig()
     except Exception as exc:  # noqa: BLE001 - doctor reports no configuration values
