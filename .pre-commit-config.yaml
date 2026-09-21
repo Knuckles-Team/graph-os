@@ -174,7 +174,7 @@ repos:
 
   - id: pytest
     name: pytest (full suite)
-    entry: bash -c 'uv run --extra test pytest'
+    entry: uv run --extra test python -m pytest
     language: system
     pass_filenames: false
     always_run: true

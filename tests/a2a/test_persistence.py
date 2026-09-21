@@ -362,6 +362,33 @@ def _run_params(task: Task) -> dict[str, Any]:
     }
 
 
+async def _submitted_broker() -> tuple[
+    FakeBroker,
+    FakeNodes,
+    EpistemicGraphA2AStorage,
+    Task,
+    EpistemicGraphA2ABroker,
+]:
+    runtime, native, nodes, _txn = _runtime()
+    storage = EpistemicGraphA2AStorage(runtime)
+    task = await storage.submit_task("context", _message())
+    broker = EpistemicGraphA2ABroker(runtime, storage, reconcile_interval_ms=60_000)
+    return native, nodes, storage, task, broker
+
+
+async def _assert_poison_is_nacked_before_valid_run(
+    broker: EpistemicGraphA2ABroker,
+    native: FakeBroker,
+    task: Task,
+) -> None:
+    iterator = broker.receive_task_operations()
+    operation = await anext(iterator)
+    assert operation["operation"] == "run"
+    assert native.nacks and native.nacks[0][1] is False
+    assert operation["params"]["id"] == task["id"]
+    await iterator.aclose()
+
+
 def test_adapter_is_pinned_to_fenced_current_engine_contract() -> None:
     from epistemic_graph.client import BrokerClient, NodeClient
 
@@ -515,10 +542,7 @@ async def test_payload_digest_tamper_is_rejected_before_load_or_cas() -> None:
 
 @pytest.mark.asyncio
 async def test_dispatch_reconciler_closes_create_publish_window_idempotently() -> None:
-    runtime, native, nodes, _txn = _runtime()
-    storage = EpistemicGraphA2AStorage(runtime)
-    task = await storage.submit_task("context", _message())
-    broker = EpistemicGraphA2ABroker(runtime, storage, reconcile_interval_ms=60_000)
+    native, nodes, _storage, task, broker = await _submitted_broker()
 
     async with broker:
         assert len(native.messages) == 1
@@ -533,10 +557,7 @@ async def test_dispatch_reconciler_closes_create_publish_window_idempotently() -
 
 @pytest.mark.asyncio
 async def test_http_cancel_is_durable_before_cancel_dispatch() -> None:
-    runtime, native, nodes, _txn = _runtime()
-    storage = EpistemicGraphA2AStorage(runtime)
-    task = await storage.submit_task("context", _message())
-    broker = EpistemicGraphA2ABroker(runtime, storage, reconcile_interval_ms=60_000)
+    native, nodes, storage, task, broker = await _submitted_broker()
 
     async with broker:
         await broker.cancel_task({"id": task["id"]})
@@ -657,10 +678,7 @@ async def test_context_and_terminal_task_commit_in_one_transaction() -> None:
 
 @pytest.mark.asyncio
 async def test_deep_poison_payload_is_nacked_without_stopping_consumer() -> None:
-    runtime, native, _nodes, _txn = _runtime()
-    storage = EpistemicGraphA2AStorage(runtime)
-    task = await storage.submit_task("context", _message())
-    broker = EpistemicGraphA2ABroker(runtime, storage, reconcile_interval_ms=60_000)
+    native, _nodes, _storage, task, broker = await _submitted_broker()
 
     async with broker:
         nested: Any = "leaf"
@@ -671,30 +689,17 @@ async def test_deep_poison_payload_is_nacked_without_stopping_consumer() -> None
                 {"schema_version": 1, "operation": "run", "params": nested}
             ).encode()
         )
-        iterator = broker.receive_task_operations()
-        operation = await anext(iterator)
-        assert operation["operation"] == "run"
-        assert native.nacks and native.nacks[0][1] is False
-        assert operation["params"]["id"] == task["id"]
-        await iterator.aclose()
+        await _assert_poison_is_nacked_before_valid_run(broker, native, task)
 
 
 @pytest.mark.asyncio
 async def test_noncanonical_hex_payload_is_nacked_without_stopping_consumer() -> None:
-    runtime, native, _nodes, _txn = _runtime()
-    storage = EpistemicGraphA2AStorage(runtime)
-    task = await storage.submit_task("context", _message())
-    broker = EpistemicGraphA2ABroker(runtime, storage, reconcile_interval_ms=60_000)
+    native, _nodes, _storage, task, broker = await _submitted_broker()
 
     async with broker:
         native.inject(b"{}")
         native.messages[0]["payload"] = "7b 7d"
-        iterator = broker.receive_task_operations()
-        operation = await anext(iterator)
-        assert operation["operation"] == "run"
-        assert native.nacks and native.nacks[0][1] is False
-        assert operation["params"]["id"] == task["id"]
-        await iterator.aclose()
+        await _assert_poison_is_nacked_before_valid_run(broker, native, task)
 
 
 @pytest.mark.asyncio
@@ -753,5 +758,6 @@ async def test_list_tasks_filters_foreign_tenant_and_uses_bound_cursor() -> None
     assert [item["id"] for item in tasks] == [task["id"]]
     assert cursor is not None and task["id"] in cursor
 
+    replacement = f"{int(cursor[0], 16) ^ 1:x}"
     with pytest.raises(ValueError, match="cursor"):
-        await storage.list_tasks(after="0" + cursor[1:], limit=1)
+        await storage.list_tasks(after=replacement + cursor[1:], limit=1)

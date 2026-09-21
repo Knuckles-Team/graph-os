@@ -128,7 +128,7 @@ def test_inline_credentials_are_never_serialized(tmp_path):
         id="service",
         name="Service",
         widget_type="portainer",
-        api_key="top-secret",
+        api_key="top-secret",  # sanitizer:ignore - synthetic serialization fixture, not a live credential
         username="private-user",
         password="private-password",
         credential_refs={"api_key": "env://SERVICE_API_KEY"},

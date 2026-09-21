@@ -78,7 +78,9 @@ def test_openai_catalog_static_ok_without_network_call(monkeypatch):
         creds_module.CredentialResolver,
         "resolve",
         lambda self, provider: _Creds(
-            provider, api_key="sk-should-never-appear-in-report", source="secret_ref"
+            provider,
+            api_key="sk-should-never-appear-in-report",  # sanitizer:ignore - synthetic redaction fixture, not a live credential
+            source="secret_ref",
         ),
     )
     res = D._check_openai_catalog(live=False)
