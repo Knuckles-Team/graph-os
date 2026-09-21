@@ -1306,6 +1306,7 @@ ACTION_TOOL_ROUTES: dict[str, str] = {
     "graph_candidate_claims": "/graph/candidate-claims",
     "skill_classify": "/skill/classify",
     "browser_control": "/browser/control",
+    "graph_a2a": "/graph/a2a",
 }
 
 # Immutable seed used by deterministic catalog generators. Runtime registrars
@@ -3192,6 +3193,7 @@ def _build_server(
     from agent_utilities.mcp import tools as agent_tools
     from agent_utilities.mcp.verbose_tools import register_tool_surface, tool_mode
 
+    from graph_os.a2a.mcp import register_a2a_tools
     from graph_os.browser_control.mcp import register_browser_control_tools
 
     # graph-os is an action-routed wrapper over the API gateway's action core. The
@@ -3235,6 +3237,7 @@ def _build_server(
             agent_tools.register_argument_tools,
             agent_tools.register_durable_tools,
             register_browser_control_tools,
+            register_a2a_tools,
         ],
         verbose_register=register_graphos_verbose_tools,
         mode_override=tool_profile,

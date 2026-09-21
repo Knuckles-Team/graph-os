@@ -2,22 +2,58 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any, Protocol, runtime_checkable
 
-from fasta2a.schema import Skill
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from .service import A2AIdempotencyConflict, A2AService
+from .authority import A2AIdempotencyConflict, A2ATaskNotCancelable
+from .models import A2AMessage
+from .routing import A2AAssemblyUnavailable
+from .service import A2AService
 
-__all__ = ["A2AAuthenticator", "create_a2a_application"]
+__all__ = [
+    "A2AAuthenticator",
+    "AmbientA2AAuthenticator",
+    "create_a2a_application",
+    "create_a2a_handlers",
+]
 
 
 @runtime_checkable
 class A2AAuthenticator(Protocol):
-    async def authenticate(self, request: Request) -> None:
-        """Verify caller identity, tenant binding, and A2A scopes or fail closed."""
+    async def authenticate(self, request: Request, *, scope: str) -> None:
+        """Verify caller identity, tenant binding, and required scope."""
+
+
+class AmbientA2AAuthenticator:
+    """Require the request identity middleware's verified GraphSession."""
+
+    async def authenticate(self, request: Request, *, scope: str) -> None:  # noqa: ARG002
+        from agent_utilities.knowledge_graph.core.session import resolve_session
+
+        resolve_session(required_scope=scope)
+
+
+class _Params(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+
+class _SendParams(_Params):
+    message: A2AMessage
+    context_budget_tokens: int | None = Field(
+        default=None, alias="contextBudgetTokens", ge=256, le=1_000_000
+    )
+
+
+class _TaskParams(_Params):
+    id: str = Field(min_length=1, max_length=80)
+
+
+class _ListParams(_Params):
+    cursor: str | None = Field(default=None, max_length=1024)
+    limit: int = Field(default=50, ge=1, le=100)
 
 
 def _error(request_id: Any, code: int, message: str, status: int = 400) -> JSONResponse:
@@ -28,6 +64,7 @@ def _error(request_id: Any, code: int, message: str, status: int = 400) -> JSONR
             "error": {"code": code, "message": message},
         },
         status_code=status,
+        headers={"Cache-Control": "no-store"},
     )
 
 
@@ -49,85 +86,81 @@ async def _request_envelope(
     return request_id, method, params
 
 
-def create_a2a_application(
-    *,
-    service: A2AService,
-    authenticator: A2AAuthenticator,
-    name: str,
-    description: str,
-    version: str,
-    endpoint_url: str,
-    skills: Sequence[Skill] = (),
-) -> FastAPI:
-    """Build the unary-only boundary. Streaming and push are truthfully disabled."""
+def create_a2a_handlers(
+    *, service: A2AService, authenticator: A2AAuthenticator
+) -> tuple[Any, Any]:
+    """Create route handlers reusable by standalone FastAPI and FastMCP."""
     if not isinstance(authenticator, A2AAuthenticator):
         raise TypeError("authenticator does not implement A2AAuthenticator")
-    app = FastAPI(title=f"{name} A2A", version=version)
 
-    async def authorize(request: Request) -> None:
-        await authenticator.authenticate(request)
-
-    async def send_message(request: Request, params: dict[str, Any]) -> Any:
-        key = request.headers.get("Idempotency-Key", "")
-        if not key:
-            raise ValueError("Idempotency-Key is required")
-        return await service.send_message(
-            message=params["message"],
-            context_id=params.get("contextId") or params.get("context_id"),
-            idempotency_key=key,
+    async def agent_card(request: Request) -> JSONResponse:
+        await authenticator.authenticate(request, scope="kg:read")
+        endpoint = str(request.url.replace(path="/a2a", query=""))
+        return JSONResponse(
+            service.agent_card(endpoint).model_dump(mode="json", by_alias=True),
+            headers={"Cache-Control": "no-store"},
         )
 
-    async def get_task(_request: Request, params: dict[str, Any]) -> Any:
-        return await service.get_task(str(params.get("id") or ""))
-
-    async def list_tasks(_request: Request, params: dict[str, Any]) -> Any:
-        tasks, cursor = await service.list_tasks(
-            cursor=params.get("cursor"), limit=int(params.get("limit", 50))
-        )
-        return {"tasks": tasks, "nextCursor": cursor}
-
-    async def cancel_task(_request: Request, params: dict[str, Any]) -> Any:
-        return await service.cancel_task(str(params.get("id") or ""))
-
-    handlers = {
-        "message/send": send_message,
-        "tasks/get": get_task,
-        "tasks/list": list_tasks,
-        "tasks/cancel": cancel_task,
-    }
-
-    @app.get("/.well-known/agent-card.json")
-    async def agent_card(request: Request) -> dict[str, Any]:
-        await authorize(request)
-        return {
-            "name": name,
-            "description": description,
-            "version": version,
-            "url": endpoint_url,
-            "capabilities": {"streaming": False, "pushNotifications": False},
-            "defaultInputModes": ["text"],
-            "defaultOutputModes": ["text"],
-            "skills": list(skills),
-        }
-
-    @app.post("/a2a")
     async def json_rpc(request: Request) -> JSONResponse:
-        await authorize(request)
         envelope = await _request_envelope(request)
         if isinstance(envelope, JSONResponse):
             return envelope
-        request_id, method, params = envelope
-        handler = handlers.get(method)
-        if handler is None:
-            return _error(request_id, -32601, "Method not found", 404)
+        request_id, method, raw_params = envelope
+        scope = "kg:write" if method in {"message/send", "tasks/cancel"} else "kg:read"
+        await authenticator.authenticate(request, scope=scope)
         try:
-            result = await handler(request, params)
+            if method == "message/send":
+                send_params = _SendParams.model_validate(raw_params)
+                key = request.headers.get("Idempotency-Key", "")
+                if not key:
+                    raise ValueError("Idempotency-Key is required")
+                result: Any = await service.send_message(
+                    message=send_params.message,
+                    idempotency_key=key,
+                    context_budget_tokens=send_params.context_budget_tokens,
+                )
+            elif method == "tasks/get":
+                task_params = _TaskParams.model_validate(raw_params)
+                result = await service.get_task(task_params.id)
+                if result is None:
+                    return _error(request_id, -32001, "Task not found", 404)
+            elif method == "tasks/list":
+                list_params = _ListParams.model_validate(raw_params)
+                result = await service.list_tasks(
+                    cursor=list_params.cursor, limit=list_params.limit
+                )
+            elif method == "tasks/cancel":
+                cancel_params = _TaskParams.model_validate(raw_params)
+                result = await service.cancel_task(cancel_params.id)
+            else:
+                return _error(request_id, -32601, "Method not found", 404)
         except A2AIdempotencyConflict as exc:
             return _error(request_id, -32009, str(exc), 409)
-        except (KeyError, TypeError, ValueError) as exc:
-            return _error(request_id, -32602, str(exc))
-        if result is None and method == "tasks/get":
-            return _error(request_id, -32001, "Task not found", 404)
-        return JSONResponse({"jsonrpc": "2.0", "id": request_id, "result": result})
+        except A2AAssemblyUnavailable as exc:
+            return _error(request_id, -32003, str(exc), 503)
+        except A2ATaskNotCancelable as exc:
+            return _error(request_id, -32002, str(exc), 409)
+        except (ValidationError, TypeError, ValueError):
+            # Pydantic errors may echo caller text in ``input_value``. Keep the
+            # wire error stable and privacy-safe; details belong in local logs.
+            return _error(request_id, -32602, "Invalid params")
+        payload = result.model_dump(mode="json", by_alias=True)
+        return JSONResponse(
+            {"jsonrpc": "2.0", "id": request_id, "result": payload},
+            headers={"Cache-Control": "no-store"},
+        )
 
+    return agent_card, json_rpc
+
+
+def create_a2a_application(
+    *, service: A2AService, authenticator: A2AAuthenticator
+) -> FastAPI:
+    metadata = service.card_metadata
+    app = FastAPI(title=f"{metadata.name} A2A", version=metadata.version)
+    card_handler, rpc_handler = create_a2a_handlers(
+        service=service, authenticator=authenticator
+    )
+    app.add_api_route("/.well-known/agent-card.json", card_handler, methods=["GET"])
+    app.add_api_route("/a2a", rpc_handler, methods=["POST"])
     return app

@@ -16,6 +16,7 @@ nav:
   - Fleet gateway: fleet.md
   - Gateway: gateway.md
   - MCP server: mcp-server.md
+  - Unary A2A: a2a.md
   - Browser control: browser-control-service.md
   - Quality gate terms: quality-gate-terms.md
 

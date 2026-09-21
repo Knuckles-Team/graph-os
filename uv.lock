@@ -902,25 +902,6 @@ wheels = [
 ]
 
 [[package]]
-name = "fasta2a"
-version = "0.6.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "pydantic" },
-    { name = "starlette" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/28/35949997804129537becf17d0635b8b2b67036589a4da851e44a053857fc/fasta2a-0.6.1.tar.gz", hash = "sha256:e97b92771ad338166b1516dcbb687c9f3f8392a5cd5820542ec4b75ff5219a48", size = 1453473, upload-time = "2026-05-15T20:51:22.059Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/21/21/4d7e00c10bb4ec33a196efc55190ae086e97f5f487945bdfceb94df3e8d8/fasta2a-0.6.1-py3-none-any.whl", hash = "sha256:1b5369ee1b62405eebafa6d71c57c9e40a1a3f0dcbae5ec3aa6ee450361028dd", size = 28888, upload-time = "2026-05-15T20:51:20.222Z" },
-]
-
-[package.optional-dependencies]
-pydantic-ai = [
-    { name = "pydantic-ai-slim" },
-]
-
-[[package]]
 name = "fastapi"
 version = "0.141.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1041,7 +1022,6 @@ dependencies = [
     { name = "agent-utilities", extra = ["mcp"] },
     { name = "anyio" },
     { name = "epistemic-graph" },
-    { name = "fasta2a", extra = ["pydantic-ai"] },
     { name = "fastapi" },
     { name = "fastmcp" },
     { name = "filelock" },
@@ -1074,7 +1054,6 @@ requires-dist = [
     { name = "agent-webui", marker = "extra == 'webui'", editable = ".uv-workspace-siblings/agent-webui" },
     { name = "anyio", specifier = ">=4.13.0" },
     { name = "epistemic-graph", specifier = ">=2.27.0,<3.0.0" },
-    { name = "fasta2a", extras = ["pydantic-ai"], specifier = ">=0.6.1,<1.0.0" },
     { name = "fastapi", specifier = ">=0.139.2" },
     { name = "fastmcp", specifier = ">=4.0.0b1" },
     { name = "filelock", specifier = ">=3.32.0" },

@@ -17,6 +17,7 @@ the current deployment).
 | `graph_os.control_plane` | fleet reconciliation / action policy | Yes — authoritative; AU runtime copy removed in `4d930326c` |
 | `graph_os.webui_host` | agent-webui hosting | Yes — extracted; composition cutover pending |
 | `graph_os.deployment` | host deployment, doctor, release canary, production ops | **Yes — extracted** |
+| `graph_os.a2a` | authenticated Agent Card and unary send/get/list/cancel projection | **Yes — WorkItem-backed; subset assembly blocked upstream** |
 
 The native fleet runtime is `graph_os.fleet.multiplexer.MCPMultiplexer` and
 `attach_fleet_loader()`. A serving composition passes the typed

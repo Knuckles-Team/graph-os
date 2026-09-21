@@ -26,7 +26,6 @@ dependencies = [
     # directly; keep these first-party runtime requirements explicit rather
     # than relying on AU's optional extra to expose them transitively.
     "anyio>=4.13.0",
-    "fasta2a[pydantic-ai]>=0.6.1,<1.0.0",
     # Production operations and the canary call the public client/numeric
     # surface directly; AU's transitive requirement is not enough for this
     # package's own imports.  The local AU binding supplies the workspace EG
