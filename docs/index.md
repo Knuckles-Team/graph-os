@@ -1,22 +1,34 @@
-# graph-os
+# GraphOS
 
-graph-os is the **deployable composition** for the agent-utilities agent plane:
-the MCP server, REST gateway, control plane, fleet gateway, agent-webui
-hosting, and deployment tooling that a running graph-os instance is made of.
+GraphOS is the deployable composition layer for the Knuckles agent platform. It
+hosts the MCP and REST boundaries, supervises the MCP fleet, applies
+control-plane policy, optionally co-hosts Agent WebUI, and provides deployment
+and health tooling around the agent and graph services.
 
-This split is defined by **RF-ADR-009**
-(`plans/refactor/RF-ADR-009-connector-sdk-and-graph-os.md` in the workspace) —
-see that document for the full five-layer decision (epistemic-graph,
-agent-connector-sdk, agent-utilities, graph-os, the UIs) and its rationale.
+GraphOS deliberately keeps domain authority elsewhere:
 
-This site is generated from the `docs/` sources in this repository and
-published via GitHub Pages CI (`.github/workflows/pages.yml`) — per RF-ADR-009
-§5, this repository's documentation surface is the **published site**, not a
-`/docs` folder read directly on GitHub.
+- **epistemic-graph** owns durable graph state, RDF/OWL/SHACL semantics,
+  queries, proofs, and provenance;
+- **agent-utilities** owns agent decisions and workflows;
+- **agent-connector-sdk** and connector services own source-specific transport
+  and external effects;
+- **agent-webui** owns browser presentation and local interaction state.
 
-See [Status](status.md) for where this repository stands today.
+GraphOS authenticates, composes, routes, supervises, and projects those
+capabilities through one governed runtime.
 
-The deployment lane is the first W5 host-mechanics extraction. Its `setup-config`,
-`agent-utilities-doctor`, `agent-utilities-venv`, `graph-os-release-canary`, and
-`graph-os-production-ops` scripts are implemented in `graph_os.deployment`;
-service/MCP cutover remains a separate lane.
+## Start here
+
+- [Capability status](status.md) — implemented surfaces and explicit upstream
+  capability gates.
+- [Deployment and configuration](deployment.md) — install, configure, run, and
+  validate a GraphOS instance.
+- [MCP server](mcp-server.md) — process composition and serving lifecycle.
+- [REST gateway](gateway.md) — shared application-service routing.
+- [Fleet gateway](fleet.md) — dynamic MCP discovery and lifecycle.
+- [Unary A2A](a2a.md) — authenticated agent-to-agent projection.
+- [Governed browser control](browser-control-service.md) — attended browser
+  capability admission and dispatch.
+
+The documentation is built from this repository with `mkdocs build --strict`
+and published by the Pages workflow on changes to `main`.

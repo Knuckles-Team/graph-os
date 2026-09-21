@@ -49,33 +49,19 @@ same served authority. Widget calls discover the child's admitted schema before
 delegation. The doctor proves `langfuse_observability` posture and a bounded
 trace read through the child MCP tool. The release canary independently checks
 the catalog declaration, launcher, and advertised tool; none of these paths
-imports a connector package. Langfuse reads no longer trigger a GraphOS-owned
-knowledge-graph ingestion side effect—durable ingestion remains the SDK/EG
-runner contract from RF-ADR-009.
+imports a connector package. Langfuse reads do not trigger a GraphOS-owned
+knowledge-graph ingestion side effect: durable source ingestion belongs to the
+connector SDK and epistemic-graph contract.
 
-## G2 cutover checklist
+## Composition invariants
 
-1. The graph-os MCP composition imports `attach_fleet_loader` and
-   `SessionVisibilityMiddleware` from `graph_os.fleet`, supplies the EG reader,
-   and refreshes the catalog before child startup.
-2. The MCP composition binds the returned instance through
-   `graph_os.fleet.shared_multiplexer` so REST and WebUI consumers observe the
-   same lifecycle, health, OAuth, and discovery state. A FastMCP extension
-   claims the owner loop during server lifespan startup; co-services use only
-   the async submission API.
-3. Gateway route composition installs its `GatewayApplicationPort` before
-   `register_graph_routes()` and delegates fleet OAuth/toggle reads to that
-   same instance.
-4. Cut over AU consumers atomically: `mcp/kg_server.py` (composition and
-   probe-port binding), `mcp/shared_multiplexer.py`,
-   `server/routers/mcp_catalog.py`, `server/webui_mcp_delegation.py`,
-   `gateway/registry_api.py`, `mcp/tools/intent_tools.py`,
-   `capabilities/fleet_tool_search.py`, `orchestration/agent_runner.py`, and
-   `tools/dynamic_tool_orchestrator.py`.
-5. Keep AU's `knowledge_graph/ingestion/fleet_skill_harvest.py` and
-   `fleet_prompt_harvest.py` out of this cutover; pack ingestion is the SDK/EG
-   path. AU release/certification, analytics, and connector-certification
-   scripts remain in their assigned repositories.
+The MCP composition owns `attach_fleet_loader`, installs the gateway
+application port, and binds the returned multiplexer through
+`graph_os.fleet.shared_multiplexer`. REST and WebUI consumers therefore observe
+the same lifecycle, health, OAuth, and discovery state. Co-services use only
+the asynchronous submission API.
 
-The `graph-os` console script and live service deployment remain on the AU MCP
-entrypoint until the coordinated MCP composition cutover is complete.
+The EG-backed catalog reader and durable resource/template reconciliation are
+explicit capability gates. Until their generated engine contracts are live,
+the affected refresh path returns a typed failure and does not fall back to a
+static catalog or process-local durability. See [Capability status](status.md).

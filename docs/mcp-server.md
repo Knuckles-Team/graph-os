@@ -23,7 +23,7 @@ the gateway application adapter, attaches the lazy fleet surface, starts the
 native WebUI host when configured, and then serves `stdio` or
 `streamable-http`. Optional WebUI imports remain lazy.
 
-The extracted EG-native fleet catalog reader is the target authority for the
-fleet loader. Its production read port is blocked on the generated client
-surface for kind-only `AgentComponent.Search`; the current AU lazy loader is
-kept only at the explicit composition boundary until that adapter exists.
+The fleet loader uses GraphOS's native multiplexer. Its EG-backed catalog read
+is capability-gated on the generated kind-only `AgentComponent.Search` client
+contract. When that authority is unavailable, catalog refresh fails closed; it
+does not substitute a static reader. See [Capability status](status.md).

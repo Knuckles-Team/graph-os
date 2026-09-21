@@ -1,10 +1,9 @@
 # Terms of Acceptance — the cccc and KISS gates
 
-This repository has **no exceptions yet** — zero measured functions exist
-over either gate's caps (see `AGENTS.md` "Status": the package is six
-docstring-only placeholders plus a console entry point). This page exists
-now, at scaffold size, so the rule about rules is written down before the
-first real exception is ever needed, not invented under pressure later.
+This repository has **no accepted complexity exceptions**. Every measured
+Python function is subject to the configured cccc and KISS limits. Any future
+exception must be a documented rule about a defensible class of code, never a
+file allowlist, frozen count, or inline suppression.
 
 ## The rule about rules
 
@@ -47,16 +46,10 @@ suppress inline.
 
 ## KISS — this repository's own thresholds
 
-`.kiss/kiss.toml`'s `[python]` table is **KISS 0.4.10's own shipped
-defaults** (`kiss rules`, no `--config`), written down explicitly because
-the tool requires an explicit `[python]` table the moment it scans any
-Python file — not because any of them has been recalibrated. There is no
-measured distribution to calibrate against yet (see "Status" in
-AGENTS.md). When this repository has enough real code to measure one,
-follow epistemic-graph's own KISS section as the worked methodology:
-recalibrate a threshold only against a measured percentile, with the
-measurement written down next to the number, never against "what currently
-passes."
+`.kiss/kiss.toml`'s `[python]` table records the enforced KISS 0.4.10 limits.
+Recalibrate a threshold only from a reviewed measurement that explains why the
+metric misrepresents a class of code. Record the methodology beside the value;
+never tune a threshold merely to make the current tree pass.
 
 ### Orphan-module rule — enforced
 

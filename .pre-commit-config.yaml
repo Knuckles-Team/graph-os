@@ -6,8 +6,8 @@
 # from the shared hook repository Knuckles-Team/pipelines at a pinned commit and
 # is configured in pyproject.toml [tool.pipelines_hooks]; no gate script is
 # copied into this repository. Shared hooks list `manual` so CI runs the
-# identical pinned hook with `--hook-stage manual`. See AGENTS.md "Pre-commit
-# hooks: adopted vs. dropped" for every AU/EG hook NOT reproduced here, and why.
+# identical pinned hook with `--hook-stage manual`. Repository-specific inputs
+# are declared in pyproject.toml `[tool.pipelines_hooks]`.
 default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
 
@@ -87,7 +87,7 @@ repos:
 
 # ── Shared gates (Knuckles-Team/pipelines, pinned) ─────────────────────────────
 - repo: https://github.com/Knuckles-Team/pipelines
-  rev: 8f9a755d97a4a03e069799fa853ba64c6bfecbf7 # refactor/shared-hooks (RF-ADR-009 SHARED-HOOKS)
+  rev: 8f9a755d97a4a03e069799fa853ba64c6bfecbf7 # reviewed shared-hooks revision
   hooks:
   # scanners (pinned versions; never installed by a hook)
   - id: complexity-staged
@@ -153,13 +153,13 @@ repos:
 
 - repo: local
   hooks:
-  # RF-ADR-009 §3: fails when any declared or imported dependency points at a
-  # LATER phase; graph-os is phase 5. It resolves the sibling
+  # Fails when any declared or imported dependency violates the repository
+  # dependency order. It resolves the sibling
   # `repository-manager` checkout from `git rev-parse --git-common-dir` (the
   # shared git dir, stable across linked worktrees) rather than a
   # `$PWD`-relative path, which breaks in a worktree. Falls back to PyPI (CI).
   - id: dependency-readiness
-    name: Dependency readiness — no declared/imported dependency points at a later RF-ADR-009 phase
+    name: Dependency readiness — declared and imported dependencies respect layer order
     entry: >-
       bash -c '
       CANON_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)";

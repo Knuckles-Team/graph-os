@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "graph-os"
 dynamic = ["version"]
-description = "graph-os: the deployable composition for the agent-utilities agent plane — MCP server, REST gateway, control plane, fleet gateway, agent-webui hosting, and deployment tooling (RF-ADR-009)."
+description = "The deployable MCP, REST, control-plane, fleet, WebUI, and operations composition for the Knuckles agent platform."
 readme = "README.md"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -15,9 +15,9 @@ classifiers = [
 ]
 requires-python = ">=3.12,<3.15"
 license = "MIT"
-# W5 extraction follows Wire-First: these are the runtime packages imported by
-# the populated gateway, control-plane, and host-deployment surfaces. Connector
-# widgets delegate through the served fleet and never install connector clients.
+# Runtime requirements imported by the gateway, control plane, and deployment
+# surfaces. Connector widgets delegate through the served fleet and never
+# install connector clients.
 dependencies = [
     # Portable development binding below resolves the not-yet-published AU 2.5
     # workspace release; released wheels retain this real PEP 508 floor.
@@ -94,10 +94,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
-# The deployment sources are extracted from AU's intentionally documented
-# operator-facing style (long remediation/doc strings and guarded imports).
-# Keep the same narrow exceptions while retaining import, correctness, and
-# modern-Python checks for the new graph-os wiring.
+# Deployment modules use long operator remediations and guarded imports. Keep
+# these narrow exceptions while retaining import, correctness, and modern
+# Python checks across GraphOS.
 ignore = ["E402", "E501", "B007"]
 
 [tool.mypy]

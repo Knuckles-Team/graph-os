@@ -3,16 +3,14 @@ name: Pages
 # Builds and publishes the GitHub Pages site from docs/ (mkdocs). Advisory,
 # never release-blocking — mirrors agent-utilities' two-workflow split
 # (release.yml is the only workflow that can block a release; everything else,
-# including Pages, lives outside it). Runs on pushes to `main` only; PRs get no
-# preview deploy at scaffold size.
+# including Pages, lives outside it). Runs on documentation pushes to `main`.
 #
 # NOTE on action pinning: `actions/checkout` and `actions/setup-python` are
 # pinned to the exact commit SHAs this repository's own release.yml uses
 # (verified there). The three Pages-specific actions below are now pinned to
 # full commit SHAs of each action's current release, and `pages`/`id-token`
-# write is scoped to the `deploy` job only — the shared `supply-chain` hook
-# (RF-ADR-009 SUPPLY-CHAIN lane) enforces both (see AGENTS.md "Pre-commit
-# hooks: adopted vs. dropped").
+# write is scoped to the `deploy` job only. The shared `supply-chain` hook
+# enforces both properties.
 on:
   push:
     branches:

@@ -1,50 +1,51 @@
-# Status
+# Capability status
 
-**Partial Migration Wave 5 extraction (RF-ADR-009).** The host-facing deployment
-surface now lives in `graph_os.deployment`: profile/config generation, preflight
-and doctor checks, release canary, production backup/restore validation, venv
-reconciliation, and deterministic backend plans. The REST gateway, control
-plane, fleet gateway/catalog adapter, and WebUI host are also populated here. The live
-service still starts the AU MCP/composition entrypoints in `services/graph-os`
-(see `inventory/k8s-migration/GRAPHOS-LOCAL-REDEPLOY.md` in the workspace for
-the current deployment).
+GraphOS is version `0.1.0` and carries a pre-alpha package classifier. Its main
+runtime packages are implemented and tested. It is not yet correct to describe
+every end-to-end capability as complete: several paths require public contracts
+that are still being completed in adjacent repositories.
 
-| Package | Owns (RF-ADR-009 §2/§2.4) | Populated? |
+GraphOS treats an unavailable authority as a typed, fail-closed result. It does
+not substitute a static catalog, process-local store, legacy import, or
+fabricated success receipt.
+
+## Implemented surfaces
+
+| Package | Current authority |
+|---|---|
+| `graph_os.mcp_server` | Native MCP composition, process authority, action routing, and `stdio`/`streamable-http` serving lifecycle |
+| `graph_os.fleet` | MCP child lifecycle, health, OAuth admission, collision-safe naming, and per-session discovery/loading |
+| `graph_os.gateway` | REST routes, dashboard aggregation, widget projection, and daemon lifecycle |
+| `graph_os.control_plane` | Fleet reconciliation and action-policy enforcement |
+| `graph_os.webui_host` | Optional Agent WebUI co-service supervision |
+| `graph_os.deployment` | Configuration, diagnostics, managed environments, release canary, and production operations |
+| `graph_os.a2a` | Authenticated Agent Card plus unary send/get/list/cancel over durable WorkItems |
+| `graph_os.browser_control` | Attended catalog, lease, policy, dispatch, cancellation, and provenance orchestration |
+
+MCP and REST handlers meet at the same application boundary. Dashboard
+connector widgets delegate through admitted fleet tools rather than importing
+connector clients. The WebUI co-service submits MCP inventory and invocation
+work to the exact multiplexer instance owned by the serving loop.
+
+## Capability-gated paths
+
+| Capability | Current behavior | Required authority |
 |---|---|---|
-| `graph_os.mcp_server` | the graph-os MCP tool/REST surface and serving lifecycle | **Yes — extracted; cutover pending** |
-| `graph_os.fleet` | the fleet gateway / multiplexer | Yes — native runtime + EG catalog seam; composition cutover pending |
-| `graph_os.gateway` | REST gateway + host daemon | Yes — extracted; cutover pending |
-| `graph_os.control_plane` | fleet reconciliation / action policy | Yes — authoritative; AU runtime copy removed in `4d930326c` |
-| `graph_os.webui_host` | agent-webui hosting | Yes — extracted; composition cutover pending |
-| `graph_os.deployment` | host deployment, doctor, release canary, production ops | **Yes — extracted** |
-| `graph_os.a2a` | authenticated Agent Card and unary send/get/list/cancel projection | **Yes — WorkItem-backed; subset assembly blocked upstream** |
+| EG-backed fleet catalog read | Serving refuses the catalog operation when the typed reader is unavailable | Generated kind-only `AgentComponent.Search` client contract from epistemic-graph |
+| Durable four-family catalog reconciliation | Refresh returns `reingestion-unreconciled`; it does not claim publication | Governed generic MCP resource/template durability in epistemic-graph |
+| A2A budget-selected tool subset | A request with a context budget or non-empty selected-tool set is refused before admission | Live `AgentAssemble` support and a signed agent envelope that binds the allowed tool subset |
 
-The native fleet runtime is `graph_os.fleet.multiplexer.MCPMultiplexer` and
-`attach_fleet_loader()`. A serving composition passes the typed
-`FleetCatalogReader` and awaits `refresh_engine_catalog()` before child startup;
-that path does not fall back to a static `mcp_config.json`. The gateway's
-action/engine behavior is supplied by the native MCP composition through an
-explicit application port; request handlers do not import AU's MCP
-implementation. The `graph-os` console script starts the real MCP server.
-Deployment scripts point directly to `graph_os.deployment`; AU release,
-certification, analytics, and connector-certification tooling stay with their
-owning repositories.
+Ordinary authenticated A2A routing to an existing authorized agent remains
+available. Streaming, push notifications, and task transition history are not
+advertised by the Agent Card.
 
-The native EG fleet-catalog reader is present, but the generated EG client on
-this base does not yet expose the kind-only `AgentComponent.Search` read adapter
-the reader requires. The served composition now uses the native graph-os
-multiplexer and fails closed at that typed catalog seam; it does not fall back
-to AU's former multiplexer or fabricate a static-to-EG adapter.
+## Release posture
 
-The served multiplexer now has one explicit FastMCP-loop owner. The WebUI
-co-service's MCP inventory, invocation, and resource reads use GraphOS-native
-async submission to that exact instance; there is no AU WebUI adapter import,
-detached multiplexer, or synchronous cross-loop wait. Durable four-family
-re-ingestion remains capability-gated until EG exposes its generic MCP
-resource/template authority, so refresh fails with
-`reingestion-unreconciled` instead of fabricating a convergence receipt.
+The repository builds a Python wheel and publishes only from a version tag
+after the release workflow succeeds. A green `main` build is not itself a PyPI
+release. The status badges and package links populate after the first tagged
+publication.
 
-Remaining source this repository will receive in **Migration Wave 5** (line
-counts measured 2026-09-12 against `agent-utilities` `HEAD`) is tracked in
-[`AGENTS.md`](https://github.com/Knuckles-Team/graph-os/blob/main/AGENTS.md#w5-source-measurements-measured-2026-09-12)
-"W5 source measurements".
+Before deploying a candidate, validate its configuration, run the deployment
+doctor, and execute the release canary described in the
+[deployment guide](deployment.md).

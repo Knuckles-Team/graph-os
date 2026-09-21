@@ -17,10 +17,8 @@ name: Release
 # forms instead. The `ci-gate-replica` hook replays `gates` and `build`
 # locally before a push.
 #
-# Deliberately smaller than epistemic-graph's release.yml at scaffold size:
-# no numeric-runtime-gate (pure-Python package) and no docker publish job
-# (the image build stays in agent-utilities until RF-ADR-009 Migration
-# Wave 5 moves it here — see `docker/DESIGN.md`).
+# This pure-Python package has no native numeric-runtime gate. Container images
+# have a separate delivery owner and are not published by this wheel workflow.
 # ─────────────────────────────────────────────────────────────────────────
 
 on:
