@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from epistemic_graph.generated.agent_component import (
     AgentComponentContentRequest,
@@ -26,6 +26,7 @@ from graph_os.fleet.catalog_reader import (
     COMPONENT_SEARCH_SOURCE,
     SERVER_QUERY_SOURCE,
     ComponentContent,
+    ComponentKind,
     ComponentPage,
     ComponentPin,
     ComponentRecord,
@@ -190,7 +191,7 @@ class GeneratedFleetCatalogPort:
             pin = None
         return ComponentRecord(
             component_id=entry.component_id,
-            kind=kind,  # type: ignore[arg-type]
+            kind=cast(ComponentKind, kind),
             server_name=connector,
             upstream_name=upstream_name,
             summary=entry.summary,
