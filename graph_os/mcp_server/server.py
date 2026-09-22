@@ -277,6 +277,19 @@ def mcp_server() -> None:
                 )
             )
 
+            from graph_os.mcp_server.agent_control import register_graph_rlm
+
+            graph_compute = runtime._get_engine().graph_compute
+
+            def client_for_session(session: Any) -> Any:
+                claims = session.engine_verified_context()
+                return graph_compute.for_graph(str(claims["tenant"])).async_client
+
+            register_graph_rlm(
+                mcp,
+                client_for_session=client_for_session,
+            )
+
             # Self-composing co-services, phase 2: messaging now that a real engine
             # exists. Credentials keep outbound sending available, but the explicit
             # MESSAGING_INTAKE_ENABLED deployment intent (false by default) is the
