@@ -31,9 +31,7 @@ multiplexer was restarted.
   per-child breaker (``MCP_CHILD_BREAKER_THRESHOLD`` /
   ``MCP_CHILD_BREAKER_COOLDOWN``), short-circuiting calls with the typed
   :class:`MCPChildCircuitOpenError` until a half-open probe succeeds. The
-  state machine is the shared OS-5.23 engine-client breaker
-  (``knowledge_graph.core.engine_breaker.CircuitBreaker``), subclassed for
-  child wording and the per-child state gauge.
+  GraphOS-owned per-child state machine with a per-child state gauge.
 
 Crash detection is call-path driven: a stdio process exit or HTTP transport
 failure surfaces as a stream/connection error on the next forwarded call,
@@ -58,13 +56,13 @@ import contextlib
 import logging
 import math
 import random
+import threading
 import time
 from collections import deque
 from collections.abc import Awaitable, Callable
 from typing import Any
 
 import anyio
-from agent_utilities.knowledge_graph.core.engine_breaker import CircuitBreaker
 from agent_utilities.observability.gateway_metrics import (
     MCP_CHILD_BREAKER_STATE,
     MCP_CHILD_CALLS,
@@ -90,6 +88,83 @@ from graph_os.fleet.protocol_compat import mcp_protocol_error
 MCPError: type[BaseException] = mcp_protocol_error()
 
 logger = logging.getLogger("mcp_multiplexer.child")
+
+_BREAKER_STATE_VALUES = {"closed": 0.0, "half_open": 1.0, "open": 2.0}
+
+
+class _CircuitBreaker:
+    """Thread-safe closed/open/half-open breaker for one child transport."""
+
+    error_cls: type[ConnectionError] = ConnectionError
+    subject = "MCP child server"
+
+    def __init__(self, endpoint: str, threshold: int, cooldown: float) -> None:
+        self.endpoint = endpoint
+        self.threshold = int(threshold)
+        self.cooldown = float(cooldown)
+        self._lock = threading.Lock()
+        self._failures = 0
+        self._state = "closed"
+        self._opened_at = 0.0
+        self._probe_in_flight = False
+        self._export_state()
+
+    @property
+    def state(self) -> str:
+        return self._state
+
+    @property
+    def enabled(self) -> bool:
+        return self.threshold > 0
+
+    def _state_value(self) -> float:
+        return _BREAKER_STATE_VALUES[self._state]
+
+    def _export_state(self) -> None:
+        logger.debug("child breaker state changed: %s", self._state)
+
+    def _set_state(self, state: str) -> None:
+        if state == self._state:
+            return
+        self._state = state
+        self._export_state()
+
+    def before_call(self) -> None:
+        if not self.enabled:
+            return
+        with self._lock:
+            if self._state == "closed":
+                return
+            if self._state == "open":
+                remaining = self._opened_at + self.cooldown - time.monotonic()
+                if remaining > 0:
+                    raise self.error_cls(f"{self.subject} circuit is open")
+                self._set_state("half_open")
+                self._probe_in_flight = True
+                return
+            if self._probe_in_flight:
+                raise self.error_cls(f"{self.subject} probe is already in flight")
+            self._probe_in_flight = True
+
+    def record_success(self) -> None:
+        if not self.enabled:
+            return
+        with self._lock:
+            self._failures = 0
+            self._probe_in_flight = False
+            self._set_state("closed")
+
+    def record_failure(self) -> None:
+        if not self.enabled:
+            return
+        with self._lock:
+            self._failures += 1
+            was_probe = self._probe_in_flight
+            self._probe_in_flight = False
+            if was_probe or self._failures >= self.threshold:
+                self._opened_at = time.monotonic()
+                self._set_state("open")
+
 
 # Transport-level failures that indicate a dead child (stdio process exit,
 # closed pipe, HTTP connect/reset). Application-level tool errors are NOT in
@@ -243,8 +318,8 @@ class _BreakerOpenSignal(ConnectionError):
     the child's name as :class:`MCPChildCircuitOpenError`."""
 
 
-class ChildCircuitBreaker(CircuitBreaker):
-    """The OS-5.23 engine-client breaker state machine, per multiplexer child.
+class ChildCircuitBreaker(_CircuitBreaker):
+    """GraphOS transport breaker state machine, per multiplexer child.
 
     Same closed/open/half-open semantics and thread-safety; only the wording
     and the exported gauge differ (per-child ``server`` label instead of the
