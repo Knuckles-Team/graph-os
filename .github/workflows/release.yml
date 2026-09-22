@@ -74,7 +74,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-utilities
-          ref: 446e0cf11b5bce3e4b09488035800b91a7d60b25
+          ref: fbc939fedeadeb20ddf4b468245165414a18c34e
           path: .uv-workspace-siblings/agent-utilities
           persist-credentials: false
 
