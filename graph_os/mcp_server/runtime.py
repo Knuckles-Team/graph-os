@@ -540,6 +540,7 @@ _ENGINE_LOCK = threading.Lock()
 
 _ensure_process_authority_current = cast(Any, None)
 _get_engine = cast(Any, None)
+graph_client = cast(Any, None)
 _mint_process_session = cast(Any, None)
 _release_readiness_authority = cast(Any, None)
 _set_readiness_authority = cast(Any, None)

@@ -27,6 +27,9 @@ class GatewayApplicationPort(Protocol):
     def engine(self) -> Any:
         """Return the process-scoped engine adapter used by host-only routes."""
 
+    def graph_client(self, graph: str) -> Any:
+        """Return the session-routed epistemic-graph client for one named graph."""
+
     def ensure_tools_registered(self) -> None:
         """Make the canonical action catalog available before routes are mounted."""
 

@@ -48,6 +48,8 @@ from starlette.responses import JSONResponse
 logger = logging.getLogger(__name__)
 
 _MAX_PAGE = 1000
+#: The verified session scope that grants whole-fleet supervision.
+_GRAPH_ADMIN_SCOPE = "kg:admin"
 
 
 def _tenant_sql(dialect: str) -> str:
@@ -72,17 +74,22 @@ def _tenant_scope(dialect: str) -> tuple[str, list[Any]]:
     the whole fleet. Missing or tenantless identity fails closed.
     """
     try:
-        from agent_utilities.knowledge_graph.core.tenant_sharing import is_privileged
-        from agent_utilities.security.brain_context import current_actor
+        from agent_utilities.api.session import resolve_session
 
-        actor = current_actor()
-        if is_privileged(actor):
-            return "", []
-        if not actor.authenticated or not actor.tenant_id:
+        session = resolve_session()
+        actor = session.actor
+        if not actor.authenticated:
             raise PermissionError(
                 "Fleet supervision requires verified tenant authority"
             )
-        return f"{_tenant_sql(dialect)} = ?", [actor.tenant_id]
+        if _GRAPH_ADMIN_SCOPE in session.scopes:
+            return "", []
+        tenant = str(session.tenant or "").strip()
+        if not tenant:
+            raise PermissionError(
+                "Fleet supervision requires verified tenant authority"
+            )
+        return f"{_tenant_sql(dialect)} = ?", [tenant]
     except PermissionError:
         raise
     except Exception as exc:

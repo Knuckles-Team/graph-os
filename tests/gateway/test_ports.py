@@ -25,6 +25,9 @@ class _Application:
     def engine(self) -> object:
         return self
 
+    def graph_client(self, graph: str) -> object:
+        return self
+
     def ensure_tools_registered(self) -> None:
         return None
 

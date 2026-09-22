@@ -284,11 +284,9 @@ def mcp_server() -> None:
 
             from graph_os.mcp_server.agent_control import register_graph_rlm
 
-            graph_compute = runtime._get_engine().graph_compute
-
             def client_for_session(session: Any) -> Any:
                 claims = session.engine_verified_context()
-                return graph_compute.for_graph(str(claims["tenant"])).async_client
+                return runtime.graph_client(str(claims["tenant"]))
 
             register_graph_rlm(
                 mcp,

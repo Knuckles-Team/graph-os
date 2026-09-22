@@ -157,6 +157,9 @@ class NativeGatewayApplication:
     def engine(self) -> Any:
         return runtime._get_engine()
 
+    def graph_client(self, graph: str) -> Any:
+        return runtime.graph_client(graph)
+
     def ensure_tools_registered(self) -> None:
         runtime.ensure_tools_registered()
 

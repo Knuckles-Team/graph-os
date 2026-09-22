@@ -60,6 +60,16 @@ def _get_engine():
         return IntelligenceGraphEngine.get_or_create(factory=_factory)
 
 
+def graph_client(graph: str) -> Any:
+    """Return the process engine's session-routed EG client for one named graph.
+
+    This is the single seam through which GraphOS transports reach the
+    epistemic-graph generated client; the per-call verified claims are bound
+    by the caller with ``client.use_verified_context``.
+    """
+    return _get_engine().graph_compute.for_graph(graph).async_client
+
+
 def _set_readiness_authority(session: Any) -> object:
     """Hand the readiness probe the process's own verified authority."""
 
