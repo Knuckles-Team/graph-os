@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 import logging
-import re
 import threading
 import time
 from collections.abc import AsyncIterator
@@ -63,52 +61,6 @@ def _get_engine():
             )
 
         return IntelligenceGraphEngine.get_or_create(factory=_factory)
-
-
-def _neutral_capability_name(value: object, *, fallback_ref: str) -> str:
-    """Return a bounded service alias, never an arbitrary config key."""
-    from agent_utilities.security.persistence_privacy import sanitize_for_persistence
-
-    rendered = str(value or "").strip().lower()
-    sanitized, report = sanitize_for_persistence(rendered)
-    if not report.changed and re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", rendered):
-        return rendered
-    return f"external-{fallback_ref.rsplit('_', 1)[-1][:12]}"
-
-
-def _mcp_capability_declaration(
-    server_name: object, server_details: dict[str, Any]
-) -> tuple[str, dict[str, Any]]:
-    """Project one MCP runtime declaration into privacy-safe KG metadata."""
-    from agent_utilities.knowledge_graph.core.source_sync import (
-        derive_capability_synonyms,
-    )
-    from agent_utilities.security.persistence_privacy import persistence_reference
-
-    server_ref = persistence_reference(
-        "mcp_server", server_name, namespace="capability-ingestion"
-    )
-    neutral_name = _neutral_capability_name(server_name, fallback_ref=server_ref)
-    configuration_ref = persistence_reference(
-        "mcp_configuration",
-        json.dumps(server_details, sort_keys=True, separators=(",", ":")),
-        namespace=server_ref,
-    )
-    capabilities = [
-        str(value).lower()
-        for value in server_details.get("capabilities", [])
-        if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,62}", str(value))
-    ]
-    return (
-        f"mcp_server:{server_ref}",
-        {
-            "name": neutral_name,
-            "server_ref": server_ref,
-            "configuration_ref": configuration_ref,
-            "capabilities": sorted(set(capabilities)),
-            "synonyms": derive_capability_synonyms(neutral_name),
-        },
-    )
 
 
 class GraphOSStartupReadinessError(RuntimeError):
@@ -565,164 +517,8 @@ def _ensure_bundled_skills_ready(engine: Any) -> dict[str, Any]:
 
 
 def _ingest_capabilities(engine, *, skip_skill_names: frozenset[str] = frozenset()):
-    """Natively ingest MCP configurations, Native Tools, and Skills into the KG on startup."""
-    _ingest_mcp_config_capabilities(engine)
-    _ingest_native_tool_capabilities(engine)
+    """Ingest only independently declared skill providers at startup."""
     _ingest_skill_provider_capabilities(engine, skip_skill_names)
-
-    # Fleet tool schemas stay lazy.  Startup has already materialized each MCP
-    # server declaration above; probing every child here would launch the whole
-    # fleet and contend with an operator's targeted ``list_catalog`` call.
-    # Explicit ``source_sync(source="fleet")`` remains the governed full-scan
-    # path when an operator wants every live tool schema elevated into the KG.
-
-
-def _load_mcp_config_servers() -> dict[str, Any] | None:
-    """Read + parse ``mcp_config.json``'s ``mcpServers`` map, or ``None`` if absent.
-
-    Raises on a config file that exists but fails validation (oversized, not
-    JSON, or not the expected shape) — the caller's boot-time try/except logs
-    and skips this whole ingestion step on any of those.
-    """
-    import json
-
-    import platformdirs
-
-    APP_NAME = "agent-utilities"
-    APP_AUTHOR = "knuckles-team"
-    cfg_dir = Path(platformdirs.user_config_path(APP_NAME, APP_AUTHOR))
-    mcp_config_path = cfg_dir / "mcp_config.json"
-    if not mcp_config_path.is_file() or mcp_config_path.is_symlink():
-        return None
-    payload = mcp_config_path.read_bytes()
-    if len(payload) > 4 * 1024 * 1024:
-        raise ValueError("MCP configuration exceeds its ingestion bound")
-    data = json.loads(payload)
-    mcp_servers = data.get("mcpServers", {})
-    if not isinstance(mcp_servers, dict):
-        raise ValueError("MCP server registry must be an object")
-    return mcp_servers
-
-
-def _build_mcp_server_declarations(
-    mcp_servers: dict[str, Any],
-) -> list[tuple[str, dict[str, Any]]]:
-    """Build ``(node_id, declaration)`` pairs for every valid server entry."""
-    declarations: list[tuple[str, dict[str, Any]]] = []
-    for server_name, server_details in mcp_servers.items():
-        if not isinstance(server_details, dict):
-            continue
-        node_id, declaration = _mcp_capability_declaration(server_name, server_details)
-        declarations.append((node_id, declaration))
-    return declarations
-
-
-def _ingest_mcp_server_declarations(
-    engine: Any, declarations: list[tuple[str, dict[str, Any]]]
-) -> int:
-    """Batch-resolve prior ``disabled`` state, then write every server node.
-
-    One batched round trip for every server's prior ``disabled`` flag
-    instead of one query per server (was the dominant source of the "slow
-    engine call" warnings at boot).
-    """
-    disabled_by_id = get_existing_disabled_batch(
-        engine,
-        [node_id for node_id, _declaration in declarations],
-        label="MCPServer",
-    )
-    ingested = 0
-    for node_id, declaration in declarations:
-        engine.add_node(
-            node_id,
-            "MCPServer",
-            {**declaration, "disabled": disabled_by_id.get(node_id, False)},
-        )
-        ingested += 1
-    return ingested
-
-
-def _ingest_mcp_config_capabilities(engine: Any) -> None:
-    """Section 1 of :func:`_ingest_capabilities`: ``mcp_config.json`` -> ``MCPServer`` nodes."""
-    try:
-        mcp_servers = _load_mcp_config_servers()
-        if mcp_servers is None:
-            return
-        declarations = _build_mcp_server_declarations(mcp_servers)
-        ingested = _ingest_mcp_server_declarations(engine, declarations)
-        logger.info("Ingested %d MCP capability declarations", ingested)
-    except Exception as exc:
-        logger.error("Failed to ingest MCP configuration: %s", exc)
-
-
-def _discover_native_tool_entries(
-    tools_package: Any,
-) -> list[tuple[str, dict[str, Any]]]:
-    """Import every non-package module under ``tools_package`` and collect its
-    agentic-versioned functions as ``(node_id, properties)`` pairs.
-    """
-    import importlib
-    import inspect
-    import pkgutil
-
-    from agent_utilities.security.persistence_privacy import sanitize_for_persistence
-
-    prefix = tools_package.__name__ + "."
-    tool_entries: list[tuple[str, dict[str, Any]]] = []
-    for _importer, modname, ispkg in pkgutil.iter_modules(
-        tools_package.__path__, prefix
-    ):
-        if ispkg:
-            continue
-        try:
-            module = importlib.import_module(modname)
-            for name, obj in inspect.getmembers(module, inspect.isfunction):
-                if not hasattr(obj, "__agentic_version__"):
-                    continue
-                node_id = f"native_tool_{name}"
-                description, _privacy = sanitize_for_persistence(
-                    (obj.__doc__ or "")[:8192]
-                )
-                tool_entries.append(
-                    (
-                        node_id,
-                        {
-                            "name": name,
-                            "description": str(description),
-                            "version": obj.__agentic_version__,
-                            "module": modname,
-                        },
-                    )
-                )
-        except Exception as exc:  # noqa: BLE001 — per-module best-effort skip; the outer scan already logs failures
-            logger.debug(
-                "Failed to ingest a native-tool module: %s", type(exc).__name__
-            )
-    return tool_entries
-
-
-def _ingest_native_tool_capabilities(engine: Any) -> None:
-    """Section 2 of :func:`_ingest_capabilities`: scan ``agent_utilities.tools`` -> ``NativeTool`` nodes."""
-    try:
-        import agent_utilities.tools
-
-        tool_entries = _discover_native_tool_entries(agent_utilities.tools)
-        # One batched round trip for every native tool's prior ``disabled``
-        # flag instead of one query per tool.
-        disabled_by_id = get_existing_disabled_batch(
-            engine,
-            [node_id for node_id, _properties in tool_entries],
-            label="NativeTool",
-        )
-        for node_id, properties in tool_entries:
-            engine.add_node(
-                node_id,
-                "NativeTool",
-                {**properties, "disabled": disabled_by_id.get(node_id, False)},
-            )
-        logger.info("Ingested Native Tools")
-    except Exception as exc:
-        logger.error("Failed to scan native tools: %s", exc)
 
 
 def _ingest_skill_provider_capabilities(
@@ -753,16 +549,10 @@ def _ingest_skill_provider_capabilities(
 
 # ── Boot hydration plan (ingestion-hydration-program.md §3) ─────────────────
 #
-# ``_ingest_capabilities`` above (mcp_config.json / native tools / skills) is
-# the ORIGINAL boot hydration; the two helpers below extend it with the
-# capability legs Phases C and E built but never wired to a boot call. Each is
-# its own best-effort, exception-isolated step — same shape as the ontology
-# federation sync already nested inside :func:`_start_engine_bootstrap`'s
-# background thread — so a failure in one never skips, or blocks serving for,
-# the others. Fleet tool-schema ingestion (Phase A) and the mcp_config.json
-# router (Phase B) need no boot call here: A rides its own hourly
-# ``deploy/schedules.yml`` cadence (``fleet-tool-schema-sync``) and B rides the
-# always-on codebase sweep's ``_route_classified_artifacts`` fan-out.
+# Connector and fleet ingestion are deliberately absent here. The SDK runner
+# owns external-source capture and EG owns the durable registry/catalog. Native
+# startup only retains the temporary skill/prompt compatibility hydration until
+# those artifacts are provisioned exclusively through ConnectorPack.
 
 
 def _record_boot_hydration_step(
@@ -793,92 +583,23 @@ def _record_boot_hydration_step(
         logger.debug("boot hydration plan record failed for %s", name, exc_info=True)
 
 
-def _hydrate_code_and_configured_connectors(engine: Any) -> None:
-    """Queue the lowest-priority checkpointed hydration work.
-
-    Code uses the existing breadth ingest (which performs its git-SHA pre-skip)
-    and connectors use ``sweep_all_sources`` (which prechecks the signed
-    provider contract before queue publication).  Empty configured roots are a
-    valid no-op for a packaged/tiny deployment; no guessed workstation path is
-    ever scanned.
-    """
-    from agent_utilities.core.config import config
-    from agent_utilities.core.workspace_config import workspace_project_roots
-    from agent_utilities.knowledge_graph.assimilation.breadth_ingest import (
-        run_breadth_ingest,
-    )
-    from agent_utilities.knowledge_graph.core.source_sync import sweep_all_sources
-
-    library_roots = [p for p in config.kg_breadth_library_roots.split(",") if p]
-    repo_roots = [p for p in config.kg_breadth_repo_roots.split(",") if p]
-    if not library_roots and not repo_roots:
-        repo_roots = workspace_project_roots()
-    if library_roots or repo_roots:
-        run_breadth_ingest(engine, library_roots=library_roots, repo_roots=repo_roots)
-    # This is intentionally enqueue-only.  ``sweep_all_sources`` rejects known
-    # unavailable providers before creating work, so boot never spends an engine
-    # lease on a connector that is guaranteed to fail.
-    sweep_all_sources(engine, mode="delta", enqueue=True, priority=3)
-
-
-def _enqueue_fleet_tool_schema_hydration(engine: Any) -> None:
-    """Queue the live 65+ server tool-schema probe as priority-one boot work.
-
-    MCP declarations are cheap and synchronous; the live schemas are network
-    work and belong on the durable connector lane.  A stable target lets the
-    WorkItem queue deduplicate restarts in the same hour without its O(N)
-    target scan. A later hour gets a fresh delta probe.
-
-    ``task_type="capability_hydration"`` (CONCEPT:AU-ORCH.scheduling.acquisition-lane-fairness), NOT the
-    generic ``connector_sync`` the */20m fleet sweep uses for every OTHER connector.
-    Both ride the same ``connectors`` lane (same soft-timeout envelope), but a
-    distinct type lets the worker pool reserve this job a claim floor
-    (:func:`agent_utilities.knowledge_graph.core.engine_tasks.start_task_workers`)
-    instead of it only ever landing on a worker the moment one of potentially
-    dozens of concurrently-running legacy connector syncs happens to free up —
-    the proven starvation mode where priority alone could not preempt
-    already-running work.
-    """
-    submit = getattr(engine, "submit_task", None)
-    if not callable(submit):
-        return
-    job_id = submit(
-        target_path="fleet",
-        is_codebase=False,
-        provenance={"sync_mode": "delta", "boot_hydration": True},
-        task_type="capability_hydration",
-        priority=1,
-        skip_dedupe=True,
-        job_id=f"boot:fleet-tool-schemas:{datetime.now(UTC):%Y%m%d%H}",
-    )
-    logger.info("Queued fleet MCP tool-schema boot hydration: %s", job_id)
-
-
 def _run_boot_hydration_plan(
     engine: Any, *, skip_skill_names: frozenset[str] = frozenset()
 ) -> None:
     """Run GraphOS boot hydration in its fixed resource-priority order.
 
-    1. fleet metadata, runnable skills, and MCP declarations;
+    1. independently declared runnable skills;
     2. prompts/agent templates;
-    3. codebases and configured connectors through their durable delta queues.
-
     Each step is isolated so a failed optional source cannot prevent later
     priority classes from making progress.
     """
     steps = (
-        ("fleet_tool_schemas", 1, lambda: _enqueue_fleet_tool_schema_hydration(engine)),
         (
             "capabilities",
             1,
             lambda: _ingest_capabilities(engine, skip_skill_names=skip_skill_names),
         ),
         ("prompts", 2, _ingest_prompts_at_boot),
-        (
-            "code_and_connectors",
-            4,
-            lambda: _hydrate_code_and_configured_connectors(engine),
-        ),
     )
     for name, priority, step in steps:
         _record_boot_hydration_step(engine, name, priority, "running")

@@ -66,5 +66,13 @@ def test_bootstrap_has_no_retired_legacy_query_runtime() -> None:
         "_sync_ontologies_at_boot",
         "_ingest_self_tool_surface_at_boot",
         "_graphos_self_tool_surface",
+        "_mcp_capability_declaration",
+        "_ingest_mcp_config_capabilities",
+        "_ingest_native_tool_capabilities",
+        "_enqueue_fleet_tool_schema_hydration",
+        "_hydrate_code_and_configured_connectors",
+        "derive_capability_synonyms",
+        "run_breadth_ingest",
+        "sweep_all_sources",
     }
     assert all(symbol not in bootstrap for symbol in retired_symbols)
