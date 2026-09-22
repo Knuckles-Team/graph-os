@@ -22,10 +22,6 @@ from pathlib import Path
 from typing import Any
 
 from agent_utilities.core.config import AgentConfig, setting
-from agent_utilities.knowledge_graph.core.engine_transport import (
-    engine_client_transport_kwargs,
-    native_endpoint_address,
-)
 from filelock import FileLock
 
 
@@ -54,23 +50,35 @@ def _verified_context() -> dict[str, Any]:
     }
 
 
-def _coordinator_transport() -> tuple[str, dict[str, Any]]:
-    """Resolve the sole configured coordinator through the shared TLS policy."""
+def _transport_for_endpoint(endpoint: str) -> dict[str, Any]:
+    scheme, separator, address = endpoint.partition("://")
+    transports: dict[str, dict[str, Any]] = {
+        "tcp": {"tcp_addr": address, "tls": False},
+        "tls": {"tcp_addr": address, "tls": True},
+        "unix": {"socket_path": address},
+    }
+    try:
+        transport = transports[scheme]
+    except KeyError as exc:
+        raise ProductionOperationError(
+            "the configured coordinator transport is invalid"
+        ) from exc
+    if not separator or not address:
+        raise ProductionOperationError(
+            "the configured coordinator transport is invalid"
+        )
+    return transport
+
+
+def _coordinator_transport() -> dict[str, Any]:
+    """Resolve one coordinator into the public EG client's transport fields."""
     config = AgentConfig()
     endpoints = config.graph_service_endpoints or []
     if len(endpoints) != 1:
         raise ProductionOperationError(
             "production operations require exactly one GRAPH_SERVICE_ENDPOINTS coordinator"
         )
-    endpoint = str(endpoints[0]).strip()
-    try:
-        address = native_endpoint_address(endpoint)[0]
-        transport = engine_client_transport_kwargs(endpoint, config=config)
-    except Exception as exc:
-        raise ProductionOperationError(
-            "the configured coordinator transport is invalid"
-        ) from exc
-    return address, transport
+    return _transport_for_endpoint(str(endpoints[0]).strip())
 
 
 def _inside(root: Path, candidate: Path) -> Path:
@@ -195,9 +203,8 @@ async def _backup(archive_root: Path) -> dict[str, Any]:
         archive_root,
         archive_root / f"bundle-{int(time.time())}-{secrets.token_hex(6)}",
     )
-    address, transport = _coordinator_transport()
+    transport = _coordinator_transport()
     client = await EpistemicGraphClient.connect(
-        tcp_addr=address,
         auth_secret=_required_env("GRAPH_SERVICE_AUTH_SECRET"),
         verified_context=_verified_context(),
         **transport,

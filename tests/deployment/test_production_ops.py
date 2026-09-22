@@ -3,10 +3,48 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 
 import pytest
 
 from graph_os.deployment import production_ops
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "expected"),
+    [
+        (
+            "tcp://engine.example.com:9876",
+            {"tcp_addr": "engine.example.com:9876", "tls": False},
+        ),
+        (
+            "tls://engine.example.com:9876",
+            {"tcp_addr": "engine.example.com:9876", "tls": True},
+        ),
+        ("unix:///run/epistemic.sock", {"socket_path": "/run/epistemic.sock"}),
+    ],
+)
+def test_coordinator_transport_uses_public_eg_client_fields(
+    monkeypatch, endpoint: str, expected: dict[str, object]
+) -> None:
+    monkeypatch.setattr(
+        production_ops,
+        "AgentConfig",
+        lambda: SimpleNamespace(graph_service_endpoints=[endpoint]),
+    )
+
+    assert production_ops._coordinator_transport() == expected
+
+
+def test_coordinator_transport_rejects_implicit_scheme(monkeypatch) -> None:
+    monkeypatch.setattr(
+        production_ops,
+        "AgentConfig",
+        lambda: SimpleNamespace(graph_service_endpoints=["engine.example.com:9876"]),
+    )
+
+    with pytest.raises(production_ops.ProductionOperationError):
+        production_ops._coordinator_transport()
 
 
 def test_inside_rejects_targets_outside_mounted_root(tmp_path) -> None:
