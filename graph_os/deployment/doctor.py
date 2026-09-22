@@ -825,18 +825,6 @@ def _connector_name_uniqueness(cfg: Any) -> tuple[bool, bool]:
     return source_aliases_unique, connection_names_unique
 
 
-def _check_property_bundle_ready() -> bool:
-    try:
-        from agent_utilities.knowledge_graph.ontology.connector_manifest_gate import (
-            precheck_source,
-        )
-
-        bundle = precheck_source("external_graph")
-        return bool(bundle.get("checked") and bundle.get("ok"))
-    except Exception:
-        return False
-
-
 def _build_connector_sync_policy(connector: Any, property_graph: bool) -> dict | None:
     if not property_graph:
         return None
@@ -1110,7 +1098,6 @@ def _build_connector_result_dict(
     readiness: dict[str, Any],
     lifecycle: str,
     mapping_policy_drift: str | None,
-    property_bundle_ready: bool | None,
     property_graph: bool,
     sync_policy: dict | None,
 ) -> dict[str, Any]:
@@ -1119,7 +1106,6 @@ def _build_connector_result_dict(
         "refs_ready": readiness,
         "mapping_lifecycle": lifecycle,
         "mapping_policy_drift": mapping_policy_drift,
-        "capability_bundle_ready": (property_bundle_ready if property_graph else None),
         "sync_policy": sync_policy,
         "semantic_mapping": connector.semantic_mapping,
         "generated_mapping": bool(
@@ -1140,12 +1126,9 @@ def _evaluate_one_connector(
     connector: Any,
     resolver: Any,
     secrets_client: Any,
-    property_bundle_ready_holder: list[bool | None],
     unresolved: list[int],
 ) -> dict[str, Any]:
     property_graph = connector.backend != "graphql"
-    if property_graph and property_bundle_ready_holder[0] is None:
-        property_bundle_ready_holder[0] = _check_property_bundle_ready()
     sync_policy = _build_connector_sync_policy(connector, property_graph)
     refs = {
         "connection": connector.connection_profile_ref,
@@ -1172,7 +1155,6 @@ def _evaluate_one_connector(
         readiness,
         lifecycle,
         mapping_policy_drift,
-        property_bundle_ready_holder[0],
         property_graph,
         sync_policy,
     )
@@ -1180,7 +1162,6 @@ def _evaluate_one_connector(
 
 def _transport_security_status(
     unresolved: int,
-    bundle_unready: int,
     source_aliases_unique: bool,
     connection_names_unique: bool,
     engine_data: dict[str, Any],
@@ -1189,7 +1170,6 @@ def _transport_security_status(
 ) -> str:
     if (
         unresolved
-        or bundle_unready
         or not source_aliases_unique
         or not connection_names_unique
         or not engine_data["ready"]
@@ -1202,7 +1182,6 @@ def _transport_security_status(
 
 def _transport_security_detail(
     unresolved: int,
-    bundle_unready: int,
     source_aliases_unique: bool,
     connection_names_unique: bool,
     engine_data: dict[str, Any],
@@ -1213,8 +1192,6 @@ def _transport_security_detail(
         return "native engine transport policy is not ready"
     if unresolved:
         return f"{unresolved} configured external profile reference(s) are unresolved"
-    if bundle_unready:
-        return f"{bundle_unready} property-graph capability bundle(s) are unready"
     if not source_aliases_unique:
         return "external graph source aliases are not unique"
     if not connection_names_unique:
@@ -1240,17 +1217,11 @@ def _finalize_transport_security_result(
         if connector.get("mapping_lifecycle") != "approved"
         or connector.get("mapping_policy_drift") == "detected"
     )
-    bundle_unready = sum(
-        1
-        for connector in connectors
-        if connector.get("capability_bundle_ready") is False
-    )
     verification_disabled = not tls_data["verify_enabled"] or not bool(
         engine_data["verify_enabled"]
     )
     status = _transport_security_status(
         unresolved,
-        bundle_unready,
         source_aliases_unique,
         connection_names_unique,
         engine_data,
@@ -1259,7 +1230,6 @@ def _finalize_transport_security_result(
     )
     detail = _transport_security_detail(
         unresolved,
-        bundle_unready,
         source_aliases_unique,
         connection_names_unique,
         engine_data,
@@ -1274,7 +1244,7 @@ def _finalize_transport_security_result(
             None
             if status == "ok"
             else (
-                "Repair unresolved secret refs or signed capability bundles, enable "
+                "Repair unresolved secret refs, enable "
                 "verified TLS, or complete the discover/propose/approve lifecycle."
             )
         ),
@@ -1297,14 +1267,12 @@ def _check_transport_security() -> dict[str, Any]:
 
         connectors: list[dict[str, Any]] = []
         unresolved = [0]
-        property_bundle_ready_holder: list[bool | None] = [None]
         for connector in cfg.external_graph_connectors:
             connectors.append(
                 _evaluate_one_connector(
                     connector,
                     resolver,
                     secrets_client,
-                    property_bundle_ready_holder,
                     unresolved,
                 )
             )

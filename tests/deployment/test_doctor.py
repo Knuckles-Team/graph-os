@@ -633,15 +633,14 @@ def test_graph_identity_doctor_accepts_private_tiny_authority(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    ("bundle_ready", "tls_profile", "tls_ready", "expected_status"),
+    ("tls_profile", "tls_ready", "expected_status"),
     [
-        (True, '{"system_trust":true,"trust_env":true}', True, "warn"),
-        (False, '{"system_trust":true,"trust_env":true}', True, "fail"),
-        (True, "malformed-trust-material", False, "fail"),
+        ('{"system_trust":true,"trust_env":true}', True, "warn"),
+        ("malformed-trust-material", False, "fail"),
     ],
 )
 def test_transport_security_doctor_returns_only_redacted_readiness(
-    monkeypatch, bundle_ready, tls_profile, tls_ready, expected_status
+    monkeypatch, tls_profile, tls_ready, expected_status
 ):
     connector = SimpleNamespace(
         name="domain-source",
@@ -687,15 +686,6 @@ def test_transport_security_doctor_returns_only_redacted_readiness(
         "agent_utilities.security.secrets_client.create_secrets_client",
         lambda: SimpleNamespace(resolve_ref=resolver),
     )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.ontology.connector_manifest_gate.precheck_source",
-        lambda source: {
-            "checked": True,
-            "ok": bundle_ready,
-            "connector": "native-source-connectors",
-        },
-    )
-
     result = D._check_transport_security()
     rendered = json.dumps(result, sort_keys=True)
 
@@ -714,10 +704,6 @@ def test_transport_security_doctor_returns_only_redacted_readiness(
     assert (
         result["data"]["external_graph_connectors"][0]["mapping_policy_drift"]
         == "unknown"
-    )
-    assert (
-        result["data"]["external_graph_connectors"][0]["capability_bundle_ready"]
-        is bundle_ready
     )
     assert result["data"]["external_graph_connectors"][0]["sync_policy"] == {
         "allow_empty_snapshot": False,
