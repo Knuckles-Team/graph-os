@@ -2,12 +2,13 @@
   <p class="site-hero__eyebrow">The governed runtime door</p>
   <h1 class="site-hero__title" id="graphos-title">Run the whole agent platform through one clear boundary.</h1>
   <p class="site-hero__summary">
-    GraphOS is the process you run. It authenticates MCP, REST, A2A, and browser
-    requests; composes the agent and graph services behind them; and supervises
-    the connector fleet from one serving lifecycle.
+    Graph OS is the process you run. It authenticates MCP, REST, A2A, browser,
+    terminal, desktop, and messaging requests; composes the agent and graph
+    services behind them; and supervises the connector fleet from one serving
+    lifecycle.
   </p>
   <div class="site-hero__actions">
-    <a class="md-button md-button--primary" href="get-started/">Start GraphOS</a>
+    <a class="md-button md-button--primary" href="get-started/">Start Graph OS</a>
     <a class="md-button" href="architecture/">See how it fits</a>
   </div>
 </section>

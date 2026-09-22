@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Literal, cast
 
-from agent_utilities.control_plane.catalogs import (
+from agent_utilities.api import (
     AgentCatalogReadPort,
     AgentCatalogRecord,
     CatalogStatus,

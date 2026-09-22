@@ -31,7 +31,7 @@ class AmbientA2AAuthenticator:
     """Require the request identity middleware's verified GraphSession."""
 
     async def authenticate(self, request: Request, *, scope: str) -> None:  # noqa: ARG002
-        from agent_utilities.knowledge_graph.core.session import resolve_session
+        from agent_utilities.api.session import resolve_session
 
         resolve_session(required_scope=scope)
 

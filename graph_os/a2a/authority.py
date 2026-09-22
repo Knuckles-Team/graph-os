@@ -89,7 +89,7 @@ class WorkItemA2AAuthority:
 
     @staticmethod
     def _session(scope: str) -> Any:
-        from agent_utilities.knowledge_graph.core.session import resolve_session
+        from agent_utilities.api.session import resolve_session
 
         return resolve_session(required_scope=scope)
 

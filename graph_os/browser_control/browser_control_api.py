@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated, Any, Literal
 
-from agent_utilities.knowledge_graph.core.session import GraphSession
+from agent_utilities.api.session import GraphSession
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
 from graph_os.browser_control.browser_control_common import (

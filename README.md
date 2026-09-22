@@ -1,14 +1,14 @@
-# GraphOS
+# Graph OS
 
 [![PyPI - Version](https://img.shields.io/pypi/v/graph-os)](https://pypi.org/project/graph-os/)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-0ea5e9)](https://knuckles-team.github.io/graph-os/)
 [![GitHub license](https://img.shields.io/github/license/Knuckles-Team/graph-os)](LICENSE)
 
-**The process you run to open the Knuckles agent platform to MCP, REST, A2A,
-and the browser.**
+**Install one process and open the Knuckles agent platform to MCP, REST, A2A,
+the browser, terminal, desktop, and messaging channels.**
 
-GraphOS is the governed runtime door: it authenticates requests, exposes one
-application surface, supervises the MCP tool fleet, and hosts Agent WebUI. The
+Graph OS is the governed runtime door: it authenticates requests, exposes one
+application surface, supervises the MCP tool fleet, and hosts Agent Web UI. The
 agents, database, and connector implementations remain independently owned and
 meet here through public contracts.
 
@@ -40,7 +40,7 @@ meet here through public contracts.
 
 ## Overview
 
-Run GraphOS when an MCP client, HTTP application, A2A peer, or Agent WebUI needs
+Run GraphOS when an MCP client, HTTP application, A2A peer, or Agent Web UI needs
 one authenticated way into the platform. One serving lifecycle composes the
 same application services across transports, applies identity and tenant
 policy, and keeps tool discovery tied to the live fleet catalog.
@@ -48,13 +48,13 @@ policy, and keeps tool discovery tied to the live fleet catalog.
 GraphOS is the platform edge and composition root. It is not the agent harness,
 the durable database, a connector implementation, or the browser UI.
 
-## Key Capabilities
+## Key capabilities
 
 - Serve local MCP over `stdio` and authenticated MCP over streamable HTTP.
 - Project the same governed operations through REST and unary A2A.
 - Discover, admit, supervise, and route the MCP connector fleet.
 - Apply identity, tenant, action-policy, idempotency, and provenance controls.
-- Host Agent WebUI and coordinate attended browser capabilities.
+- Host Agent Web UI and coordinate attended browser capabilities.
 - Generate deployment configuration and report live readiness through `/health`.
 
 ## Documentation
@@ -71,7 +71,10 @@ then use the task-oriented references:
 
 | Layer | Authority | Relationship to GraphOS |
 |---|---|---|
-| [Agent WebUI](https://knuckles-team.github.io/agent-webui/) | Browser experience and local interaction state | GraphOS hosts it and supplies governed application routes. |
+| [Agent Web UI](https://knuckles-team.github.io/agent-webui/) | Browser experience and local interaction state | GraphOS hosts it and supplies governed application routes. |
+| Agent Terminal UI | Terminal and headless interaction | Uses GraphOS REST today; conversational ACP remains an explicit gap. |
+| Geniusbot | Desktop cockpit | Uses the governed GraphOS gateway for its primary panels. |
+| Messaging channels | Chat and voice entrypoints | GraphOS hosts and supervises them; agent-utilities owns adapters and routing. |
 | **GraphOS** | MCP, REST, A2A, identity policy, fleet supervision | The running process and public door. |
 | [agent-utilities](https://knuckles-team.github.io/agent-utilities/) | Agents, workflows, evaluation, and skills | GraphOS invokes its typed control-plane services. |
 | [epistemic-graph](https://knuckles-team.github.io/epistemic-graph/) | Durable graph, SQL, RDF, vector, time, reasoning, and provenance | GraphOS uses its generated client contracts. |
@@ -81,7 +84,7 @@ The boundary is deliberate: GraphOS authenticates, composes, routes,
 supervises, and projects. Each sibling remains the source of truth for its own
 domain.
 
-## Quick Start
+## Quick start
 
 Requires Python 3.12–3.14 and [`uv`](https://docs.astral.sh/uv/). Install the
 bundled runtime, generate the local profile, and register its `stdio` launcher
@@ -94,7 +97,9 @@ setup-config doctor --profile tiny
 setup-config codex
 ```
 
-GraphOS now appears as the `graph-os` MCP server in Codex. Other MCP clients can
+The doctor command is the first observable result: it reports whether the local
+profile and required authorities are ready before a listener starts. GraphOS
+then appears as the `graph-os` MCP server in Codex. Other MCP clients can
 launch the same local transport directly:
 
 ```bash
@@ -117,4 +122,4 @@ tests plus repository hooks described in [AGENTS.md](AGENTS.md).
 
 ## License
 
-GraphOS is released under the [MIT License](LICENSE).
+Graph OS is released under the [MIT License](LICENSE).

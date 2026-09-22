@@ -17,7 +17,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from agent_utilities.knowledge_graph.core.session import GraphSession
+from agent_utilities.api.session import GraphSession
 from agent_utilities.observability.trace_ontology import (
     OUTCOME_NODE_LABEL,
     TOOL_CALL_NODE_LABEL,

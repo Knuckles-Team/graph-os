@@ -82,7 +82,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-connector-sdk
-          ref: 543de39037e73d34c204b3740897c496bd1924e5
+          ref: da1757b998698d2e8d5c60c4eca9aea18d9baf8d
           path: .uv-workspace-siblings/agent-connector-sdk
           persist-credentials: false
 
@@ -98,7 +98,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/epistemic-graph
-          ref: 88b6104650f1bb60b5172f2910b2fa301c4e09d5
+          ref: 49d63da5396fef7482fc3617df3f90a836661722
           path: .uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph
           persist-credentials: false
 
@@ -143,7 +143,14 @@ jobs:
           uvx --from pre-commit==4.6.0 pre-commit run tracked-privacy --hook-stage manual --all-files
 
       - name: Sync test environment
-        run: uv sync --frozen --extra test
+        run: |
+          set -euo pipefail
+          eg_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph"
+          test "$(git -C "$eg_source" rev-parse HEAD)" = "49d63da5396fef7482fc3617df3f90a836661722"
+          echo "PYTHONPATH=$eg_source${PYTHONPATH:+:$PYTHONPATH}" >> "$GITHUB_ENV"
+          uv sync --frozen --extra test --no-install-package epistemic-graph
+          PYTHONPATH="$eg_source${PYTHONPATH:+:$PYTHONPATH}" uv run --no-sync python -c \
+            'from pathlib import Path; import epistemic_graph; from epistemic_graph.generated import connector_pack, source_ingestion, storage; root = Path(".uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph").resolve(); assert Path(epistemic_graph.__file__).resolve().is_relative_to(root); assert connector_pack.ConnectorPackStatusRequest; assert source_ingestion.SourceCheckpoint; assert storage.send_agent_component_content'
 
       - name: Lint (ruff)
         run: uv run --no-sync ruff check .

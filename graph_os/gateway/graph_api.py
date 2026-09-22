@@ -65,7 +65,7 @@ def _mount_sparql_route(app, prefix: str = "/api") -> None:
     """Mount ``{prefix}/sparql`` — a local, zero-dependency SPARQL endpoint."""
 
     async def sparql_endpoint(request: Request) -> JSONResponse:
-        from agent_utilities.knowledge_graph.core.session import (
+        from agent_utilities.api.session import (
             resolve_session,
             use_session,
         )
@@ -178,7 +178,7 @@ SQL_SCHEMA_DESCRIPTION = (
 
 async def _sql_schema_endpoint(request: Request) -> JSONResponse:
     """Serve ``POST /graph/sql-schema`` — the read-only catalog projection."""
-    from agent_utilities.knowledge_graph.core.session import resolve_session
+    from agent_utilities.api.session import resolve_session
     from agent_utilities.mcp.tools.graph_tools import SqlSchemaUnavailable, sql_schema
 
     try:

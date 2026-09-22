@@ -1,8 +1,8 @@
 INHERIT: .pipeline-theme/templates/mkdocs-theme/base.mkdocs.yml
 
-site_name: GraphOS
+site_name: Graph OS
 site_description: >-
-  The governed MCP, REST, A2A, fleet, and Agent WebUI runtime for the Knuckles
+  The governed MCP, REST, A2A, fleet, and Agent Web UI runtime for the Knuckles
   agent platform.
 site_url: https://knuckles-team.github.io/graph-os/
 repo_name: Knuckles-Team/graph-os
@@ -22,9 +22,9 @@ extra:
 
 nav:
   - Home: index.md
-  - Start GraphOS: get-started.md
+  - Start Graph OS: get-started.md
   - How it fits: architecture.md
-  - Use GraphOS:
+  - Use Graph OS:
       - MCP server: mcp-server.md
       - REST gateway: gateway.md
       - Fleet gateway: fleet.md

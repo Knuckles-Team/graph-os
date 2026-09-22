@@ -32,7 +32,7 @@ def _public_au_catalog_ports(
 ) -> tuple[WorkflowCatalogReadPort, AgentCatalogReadPort]:
     """Resolve only AU's public execution/control-plane application seam."""
 
-    from agent_utilities.control_plane.catalogs import catalog_read_ports
+    from agent_utilities.api import catalog_read_ports
 
     return catalog_read_ports(engine, session)
 

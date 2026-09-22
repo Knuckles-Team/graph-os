@@ -1805,10 +1805,10 @@ def _tenant_local_discovery_binding() -> _typing.Any | None:
     not derive an OAuth-like digest from roles/scopes or accept catalog fields.
     """
     try:
+        from agent_utilities.api.session import current_session
         from agent_utilities.knowledge_graph.core.fleet_catalog_tables import (
             TenantLocalDiscoveryBinding,
         )
-        from agent_utilities.knowledge_graph.core.session import current_session
 
         session = current_session()
         if session is None or not getattr(session.actor, "authenticated", False):

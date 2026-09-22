@@ -157,8 +157,8 @@ def _refresh_process_authority(session: Any) -> Any:
     validation, only the bounded expiry is copied into the shared in-memory
     lease. Identity, roles, tenant, route, and policy may not change.
     """
+    from agent_utilities.api.session import SessionExpiredError
     from agent_utilities.core.config import config
-    from agent_utilities.knowledge_graph.core.session import SessionExpiredError
 
     lease = getattr(getattr(session, "actor", None), "credential_lease", None)
     if lease is None:
@@ -191,7 +191,7 @@ async def _ensure_process_authority_current() -> Any:
     the dispatch-entry check only; :func:`_keep_process_authority_current`
     covers the rest of a long-running dispatch.
     """
-    from agent_utilities.knowledge_graph.core.session import (
+    from agent_utilities.api.session import (
         SessionExpiredError,
         current_session,
     )
@@ -246,7 +246,7 @@ async def _keep_process_authority_current(session: Any) -> None:
     is open (started and cancelled there) — never a free-running background
     task.
     """
-    from agent_utilities.knowledge_graph.core.session import SessionExpiredError
+    from agent_utilities.api.session import SessionExpiredError
 
     lease = session.actor.credential_lease
     try:
@@ -310,7 +310,7 @@ async def authority_keepalive_scope(session: Any | None = None) -> AsyncIterator
       object is replaced and the expiry check itself is never weakened or
       lengthened.
     * ``session`` defaults to the ambient :func:`GraphSession
-      <agent_utilities.knowledge_graph.core.session.current_session>` (falling
+      <agent_utilities.api.session.current_session>` (falling
       back to the stdio ``_PROCESS_SESSION``, same as ``verified_tool_session_scope``)
       resolved WITHOUT raising when neither is set — this helper only ever adds
       renewal; it must never introduce a new precondition. A caller with no
@@ -328,7 +328,7 @@ async def authority_keepalive_scope(session: Any | None = None) -> AsyncIterator
         return
 
     if session is None:
-        from agent_utilities.knowledge_graph.core.session import current_session
+        from agent_utilities.api.session import current_session
 
         session = current_session() or _PROCESS_SESSION
     if session is None:
@@ -709,12 +709,12 @@ def _start_engine_bootstrap(session: Any) -> None:
     current EG ConnectorPack and GraphSchema read contracts. Startup therefore
     never discovers or ingests skills, prompts, sources, or fleet declarations.
     """
+    from agent_utilities.api.session import use_session
     from agent_utilities.knowledge_graph.core.engine_tasks import (
         _authorized_background_thread,
         _require_verified_background_session,
         daemon_role,
     )
-    from agent_utilities.knowledge_graph.core.session import use_session
     from agent_utilities.security.brain_context import use_actor
 
     verified_session = _require_verified_background_session(session)

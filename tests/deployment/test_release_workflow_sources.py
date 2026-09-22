@@ -35,9 +35,19 @@ def _steps_before_sync() -> list[dict[str, object]]:
     sync_index = next(
         index
         for index, step in enumerate(steps)
-        if step.get("run") == "uv sync --frozen --extra test"
+        if "uv sync --frozen --extra test" in step.get("run", "")
     )
     return steps[:sync_index]
+
+
+def _sync_command() -> str:
+    workflow_path = ROOT / ".github" / "workflows" / "release.yml"
+    workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+    return next(
+        step["run"]
+        for step in workflow["jobs"]["gates"]["steps"]
+        if "uv sync --frozen --extra test" in step.get("run", "")
+    )
 
 
 def test_release_workflow_materializes_uv_path_sources_before_sync() -> None:
@@ -87,6 +97,36 @@ def test_webui_checkout_uses_reachable_published_commit() -> None:
     )
 
     assert checkout["with"]["ref"] == "a25478b4b1e892c5df8c5c79113ea37c89578053"
+
+
+def test_release_workflow_pins_published_generated_contract_heads() -> None:
+    steps = _steps_before_sync()
+    refs = {
+        step["with"]["repository"]: step["with"]["ref"]
+        for step in steps
+        if step.get("with", {}).get("repository")
+    }
+
+    assert refs["Knuckles-Team/agent-connector-sdk"] == (
+        "da1757b998698d2e8d5c60c4eca9aea18d9baf8d"
+    )
+    assert refs["Knuckles-Team/epistemic-graph"] == (
+        "49d63da5396fef7482fc3617df3f90a836661722"
+    )
+
+
+def test_release_workflow_uses_pinned_epistemic_graph_contract_overlay() -> None:
+    command = _sync_command()
+
+    assert (
+        "uv sync --frozen --extra test --no-install-package epistemic-graph" in command
+    )
+    assert "PYTHONPATH=$eg_source" in command
+    assert 'git -C "$eg_source" rev-parse HEAD' in command
+    assert "49d63da5396fef7482fc3617df3f90a836661722" in command
+    assert "epistemic_graph.__file__" in command
+    assert "source_ingestion.SourceCheckpoint" in command
+    assert "storage.send_agent_component_content" in command
 
 
 def test_scanner_versions_receive_distinct_argv_and_remain_advisory() -> None:

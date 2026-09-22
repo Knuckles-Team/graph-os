@@ -8,6 +8,7 @@ import os
 from typing import Any
 
 from agent_connector_sdk.mcp.content import register_connector_content
+from agent_connector_sdk.mcp.network import build_network_serving_config
 from agent_utilities.core.config import setting
 
 from graph_os.mcp_server import runtime
@@ -208,6 +209,7 @@ def mcp_server() -> None:
     transport = getattr(args, "transport", "stdio")
     host = getattr(args, "host", "127.0.0.1")
     port = int(getattr(args, "port", 8000))
+    network_serving = build_network_serving_config(args)
 
     bootstrap_session = runtime._mint_process_session(transport)
     runtime._PROCESS_SESSION = bootstrap_session if transport == "stdio" else None
@@ -227,7 +229,6 @@ def mcp_server() -> None:
     try:
         logger.info("Starting graph-os MCP server (transport=%s)", transport)
 
-        from agent_utilities.mcp.server_factory import mcp_network_run_kwargs
         from agent_utilities.security.request_identity import (
             apply_served_security_profile,
         )
@@ -257,8 +258,8 @@ def mcp_server() -> None:
         # authority before engine bootstrap. An explicit client role remains a
         # hard serving-plane boundary; this entrypoint never promotes itself to
         # the host that owns maintenance, workers, or autonomous loops.
+        from agent_utilities.api.session import use_session
         from agent_utilities.core.config import config
-        from agent_utilities.knowledge_graph.core.session import use_session
         from agent_utilities.security.brain_context import use_actor
 
         with use_actor(bootstrap_session.actor), use_session(bootstrap_session):
@@ -306,11 +307,13 @@ def mcp_server() -> None:
         if transport == "stdio":
             mcp.run(transport="stdio")
         elif transport == "streamable-http":
+            if network_serving is None:
+                raise RuntimeError("network serving configuration is required")
             mcp.run(
                 transport="streamable-http",
                 host=host,
                 port=port,
-                **mcp_network_run_kwargs(args),
+                **network_serving.fastmcp_run_kwargs(),
             )
         else:
             raise ValueError("graph-os transport must be 'stdio' or 'streamable-http'")

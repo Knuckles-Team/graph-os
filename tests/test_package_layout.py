@@ -36,6 +36,30 @@ def test_serving_packages_do_not_import_legacy_au_multiplexer() -> None:
     assert offenders == []
 
 
+def test_mcp_network_listener_uses_sdk_hardened_serving_contract() -> None:
+    server = (
+        Path(__file__).parents[1] / "graph_os" / "mcp_server" / "server.py"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "from agent_connector_sdk.mcp.network import build_network_serving_config"
+        in server
+    )
+    assert "network_serving.fastmcp_run_kwargs()" in server
+    assert "mcp_network_run_kwargs" not in server
+
+
+def test_runtime_consumes_only_public_au_session_and_catalog_ports() -> None:
+    package_root = Path(__file__).parents[1] / "graph_os"
+    production = "\n".join(
+        path.read_text(encoding="utf-8") for path in package_root.rglob("*.py")
+    )
+
+    assert "agent_utilities.knowledge_graph.core.session" not in production
+    assert "agent_utilities.control_plane.catalogs" not in production
+    assert "agent_utilities.api.agent_control_plane" not in production
+
+
 def test_deployment_doctor_uses_native_graph_os_hosts() -> None:
     doctor = (
         Path(__file__).parents[1] / "graph_os" / "deployment" / "doctor.py"

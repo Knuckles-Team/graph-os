@@ -185,7 +185,7 @@ def verified_tool_session_scope():
     dispatch. The error surface deliberately omits principal, tenant, token,
     endpoint, and policy values.
     """
-    from agent_utilities.knowledge_graph.core.session import (
+    from agent_utilities.api.session import (
         current_session,
         use_session,
     )

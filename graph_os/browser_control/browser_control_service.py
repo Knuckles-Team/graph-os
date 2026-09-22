@@ -105,7 +105,7 @@ class BrowserControlService(
     def _validate_ambient_binding(binding: BrowserChannelBinding) -> None:
         """Reject a foreign caller without disturbing the legitimate channel."""
 
-        from agent_utilities.knowledge_graph.core.session import resolve_session
+        from agent_utilities.api.session import resolve_session
 
         resolve_session(binding.session, required_scope="kg:write")
         if str(getattr(binding.session.actor, "actor_type", "")) != "human":

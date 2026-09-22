@@ -187,8 +187,8 @@ def refresh_process_identity(session: Any) -> Any:
     actor type must remain byte-for-byte equivalent to the authority captured
     by the background worker threads.
     """
+    from agent_utilities.api.session import SessionExpiredError
     from agent_utilities.core.config import config
-    from agent_utilities.knowledge_graph.core.session import SessionExpiredError
     from agent_utilities.security.request_identity import (
         acquire_process_identity_token,
         mint_actor_from_token_sync,
@@ -478,7 +478,7 @@ def main() -> None:
             logger.warning("signal handler registration skipped: %s", exc)
 
     session = mint_process_identity()
-    from agent_utilities.knowledge_graph.core.session import use_session
+    from agent_utilities.api.session import use_session
     from agent_utilities.security.brain_context import use_actor
 
     with use_actor(session.actor), use_session(session):

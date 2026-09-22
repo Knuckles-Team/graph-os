@@ -6,7 +6,7 @@ import asyncio
 import threading
 from typing import Any, Literal
 
-from agent_utilities.knowledge_graph.core.session import resolve_session
+from agent_utilities.api.session import resolve_session
 from pydantic import BaseModel
 
 from graph_os.browser_control.browser_control_api import (

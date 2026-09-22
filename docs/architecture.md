@@ -1,4 +1,4 @@
-# How GraphOS fits
+# How Graph OS fits
 
 GraphOS is the platform edge and composition root. It is the running process
 that receives requests, establishes authority, and projects independently owned
@@ -10,7 +10,10 @@ capabilities through one governed surface.
 
 | Layer | Owns | GraphOS relationship |
 |---|---|---|
-| [Agent WebUI](https://knuckles-team.github.io/agent-webui/) | Browser interaction, chat presentation, and local UI state | Hosted by GraphOS with an injected application composer. |
+| [Agent Web UI](https://knuckles-team.github.io/agent-webui/) | Browser interaction, chat presentation, and local UI state | Hosted by GraphOS with an injected application composer. |
+| Agent Terminal UI | Terminal and headless operation | Uses GraphOS REST today; conversational ACP chat remains an explicit contract gap. |
+| Geniusbot | Desktop cockpit for chat, graph, fleet, and health | Uses the governed GraphOS gateway for its primary panels. |
+| Messaging channels | Chat and voice entrypoints | Hosted and supervised by GraphOS; adapters and the inbound router remain owned by agent-utilities. |
 | **GraphOS** | MCP, REST, A2A, request policy, fleet supervision, and process lifecycle | Authenticates, composes, routes, supervises, and projects. |
 | [agent-utilities](https://knuckles-team.github.io/agent-utilities/) | Agent decisions, workflows, evaluations, and skills | Provides typed application services to GraphOS. |
 | [epistemic-graph](https://knuckles-team.github.io/epistemic-graph/) | Durable multimodal state, RDF/OWL/SHACL reasoning, queries, and provenance | Provides generated storage and reasoning contracts. |
@@ -19,7 +22,7 @@ capabilities through one governed surface.
 ## Runtime flow
 
 <ol class="site-flow" aria-label="GraphOS request flow">
-  <li class="site-flow__step"><span class="site-flow__title">Receive</span><span class="site-flow__body">MCP, REST, A2A, and WebUI requests enter one GraphOS process.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Receive</span><span class="site-flow__body">Agent Web UI, Agent Terminal UI, Geniusbot, messaging, MCP, REST, and A2A converge on one GraphOS process.</span></li>
   <li class="site-flow__step"><span class="site-flow__title">Authorize</span><span class="site-flow__body">GraphOS verifies identity, tenant, scope, and action policy.</span></li>
   <li class="site-flow__step"><span class="site-flow__title">Delegate</span><span class="site-flow__body">Agent work reaches agent-utilities; source work reaches an admitted connector.</span></li>
   <li class="site-flow__step"><span class="site-flow__title">Commit</span><span class="site-flow__body">Governed reads and mutations reach epistemic-graph with evidence and provenance.</span></li>
