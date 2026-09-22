@@ -15,9 +15,6 @@ _CONTROL_CAPABILITIES = (
     "query_cypher",
     "create_node_if_absent",
     "compare_and_set_node_fields",
-    "claim_work_item",
-    "commit_work_item_result",
-    "cancel_work_item",
 )
 
 

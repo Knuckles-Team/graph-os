@@ -7,11 +7,6 @@ import secrets
 from dataclasses import dataclass
 from typing import Any, cast
 
-from agent_utilities.knowledge_graph.core.work_durability import (
-    commit_result,
-    get_work_item,
-    submit_work_item_atomic,
-)
 from agent_utilities.security.persistence_privacy import persistence_reference
 
 from graph_os.browser_control.browser_control_binding import (
@@ -20,6 +15,13 @@ from graph_os.browser_control.browser_control_binding import (
     binding_properties,
 )
 from graph_os.browser_control.browser_control_common import canonical_internal_json
+from graph_os.browser_control.browser_control_work_items import (
+    commit_work_item,
+    get_work_item,
+    submit_work_item,
+)
+
+_CALL_KIND = "browser.control.call"
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,16 +128,13 @@ def commit_call_outcome(
         if status != "succeeded"
         else None
     )
-    return str(
-        commit_result(
-            engine,
-            item_id,
-            claim,
-            outcome=native_outcome,
-            result_ref=result_ref,
-            error_ref=error_ref,
-            retryable=False,
-        )
+    return commit_work_item(
+        engine,
+        item_id,
+        claim,
+        outcome=native_outcome,
+        result_ref=result_ref,
+        error_ref=error_ref,
     )
 
 
@@ -215,28 +214,20 @@ def submit_call_fence(
         confirmation_digest=confirmation_digest,
         admission_reference=admission_reference,
     )
-    _, created = submit_work_item_atomic(
+    created = submit_work_item(
         engine,
-        kind="browser.control.call",
-        queue="browser_control",
-        payload_ref=payload_reference,
-        tenant=refs.tenant,
-        resource_class="network_io",
-        fairness_group=refs.actor_reference,
-        max_attempts=1,
-        idempotency_key=idempotency_key,
-        description="Governed browser-local WebMCP call",
-        created_by=refs.actor_reference,
-        metadata=metadata,
         work_item_id=item_id,
+        idempotency_key=idempotency_key,
+        kind=_CALL_KIND,
+        input_ref=payload_reference,
+        metadata=metadata,
+        attempt_fields=("admission_reference",),
     )
-    row = get_work_item(engine, item_id)
+    row = get_work_item(engine, refs.tenant, item_id)
     _validate_fence_row(
         row,
-        refs=refs,
         item_id=item_id,
         payload_reference=payload_reference,
-        idempotency_key=idempotency_key,
         metadata=metadata,
     )
     assert row is not None
@@ -285,6 +276,7 @@ def _fence_inputs(
         # A server-only nonce distinguishes an ambiguous create-then-read
         # failure from a concurrent replay of the same deterministic request.
         "admission_reference": admission_reference,
+        "actor_reference": refs.actor_reference,
     }
     return payload_reference, idempotency_key, metadata
 
@@ -292,26 +284,22 @@ def _fence_inputs(
 def _validate_fence_row(
     row: dict[str, Any] | None,
     *,
-    refs: BindingReferences,
     item_id: str,
     payload_reference: str,
-    idempotency_key: str,
     metadata: dict[str, Any],
 ) -> None:
+    """The durable fence must be exactly this call's WorkItem.
+
+    The tenant is enforced by the engine's typed read; the envelope and the
+    admitted metadata (actor, digests, lease) are compared here.
+    """
     if row is None:
         raise RuntimeError("browser call fence was not durably readable")
     stored = row.get("metadata")
     envelope = {
-        "id": item_id,
-        "kind": "browser.control.call",
-        "queue": "browser_control",
-        "tenant": refs.tenant,
-        "payload_ref": payload_reference,
-        "idempotency_key": idempotency_key,
-        "resource_class": "network_io",
-        "fairness_group": refs.actor_reference,
-        "max_attempts": 1,
-        "created_by": refs.actor_reference,
+        "work_item_id": item_id,
+        "kind": _CALL_KIND,
+        "input_ref": payload_reference,
     }
     if (
         not isinstance(stored, dict)

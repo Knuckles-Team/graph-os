@@ -161,9 +161,67 @@ class _Authority:
         return {"status": "in_flight"}
 
 
+class _EgWorkItems:
+    """The generated EG ``work_items`` namespace, over the fake authority."""
+
+    def __init__(self, authority: _Authority) -> None:
+        self._authority = authority
+
+    def submit(self, request: dict[str, Any]) -> dict[str, Any]:
+        item_id = request["work_item_id"]
+        node = self._authority.nodes.get(item_id)
+        created = node is None
+        if created:
+            node = {
+                "id": item_id,
+                "node_type": "WorkItem",
+                "tenant": request["context"]["tenant_id"],
+                "kind": request["kind"],
+                "status": "ready",
+                "payload_ref": request["input_ref"],
+                "metadata": dict(request["metadata"]),
+                "command_digest": request["command_digest"],
+            }
+            self._authority.nodes[item_id] = node
+        elif node["command_digest"] != request["command_digest"]:
+            raise RuntimeError("IDEMPOTENCY_CONFLICT")
+        return {
+            "work_item_id": item_id,
+            "status": node["status"],
+            "created": created,
+            "replayed": not created,
+        }
+
+    def get(self, *, tenant: str, work_item_id: str) -> dict[str, Any] | None:
+        node = self._authority.nodes.get(work_item_id)
+        if node is None or node.get("tenant") != tenant:
+            return None
+        return {
+            "work_item_id": work_item_id,
+            "kind": node["kind"],
+            "status": node["status"],
+            "input_ref": node["payload_ref"],
+            "metadata": node["metadata"],
+            "version": 1,
+            "updated_at_ms": 0,
+        }
+
+    def claim(self, request: dict[str, Any], *, idempotency_key: str) -> dict[str, Any]:
+        return self._authority.claim_work_item(SimpleNamespace(**request))
+
+    def commit_result(self, **request: Any) -> dict[str, Any]:
+        return self._authority.commit_work_item_result(request)
+
+    def cancel(self, **request: Any) -> dict[str, Any]:
+        return self._authority.cancel_work_item(request)
+
+
 class _Engine:
     def __init__(self) -> None:
         self._work_item_engine = _Authority()
+        self.graph_compute = SimpleNamespace(
+            client=SimpleNamespace(work_items=_EgWorkItems(self._work_item_engine))
+        )
         self.trace_batches: list[list[dict[str, Any]]] = []
         self.fail_audit = False
 
@@ -229,6 +287,7 @@ def session() -> GraphSession:
     return GraphSession(
         actor=actor,
         tenant="tenant-a",
+        graph="tenant-a",
         scopes=frozenset({"kg:write"}),
         policy_version="policy-7",
         audience="graph-runtime",
@@ -489,12 +548,12 @@ async def test_ambiguous_fence_admission_recovers_only_owned_work_item(
     original_get = durability.get_work_item
     failed_after_create = False
 
-    def fail_first_read_after_create(engine: Any, item_id: str) -> Any:
+    def fail_first_read_after_create(engine: Any, tenant: str, item_id: str) -> Any:
         nonlocal failed_after_create
         if not failed_after_create and item_id in engine._work_item_engine.nodes:
             failed_after_create = True
             raise RuntimeError("injected post-admission read failure")
-        return original_get(engine, item_id)
+        return original_get(engine, tenant, item_id)
 
     monkeypatch.setattr(durability, "get_work_item", fail_first_read_after_create)
     monkeypatch.setattr(cancellation, "_FENCE_RECOVERY_SECONDS", 0.0)
@@ -1735,10 +1794,11 @@ async def test_replay_rejects_changed_work_item_envelope(
             for node in engine._work_item_engine.nodes.values()
             if node.get("kind") == "browser.control.call"
         )
-        work_item["queue"] = "changed"
+        original_input = work_item["payload_ref"]
+        work_item["payload_ref"] = "changed"
         with pytest.raises(PermissionError, match="durable fence"):
             await service.execute_call(request)
-        work_item["queue"] = "browser_control"
+        work_item["payload_ref"] = original_input
         await connection.receive(
             ControlResultMessage(
                 call_id=sent[0].call_id,

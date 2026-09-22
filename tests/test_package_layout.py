@@ -140,10 +140,10 @@ def test_no_production_module_imports_au_private_mcp_internals() -> None:
     assert offenders == []
 
 
-def test_fleet_a2a_and_deployment_use_no_au_knowledge_graph_internals() -> None:
+def test_no_production_module_imports_au_knowledge_graph_internals() -> None:
     offenders = [
         name
-        for name, source in _production_sources("fleet", "a2a", "deployment").items()
+        for name, source in _production_sources().items()
         if _imports(source, "agent_utilities.knowledge_graph")
     ]
 
