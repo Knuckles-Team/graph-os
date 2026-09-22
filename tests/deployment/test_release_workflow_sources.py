@@ -96,7 +96,7 @@ def test_webui_checkout_uses_reachable_published_commit() -> None:
         if step.get("with", {}).get("repository") == "Knuckles-Team/agent-webui"
     )
 
-    assert checkout["with"]["ref"] == "a25478b4b1e892c5df8c5c79113ea37c89578053"
+    assert checkout["with"]["ref"] == "9ef29956ffd195ced40149e2a510a09b3783f5e3"
 
 
 def test_release_workflow_pins_published_generated_contract_heads() -> None:
@@ -108,10 +108,10 @@ def test_release_workflow_pins_published_generated_contract_heads() -> None:
     }
 
     assert refs["Knuckles-Team/agent-connector-sdk"] == (
-        "da1757b998698d2e8d5c60c4eca9aea18d9baf8d"
+        "a9dd3e7b33efefc74b309ed827fe8565ecd590fa"
     )
     assert refs["Knuckles-Team/epistemic-graph"] == (
-        "49d63da5396fef7482fc3617df3f90a836661722"
+        "b43f33569dd46b84dbdb317d02c20fea10a0da1e"
     )
 
 
@@ -124,7 +124,7 @@ def test_release_workflow_uses_pinned_epistemic_graph_contract_overlay() -> None
     )
     assert "PYTHONPATH=$eg_source" in command
     assert 'git -C "$eg_source" rev-parse HEAD' in command
-    assert "49d63da5396fef7482fc3617df3f90a836661722" in command
+    assert "b43f33569dd46b84dbdb317d02c20fea10a0da1e" in command
     assert "python -m pip install 'maturin>=1,<2'" in command
     assert 'python "$eg_source/scripts/build_numeric_kernel.py"' in command
     assert "epistemic_graph.__file__" in command

@@ -74,7 +74,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-utilities
-          ref: fbc939fedeadeb20ddf4b468245165414a18c34e
+          ref: 2f1610895aa182ecf2c7e2f950633725c197d1e5
           path: .uv-workspace-siblings/agent-utilities
           persist-credentials: false
 
@@ -82,7 +82,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-connector-sdk
-          ref: da1757b998698d2e8d5c60c4eca9aea18d9baf8d
+          ref: a9dd3e7b33efefc74b309ed827fe8565ecd590fa
           path: .uv-workspace-siblings/agent-connector-sdk
           persist-credentials: false
 
@@ -90,15 +90,23 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-webui
-          ref: a25478b4b1e892c5df8c5c79113ea37c89578053
+          ref: 9ef29956ffd195ced40149e2a510a09b3783f5e3
           path: .uv-workspace-siblings/agent-webui
+          persist-credentials: false
+
+      - name: Checkout agent-utilities' own agent-connector-sdk source path
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: Knuckles-Team/agent-connector-sdk
+          ref: a9dd3e7b33efefc74b309ed827fe8565ecd590fa
+          path: .uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/agent-connector-sdk
           persist-credentials: false
 
       - name: Checkout pinned epistemic-graph source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/epistemic-graph
-          ref: 49d63da5396fef7482fc3617df3f90a836661722
+          ref: b43f33569dd46b84dbdb317d02c20fea10a0da1e
           path: .uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph
           persist-credentials: false
 
@@ -146,7 +154,7 @@ jobs:
         run: |
           set -euo pipefail
           eg_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph"
-          test "$(git -C "$eg_source" rev-parse HEAD)" = "49d63da5396fef7482fc3617df3f90a836661722"
+          test "$(git -C "$eg_source" rev-parse HEAD)" = "b43f33569dd46b84dbdb317d02c20fea10a0da1e"
           python -m pip install 'maturin>=1,<2'
           python "$eg_source/scripts/build_numeric_kernel.py"
           echo "PYTHONPATH=$eg_source${PYTHONPATH:+:$PYTHONPATH}" >> "$GITHUB_ENV"
