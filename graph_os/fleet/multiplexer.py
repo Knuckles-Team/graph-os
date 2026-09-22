@@ -7205,14 +7205,29 @@ def _tools_with_tag(mcp, tags: list[str] | None) -> set[str]:
     if not tags:
         return set()
     wanted = {str(t) for t in tags}
-    from agent_utilities.mcp.verbose_tools import _provider_tools
-
     out: set[str] = set()
     for name, tool in _provider_tools(mcp).items():
         tool_tags = getattr(tool, "tags", None)
         if isinstance(tool_tags, set) and tool_tags & wanted:
             out.add(name)
     return out
+
+
+def _provider_tools(mcp: _typing.Any) -> dict[str, _typing.Any]:
+    """Return the FastMCP host's registered local tools."""
+    components = getattr(getattr(mcp, "_local_provider", None), "_components", None)
+    if not isinstance(components, dict):
+        return {}
+    return {
+        value.name: value
+        for key, value in components.items()
+        if str(key).startswith("tool:") and getattr(value, "name", None)
+    }
+
+
+def _gated_tool_names(mcp: _typing.Any) -> set[str]:
+    """Return local tools withheld from the default intent-mode view."""
+    return set(getattr(mcp, "_intent_gated_tools", ()) or ())
 
 
 def _register_resolved_forwarders(
@@ -8371,9 +8386,7 @@ def attach_fleet_loader(
     # tools GATED_TAG; seed the session-visibility gate with those names so
     # load_tools reveals them exactly like a fleet tool (no mounting needed —
     # they are already registered local FastMCP tools, just hidden by default).
-    from agent_utilities.mcp.verbose_tools import _provider_tools, gated_tool_names
-
-    mux._local_gated = gated_tool_names(mcp)
+    mux._local_gated = _gated_tool_names(mcp)
     # The always-visible surface: the meta-tools just registered above, PLUS
     # every other tool graph-os already registered natively on this server
     # (the intent verbs, the MCP Apps entry points, and — outside intent/

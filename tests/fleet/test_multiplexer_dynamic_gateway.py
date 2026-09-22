@@ -23,7 +23,9 @@ from graph_os.fleet.multiplexer import (
     _LOCAL_SESSION_META_KEY,
     MCPMultiplexer,
     SessionVisibilityMiddleware,
+    _gated_tool_names,
     _make_forwarder,
+    _provider_tools,
     _register_forwarder,
     _register_meta_tools,
     _session_key,
@@ -38,6 +40,22 @@ CNT_TOOL = "cm_container_operations"
 CNT_PREFIXED = "cm__container_operations"
 CNT_IMAGE_PREFIXED = "cm__image_operations"
 CNT_INFO_PREFIXED = "cm__info_operations"
+
+
+def test_local_tool_visibility_uses_the_graph_os_fastmcp_host() -> None:
+    tool = SimpleNamespace(name="graph_jobs")
+    resource = SimpleNamespace(name="status")
+    mcp = SimpleNamespace(
+        _local_provider=SimpleNamespace(
+            _components={"tool:graph_jobs": tool, "resource:status": resource}
+        ),
+        _intent_gated_tools=("graph_jobs",),
+    )
+
+    assert _provider_tools(mcp) == {"graph_jobs": tool}
+    assert _gated_tool_names(mcp) == {"graph_jobs"}
+    assert _provider_tools(SimpleNamespace()) == {}
+    assert _gated_tool_names(SimpleNamespace()) == set()
 
 
 def _write_config(tmp_path, servers: dict) -> object:
