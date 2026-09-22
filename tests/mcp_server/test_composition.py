@@ -19,16 +19,11 @@ from graph_os.mcp_server.composition import (
 from graph_os.mcp_server.server import _register_semantic_content
 
 
-def test_native_action_route_contract_matches_cutover_source() -> None:
-    from agent_utilities.mcp.kg_server import ACTION_TOOL_ROUTES as source_routes
-
-    graph_os_routes = dict(runtime.ACTION_TOOL_ROUTES)
-    browser_route = graph_os_routes.pop("browser_control")
-    a2a_route = graph_os_routes.pop("graph_a2a")
-    assert graph_os_routes == source_routes
-    assert browser_route == "/browser/control"
-    assert a2a_route == "/graph/a2a"
-    assert len(runtime.ACTION_TOOL_ROUTES) >= 60
+def test_native_action_route_contract_excludes_legacy_au_surface() -> None:
+    assert runtime.ACTION_TOOL_ROUTES == {
+        "browser_control": "/browser/control",
+        "graph_a2a": "/graph/a2a",
+    }
 
 
 def test_bootstrap_exports_bind_runtime_host_state() -> None:

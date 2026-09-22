@@ -46,7 +46,6 @@ import contextvars
 import json
 import logging
 import re
-import sys
 import threading
 import uuid
 from collections.abc import Awaitable, Callable
@@ -62,23 +61,6 @@ logger = logging.getLogger(__name__)
 
 
 REGISTERED_TOOLS: dict[str, Any] = {}
-
-
-def _bind_agent_plane_registration_host() -> None:
-    """Point AU tool registrars at this graph-os-owned host module.
-
-    The registrars remain agent-plane behavior and currently import their host
-    module to populate ``REGISTERED_TOOLS`` and call shared dispatch helpers.
-    Until their signatures accept an explicit host port, bind that dependency
-    here before importing them. This does not call or forward to AU's former
-    server implementation; the module object supplied is this native runtime.
-    """
-
-    import agent_utilities.mcp as agent_mcp
-
-    host = sys.modules[__name__]
-    sys.modules["agent_utilities.mcp.kg_server"] = host
-    agent_mcp.kg_server = host
 
 
 def _build_dummy_request(path_params=None, json_body=None):
@@ -577,70 +559,6 @@ def _external_error_response(
 # parity contract test (tests/unit/test_gateway_mcp_parity.py) asserts this map
 # stays in lockstep with REGISTERED_TOOLS so the two surfaces never drift.
 ACTION_TOOL_ROUTES: dict[str, str] = {
-    "graph_query": "/graph/query",
-    "tabular_query": "/query/tabular",
-    "graph_ask": "/graph/ask",
-    "graph_table": "/graph/table",
-    "graph_search": "/graph/search",
-    "graph_search_synthesis": "/graph/search-synthesis",
-    "graph_code_nav": "/graph/code-nav",
-    "graph_document_tree": "/graph/document-tree",
-    "graph_write": "/graph/write",
-    "graph_ingest": "/graph/ingest",
-    "graph_analyze": "/graph/analyze",
-    "graph_code": "/graph/code",
-    "graph_research": "/graph/research",
-    "graph_evaluate": "/graph/evaluate",
-    "graph_explain": "/graph/explain",
-    "graph_observe": "/graph/observe",
-    "graph_orchestrate": "/graph/orchestrate",
-    "graph_config": "/graph/config",
-    "graph_configure": "/graph/configure",
-    "graph_context": "/graph/context",
-    "graph_feedback": "/graph/feedback",
-    "graph_sessions": "/graph/sessions",
-    "graph_goals": "/graph/goals",
-    "graph_message": "/graph/message",
-    "graph_reach": "/graph/reach",
-    "graph_bus": "/graph/bus",
-    "graph_" + "secret": "/graph/secret",
-    "document_process": "/document/process",
-    "source_connector": "/connector/source",
-    "graph_writeback": "/graph/writeback",
-    "spec_ticket": "/spec/ticket",
-    "concept_registry": "/concept/registry",
-    "source_sync": "/source/sync",
-    "source_drain": "/source/drain",
-    "graph_etl": "/graph/etl",
-    "ontology_property_types": "/ontology/property-types",
-    "ontology_value_types": "/ontology/value-types",
-    "ontology_interface": "/ontology/interface",
-    "ontology_sampling_profile": "/ontology/sampling-profiles",
-    "ontology_model_profile": "/ontology/model-profiles",
-    "ontology_function": "/ontology/function",
-    "ontology_derive": "/ontology/derive",
-    "ontology_link_materialize": "/ontology/link-materialize",
-    "ontology_leanix_sync": "/ontology/leanix-sync",
-    "ontology_classification_claims": "/ontology/classification-claims",
-    "graph_data_prep": "/data/prep",
-    "ontology_repository_provenance": "/ontology/repository-provenance",
-    "graph_ontology": "/graph/ontology",
-    "object_edits": "/object/edits",
-    "object_index": "/object/index",
-    "object_permissioning": "/object/permissioning",
-    "object_set": "/object/set",
-    "graph_share": "/graph/share",
-    "usage_query": "/usage/query",
-    "ingest_sessions": "/usage/ingest-sessions",
-    "research_artifact": "/research/artifact",
-    "graph_loops": "/graph/loops",
-    "graph_schedules": "/graph/schedules",
-    "graph_feeds": "/graph/feeds",
-    "graph_sandbox": "/graph/sandbox",
-    "graph_runvcs": "/graph/runvcs",
-    "graph_claims": "/graph/claims",
-    "graph_candidate_claims": "/graph/candidate-claims",
-    "skill_classify": "/skill/classify",
     "browser_control": "/browser/control",
     "graph_a2a": "/graph/a2a",
 }
@@ -2402,12 +2320,7 @@ for _bootstrap_name in _bootstrap.BOOTSTRAP_EXPORTS:
     globals()[_bootstrap_name] = getattr(_bootstrap, _bootstrap_name)
 
 
-def _build_server(
-    bootstrap: bool = True,
-    *,
-    tool_profile: str | None = None,
-    canonical_surface: bool = False,
-):
+def _build_server(bootstrap: bool = True):
     """Build the KG MCP server with all tools registered.
 
     Args:
@@ -2417,14 +2330,7 @@ def _build_server(
             :func:`ensure_tools_registered`) because it owns the engine/daemon
             lifecycle itself and only needs ``REGISTERED_TOOLS`` populated so the
             centralized REST handlers can dispatch.
-        tool_profile: Explicit tool mode for deterministic catalog generation.
-            ``None`` uses the configured runtime mode.
-        canonical_surface: Register every condensed domain regardless of
-            deployment toggles. This is reserved for catalog/gate construction;
-            served processes continue to honor their configured toggles.
     """
-    _bind_agent_plane_registration_host()
-
     from agent_utilities.mcp.server_factory import create_mcp_server
 
     is_readonly = False
@@ -2544,150 +2450,13 @@ def _build_server(
         )
         return JSONResponse(result)
 
-    # ═══ Grouped action-routed tools ═══
-
-    from agent_utilities.mcp import tools as agent_tools
-    from agent_utilities.mcp.verbose_tools import register_tool_surface, tool_mode
-
     from graph_os.a2a.mcp import register_a2a_tools
     from graph_os.browser_control.mcp import register_browser_control_tools
 
-    # graph-os is an action-routed wrapper over the API gateway's action core. The
-    # condensed surface is the per-domain action tools (gated by `<DOMAIN>TOOL`); the
-    # verbose surface is one 1:1 tool per gateway CRUD action, both dispatching through
-    # the same `_execute_tool` core. register_tool_surface owns the MCP_TOOL_MODE
-    # selection (intent default / condensed / verbose / both) for both.
-    register_tool_surface(
-        mcp,
-        service="graph-os",
-        registrars=[
-            agent_tools.register_query_tools,
-            agent_tools.register_write_ingest_tools,
-            agent_tools.register_analysis_tools,
-            agent_tools.register_agent_execution_tools,
-            agent_tools.register_analyze_suite_tools,
-            agent_tools.register_state_tools,
-            agent_tools.register_ontology_tools,
-            agent_tools.register_reach_tools,
-            agent_tools.register_bus_tools,
-            agent_tools.register_candidate_claim_tools,
-            agent_tools.register_claim_tools,
-            agent_tools.register_secret_tools,
-            agent_tools.register_config_tools,
-            agent_tools.register_data_prep_tools,
-            agent_tools.register_engine_tools,
-            agent_tools.register_engine_surface_tools,
-            agent_tools.register_domain_ops_tools,
-            agent_tools.register_evolution_tools,
-            agent_tools.register_governance_tools,
-            agent_tools.register_ops_causal_tools,
-            agent_tools.register_graph_engineering_tools,
-            agent_tools.register_audit_tools,
-            agent_tools.register_epistemic_tools,
-            agent_tools.register_incident_tools,
-            agent_tools.register_job_tools,
-            agent_tools.register_media_sidecar_tools,
-            agent_tools.register_compliance_tools,
-            agent_tools.register_rlm_tools,
-            agent_tools.register_workflow_tools,
-            agent_tools.register_argument_tools,
-            agent_tools.register_durable_tools,
-            register_browser_control_tools,
-            register_a2a_tools,
-        ],
-        verbose_register=register_graphos_verbose_tools,
-        mode_override=tool_profile,
-        force_condensed_registration=canonical_surface,
-    )
-
-    # CONCEPT:AU-ECO.ui.mcp-apps-host — the MCP Apps entry-point tool + its
-    # ui:// resource (agent_utilities/mcp/tools/mcp_apps.py). Registered
-    # directly, not through register_tool_surface: it has no `action` param
-    # to condense/verbose-split (a single-purpose tool + a resource, not an
-    # action-routed dispatcher), so it doesn't fit that harness's contract.
-    agent_tools.register_mcp_apps_tools(mcp)
-
-    # CONCEPT:AU-ECO.mcp.intent-surface-condensed-collapse (Seam 8, Phases 2-3) — the ADDITIONAL, small
-    # "ask/find/write/act/manage/why" intent surface, selected by the default
-    # MCP_TOOL_MODE=intent. Every granular tool the
-    # condensed surface just registered stays reachable via load_tools (verbose_tools
-    # tagged them GATED_TAG); the intent verbs dispatch through the SAME
-    # REGISTERED_TOOLS/_execute_tool core.
-    if (tool_profile or tool_mode()) == "intent":
-        from agent_utilities.mcp.tools.intent_tools import register_intent_tools
-
-        register_intent_tools(mcp)
+    register_browser_control_tools(mcp)
+    register_a2a_tools(mcp)
 
     return args, mcp, middlewares
-
-
-def register_graphos_verbose_tools(mcp) -> None:
-    """Register graph-os's verbose 1:1 surface — one tool per gateway CRUD action.
-
-    Each tool is a thin 1:1 alias that dispatches through the same ``_execute_tool``
-    action core as the condensed ``graph_*`` tools and the REST gateway (no second
-    implementation). Operations come from the generated
-    ``_graphos_action_manifest.GRAPHOS_ACTIONS``; each is tagged ``{"verbose", <tool>}``
-    so the visibility transform can slice them. CONCEPT:AU-ECO.mcp.tool-mode-standardization.
-    """
-    import json as _json
-
-    from agent_utilities.mcp._graphos_action_manifest import GRAPHOS_ACTIONS
-    from agent_utilities.mcp.verbose_tools import tool_mode
-    from pydantic import Field
-
-    # In ``both`` mode — and, since D-WS-1, in ``verbose`` mode too — the condensed
-    # action tools are also registered (register_tool_surface now always registers
-    # the condensed registrars so the dispatch core / REGISTERED_TOOLS is never left
-    # empty; see verbose_tools.register_tool_surface). A single-op (action=None)
-    # verbose tool shares the condensed tool's NAME, so skip it to avoid overwriting
-    # the condensed tool's FastMCP component with a verbose-tagged duplicate whose
-    # schema (bare ``params_json``) doesn't match what REGISTERED_TOOLS actually
-    # dispatches for that name.
-    skip_single_op = tool_mode() in ("both", "verbose")
-
-    def _make(tool_name: str, action: str | None):
-        # The low-level engine_<domain> tools (CONCEPT:AU-ECO.mcp.full-api-mcp-surface) are generic
-        # action-routed dispatchers that take method kwargs as a single
-        # ``params_json`` string (they cannot accept **kwargs — FastMCP rejects
-        # VAR_KEYWORD). So forward params_json verbatim instead of spreading it.
-        is_engine = tool_name.startswith("engine_")
-
-        async def _verbose_op(
-            params_json: str = Field(
-                default="{}",
-                description="JSON object of arguments for this operation.",
-            ),
-        ) -> Any:
-            if is_engine:
-                return await _execute_tool(
-                    tool_name, action=action, params_json=params_json or "{}"
-                )
-            kwargs = _json.loads(params_json) if params_json else {}
-            kwargs = {k: v for k, v in kwargs.items() if v is not None}
-            if action is not None:
-                kwargs.setdefault("action", action)
-            return await _execute_tool(tool_name, **kwargs)
-
-        return _verbose_op
-
-    from agent_utilities.mcp.verbose_tools import GRANULAR_TAG
-
-    for op in GRAPHOS_ACTIONS:
-        if op["action"] is None and skip_single_op:
-            continue
-        fn = _make(op["tool"], op["action"])
-        fn.__name__ = op["name"]
-        fn.__doc__ = (
-            f"graph-os {op['tool']} — action '{op['action']}' "
-            "(1:1 over the action core)."
-            if op["action"]
-            else f"graph-os {op['tool']} (single operation)."
-        )
-        mcp.tool(name=op["name"], tags={"verbose", op["tool"], GRANULAR_TAG})(fn)
-
-
-# ══════════════════════════════════════════════════════════════════
 
 
 def ensure_tools_registered() -> None:
