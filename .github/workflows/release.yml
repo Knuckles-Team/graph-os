@@ -69,6 +69,44 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
 
+      - name: Checkout pinned agent-utilities source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: Knuckles-Team/agent-utilities
+          ref: 446e0cf11b5bce3e4b09488035800b91a7d60b25
+          path: .uv-workspace-siblings/agent-utilities
+          persist-credentials: false
+
+      - name: Checkout pinned agent-connector-sdk source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: Knuckles-Team/agent-connector-sdk
+          ref: 543de39037e73d34c204b3740897c496bd1924e5
+          path: .uv-workspace-siblings/agent-connector-sdk
+          persist-credentials: false
+
+      - name: Checkout pinned agent-webui source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: Knuckles-Team/agent-webui
+          ref: 43a634ac016b5d7831b7257c3ff3df86d9d71abe
+          path: .uv-workspace-siblings/agent-webui
+          persist-credentials: false
+
+      - name: Checkout pinned epistemic-graph source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: Knuckles-Team/epistemic-graph
+          ref: 88b6104650f1bb60b5172f2910b2fa301c4e09d5
+          path: .uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph
+          persist-credentials: false
+
+      - name: Materialize agent-webui's pinned AU source path
+        run: |
+          set -euo pipefail
+          mkdir -p .uv-workspace-siblings/agent-webui/.uv-workspace-siblings
+          cp -a .uv-workspace-siblings/agent-utilities .uv-workspace-siblings/agent-webui/.uv-workspace-siblings/agent-utilities
+
       # The base the differential hooks compare against: the pull request base
       # or the previous push, else the root commit (a first push scans all of
       # it). An unavailable object is never an invented empty baseline.
