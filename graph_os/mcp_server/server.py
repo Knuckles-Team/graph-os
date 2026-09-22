@@ -322,6 +322,7 @@ def mcp_server() -> None:
     finally:
         if co_service_supervisor is not None:
             co_service_supervisor.stop_all()
+        runtime._drain_engine_transport()
         runtime._PROCESS_SESSION = None
         runtime.set_process_session(None)
         runtime._stop_process_authority_supervisor()

@@ -541,6 +541,7 @@ _ENGINE_LOCK = threading.Lock()
 _ensure_process_authority_current = cast(Any, None)
 _get_engine = cast(Any, None)
 graph_client = cast(Any, None)
+_drain_engine_transport = cast(Any, None)
 _mint_process_session = cast(Any, None)
 _release_readiness_authority = cast(Any, None)
 _set_readiness_authority = cast(Any, None)
@@ -583,26 +584,19 @@ def _build_server(bootstrap: bool = True):
             lifecycle itself and only needs ``REGISTERED_TOOLS`` populated so the
             centralized REST handlers can dispatch.
     """
-    from agent_utilities.mcp.server_factory import create_mcp_server
+    from agent_connector_sdk.mcp.server import create_mcp_server
 
-    is_readonly = False
-
-    def _check_readonly():
-        if is_readonly:
-            return json.dumps(
-                {
-                    "error": "Knowledge Graph is currently in READ-ONLY mode due to database lock contention. "
-                    "Write operations and ingestion are disabled until the other process releases the lock."
-                }
-            )
-        return None
+    from graph_os.mcp_server.serving import (
+        VerifiedSessionMiddleware,
+        register_metrics_route,
+    )
 
     # In embedded mode (bootstrap=False, e.g. the API gateway populating
     # REGISTERED_TOOLS) do NOT parse the host process's argv — pass an empty
     # command line so the factory uses defaults instead of choking on unrelated
     # flags (pytest/uvicorn args) with SystemExit.
-    args, mcp, middlewares = create_mcp_server(
-        name="graph-os",
+    args, mcp, _sdk_middleware = create_mcp_server(
+        "graph-os",
         version=__version__,
         instructions=(
             "Knowledge Graph MCP Server for agent-utilities. "
@@ -638,24 +632,22 @@ def _build_server(bootstrap: bool = True):
         command_args=None if bootstrap else [],
         transport_choices=("stdio", "streamable-http"),
     )
+    # The SDK factory supplies the privacy-safe error and per-caller rate-limit
+    # middleware; GraphOS binds the verified caller session inside them.
+    middlewares = [
+        *_sdk_middleware,
+        VerifiedSessionMiddleware(lambda: _PROCESS_SESSION),
+    ]
+    register_metrics_route(
+        mcp,
+        transport=str(getattr(args, "transport", "stdio")),
+        host=str(getattr(args, "host", "")),
+    )
 
-    # Unauthenticated liveness + readiness for HTTP deployments (CONCEPT:AU-OS.deployment.liveness-vs-readiness-split).
-    # Both dispatch into the ONE shared health-check core
-    # (``observability.runtime_health.collect_health``) also used by the REST
-    # gateway's ``/health``/``/health/ready`` and by ``graph_configure(action=
-    # "health")`` — never a second implementation that can drift.
-    #
-    # ``/health`` is LIVENESS: it always answers 200 (this process itself is up
-    # and answering requests) even when the body reports "unhealthy" — a
-    # /health is a dependency-free, status-only liveness signal. The readiness
-    # twin executes the truthful bounded collector on its reserved control lane,
-    # but returns only ready/not_ready because both routes are intentionally
-    # unauthenticated for kubelet. Detailed component data stays behind
-    # graph_configure(action="health") and authenticated dashboard surfaces.
-    @mcp.custom_route("/health", methods=["GET"])
-    async def health_check(request: Request) -> JSONResponse:  # noqa: ARG001
-        return JSONResponse({"status": "ok"}, headers={"Cache-Control": "no-store"})
-
+    # The SDK factory serves ``/health`` liveness. Readiness runs the truthful
+    # bounded collector but answers only ready/not_ready, because the route is
+    # unauthenticated for kubelet; component detail stays behind
+    # authenticated surfaces.
     @mcp.custom_route("/health/ready", methods=["GET"])
     async def readiness_check(request: Request) -> JSONResponse:  # noqa: ARG001
         from agent_utilities.observability.runtime_health import (

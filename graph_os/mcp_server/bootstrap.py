@@ -60,6 +60,28 @@ def _get_engine():
         return IntelligenceGraphEngine.get_or_create(factory=_factory)
 
 
+def _drain_engine_transport() -> None:
+    """Drain and close the process engine's shared EG transport at shutdown.
+
+    A drain that times out is logged as such; continuity is never claimed and a
+    restarted process mints a fresh session.
+    """
+    from agent_utilities.knowledge_graph.core.engine import IntelligenceGraphEngine
+
+    engine = IntelligenceGraphEngine.get_active()
+    compute = getattr(engine, "graph_compute", None) if engine is not None else None
+    if compute is None:
+        return
+    status = compute.drain()
+    if getattr(status, "timed_out", False):
+        logger.error(
+            "GraphOS transport drain timed out with %s active request(s); "
+            "continuity is not claimed",
+            getattr(status, "active_requests", "unknown"),
+        )
+    compute.close()
+
+
 def graph_client(graph: str) -> Any:
     """Return the process engine's session-routed EG client for one named graph.
 
@@ -701,6 +723,55 @@ def _wait_for_engine_materialization(
             )
 
 
+def daemon_role() -> str:
+    """This process's requested engine-daemon role: host, client, or auto."""
+    role = str(setting("KG_DAEMON_ROLE", "auto") or "auto").strip().lower()
+    return role if role in {"host", "client", "auto"} else "auto"
+
+
+def _require_verified_background_session(session: Any) -> Any:
+    """Refuse background work without a complete, authenticated GraphSession."""
+    from agent_utilities.api.session import GraphSession, SessionRequiredError
+
+    if not isinstance(session, GraphSession):
+        raise SessionRequiredError(
+            "Background graph work requires a verified GraphSession"
+        )
+    session.engine_verified_context()
+    if not session.actor.authenticated:
+        raise SessionRequiredError(
+            "Background graph work requires an authenticated actor"
+        )
+    return session
+
+
+def _run_with_background_authority(session: Any, target: Any) -> None:
+    """Run one thread entrypoint under its captured graph authority."""
+    from agent_utilities.api.session import use_session
+    from agent_utilities.security.brain_context import use_actor
+
+    session = _require_verified_background_session(session)
+    with use_actor(session.actor), use_session(session):
+        target()
+
+
+def _authorized_background_thread(
+    session: Any, target: Any, *, name: str
+) -> threading.Thread:
+    """A daemon thread that restores the verified authority before ``target``.
+
+    Context variables do not cross thread boundaries, so the session is
+    captured here and re-bound inside the new thread.
+    """
+    session = _require_verified_background_session(session)
+    return threading.Thread(
+        target=_run_with_background_authority,
+        args=(session, target),
+        daemon=True,
+        name=name,
+    )
+
+
 def _engine_bootstrap_is_client(engine: Any, fallback_role: str) -> bool:
     """Return whether either the requested or elected engine role is client."""
     requested_role = (
@@ -720,11 +791,6 @@ def _start_engine_bootstrap(session: Any) -> None:
     never discovers or ingests skills, prompts, sources, or fleet declarations.
     """
     from agent_utilities.api.session import use_session
-    from agent_utilities.knowledge_graph.core.engine_tasks import (
-        _authorized_background_thread,
-        _require_verified_background_session,
-        daemon_role,
-    )
     from agent_utilities.security.brain_context import use_actor
 
     verified_session = _require_verified_background_session(session)
