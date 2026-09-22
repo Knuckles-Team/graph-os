@@ -76,3 +76,31 @@ def test_scanner_job_installs_pinned_uv_before_uvx() -> None:
 
     assert uv_index < scanner_index
     assert steps[uv_index]["with"]["version"] == "0.11.7"
+
+
+def test_webui_checkout_uses_reachable_published_commit() -> None:
+    steps = _steps_before_sync()
+    checkout = next(
+        step
+        for step in steps
+        if step.get("with", {}).get("repository") == "Knuckles-Team/agent-webui"
+    )
+
+    assert checkout["with"]["ref"] == "a25478b4b1e892c5df8c5c79113ea37c89578053"
+
+
+def test_scanner_versions_receive_distinct_argv_and_remain_advisory() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    )
+    scanner = workflow["jobs"]["scanner-quality"]
+    command = next(
+        step["run"]
+        for step in scanner["steps"]
+        if "pipelines-hook scanner-versions" in step.get("run", "")
+    )
+
+    assert "pipelines-hook scanner-versions cccc kiss dupehound jscpd" in command
+    assert "['cccc'" not in command
+    assert scanner["continue-on-error"] is True
+    assert workflow["jobs"]["build"]["needs"] == ["gates"]

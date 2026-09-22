@@ -3,8 +3,9 @@ name: Release
 # ─────────────────────────────────────────────────────────────────────────
 # Modeled on agent-utilities'/epistemic-graph's release.yml two-workflow
 # split: this file is the ONLY workflow that can block a release
-# (gates + scanner-quality -> build -> publish-pypi, wired with `needs:` so
-# a failure names its stage at a glance). Everything else (Pages) lives in
+# (gates -> build -> publish-pypi, wired with `needs:` so a failure names its
+# stage at a glance). Scanner quality remains visible but advisory because its
+# native toolchain is runner-provisioned. Everything else (Pages) lives in
 # its own workflow.
 #
 # Every gate is a shared hook from Knuckles-Team/pipelines, run through
@@ -89,7 +90,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-webui
-          ref: 43a634ac016b5d7831b7257c3ff3df86d9d71abe
+          ref: a25478b4b1e892c5df8c5c79113ea37c89578053
           path: .uv-workspace-siblings/agent-webui
           persist-credentials: false
 
@@ -159,6 +160,7 @@ jobs:
   scanner-quality:
     name: Scanner quality (cccc, KISS, dupehound, jscpd)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - *release-checkout
       - *release-python
@@ -196,13 +198,15 @@ jobs:
       - name: Shared scanner hooks (versions, censuses incl. orphan modules, clone differentials)
         run: |
           set -euo pipefail
-          for hook in scanner-versions complexity-census kiss-census dupehound-changed jscpd-differential jscpd-census; do
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@35209bf6d85569a3c1fe3d5cd31771cacfdc3731' \
+            pipelines-hook scanner-versions cccc kiss dupehound jscpd
+          for hook in complexity-census kiss-census dupehound-changed jscpd-differential jscpd-census; do
             uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
           done
 
   build:
     name: build
-    needs: [gates, scanner-quality]
+    needs: [gates]
     runs-on: ubuntu-latest
     env:
       SOURCE_DATE_EPOCH: "0"
