@@ -1247,11 +1247,8 @@ graph_search_dci_endpoint = _make_granular_search_endpoint("dci")
 # The six "primary" variants below (``_AddNodeAction`` ..
 # ``_RegisterExecutionAction``) extend the already-merged per-route models in
 # ``graph_os.gateway.schemas.graph_ingest`` (imported, not redefined)
-# — each adds the ``action`` discriminator plus ``connection``/``graph``,
-# which the granular routes never forwarded even though ``graph_write``
-# resolves them generically for EVERY action (``_resolve_target_engines``/
-# ``bound_to_graph`` run before the action dispatch, not just for
-# ``bulk_ingest``). ``_BulkIngestAction`` additionally restores
+# — each adds the ``action`` discriminator plus ``connection``/``graph`` that
+# the granular routes never forwarded. ``_BulkIngestAction`` additionally restores
 # ``idempotency_key``/``evidence``/``upsert`` — the real defect this
 # consolidation fixes: the deleted ``graph_write_bulk_endpoint`` forwarded
 # ONLY ``nodes``, always taking the non-idempotent ``BatchUpdate``
@@ -2278,10 +2275,6 @@ _SESSION_ID = setting("SESSION_ID", uuid.uuid4().hex)
 _ENGINE_LOCK = threading.Lock()
 
 
-_TABULAR_QUERY_SERVICE: Any = None
-_TABULAR_QUERY_SERVICE_KEY: tuple[str, str, str] | None = None
-_TABULAR_QUERY_SERVICE_LOCK = threading.Lock()
-
 _ensure_process_authority_current = cast(Any, None)
 _get_engine = cast(Any, None)
 _mint_process_session = cast(Any, None)
@@ -2305,9 +2298,6 @@ for _bootstrap_name in (
     "_PROCESS_SESSION",
     "_PROCESS_SESSION_REFRESH_LOCK",
     "_SESSION_ID",
-    "_TABULAR_QUERY_SERVICE_LOCK",
-    "_TABULAR_QUERY_SERVICE",
-    "_TABULAR_QUERY_SERVICE_KEY",
     "get_existing_disabled_batch",
     "setting",
 ):

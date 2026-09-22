@@ -43,3 +43,22 @@ def test_deployment_doctor_uses_native_graph_os_hosts() -> None:
 
     assert "agent_utilities.mcp.multiplexer" not in doctor
     assert "agent_utilities.mcp.kg_server" not in doctor
+
+
+def test_bootstrap_has_no_retired_legacy_query_runtime() -> None:
+    bootstrap = (
+        Path(__file__).parents[1] / "graph_os" / "mcp_server" / "bootstrap.py"
+    ).read_text(encoding="utf-8")
+
+    retired_symbols = {
+        "get_tabular_query_service",
+        "_get_extraction_manager",
+        "get_connection_registry",
+        "_resolve_target_engines",
+        "_resolve_read_engines",
+        "resolve_explicit_graph",
+        "bound_to_graph",
+        "fanout_execute",
+        "_ontology_system",
+    }
+    assert all(symbol not in bootstrap for symbol in retired_symbols)
