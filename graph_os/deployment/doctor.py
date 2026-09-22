@@ -206,10 +206,6 @@ def _check_workspace_config(*args: Any, **kwargs: Any) -> Any:
     return _doctor_coverage._check_workspace_config(*args, **kwargs)
 
 
-def _check_bus(*args: Any, **kwargs: Any) -> Any:
-    return _doctor_coverage._check_bus(*args, **kwargs)
-
-
 def _check_skills(*args: Any, **kwargs: Any) -> Any:
     return _doctor_coverage._check_skills(*args, **kwargs)
 
@@ -2738,116 +2734,6 @@ def _check_hooks() -> dict[str, Any]:
     return _result("hooks", "ok", f"{len(installed)} agent hook(s) healthy", data=rep)
 
 
-def _probe_native_optimizer_live() -> dict[str, Any]:
-    """Submit one content-free ProgramOptimize job to the active authority."""
-    from agent_utilities.harness.optimization_backend import (
-        OptimizationRequest,
-        try_native_optimization,
-    )
-    from agent_utilities.knowledge_graph.core.graph_compute import GraphComputeEngine
-
-    engine = GraphComputeEngine.get_active()
-    if engine is None:
-        return {
-            "live_probed": True,
-            "operational": False,
-            "error_code": "engine_authority_inactive",
-            "privacy_safe_payload": True,
-        }
-    request = OptimizationRequest(
-        target="diagnostic",
-        objective="native-capability-probe",
-        data={
-            "examples": [
-                {
-                    "task": "synthetic-capability-probe",
-                    "response": "synthetic-capability-result",
-                    "success": True,
-                }
-            ]
-        },
-    )
-    attempt = try_native_optimization(engine, request)
-    out: dict[str, Any] = {
-        "live_probed": True,
-        "operational": attempt.disposition == "completed",
-        "privacy_safe_payload": True,
-    }
-    if attempt.disposition != "completed":
-        out["error_code"] = attempt.error_code or f"native_{attempt.disposition}"
-    return out
-
-
-def _check_native_optimizer(live: bool = False) -> dict[str, Any]:
-    """Report installed surface separately from a live ProgramOptimize proof."""
-    try:
-        from agent_utilities.core.config import AgentConfig
-        from agent_utilities.knowledge_graph.core.graph_compute import (
-            GraphComputeEngine,
-        )
-
-        cfg = AgentConfig()
-        enabled = bool(cfg.kg_optimization_enabled)
-        surface_available = callable(
-            getattr(GraphComputeEngine, "optimize_program", None)
-        )
-        data = {
-            "enabled": enabled,
-            "native_surface_available": surface_available,
-            "live_probed": False,
-            "operational": None,
-            "privacy_safe_payload": True,
-        }
-        if not enabled:
-            return _result(
-                "native_optimizer",
-                "skip",
-                "native program optimization is disabled",
-                data=data,
-            )
-        if not surface_available:
-            return _result(
-                "native_optimizer",
-                "fail",
-                "the native ProgramOptimize surface is unavailable",
-                remediation="Install the unified agent-utilities engine distribution.",
-                data=data,
-            )
-        if not live:
-            return _result(
-                "native_optimizer",
-                "ok",
-                "the ProgramOptimize surface is installed; live proof was not requested",
-                data=data,
-            )
-        live_data = _probe_native_optimizer_live()
-        data.update(live_data)
-        if not data["operational"]:
-            return _result(
-                "native_optimizer",
-                "fail",
-                "the active engine did not complete the ProgramOptimize capability probe",
-                remediation=(
-                    "Run the live doctor inside GraphOS after its engine authority is active, "
-                    "then inspect the engine health check if ProgramOptimize still fails."
-                ),
-                data=data,
-            )
-        return _result(
-            "native_optimizer",
-            "ok",
-            "the active engine completed a governed ProgramOptimize job",
-            data=data,
-        )
-    except Exception as exc:  # noqa: BLE001 - never expose engine response material
-        return _result(
-            "native_optimizer",
-            "error",
-            f"native optimizer readiness check failed ({type(exc).__name__})",
-            data={"redacted": True, "live_probed": live},
-        )
-
-
 def _graph_connection_declarations(
     cfg: Any,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -3286,9 +3172,7 @@ CHECKS: dict[str, Callable[..., dict[str, Any]]] = {
     "hooks": _check_hooks,
     "observability": _check_observability,
     "langfuse": _check_langfuse,
-    "native_optimizer": _check_native_optimizer,
     "a2a_persistence": _check_a2a_persistence,
-    "bus": _check_bus,
     "skills": _check_skills,
     "unified_install": _check_unified_install,
     "venv_drift": _check_venv_drift,
@@ -3310,7 +3194,6 @@ _LIVE_CHECK_NAMES = frozenset(
         "graph_connections",
         "mcp_fleet",
         "langfuse",
-        "native_optimizer",
         "openai_catalog",
         "kafka",
         "fuseki",

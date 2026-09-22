@@ -379,7 +379,6 @@ def test_run_doctor_forwards_live_only_to_live_capability_checks(monkeypatch):
         {
             "mcp_fleet": live_check("mcp_fleet"),
             "langfuse": live_check("langfuse"),
-            "native_optimizer": live_check("native_optimizer"),
             "hooks": lambda: D._result("hooks", "ok", "fine"),
         },
     )
@@ -390,7 +389,6 @@ def test_run_doctor_forwards_live_only_to_live_capability_checks(monkeypatch):
     assert seen == {
         "mcp_fleet": True,
         "langfuse": True,
-        "native_optimizer": True,
     }
 
 
@@ -2221,52 +2219,3 @@ def test_langfuse_mcp_live_probe_fails_closed(monkeypatch, responses):
     _patch_langfuse_mcp_probe(monkeypatch, responses)
 
     assert D._probe_langfuse_mcp_visibility(SimpleNamespace()) is False
-
-
-def test_native_optimizer_live_check_requires_completed_job(monkeypatch):
-    cfg = SimpleNamespace(kg_optimization_enabled=True)
-    monkeypatch.setattr("agent_utilities.core.config.AgentConfig", lambda: cfg)
-    monkeypatch.setattr(
-        D,
-        "_probe_native_optimizer_live",
-        lambda: {
-            "live_probed": True,
-            "operational": False,
-            "error_code": "native_execution_failed",
-            "privacy_safe_payload": True,
-        },
-    )
-
-    result = D._check_native_optimizer(live=True)
-
-    assert result["status"] == "fail"
-    assert result["data"]["live_probed"] is True
-    assert result["data"]["operational"] is False
-
-
-def test_native_optimizer_live_probe_sends_only_opaque_program_payload(monkeypatch):
-    from agent_utilities.knowledge_graph.core.graph_compute import GraphComputeEngine
-
-    captured = {}
-
-    class Engine:
-        def optimize_program(self, request):
-            captured.update(request)
-            return {"status": "proposed", "result": {}}
-
-    monkeypatch.setattr(
-        GraphComputeEngine, "get_active", classmethod(lambda cls: Engine())
-    )
-
-    result = D._probe_native_optimizer_live()
-    rendered = json.dumps(captured, sort_keys=True)
-
-    assert result == {
-        "live_probed": True,
-        "operational": True,
-        "privacy_safe_payload": True,
-    }
-    assert "synthetic-capability-probe" not in rendered
-    assert "synthetic-capability-result" not in rendered
-    assert captured["corpus"]["privacy"]["raw_pii_persisted"] is False
-    assert captured["corpus"]["privacy"]["local_identifiers_persisted"] is False

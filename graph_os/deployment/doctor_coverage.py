@@ -75,66 +75,6 @@ def _check_workspace_config() -> dict[str, Any]:
     return _result("workspace_config", "ok", detail, data=data)
 
 
-def _check_bus() -> dict[str, Any]:
-    """Report bus presence, partition-log depth, and unpublished outbox work.
-
-    CONCEPT:AU-ECO.bus.operator-view-agentbus — a growing log or pending send
-    outbox means materializers or publishers are not making durable progress.
-    """
-    try:
-        from agent_utilities.core.config import config
-        from agent_utilities.knowledge_graph.core.engine import IntelligenceGraphEngine
-        from agent_utilities.messaging.bus import AgentBus
-
-        engine = IntelligenceGraphEngine.get_active()
-        if engine is None:
-            return _result("bus", "skip", "no active engine")
-        bus = AgentBus.instance(engine)
-        st = bus.status()
-        backend_stats = bus._log_backend().stats()
-        log_depth = bus._depth_from_stats(backend_stats)
-        pending_rows = bus._query(
-            "MATCH (o:BusOutbox {status: 'pending'}) RETURN count(o) as n", {}
-        )
-        pending = int(pending_rows[0].get("n", 0)) if pending_rows else 0
-        published_rows = bus._query(
-            "MATCH (o:BusOutbox {status: 'published'}) RETURN count(o) as n", {}
-        )
-        published = int(published_rows[0].get("n", 0)) if published_rows else 0
-        warning_depth = max(1, int(config.agent_bus_max_depth * 0.8))
-    except Exception as exc:  # noqa: BLE001
-        return _result("bus", "skip", f"bus probe unavailable ({type(exc).__name__})")
-
-    detail = (
-        f"{st['online']}/{st['agents']} participants online, "
-        f"{len(st['topics'])} topics, log depth {log_depth}, "
-        f"{pending} pending and {published} unmaterialized outbox record(s)"
-    )
-    data = {
-        **st,
-        "log_depth": log_depth,
-        "pending_outbox": pending,
-        "published_outbox": published,
-        "log_backend": backend_stats.get("backend", "unknown"),
-    }
-    if (
-        pending >= warning_depth
-        or published >= warning_depth
-        or log_depth >= warning_depth
-    ):
-        return _result(
-            "bus",
-            "warn",
-            detail + " — delivery materializers or publishers are falling behind",
-            remediation=(
-                "check the configured AgentBus log backend and ensure graph_bus "
-                "receivers are draining tenant partitions"
-            ),
-            data=data,
-        )
-    return _result("bus", "ok", detail, data=data)
-
-
 def _check_skills() -> dict[str, Any]:
     """Report whether the agent-utilities skill toolkit is installed in the XDG dir.
 
