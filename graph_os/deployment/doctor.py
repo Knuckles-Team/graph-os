@@ -720,7 +720,7 @@ def _resolve_tls_profile_data() -> tuple[Any, Any, Any, dict[str, Any]]:
         cfg.tls_proxy_url_ref,
         cfg.engine_tls_profile_ref,
     )
-    needs_resolver = any(tls_refs) or bool(cfg.external_graph_connectors)
+    needs_resolver = any(tls_refs)
     resolver = None
     secrets_client = None
     if needs_resolver:
@@ -756,15 +756,17 @@ def _resolve_tls_profile_data() -> tuple[Any, Any, Any, dict[str, Any]]:
 
 def _resolve_engine_transport_data(cfg: Any, resolver: Any) -> dict[str, Any]:
     from agent_utilities.core.transport_security import resolve_tls_profile
-    from agent_utilities.knowledge_graph.core.engine_transport import (
-        EngineTransportError,
-        engine_client_transport_kwargs,
-    )
-    from agent_utilities.knowledge_graph.core.shard_topology import (
-        resolve_endpoints,
+
+    from graph_os.deployment.production_ops import (
+        ProductionOperationError,
+        _transport_for_endpoint,
     )
 
-    engine_endpoints = resolve_endpoints(cfg)
+    engine_endpoints = [
+        str(endpoint).strip()
+        for endpoint in (getattr(cfg, "graph_service_endpoints", None) or [])
+        if str(endpoint).strip()
+    ]
     engine_tls_configured = any(
         endpoint.startswith("tls://") for endpoint in engine_endpoints
     ) or bool(cfg.engine_tls_profile or cfg.engine_tls_profile_ref)
@@ -777,11 +779,9 @@ def _resolve_engine_transport_data(cfg: Any, resolver: Any) -> dict[str, Any]:
         "mtls": False,
     }
     for endpoint in engine_endpoints:
-        if not endpoint.startswith("tcp://"):
-            continue
         try:
-            engine_client_transport_kwargs(endpoint, config=cfg)
-        except EngineTransportError:
+            _transport_for_endpoint(endpoint)
+        except ProductionOperationError:
             engine_data["ready"] = False
             break
     if engine_tls_configured:
@@ -800,478 +800,16 @@ def _resolve_engine_transport_data(cfg: Any, resolver: Any) -> dict[str, Any]:
     return engine_data
 
 
-def _connector_name_uniqueness(cfg: Any) -> tuple[bool, bool]:
-    source_aliases = [
-        connector.source_alias for connector in cfg.external_graph_connectors
-    ]
-    connection_names = [connector.name for connector in cfg.external_graph_connectors]
-    source_aliases_unique = (
-        bool(all(source_aliases) and len(set(source_aliases)) == len(source_aliases))
-        if source_aliases
-        else True
-    )
-    connection_names_unique = (
-        bool(
-            all(connection_names)
-            and len(set(connection_names)) == len(connection_names)
-        )
-        if connection_names
-        else True
-    )
-    return source_aliases_unique, connection_names_unique
-
-
-def _build_connector_sync_policy(connector: Any, property_graph: bool) -> dict | None:
-    if not property_graph:
-        return None
-    return {
-        "allow_empty_snapshot": bool(getattr(connector, "allow_empty_snapshot", False)),
-        "max_pages": int(getattr(connector, "ingest_max_pages", 100)),
-        "max_row_bytes": int(getattr(connector, "ingest_max_row_bytes", 1_048_576)),
-        "max_total_bytes": int(
-            getattr(connector, "ingest_max_total_bytes", 16_777_216)
-        ),
-        "max_nesting_depth": int(getattr(connector, "ingest_max_nesting_depth", 16)),
-        "max_collection_items": int(
-            getattr(connector, "ingest_max_collection_items", 10_000)
-        ),
-        "page_size": int(getattr(connector, "ingest_page_size", 500)),
-        "reconcile_deletions": bool(getattr(connector, "reconcile_deletions", True)),
-        "sync_mode": str(getattr(connector, "sync_mode", "auto")),
-    }
-
-
-def _reject_json_constant(_value: str) -> None:
-    raise ValueError("non-finite JSON constants are not supported")
-
-
-def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    value: dict[str, Any] = {}
-    for key, item in pairs:
-        if key in value:
-            raise ValueError("duplicate JSON keys are not supported")
-        value[key] = item
-    return value
-
-
-def _parse_bounded_secret_json(resolved: Any) -> Any:
-    import json
-
-    if len(str(resolved).encode("utf-8")) > 4 * 1024 * 1024:
-        raise ValueError("external profile exceeds its bound")
-    return json.loads(
-        str(resolved),
-        parse_constant=_reject_json_constant,
-        object_pairs_hook=_reject_duplicate_json_keys,
-    )
-
-
-def _graphql_connection_ref_ready(parsed: dict[str, Any]) -> bool:
-    from agent_utilities.knowledge_graph.ingestion.graphql_connection import (
-        GRAPHQL_CONNECTION_PROFILE_FORMAT,
-    )
-
-    return parsed.get(
-        "profile_format"
-    ) == GRAPHQL_CONNECTION_PROFILE_FORMAT and isinstance(parsed.get("endpoint"), str)
-
-
-def _graphql_mapping_ref_ready(parsed: dict[str, Any]) -> bool:
-    from agent_utilities.knowledge_graph.ingestion.graphql_connection import (
-        GRAPHQL_MAPPING_POLICY_FORMAT,
-    )
-
-    discovery = parsed.get("discovery") or {}
-    return (
-        parsed.get("profile_format") == GRAPHQL_MAPPING_POLICY_FORMAT
-        and isinstance(parsed.get("operations", {}), dict)
-        and bool(
-            parsed.get("operations")
-            or (isinstance(discovery, dict) and discovery.get("enabled") is True)
-        )
-    )
-
-
-def _graphql_auth_ref_ready(parsed: dict[str, Any]) -> bool:
-    from agent_utilities.knowledge_graph.ingestion.graphql_connection import (
-        GRAPHQL_AUTH_PROFILE_FORMAT,
-    )
-
-    return parsed.get("profile_format") == GRAPHQL_AUTH_PROFILE_FORMAT and isinstance(
-        parsed.get("headers", {}), dict
-    )
-
-
-def _graphql_ref_format_ready(label: str, parsed: dict[str, Any]) -> bool:
-    if label == "connection":
-        return _graphql_connection_ref_ready(parsed)
-    if label == "mapping":
-        return _graphql_mapping_ref_ready(parsed)
-    if label == "auth":
-        return _graphql_auth_ref_ready(parsed)
-    # No graphql-specific narrowing for this label (e.g. "variables") --
-    # `ready` (already True, the caller's gate) is left unchanged.
-    return True
-
-
-def _resolve_one_connector_ref(
-    connector: Any, label: str, ref: Any, resolver: Any
-) -> tuple[bool, Any]:
-    """Returns (ready, resolved_mapping_policy_if_this_was_the_mapping_ref)."""
-    from agent_utilities.core.transport_security import resolve_tls_profile
-
-    resolved_mapping_policy = None
-    try:
-        if label == "tls":
-            connector_trust = resolve_tls_profile(
-                "EXTERNAL_GRAPH",
-                profile_ref=str(ref),
-                resolver=resolver,
-            )
-            try:
-                ready = connector_trust.verify_enabled
-            finally:
-                connector_trust.cleanup()
-            resolved = None
-        else:
-            resolved = resolver(ref) if resolver is not None else None
-            ready = bool(resolved)
-        if label in {"auth", "connection", "mapping", "variables"} and ready:
-            parsed = _parse_bounded_secret_json(resolved)
-            ready = isinstance(parsed, dict)
-            if label == "mapping" and ready:
-                resolved_mapping_policy = parsed
-            if ready and connector.backend == "graphql":
-                ready = _graphql_ref_format_ready(label, parsed)
-    except Exception:
-        ready = False
-    return ready, resolved_mapping_policy
-
-
-def _resolve_connector_refs(
-    connector: Any, refs: dict[str, Any], resolver: Any, unresolved: list[int]
-) -> tuple[dict[str, bool | None], Any]:
-    readiness: dict[str, bool | None] = {}
-    resolved_mapping_policy = None
-    for label, ref in refs.items():
-        if ref is None:
-            readiness[label] = None
-            continue
-        ready, this_mapping_policy = _resolve_one_connector_ref(
-            connector, label, ref, resolver
-        )
-        if this_mapping_policy is not None:
-            resolved_mapping_policy = this_mapping_policy
-        readiness[label] = ready
-        unresolved[0] += int(not ready)
-    return readiness, resolved_mapping_policy
-
-
-def _bump_graphql_generated_mapping(
-    connector: Any, readiness: dict[str, Any], unresolved: list[int]
-) -> None:
-    if connector.backend != "graphql":
-        return
-    generated_bootstrap = (
-        connector.mapping_policy_ref is None and connector.allow_introspection
-    )
-    readiness["generated_mapping"] = (
-        generated_bootstrap if connector.mapping_policy_ref is None else None
-    )
-    unresolved[0] += int(
-        connector.mapping_policy_ref is None and not connector.allow_introspection
-    )
-
-
-def _resolve_graphql_mapping_status(
-    connector: Any,
-    resolver: Any,
-    secrets_client: Any,
-    readiness: dict[str, Any],
-    unresolved: list[int],
-) -> tuple[Any, str]:
-    from agent_utilities.knowledge_graph.ingestion.graphql_connection import (
-        GraphQLSourceAdapter,
-        graphql_mapping_profile_status,
-    )
-
-    source = GraphQLSourceAdapter(
-        connection=connector.name,
-        source_alias=connector.source_alias,
-        connection_profile_ref=connector.connection_profile_ref,
-        mapping_policy_ref=str(connector.mapping_policy_ref or ""),
-        auth_profile_ref=connector.auth_profile_ref,
-        tls_profile_ref=connector.tls_profile_ref,
-        variables_ref=getattr(connector, "variables_ref", None),
-        allow_introspection=connector.allow_introspection,
-        allow_empty_snapshot=bool(getattr(connector, "allow_empty_snapshot", False)),
-        resolver=resolver,
-    )
-    try:
-        source.validate_runtime_profiles()
-    except Exception:
-        readiness["runtime_contract"] = False
-        unresolved[0] += 1
-        raise
-    readiness["runtime_contract"] = True
-    mapping_status = graphql_mapping_profile_status(
-        source,
-        connection=connector.name,
-        secret_store=secrets_client,
-    )
-    mapping_policy_drift = str(mapping_status.get("mapping_drift") or "unknown")
-    return mapping_status, mapping_policy_drift
-
-
-def _resolve_property_graph_mapping_status(
-    connector: Any,
-    secrets_client: Any,
-    resolved_mapping_policy: Any,
-    sync_policy: dict | None,
-) -> tuple[Any, str]:
-    from agent_utilities.knowledge_graph.ingestion.external_graph_schema import (
-        external_mapping_policy_digest,
-        mapping_profile_status,
-    )
-
-    if connector.mapping_policy_ref is None:
-        current_policy = {}
-    elif resolved_mapping_policy is not None:
-        current_policy = resolved_mapping_policy
-    else:
-        current_policy = None
-    current_policy_digest = (
-        external_mapping_policy_digest({**current_policy, "sync": sync_policy})
-        if current_policy is not None and sync_policy is not None
-        else None
-    )
-    mapping_status = mapping_profile_status(
-        connector.name,
-        secret_store=secrets_client,
-        runtime_policy_digest=current_policy_digest,
-    )
-    mapping_policy_drift = (
-        str(mapping_status.get("mapping_drift") or "unknown")
-        if current_policy_digest is not None
-        else "unknown"
-    )
-    return mapping_status, mapping_policy_drift
-
-
-def _resolve_connector_mapping_lifecycle(
-    connector: Any,
-    resolver: Any,
-    secrets_client: Any,
-    resolved_mapping_policy: Any,
-    sync_policy: dict | None,
-    readiness: dict[str, Any],
-    unresolved: list[int],
-) -> tuple[str, str | None]:
-    lifecycle = "not_found"
-    mapping_policy_drift: str | None = None
-    if secrets_client is None:
-        return lifecycle, mapping_policy_drift
-    try:
-        if connector.backend == "graphql":
-            mapping_status, mapping_policy_drift = _resolve_graphql_mapping_status(
-                connector, resolver, secrets_client, readiness, unresolved
-            )
-        else:
-            mapping_status, mapping_policy_drift = (
-                _resolve_property_graph_mapping_status(
-                    connector, secrets_client, resolved_mapping_policy, sync_policy
-                )
-            )
-        lifecycle = str(mapping_status.get("status") or "not_found")
-    except Exception:
-        lifecycle = "unavailable"
-        mapping_policy_drift = "unknown"
-    return lifecycle, mapping_policy_drift
-
-
-def _build_connector_result_dict(
-    connector: Any,
-    readiness: dict[str, Any],
-    lifecycle: str,
-    mapping_policy_drift: str | None,
-    property_graph: bool,
-    sync_policy: dict | None,
-) -> dict[str, Any]:
-    return {
-        "backend": connector.backend,
-        "refs_ready": readiness,
-        "mapping_lifecycle": lifecycle,
-        "mapping_policy_drift": mapping_policy_drift,
-        "sync_policy": sync_policy,
-        "semantic_mapping": connector.semantic_mapping,
-        "generated_mapping": bool(
-            connector.backend == "graphql"
-            and connector.mapping_policy_ref is None
-            and connector.allow_introspection
-        ),
-        "authoritative_empty_approval": bool(
-            connector.backend == "graphql"
-            and getattr(connector, "allow_empty_snapshot", False)
-        ),
-        "approval_required": connector.require_approval,
-        "drift_policy": connector.schema_drift_policy,
-    }
-
-
-def _evaluate_one_connector(
-    connector: Any,
-    resolver: Any,
-    secrets_client: Any,
-    unresolved: list[int],
-) -> dict[str, Any]:
-    property_graph = connector.backend != "graphql"
-    sync_policy = _build_connector_sync_policy(connector, property_graph)
-    refs = {
-        "connection": connector.connection_profile_ref,
-        "mapping": connector.mapping_policy_ref,
-        "tls": connector.tls_profile_ref,
-        "auth": connector.auth_profile_ref,
-        "variables": getattr(connector, "variables_ref", None),
-    }
-    readiness, resolved_mapping_policy = _resolve_connector_refs(
-        connector, refs, resolver, unresolved
-    )
-    _bump_graphql_generated_mapping(connector, readiness, unresolved)
-    lifecycle, mapping_policy_drift = _resolve_connector_mapping_lifecycle(
-        connector,
-        resolver,
-        secrets_client,
-        resolved_mapping_policy,
-        sync_policy,
-        readiness,
-        unresolved,
-    )
-    return _build_connector_result_dict(
-        connector,
-        readiness,
-        lifecycle,
-        mapping_policy_drift,
-        property_graph,
-        sync_policy,
-    )
-
-
-def _transport_security_status(
-    unresolved: int,
-    source_aliases_unique: bool,
-    connection_names_unique: bool,
-    engine_data: dict[str, Any],
-    verification_disabled: bool,
-    lifecycle_unready: int,
-) -> str:
-    if (
-        unresolved
-        or not source_aliases_unique
-        or not connection_names_unique
-        or not engine_data["ready"]
-    ):
-        return "fail"
-    if verification_disabled or lifecycle_unready:
-        return "warn"
-    return "ok"
-
-
-def _transport_security_detail(
-    unresolved: int,
-    source_aliases_unique: bool,
-    connection_names_unique: bool,
-    engine_data: dict[str, Any],
-    verification_disabled: bool,
-    lifecycle_unready: int,
-) -> str:
-    if not engine_data["ready"]:
-        return "native engine transport policy is not ready"
-    if unresolved:
-        return f"{unresolved} configured external profile reference(s) are unresolved"
-    if not source_aliases_unique:
-        return "external graph source aliases are not unique"
-    if not connection_names_unique:
-        return "external graph connection names are not unique"
-    if verification_disabled:
-        return "one or more runtime transports have TLS verification disabled"
-    if lifecycle_unready:
-        return f"{lifecycle_unready} external mapping lifecycle(s) require approval"
-    return "runtime trust profile ready"
-
-
-def _finalize_transport_security_result(
-    connectors: list[dict[str, Any]],
-    unresolved: int,
-    source_aliases_unique: bool,
-    connection_names_unique: bool,
-    engine_data: dict[str, Any],
-    tls_data: dict[str, Any],
-) -> dict[str, Any]:
-    lifecycle_unready = sum(
-        1
-        for connector in connectors
-        if connector.get("mapping_lifecycle") != "approved"
-        or connector.get("mapping_policy_drift") == "detected"
-    )
-    verification_disabled = not tls_data["verify_enabled"] or not bool(
-        engine_data["verify_enabled"]
-    )
-    status = _transport_security_status(
-        unresolved,
-        source_aliases_unique,
-        connection_names_unique,
-        engine_data,
-        verification_disabled,
-        lifecycle_unready,
-    )
-    detail = _transport_security_detail(
-        unresolved,
-        source_aliases_unique,
-        connection_names_unique,
-        engine_data,
-        verification_disabled,
-        lifecycle_unready,
-    )
-    return _result(
-        "transport_security",
-        status,
-        detail,
-        remediation=(
-            None
-            if status == "ok"
-            else (
-                "Repair unresolved secret refs, enable "
-                "verified TLS, or complete the discover/propose/approve lifecycle."
-            )
-        ),
-        data={
-            "tls": tls_data,
-            "native_engine_tls": engine_data,
-            "external_graph_connectors": connectors,
-            "external_graph_source_aliases_unique": source_aliases_unique,
-            "external_graph_connection_names_unique": connection_names_unique,
-        },
-    )
-
-
 def _check_transport_security() -> dict[str, Any]:
-    """Validate TLS/auth handoff using only redacted readiness metadata."""
-    try:
-        cfg, resolver, secrets_client, tls_data = _resolve_tls_profile_data()
-        engine_data = _resolve_engine_transport_data(cfg, resolver)
-        source_aliases_unique, connection_names_unique = _connector_name_uniqueness(cfg)
+    """Validate GraphOS and engine transport posture without source inspection.
 
-        connectors: list[dict[str, Any]] = []
-        unresolved = [0]
-        for connector in cfg.external_graph_connectors:
-            connectors.append(
-                _evaluate_one_connector(
-                    connector,
-                    resolver,
-                    secrets_client,
-                    unresolved,
-                )
-            )
+    Connector mapping, catalog, and credential readiness belong to the SDK
+    runner and EG receipts. Doctor reports only the transport GraphOS itself
+    owns and never reconstructs connector contracts from AU internals.
+    """
+    try:
+        cfg, resolver, _secrets_client, tls_data = _resolve_tls_profile_data()
+        engine_data = _resolve_engine_transport_data(cfg, resolver)
     except Exception as exc:  # noqa: BLE001 - doctor must remain defensive
         return _result(
             "transport_security",
@@ -1284,13 +822,28 @@ def _check_transport_security() -> dict[str, Any]:
             data={"ready": False},
         )
 
-    return _finalize_transport_security_result(
-        connectors,
-        unresolved[0],
-        source_aliases_unique,
-        connection_names_unique,
-        engine_data,
-        tls_data,
+    verification_disabled = not tls_data["verify_enabled"] or not bool(
+        engine_data["verify_enabled"]
+    )
+    if not engine_data["ready"]:
+        status = "fail"
+        detail = "native engine transport policy is not ready"
+    elif verification_disabled:
+        status = "warn"
+        detail = "one or more runtime transports have TLS verification disabled"
+    else:
+        status = "ok"
+        detail = "runtime trust profile ready"
+    return _result(
+        "transport_security",
+        status,
+        detail,
+        remediation=(
+            None
+            if status == "ok"
+            else "Repair the configured engine endpoint or enable verified TLS."
+        ),
+        data={"tls": tls_data, "native_engine_tls": engine_data},
     )
 
 

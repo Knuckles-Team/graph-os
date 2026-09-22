@@ -36,8 +36,7 @@ def test_bootstrap_exports_bind_runtime_host_state() -> None:
         is runtime._AUTHORITY_KEEPALIVE_ACTIVE
     )
     assert (
-        runtime._ensure_process_authority_current.__globals__["REGISTERED_TOOLS"]
-        is runtime.REGISTERED_TOOLS
+        runtime._get_engine.__globals__["_ENGINE_LOCK"] is runtime._ENGINE_LOCK
     )
 
 

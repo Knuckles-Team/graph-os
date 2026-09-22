@@ -585,97 +585,6 @@ def test_graph_identity_doctor_accepts_private_tiny_authority(monkeypatch):
     }
 
 
-@pytest.mark.parametrize(
-    ("tls_profile", "tls_ready", "expected_status"),
-    [
-        ('{"system_trust":true,"trust_env":true}', True, "warn"),
-        ("malformed-trust-material", False, "fail"),
-    ],
-)
-def test_transport_security_doctor_returns_only_redacted_readiness(
-    monkeypatch, tls_profile, tls_ready, expected_status
-):
-    connector = SimpleNamespace(
-        name="domain-source",
-        source_alias="domain-source",
-        backend="neo4j",
-        connection_profile_ref="secret://graphs/domain/connection",
-        mapping_policy_ref=None,
-        tls_profile_ref="secret://graphs/domain/tls",
-        auth_profile_ref=None,
-        ingest_page_size=250,
-        ingest_max_pages=12,
-        sync_mode="snapshot",
-        reconcile_deletions=True,
-        allow_empty_snapshot=False,
-        semantic_mapping=False,
-        require_approval=True,
-        schema_drift_policy="fail_closed",
-    )
-    cfg = SimpleNamespace(
-        tls_profile=None,
-        tls_profile_ref=None,
-        tls_profiles_ref=None,
-        tls_ca_bundle_ref=None,
-        tls_client_cert_ref=None,
-        tls_client_key_ref=None,
-        tls_client_key_password_ref=None,
-        tls_proxy_url_ref=None,
-        tls_system_trust=True,
-        tls_trust_env=True,
-        engine_tls_profile=None,
-        engine_tls_profile_ref=None,
-        graph_service_endpoints=[],
-        external_graph_connectors=[connector],
-    )
-    monkeypatch.setattr("agent_utilities.core.config.AgentConfig", lambda: cfg)
-
-    def resolver(ref: str) -> str:
-        if ref.endswith("/connection"):
-            return json.dumps({"uri": "neo4j+s://graph.example.test"})
-        return tls_profile
-
-    monkeypatch.setattr(
-        "agent_utilities.security.secrets_client.create_secrets_client",
-        lambda: SimpleNamespace(resolve_ref=resolver),
-    )
-    result = D._check_transport_security()
-    rendered = json.dumps(result, sort_keys=True)
-
-    assert result["status"] == expected_status
-    assert result["data"]["external_graph_connectors"][0]["refs_ready"] == {
-        "connection": True,
-        "mapping": None,
-        "tls": tls_ready,
-        "auth": None,
-        "variables": None,
-    }
-    assert (
-        result["data"]["external_graph_connectors"][0]["mapping_lifecycle"]
-        == "unavailable"
-    )
-    assert (
-        result["data"]["external_graph_connectors"][0]["mapping_policy_drift"]
-        == "unknown"
-    )
-    assert result["data"]["external_graph_connectors"][0]["sync_policy"] == {
-        "allow_empty_snapshot": False,
-        "max_collection_items": 10_000,
-        "max_nesting_depth": 16,
-        "max_pages": 12,
-        "max_row_bytes": 1_048_576,
-        "max_total_bytes": 16_777_216,
-        "page_size": 250,
-        "reconcile_deletions": True,
-        "sync_mode": "snapshot",
-    }
-    assert result["data"]["external_graph_source_aliases_unique"] is True
-    assert result["data"]["external_graph_connection_names_unique"] is True
-    assert "neo4j+s://" not in rendered
-    assert "secret://" not in rendered
-    assert "graph.example.test" not in rendered
-
-
 def test_transport_security_doctor_resolves_env_profile_without_secret_backend(
     monkeypatch,
 ):
@@ -718,28 +627,10 @@ def test_transport_security_doctor_resolves_env_profile_without_secret_backend(
     create_client.assert_not_called()
     assert result["status"] == "ok"
     assert result["data"]["tls"]["verify_enabled"] is True
+    assert "external_graph_connectors" not in result["data"]
 
 
-@pytest.mark.parametrize("invalid_ref", ["connection", "mapping", "auth"])
-@pytest.mark.parametrize("format_mode", ["missing", "unknown"])
-def test_transport_doctor_rejects_missing_or_unknown_graphql_runtime_formats(
-    monkeypatch, invalid_ref, format_mode
-):
-    connector = SimpleNamespace(
-        name="schema-source",
-        source_alias="schema-source",
-        backend="graphql",
-        connection_profile_ref="secret://schema/connection",
-        mapping_policy_ref="secret://schema/mapping",
-        tls_profile_ref="secret://schema/tls",
-        auth_profile_ref="secret://schema/auth",
-        variables_ref=None,
-        allow_introspection=False,
-        allow_empty_snapshot=False,
-        semantic_mapping=False,
-        require_approval=True,
-        schema_drift_policy="fail_closed",
-    )
+def test_transport_security_doctor_rejects_invalid_engine_transport(monkeypatch):
     cfg = SimpleNamespace(
         tls_profile=None,
         tls_profile_ref=None,
@@ -753,48 +644,14 @@ def test_transport_doctor_rejects_missing_or_unknown_graphql_runtime_formats(
         tls_trust_env=True,
         engine_tls_profile=None,
         engine_tls_profile_ref=None,
-        graph_service_endpoints=[],
-        external_graph_connectors=[connector],
+        graph_service_endpoints=["http://not-an-engine-transport"],
     )
-    documents: dict[str, dict[str, object]] = {
-        "connection": {
-            "profile_format": "graphql-connection/v1",
-            "endpoint": "https://source.example.test/graphql",
-        },
-        "mapping": {
-            "profile_format": "graphql-document-policy/v1",
-            "discovery": {"enabled": True},
-            "operations": {},
-        },
-        "auth": {
-            "profile_format": "graphql-auth/v1",
-            "headers": {},
-        },
-        "tls": {"system_trust": True, "trust_env": True},
-    }
-    if format_mode == "missing":
-        documents[invalid_ref].pop("profile_format")
-    else:
-        documents[invalid_ref]["profile_format"] = "unsupported/v2"
-
     monkeypatch.setattr("agent_utilities.core.config.AgentConfig", lambda: cfg)
-    secrets_client = SimpleNamespace(
-        resolve_ref=lambda ref: json.dumps(documents[ref.rsplit("/", 1)[-1]])
-    )
-    monkeypatch.setattr(
-        "agent_utilities.security.secrets_client.create_secrets_client",
-        lambda: secrets_client,
-    )
 
     result = D._check_transport_security()
-    rendered = json.dumps(result, sort_keys=True)
 
     assert result["status"] == "fail"
-    readiness = result["data"]["external_graph_connectors"][0]["refs_ready"]
-    assert readiness[invalid_ref] is False
-    assert readiness["runtime_contract"] is False
-    assert "source.example.test" not in rendered
-    assert "secret://" not in rendered
+    assert result["data"]["native_engine_tls"]["ready"] is False
 
 
 @pytest.mark.parametrize(
