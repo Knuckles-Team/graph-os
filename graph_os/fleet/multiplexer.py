@@ -1951,6 +1951,8 @@ class MCPMultiplexer:
         # called off-thread); per-tool embeddings are cached by ``server::tool`` so only
         # the query is embedded per call. Absent ⇒ token-overlap ranking only.
         self._embed_fn: _typing.Any = None
+        # Budgeted tool-subset selection (EG AgentAssemble); None fails closed.
+        self._tool_assembly: _typing.Any = None
         self._tool_embeddings: dict[str, list[float]] = {}
         # Server names never mountable as a child of this multiplexer (self +
         # retired aliases) — set post-construction by the graph-os fleet loader
@@ -6461,6 +6463,43 @@ async def unload_session_tools(
     }
 
 
+async def _assembled_tool_subset(
+    mux: MCPMultiplexer, query: str, budget: int
+) -> dict[str, _typing.Any]:
+    """Evaluate-only budgeted tool subset from EG ``AgentAssemble``.
+
+    A requested budget is never silently ignored: without a served assembly
+    port, or when EG abstains, the call fails with the reason.
+    """
+    from agent_utilities.api import resolve_session
+
+    from graph_os.assembly import (
+        AssemblyAbstained,
+        AssemblyRequirements,
+        AssemblyUnavailable,
+    )
+
+    if mux._tool_assembly is None:
+        raise _fastmcp_exceptions.ToolError(
+            "budgeted tool-subset selection is not configured"
+        )
+    try:
+        requirements = AssemblyRequirements(
+            text=query,
+            context_budget_tokens=budget,
+            kinds=("tool",),
+            require_tools=True,
+        )
+        outcome = await mux._tool_assembly.assemble(
+            resolve_session(required_scope="kg:read"), requirements
+        )
+    except (AssemblyUnavailable, AssemblyAbstained, ValueError) as exc:
+        raise _fastmcp_exceptions.ToolError(
+            f"budgeted tool-subset selection failed: {exc}"
+        ) from exc
+    return {"decision_record": outcome.record_id, "tool_ids": list(outcome.tool_ids)}
+
+
 def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
     """Register the dynamic-gateway meta-tools (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog):
     ``find_tools`` (semantic discovery over the whole fleet), ``list_catalog``
@@ -6469,7 +6508,9 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
     lifecycle, CONCEPT:AU-ECO.mcp.intent-surface-tool-lifecycle — notifying the client each time), plus
     the status tool."""
 
-    async def _find_tools(query: str, top_k: int = 0) -> _fastmcp_tools.ToolResult:
+    async def _find_tools(
+        query: str, top_k: int = 0, context_budget_tokens: int = 0
+    ) -> _fastmcp_tools.ToolResult:
         _require_fleet_capability("discover")
         if not isinstance(query, str) or not 1 <= len(query) <= 4_096:
             raise _fastmcp_exceptions.ToolError(
@@ -6488,6 +6529,10 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
             "results": results,
             "unavailable": discovery["unavailable"],
         }
+        if context_budget_tokens:
+            payload["assembled"] = await _assembled_tool_subset(
+                mux, query, context_budget_tokens
+            )
         return _fastmcp_tools.ToolResult(
             content=[
                 mcp_types.TextContent(type="text", text=json.dumps(payload, indent=2))
@@ -6580,6 +6625,16 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
                     "top_k": {
                         "type": "integer",
                         "description": "Max candidates to return (0 = server default).",
+                        "default": 0,
+                    },
+                    "context_budget_tokens": {
+                        "type": "integer",
+                        "description": (
+                            "Optional context budget (256..1000000). When set, "
+                            "EG AgentAssemble proves the smallest tool subset "
+                            "covering the task within it (evaluate-only; nothing "
+                            "is loaded). 0 = ranked discovery only."
+                        ),
                         "default": 0,
                     },
                 },
@@ -6816,6 +6871,7 @@ def attach_fleet_loader(
     self_server: str = "graph-os",
     embed_fn=None,
     authority_scope=None,
+    tool_assembly=None,
 ) -> MCPMultiplexer:
     """Attach on-demand MCP fleet-loading to an EXISTING FastMCP server (graph-os).
 
@@ -6862,6 +6918,7 @@ def attach_fleet_loader(
     mux._skip_servers = {"mcp-multiplexer", self_server}
     if embed_fn is not None:
         mux._embed_fn = embed_fn
+    mux._tool_assembly = tool_assembly
     # Initialize the local catalog state without spawning children. A native EG
     # reader intentionally leaves this empty until the async composition root
     # calls refresh_engine_catalog(); it never consults the static file.

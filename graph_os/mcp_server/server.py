@@ -145,6 +145,7 @@ def _attach_fleet_runtime(mcp: Any, fleet_catalog_reader: Any) -> Any:
     """Attach the mandatory fleet surface or fail before serving."""
 
     try:
+        from graph_os.assembly import AgentAssembly
         from graph_os.fleet.multiplexer import attach_fleet_loader
 
         return attach_fleet_loader(
@@ -152,6 +153,7 @@ def _attach_fleet_runtime(mcp: Any, fleet_catalog_reader: Any) -> Any:
             catalog_reader=fleet_catalog_reader,
             embed_fn=_fleet_embed_fn(),
             authority_scope=runtime.verified_tool_session_scope,
+            tool_assembly=AgentAssembly(runtime.graph_client),
         )
     except Exception as exc:
         raise RuntimeError(
