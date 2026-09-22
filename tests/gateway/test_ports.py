@@ -31,9 +31,6 @@ class _Application:
     def mount_rest_routes(self, app: Any, *, prefix: str) -> None:
         app.append(prefix)
 
-    def remote_oauth_grant_bindings(self, actor: Any) -> tuple[Any, ...]:
-        return ()
-
     def toggle_states_batch(
         self, engine: Any, items: Sequence[tuple[str, str]]
     ) -> Mapping[tuple[str, str], bool]:

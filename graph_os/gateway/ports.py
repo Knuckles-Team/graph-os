@@ -8,7 +8,6 @@ implementations by transport modules.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any, Protocol, runtime_checkable
 
 __all__ = [
@@ -33,9 +32,6 @@ class GatewayApplicationPort(Protocol):
 
     def mount_rest_routes(self, app: Any, *, prefix: str) -> None:
         """Mount the canonical action-routed REST surface."""
-
-    def remote_oauth_grant_bindings(self, actor: Any) -> Sequence[Any]:
-        """Return current fleet OAuth bindings from the fleet authority."""
 
 
 _application: GatewayApplicationPort | None = None

@@ -28,16 +28,12 @@ import time
 from unittest.mock import MagicMock
 
 import pytest
-from agent_utilities.knowledge_graph.core.discovery_authority import OAuthGrantBinding
-from agent_utilities.knowledge_graph.core.fleet_catalog_tables import (
-    TenantLocalDiscoveryBinding,
-)
-from agent_utilities.knowledge_graph.core.session import (
-    GraphSession,
-    suspend_session,
-    use_session,
-)
-from agent_utilities.mcp.remote_oauth_broker import (
+from agent_utilities.security.actor_identity import ActorType
+from agent_utilities.security.brain_context import ActorContext, use_actor
+from agent_utilities.security.secrets_client import SecretsBackend, SecretsClient
+
+from graph_os.fleet import multiplexer as mod
+from graph_os.fleet.remote_oauth_broker import (
     OAuthProviderError,
     OAuthTokenAbsentError,
     OAuthTokenStore,
@@ -46,11 +42,6 @@ from agent_utilities.mcp.remote_oauth_broker import (
     RemoteOAuthBroker,
     StoredToken,
 )
-from agent_utilities.security.actor_identity import ActorType
-from agent_utilities.security.brain_context import ActorContext, use_actor
-from agent_utilities.security.secrets_client import SecretsBackend, SecretsClient
-
-from graph_os.fleet import multiplexer as mod
 from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 RESOURCE_URL = "https://protected-mcp.example.com/mcp"
@@ -101,17 +92,6 @@ def verified_actor(actor_id="user-a", tenant_id="tenant-1") -> ActorContext:
         tenant_id=tenant_id,
         authenticated=True,
         roles=("kg:read",),
-    )
-
-
-def verified_session(actor: ActorContext) -> GraphSession:
-    return GraphSession(
-        actor=actor,
-        tenant=actor.tenant_id,
-        scopes=frozenset({"kg:read"}),
-        graph=actor.tenant_id,
-        policy_version="test",
-        audience="test",
     )
 
 
@@ -225,23 +205,6 @@ def test_happy_path_returns_bound_bearer():
     with use_actor(actor):
         headers = mod._resolve_remote_oauth_bearer(cfg, RESOURCE_URL)
     assert headers == {"Authorization": f"Bearer {ACCESS_TOKEN}"}
-
-
-def test_grant_resolution_returns_process_owned_binding_without_bearer_persistence():
-    actor = verified_actor()
-    broker = _broker_with_stored_token(actor=actor)
-    mod._REMOTE_OAUTH_BROKERS["acme"] = broker
-    cfg = {"oauth_provider": _provider_cfg()}
-    with use_actor(actor):
-        resolved = mod._resolve_remote_oauth_grant(cfg, RESOURCE_URL)
-        current = mod.current_remote_oauth_grant_bindings(actor)
-    assert resolved is not None
-    headers, binding = resolved
-    assert isinstance(binding, OAuthGrantBinding)
-    assert headers["Authorization"].endswith(ACCESS_TOKEN)
-    assert binding in current
-    assert ACCESS_TOKEN not in binding.fingerprint
-    assert all(secret not in repr(binding) for secret in (ACCESS_TOKEN,))
 
 
 def test_rejects_rebound_endpoint():
@@ -430,114 +393,6 @@ async def test_probe_server_with_grant_forwards_bearer_bound_to_the_endpoint(
     assert remote_transport[0].get("auth") is None
 
 
-def test_private_binding_sidechannel_rejects_public_catalog_spoof(tmp_path):
-    """Grant authority is not a serializable/caller-populatable catalog field."""
-    mux = multiplexer_from_fixture(tmp_path / "c.json")
-    info = {"tools": [], "skills": [], "prompts": [], "error": None}
-    binding = OAuthGrantBinding(
-        tenant_id="tenant-1",
-        principal_id="user-a",
-        provider_id="acme",
-        resource_url=RESOURCE_URL,
-        audience=RESOURCE_URL,
-        granted_scopes=("mcp:read",),
-        key_version=1,
-        grant_revision="revision-a",
-    )
-    mux._record_discovery_binding("acme-remote", info, binding)
-
-    # The public shape is ordinary JSON and a copied/caller-shaped dict cannot
-    # inherit private authority merely by carrying the old field name.
-    assert "_discovery_binding" not in info
-    json.dumps(info)
-    spoof = dict(info)
-    spoof["_discovery_binding"] = binding
-    assert mux._take_discovery_bindings({"acme-remote": spoof}) == {}
-
-    assert mux._take_discovery_bindings({"acme-remote": info}) == {
-        "acme-remote": binding
-    }
-    assert mux._take_discovery_bindings({"acme-remote": info}) == {}
-
-
-@pytest.mark.asyncio
-async def test_local_probe_mints_tenant_visibility_without_public_metadata(
-    remote_transport, tmp_path
-):
-    actor = verified_actor(tenant_id="tenant-local")
-    mux = multiplexer_from_fixture(tmp_path / "c.json")
-    mux._catalog = {"local": {"url": RESOURCE_URL}}
-
-    with use_actor(actor), use_session(verified_session(actor)):
-        info = await mux.probe_server("local")
-        assert info["error"] is None
-        assert "_discovery_binding" not in info
-        json.dumps(info)
-        bindings = mux._take_discovery_bindings({"local": info})
-
-    assert isinstance(bindings["local"], TenantLocalDiscoveryBinding)
-    assert bindings["local"].tenant_id == "tenant-local"
-    assert bindings["local"].authority == "tenant_local"
-    spoof = dict(info)
-    spoof["_discovery_binding"] = bindings["local"]
-    assert mux._take_discovery_bindings({"local": spoof}) == {}
-    other = verified_actor(actor_id="other", tenant_id="other-tenant")
-    with use_actor(other), use_session(verified_session(other)):
-        assert mux._take_discovery_bindings({"local": info}) == {}
-
-
-def test_local_cache_binding_requires_verified_session(tmp_path):
-    mux = multiplexer_from_fixture(tmp_path / "c.json")
-    mux._catalog = {"local": {"url": RESOURCE_URL}}
-    info = mux._cache_probe(
-        "local", {"tools": [], "skills": [], "prompts": [], "error": None}
-    )
-    with suspend_session():
-        assert mux._take_discovery_bindings({"local": info}) == {}
-    failed = mux._cache_probe(
-        "local", {"tools": [], "skills": [], "prompts": [], "error": "unreachable"}
-    )
-    actor = verified_actor(tenant_id="tenant-local")
-    with use_actor(actor), use_session(verified_session(actor)):
-        assert mux._take_discovery_bindings({"local": failed}) == {}
-
-
-def test_failed_probe_purges_prior_local_binding_and_cache_authority(tmp_path):
-    mux = multiplexer_from_fixture(tmp_path / "c.json")
-    mux._catalog = {"local": {"url": RESOURCE_URL}}
-    actor = verified_actor(tenant_id="tenant-local")
-    with use_actor(actor), use_session(verified_session(actor)):
-        info = mux._cache_probe(
-            "local", {"tools": [], "skills": [], "prompts": [], "error": None}
-        )
-        binding = TenantLocalDiscoveryBinding(tenant_id="tenant-local")
-        mux._record_discovery_binding("local", info, binding)
-        assert mux._take_discovery_bindings({"local": info}) == {"local": binding}
-
-        failed = mux._cache_probe(
-            "local", {"tools": [], "skills": [], "prompts": [], "error": "unreachable"}
-        )
-        assert mux._take_discovery_bindings({"local": failed}) == {}
-        assert not any(
-            record[0] == "local"
-            for record in mux._local_discovery_cache_authority.values()
-        )
-
-
-def test_local_cache_binding_can_be_minted_on_verified_sync_thread(tmp_path):
-    mux = multiplexer_from_fixture(tmp_path / "c.json")
-    mux._catalog = {"local": {"url": RESOURCE_URL}}
-    with suspend_session():
-        info = mux._cache_probe(
-            "local", {"tools": [], "skills": [], "prompts": [], "error": None}
-        )
-    actor = verified_actor(tenant_id="tenant-local")
-    with use_actor(actor), use_session(verified_session(actor)):
-        mux._bind_local_discovery_bindings({"local": info})
-        bindings = mux._take_discovery_bindings({"local": info})
-    assert isinstance(bindings["local"], TenantLocalDiscoveryBinding)
-
-
 @pytest.mark.asyncio
 async def test_probe_server_result_never_cached_across_principals(
     remote_transport, tmp_path
@@ -570,9 +425,7 @@ async def test_probe_server_result_never_cached_across_principals(
 
 
 @pytest.mark.asyncio
-async def test_probe_catalog_returns_plain_oauth_snapshot_and_private_binding(
-    remote_transport, tmp_path
-):
+async def test_probe_catalog_returns_plain_oauth_snapshot(remote_transport, tmp_path):
     actor = verified_actor()
     broker = _broker_with_stored_token(actor=actor)
     mod._REMOTE_OAUTH_BROKERS["acme"] = broker
@@ -585,7 +438,7 @@ async def test_probe_catalog_returns_plain_oauth_snapshot_and_private_binding(
         catalog = await mux.probe_catalog()
 
     info = catalog["acme-remote"]
+    assert info["error"] is None
     assert "_discovery_binding" not in info
     json.dumps(info)
-    bindings = mux._take_discovery_bindings(catalog)
-    assert bindings["acme-remote"].principal_id == actor.actor_id
+    assert "acme-remote" not in mux._probe_cache
