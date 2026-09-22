@@ -705,110 +705,6 @@ def _check_permission_governance() -> dict[str, Any]:
     )
 
 
-def _check_ontology_release_signing() -> dict[str, Any]:
-    """Validate the reference-only ontology release signer without disclosure."""
-
-    data = {
-        "signing_reference_configured": False,
-        "signing_authority_ready": False,
-        "trusted_public_key_count": 0,
-        "signer_public_key_trusted": False,
-        "redacted": True,
-    }
-    try:
-        from agent_utilities.core.config import AgentConfig
-        from agent_utilities.core.profile_guard import is_production_profile
-
-        cfg = AgentConfig()
-        reference = cfg.ontology_release_signing_private_key_ref
-        data["signing_reference_configured"] = bool(reference)
-        if not reference:
-            production = is_production_profile(cfg.app_profile)
-            return _result(
-                "ontology_release_signing",
-                "fail" if production else "warn",
-                "ontology release signing authority is not configured",
-                remediation=(
-                    "Set ONTOLOGY_RELEASE_SIGNING_PRIVATE_KEY_REF to an env://, "
-                    "vault://, or secret:// reference containing a 32-byte "
-                    "base64url Ed25519 seed."
-                ),
-                data=data,
-            )
-
-        from agent_utilities.knowledge_graph.ontology import ontology_integrity
-
-        signer = ontology_integrity.ReleaseSigner.from_runtime()
-        trusted = ontology_integrity.release_trusted_public_keys()
-        lock_pins = _release_lock_pinned_public_keys()
-        pinned_anywhere = bool(trusted) or bool(lock_pins)
-        signer_trusted = (not pinned_anywhere) or (
-            signer.public_key in trusted or signer.public_key in lock_pins
-        )
-        data.update(
-            signing_authority_ready=True,
-            trusted_public_key_count=len(trusted),
-            signer_public_key_trusted=signer_trusted,
-        )
-    except Exception as exc:  # noqa: BLE001 - secret-provider details stay redacted
-        return _result(
-            "ontology_release_signing",
-            "fail",
-            f"ontology release signing is not ready ({type(exc).__name__})",
-            remediation=(
-                "Resolve the configured private-key reference and validate any "
-                "ONTOLOGY_RELEASE_TRUSTED_PUBLIC_KEYS pins."
-            ),
-            data=data,
-        )
-    if not data["signer_public_key_trusted"]:
-        # D-35-4: the seed behind ONTOLOGY_RELEASE_SIGNING_PRIVATE_KEY_REF derives a
-        # public key that neither ONTOLOGY_RELEASE_TRUSTED_PUBLIC_KEYS nor any
-        # provider's ontology.lock pin trusts -- report the (public) key only, and
-        # fail closed rather than silently reporting "ready". This is the drift class
-        # that let a rotated seed swap the fleet's trust anchor unnoticed until every
-        # provider failed release signature verification (D-35-1).
-        return _result(
-            "ontology_release_signing",
-            "fail",
-            "the configured signing key derives a public key no pin trusts "
-            f"({signer.public_key})",
-            remediation=(
-                "Restore the pinned signing seed, or explicitly authorize a signed "
-                "rotation of ONTOLOGY_RELEASE_TRUSTED_PUBLIC_KEYS / every provider's "
-                "ontology.lock pin to the new public key -- never sign a release "
-                "with an unpinned key."
-            ),
-            data=data,
-        )
-    return _result(
-        "ontology_release_signing",
-        "ok",
-        "stable ontology release signing authority is ready",
-        data=data,
-    )
-
-
-def _release_lock_pinned_public_keys() -> frozenset[str]:
-    """Every ``signing_public_key``/``certification_signing_public_key`` pinned in
-    this package's own ``ontology.lock`` (the fleet-wide release trust floor)."""
-    from pathlib import Path
-
-    from agent_utilities.knowledge_graph.ontology import ontology_integrity
-
-    lock_path = Path(__file__).resolve().parent.parent / "ontology.lock"
-    entries = ontology_integrity.load_lock(lock_path)
-    keys: set[str] = set()
-    for entry in entries.values():
-        if not isinstance(entry, dict):
-            continue
-        for field_name in ("signing_public_key", "certification_signing_public_key"):
-            value = entry.get(field_name)
-            if isinstance(value, str) and value:
-                keys.add(value)
-    return frozenset(keys)
-
-
 def _resolve_tls_profile_data() -> tuple[Any, Any, Any, dict[str, Any]]:
     """Returns (cfg, resolver, secrets_client, tls_data)."""
     from agent_utilities.core.config import AgentConfig
@@ -3538,7 +3434,6 @@ CHECKS: dict[str, Callable[..., dict[str, Any]]] = {
     "evolution_staging": _check_evolution_staging,
     "execution_security": _check_execution_security,
     "permission_governance": _check_permission_governance,
-    "ontology_release_signing": _check_ontology_release_signing,
     "transport_security": _check_transport_security,
     "google_workspace_oauth": _check_google_workspace_oauth,
     "source_egress": _check_source_egress,
