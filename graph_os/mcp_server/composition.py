@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from agent_utilities.mcp.co_service_supervisor import (
@@ -41,11 +41,6 @@ class NativeGatewayApplication:
         )
 
         return current_remote_oauth_grant_bindings(actor)
-
-    def toggle_states_batch(
-        self, engine: Any, items: Sequence[tuple[str, str]]
-    ) -> Mapping[tuple[str, str], bool]:
-        return runtime.get_toggle_states_batch(engine, list(items))
 
 
 def install_gateway_application() -> NativeGatewayApplication:

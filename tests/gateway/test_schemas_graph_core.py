@@ -1,10 +1,8 @@
 """Tests for `graph_os.gateway.schemas.graph_core` (SCHEMA LANE 3/3).
 
 Per model: a realistic currently-valid payload is accepted, an invalid one is
-rejected, and every declared field carries a non-empty description. Plus two
-contract-pinning tests called out by the lane brief: the `/tools` flat-list
-shape agent-terminal-ui depends on, and the canonical field name
-`/graph/query` accepts.
+rejected, and every declared field carries a non-empty description. The
+canonical field name accepted by `/graph/query` is pinned explicitly.
 """
 
 from __future__ import annotations
@@ -44,7 +42,7 @@ def test_collected_at_least_one_model_per_route_family() -> None:
     """Sanity check the introspection sweep itself found real models (guards
     against a silent import/collection failure making the sweep above vacuous).
     """
-    assert len(ALL_MODELS) >= 35
+    assert len(ALL_MODELS) >= 32
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -320,111 +318,6 @@ def test_graph_configure_doctor_response_valid() -> None:
         },
     )
     assert resp.result["agent-terminal-ui"].status == "integrated"
-
-
-# ══════════════════════════════════════════════════════════════════
-# /tools — the two-handler duality
-# ══════════════════════════════════════════════════════════════════
-
-
-def test_tools_catalog_response_valid() -> None:
-    resp = schemas.ToolsCatalogResponse(
-        mcp_tools=[
-            {
-                "name": "graph-os",
-                "type": "MCP Server",
-                "launch_mode": "remote",
-                "command": "",
-                "args": [],
-                "status": "active",
-                "enabled": True,
-            }
-        ],
-        builtin_tools=[
-            {
-                "name": "web_search",
-                "type": "Built-in Tool",
-                "file_path": "tool://web_search",
-                "status": "enabled",
-                "enabled": True,
-            }
-        ],
-        skills=[
-            {"id": "s1", "name": "some-skill", "type": "Agent Skill", "enabled": True}
-        ],
-        skill_graphs=[],
-        skill_workflows=[],
-        section_status={"mcp_tools": "ok", "builtin_tools": "ok"},
-    )
-    assert resp.mcp_tools[0].name == "graph-os"
-
-
-def test_tools_catalog_response_rejects_bad_launch_mode() -> None:
-    with pytest.raises(ValidationError):
-        schemas.McpServerToolInfo(
-            name="x",
-            type="MCP Server",
-            launch_mode="carrier_pigeon",
-            command="",
-            args=[],
-            status="active",
-            enabled=True,
-        )
-
-
-def test_skill_catalog_entry_allows_extra_frontmatter_fields() -> None:
-    entry = schemas.SkillCatalogEntry(
-        id="s1",
-        name="foo",
-        type="Agent Skill",
-        enabled=True,
-        domain="ops",
-        tags=["a", "b"],
-    )
-    assert entry.domain == "ops"
-
-
-def test_tool_catalog_item_pins_terminal_ui_flat_list_contract() -> None:
-    """Pins the exact shape `agent-terminal-ui/agent_terminal_ui/client.py:534`'s
-    `AgentClient.list_tools()` depends on: a bare `list[dict]`, each with
-    id/name/description/source_name/type — served by
-    `agent_utilities/server/routers/core.py::list_tools` (a DIFFERENT
-    handler than the one `_mount_rest_routes` binds to the same leaf path;
-    see the module docstring above `McpServerToolInfo`)."""
-    payload = [
-        {
-            "id": "tool-1",
-            "name": "graph_query",
-            "description": "Execute a read-only Cypher query.",
-            "source_name": "graph-os",
-            "type": "tool",
-        },
-        {
-            "id": "skill-1",
-            "name": "some-skill",
-            "description": "Does a thing.",
-            "source_name": "ops",
-            "type": "skill",
-        },
-    ]
-    items = [schemas.ToolCatalogItem(**row) for row in payload]
-    assert isinstance(items, list)
-    assert items[0].type == "tool"
-    assert items[1].type == "skill"
-    # every item is a flat dict, not an envelope
-    for item in items:
-        assert set(type(item).model_fields) == {
-            "id",
-            "name",
-            "description",
-            "source_name",
-            "type",
-        }
-
-
-def test_tool_catalog_item_rejects_bad_type() -> None:
-    with pytest.raises(ValidationError):
-        schemas.ToolCatalogItem(id="x", name="y", type="widget")
 
 
 # ══════════════════════════════════════════════════════════════════

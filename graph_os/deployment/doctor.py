@@ -3884,10 +3884,9 @@ def interactive_apply(
     deployment. When it is ``None`` (the default) a confirmed step still never
     calls a fleet tool: it records that the plan is PLAN-ONLY and must be
     handed to an operator or a reviewed ``graph_orchestrate
-    action=execute_agent`` run -- the exact posture
-    :class:`graph_os.deployment.backends.KubernetesBackend` already
-    established for this codebase (no generic k8s manifest-apply tool exists;
-    see that module's docstring). When an ``executor`` genuinely applies a
+    action=execute_agent`` run. GraphOS has no generic manifest-apply backend;
+    deployment effects require an explicitly injected operator executor.
+    When an ``executor`` genuinely applies a
     step (``exec_result["applied"]`` is truthy), the underlying check is
     re-run — live, when it supports ``live=`` — to prove the result rather
     than trusting the executor's say-so.

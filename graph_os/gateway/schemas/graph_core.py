@@ -16,9 +16,8 @@ See each model's docstring for its source handler/tool and the exact
 permissiveness contract (``extra="allow"`` vs ``extra="forbid"``) proven
 against that handler's code, not assumed.
 
-The top-level ``/tools`` route name is used by two unrelated handlers in this
-codebase that happen to share the same leaf path — see
-:class:`ToolsCatalogResponse` vs :class:`ToolCatalogItem`.
+The legacy ``/tools`` inventory routes are intentionally absent. Browser
+catalogs use the typed EG-backed enhanced catalog owned by GraphOS.
 """
 
 from __future__ import annotations
@@ -62,12 +61,6 @@ __all__ = [
     "GraphConfigureVaultSyncResponse",
     "HookDoctorEntry",
     "GraphConfigureDoctorResponse",
-    # /tools (two distinct handlers sharing one leaf path — see docstrings)
-    "McpServerToolInfo",
-    "BuiltinToolInfo",
-    "SkillCatalogEntry",
-    "ToolsCatalogResponse",
-    "ToolCatalogItem",
     # /goals + /goals/{goal_id}/cancel + /goals/{goal_id}/iterations
     "GoalRecord",
     "CreateGoalRequest",
@@ -747,166 +740,6 @@ class GraphConfigureDoctorResponse(BaseModel):
     status: Literal["success"] = Field(description="Always 'success' on this path.")
     result: dict[str, HookDoctorEntry] = Field(
         description="Agent-surface id -> hook health entry."
-    )
-
-
-# ══════════════════════════════════════════════════════════════════
-# 6. /tools — TWO DISTINCT HANDLERS SHARE THIS LEAF PATH
-#
-# `_mount_rest_routes` (kg_server.py) mounts `GET /tools` -> `get_tools_endpoint`,
-# which returns a CATEGORIZED dict (`_ToolsPayload`: mcp_tools/builtin_tools/
-# skills/skill_graphs/skill_workflows/section_status). Under the gateway this
-# is reachable at `/api/tools` (`register_graph_routes(app, prefix="/api")`).
-#
-# SEPARATELY, `agent_utilities/server/routers/core.py` registers its OWN
-# `GET /tools` (`list_tools`) directly on the app with NO prefix, returning a
-# FLAT `list[dict]` of Tool+Skill KG nodes. THIS is the one
-# `agent-terminal-ui/agent_terminal_ui/client.py:534`'s `AgentClient.list_tools()`
-# actually calls (confirmed via
-# `agent-terminal-ui/tests/test_graph_route_wiring.py::
-# test_the_servers_own_unprefixed_routers_keep_their_paths`, which asserts
-# `/tools`, not `/api/tools`, and treats it as one of "the server's own
-# unprefixed routers").
-#
-# Both are modeled below since this lane's brief explicitly named `/tools`
-# among "YOUR ROUTES" (the `_mount_rest_routes` table) AND explicitly warned
-# about the agent-terminal-ui flat-list contract — which turned out to
-# belong to the OTHER handler. See the report for this lane for the full
-# writeup; `agent_utilities/server/routers/core.py` is out of this lane's
-# edit scope (not on the touch list), so wiring either response_model in is
-# left to the lane that owns that file / kg_server.py.
-# ══════════════════════════════════════════════════════════════════
-
-
-class McpServerToolInfo(BaseModel):
-    """One entry in `ToolsCatalogResponse.mcp_tools`. Despite the field name,
-    this has always been one row per CONFIGURED MCP SERVER (an `mcpServers`
-    entry), never an individual MCP tool — see `_build_tools_payload_sync`'s
-    docstring in `kg_server.py`.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    name: str = Field(description="The configured MCP server's name.")
-    type: Literal["MCP Server"] = Field(description="Constant discriminator.")
-    launch_mode: Literal["subprocess", "remote"] = Field(
-        description="'subprocess' for a stdio-transport server, 'remote' otherwise."
-    )
-    command: str = Field(
-        description="'[configured]' for a stdio server (the raw command is "
-        "never exposed — privacy), else empty."
-    )
-    args: list[str] = Field(
-        description="['[configured]'] for a stdio server, else empty — same "
-        "opaque-presence-marker rule as `command`."
-    )
-    status: Literal["active", "disabled"] = Field(
-        description="Derived from the per-user toggle preference AND the "
-        "catalog row's own configured `enabled` flag."
-    )
-    enabled: bool = Field(description="Boolean form of `status`.")
-
-
-class BuiltinToolInfo(BaseModel):
-    """One entry in `ToolsCatalogResponse.builtin_tools` — a native,
-    in-process Python callable under `agent_utilities/tools/*.py` (never
-    MCP-discovered).
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    name: str = Field(description="The tool module's file stem.")
-    type: Literal["Built-in Tool"] = Field(description="Constant discriminator.")
-    file_path: str = Field(description="Synthetic 'tool://<stem>' locator.")
-    status: Literal["enabled", "disabled"] = Field(
-        description="Derived from the per-user toggle preference."
-    )
-    enabled: bool = Field(description="Boolean form of `status`.")
-
-
-class SkillCatalogEntry(BaseModel):
-    """One entry in `ToolsCatalogResponse.skills` / `skill_graphs` /
-    `skill_workflows`. Sourced from a `SKILL.md` file's YAML frontmatter
-    (`_parse_skill_md`), so the exact key set varies by what a given skill's
-    frontmatter declares — modeled with the fields every entry is known to
-    carry, `extra="allow"` for the rest rather than dropping real frontmatter
-    data.
-    """
-
-    model_config = ConfigDict(extra="allow")
-
-    id: str = Field(
-        description="Stable skill identifier, used for toggle-state lookups."
-    )
-    name: str = Field(default="", description="Human-readable skill name.")
-    type: Literal["Agent Skill", "Skill Workflow", "Skill Graph"] = Field(
-        description="Which of the three corpora this entry came from."
-    )
-    enabled: bool = Field(description="Per-user toggle preference for this skill.")
-
-
-class ToolsCatalogResponse(BaseModel):
-    """Response body for the `GET /tools` mounted by `_mount_rest_routes`
-    (`get_tools_endpoint` in `kg_server.py`) — reachable at `/api/tools`
-    under the gateway's default `/api` prefix. See the module-level note
-    above `McpServerToolInfo` for why this is NOT the flat-list contract
-    agent-terminal-ui depends on (that's :class:`ToolCatalogItem` instead).
-
-    NOT wrapped in a `{"status", "result"}` envelope — this handler returns
-    the catalog dict directly as the JSON body.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    mcp_tools: list[McpServerToolInfo] = Field(
-        description="One entry per configured MCP server (see `McpServerToolInfo`)."
-    )
-    builtin_tools: list[BuiltinToolInfo] = Field(
-        description="One entry per native in-process tool module."
-    )
-    skills: list[SkillCatalogEntry] = Field(
-        description="Atomic AGENT_SKILL entries from the universal-skills corpus."
-    )
-    skill_graphs: list[SkillCatalogEntry] = Field(
-        description="Skill-graph entries from the skill-graphs corpus."
-    )
-    skill_workflows: list[SkillCatalogEntry] = Field(
-        description="Skill-workflow entries from the universal-skills corpus."
-    )
-    section_status: dict[str, str] = Field(
-        description="Per-section 'ok'/'unavailable' read status, so a caller "
-        "can distinguish a genuinely empty section from one whose source "
-        "could not be read this time."
-    )
-
-
-class ToolCatalogItem(BaseModel):
-    """One item in the FLAT list returned by `GET /tools` as registered in
-    `agent_utilities/server/routers/core.py::list_tools` — the route
-    `agent-terminal-ui`'s `AgentClient.list_tools()` actually calls (see the
-    module-level note above `McpServerToolInfo`). Response shape for that
-    route is `list[ToolCatalogItem]`, NOT wrapped in any envelope — modeling
-    it as one would "improve" it into a breaking change for a shipped
-    frontend (`ToolsSidebar._populate_tree` in agent-terminal-ui reads
-    `item.get("description", "")` directly off each flat item).
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    id: str = Field(description="The underlying :Tool or :Skill node's id.")
-    name: str = Field(description="Display name.")
-    description: str = Field(
-        default="",
-        description="Free-text description — read directly by "
-        "agent-terminal-ui's sidebar for both search filtering and the "
-        "rendered tree label.",
-    )
-    source_name: str = Field(
-        default="",
-        description="The owning MCP server name (tools) or skill category (skills).",
-    )
-    type: Literal["tool", "skill"] = Field(
-        description="Which KG node label this came from."
     )
 
 
