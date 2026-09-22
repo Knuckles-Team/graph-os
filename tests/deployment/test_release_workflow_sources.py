@@ -53,10 +53,26 @@ def test_release_workflow_materializes_uv_path_sources_before_sync() -> None:
     provisioning_plan = yaml.safe_dump(steps)
     assert all(path in provisioning_plan for path in _locked_paths())
     for path in required:
-        step = next(
-            item
-            for item in steps
-            if item.get("with", {}).get("path") == path
-        )
+        step = next(item for item in steps if item.get("with", {}).get("path") == path)
         assert len(step["with"]["ref"]) == 40
         assert step["with"]["persist-credentials"] is False
+
+
+def test_scanner_job_installs_pinned_uv_before_uvx() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    )
+    steps = workflow["jobs"]["scanner-quality"]["steps"]
+    uv_index = next(
+        index
+        for index, step in enumerate(steps)
+        if "astral-sh/setup-uv@" in step.get("uses", "")
+    )
+    scanner_index = next(
+        index
+        for index, step in enumerate(steps)
+        if "pre-commit run" in step.get("run", "")
+    )
+
+    assert uv_index < scanner_index
+    assert steps[uv_index]["with"]["version"] == "0.11.7"
