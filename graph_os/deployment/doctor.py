@@ -753,49 +753,61 @@ def _resolve_tls_profile_data() -> tuple[Any, Any, Any, dict[str, Any]]:
     return cfg, resolver, secrets_client, tls_data
 
 
-def _resolve_engine_transport_data(cfg: Any, resolver: Any) -> dict[str, Any]:
-    from agent_utilities.core.transport_security import resolve_tls_profile
+def _engine_endpoints(cfg: Any) -> list[str]:
+    return [
+        str(endpoint).strip()
+        for endpoint in (getattr(cfg, "graph_service_endpoints", None) or [])
+        if str(endpoint).strip()
+    ]
 
+
+def _engine_endpoints_are_ready(engine_endpoints: list[str]) -> bool:
     from graph_os.deployment.production_ops import (
         ProductionOperationError,
         _transport_for_endpoint,
     )
 
-    engine_endpoints = [
-        str(endpoint).strip()
-        for endpoint in (getattr(cfg, "graph_service_endpoints", None) or [])
-        if str(endpoint).strip()
-    ]
+    try:
+        for endpoint in engine_endpoints:
+            _transport_for_endpoint(endpoint)
+    except ProductionOperationError:
+        return False
+    return True
+
+
+def _engine_tls_data(cfg: Any, resolver: Any) -> dict[str, bool]:
+    from agent_utilities.core.transport_security import resolve_tls_profile
+
+    trust = resolve_tls_profile(
+        "ENGINE",
+        profile_name=cfg.engine_tls_profile,
+        profile_ref=cfg.engine_tls_profile_ref,
+        resolver=resolver,
+    )
+    data = {
+        "verify_enabled": trust.verify_enabled,
+        "custom_ca": bool(trust.ca_bundle_path or trust.ca_directory),
+        "mtls": bool(trust.client_cert_path),
+    }
+    trust.cleanup()
+    return data
+
+
+def _resolve_engine_transport_data(cfg: Any, resolver: Any) -> dict[str, Any]:
+    engine_endpoints = _engine_endpoints(cfg)
     engine_tls_configured = any(
         endpoint.startswith("tls://") for endpoint in engine_endpoints
     ) or bool(cfg.engine_tls_profile or cfg.engine_tls_profile_ref)
     engine_data: dict[str, Any] = {
         "configured": engine_tls_configured,
-        "ready": True,
+        "ready": _engine_endpoints_are_ready(engine_endpoints),
         "endpoint_count": len(engine_endpoints),
         "verify_enabled": True,
         "custom_ca": False,
         "mtls": False,
     }
-    for endpoint in engine_endpoints:
-        try:
-            _transport_for_endpoint(endpoint)
-        except ProductionOperationError:
-            engine_data["ready"] = False
-            break
     if engine_tls_configured:
-        engine_trust = resolve_tls_profile(
-            "ENGINE",
-            profile_name=cfg.engine_tls_profile,
-            profile_ref=cfg.engine_tls_profile_ref,
-            resolver=resolver,
-        )
-        engine_data.update(
-            verify_enabled=engine_trust.verify_enabled,
-            custom_ca=bool(engine_trust.ca_bundle_path or engine_trust.ca_directory),
-            mtls=bool(engine_trust.client_cert_path),
-        )
-        engine_trust.cleanup()
+        engine_data.update(_engine_tls_data(cfg, resolver))
     return engine_data
 
 

@@ -119,7 +119,8 @@ def test_release_workflow_uses_pinned_epistemic_graph_contract_overlay() -> None
     command = _sync_command()
 
     assert (
-        "uv sync --frozen --extra test --no-install-package epistemic-graph" in command
+        "uv sync --frozen --extra test --extra webui --no-install-package epistemic-graph"
+        in command
     )
     assert "PYTHONPATH=$eg_source" in command
     assert 'git -C "$eg_source" rev-parse HEAD' in command

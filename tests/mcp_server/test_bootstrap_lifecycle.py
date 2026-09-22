@@ -46,7 +46,7 @@ def test_bootstrap_starts_workers_after_materialization_without_hydration(
         lambda: "host",
     )
     monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.session.use_session",
+        "agent_utilities.api.session.use_session",
         lambda _session: contextlib.nullcontext(),
     )
     monkeypatch.setattr(

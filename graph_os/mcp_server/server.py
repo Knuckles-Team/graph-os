@@ -141,6 +141,28 @@ def _preflight_mcp_sdk_floor() -> None:
     raise RuntimeError(message)
 
 
+def _attach_fleet_runtime(mcp: Any, fleet_catalog_reader: Any) -> Any:
+    """Attach the mandatory fleet surface or fail before serving."""
+
+    try:
+        from graph_os.fleet.multiplexer import attach_fleet_loader
+
+        return attach_fleet_loader(
+            mcp,
+            catalog_reader=fleet_catalog_reader,
+            embed_fn=_fleet_embed_fn(),
+            authority_scope=runtime.verified_tool_session_scope,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            "graph-os fleet loader attach failed: the fleet meta-tools "
+            "(find_tools/list_catalog/load_tools/unload_tools/catalog_refresh/"
+            "catalog_dispatch/catalog_session_resume/multiplexer_status) "
+            "and the session-visibility middleware could not be registered, so the "
+            "served tool surface would be wrong under every MCP_TOOL_MODE."
+        ) from exc
+
+
 def mcp_server() -> None:
     """``graph-os`` MCP server entry point (registered as console_scripts).
 
@@ -186,25 +208,9 @@ def mcp_server() -> None:
     # child_resilience left graph-os exposing 118 ungated tools with no
     # load_tools at all). Fail loud, preserving __cause__.
     # CONCEPT:AU-ECO.mcp.fleet-meta-tools-always-on
-    try:
-        from graph_os.fleet.multiplexer import attach_fleet_loader
-
-        # Inject graph-os's own embedding model so find_tools ranks fleet tools by
-        # query↔description MEANING (semantic), not just literal token overlap.
-        fleet_mux = attach_fleet_loader(
-            mcp,
-            catalog_reader=fleet_catalog_reader,
-            embed_fn=_fleet_embed_fn(),
-            authority_scope=runtime.verified_tool_session_scope,
-        )
-    except Exception as exc:
-        raise RuntimeError(
-            "graph-os fleet loader attach failed: the fleet meta-tools "
-            "(find_tools/list_catalog/load_tools/unload_tools/catalog_refresh/"
-            "catalog_dispatch/catalog_session_resume/multiplexer_status) "
-            "and the session-visibility middleware could not be registered, so the "
-            "served tool surface would be wrong under every MCP_TOOL_MODE."
-        ) from exc
+    # Inject graph-os's own embedding model so find_tools ranks fleet tools by
+    # query↔description MEANING (semantic), not just literal token overlap.
+    fleet_mux = _attach_fleet_runtime(mcp, fleet_catalog_reader)
 
     transport = getattr(args, "transport", "stdio")
     host = getattr(args, "host", "127.0.0.1")

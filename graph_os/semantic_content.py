@@ -53,6 +53,72 @@ def required_content_connectors() -> tuple[str, ...]:
     return connectors
 
 
+def _semantic_readers(
+    status_reader: Callable[..., Awaitable[Any]] | None,
+    schema_reader: Callable[..., Awaitable[Any]] | None,
+) -> tuple[Callable[..., Awaitable[Any]], Callable[..., Awaitable[Any]]]:
+    if schema_reader is None:
+        from epistemic_graph.generated import reasoning
+
+        schema_reader = cast(Any, reasoning).send_graph_schema_list
+    if status_reader is None:
+        from epistemic_graph.generated.storage import send_connector_pack_status
+
+        status_reader = send_connector_pack_status
+    return status_reader, schema_reader
+
+
+def _validated_connectors(connectors: Sequence[str]) -> tuple[str, ...]:
+    expected = tuple(connectors)
+    if not expected or len(set(expected)) != len(expected):
+        raise SemanticContentNotReadyError(
+            "required semantic connector identities are empty or duplicated"
+        )
+    return expected
+
+
+async def _verify_semantic_connector(
+    *,
+    client: Any,
+    tenant_id: str,
+    graph: str,
+    connector: str,
+    attached: dict[str, Any],
+    status_reader: Callable[..., Awaitable[Any]],
+) -> None:
+    from epistemic_graph.generated.connector_pack import ConnectorPackStatusRequest
+
+    status = await status_reader(
+        client,
+        ConnectorPackStatusRequest(connector=connector, tenant_id=tenant_id),
+        graph,
+    )
+    if status.head is None:
+        raise SemanticContentNotReadyError(
+            f"required semantic pack {connector!r} has no committed head"
+        )
+    projection = status.projection
+    if (
+        getattr(projection, "projection", None) != "applied"
+        or getattr(projection, "graph", None) != graph
+    ):
+        raise SemanticContentNotReadyError(
+            f"required semantic pack {connector!r} is not projected"
+        )
+    source = attached.get(f"pack:{connector}")
+    origin = None if source is None else source.origin
+    if (
+        source is None
+        or getattr(origin, "origin", None) != "pack"
+        or getattr(origin, "connector", None) != connector
+        or getattr(origin, "record_id", None) != status.head.record_id
+        or not source.shapes_sha256
+    ):
+        raise SemanticContentNotReadyError(
+            f"required semantic pack {connector!r} is absent or stale"
+        )
+
+
 async def verify_semantic_content(
     *,
     client: Any,
@@ -68,22 +134,8 @@ async def verify_semantic_content(
     Provisioning and ``AttachPack`` remain an explicit deployment operation.
     """
 
-    from epistemic_graph.generated.connector_pack import ConnectorPackStatusRequest
-
-    if schema_reader is None:
-        from epistemic_graph.generated import reasoning
-
-        schema_reader = cast(Any, reasoning).send_graph_schema_list
-    if status_reader is None:
-        from epistemic_graph.generated.storage import send_connector_pack_status
-
-        status_reader = send_connector_pack_status
-
-    expected = tuple(connectors)
-    if not expected or len(set(expected)) != len(expected):
-        raise SemanticContentNotReadyError(
-            "required semantic connector identities are empty or duplicated"
-        )
+    status_reader, schema_reader = _semantic_readers(status_reader, schema_reader)
+    expected = _validated_connectors(connectors)
     view = await schema_reader(client, {}, graph)
     attached = {
         source.source_id: source
@@ -91,35 +143,14 @@ async def verify_semantic_content(
         if source.source_id.startswith("pack:")
     }
     for connector in expected:
-        status = await status_reader(
-            client,
-            ConnectorPackStatusRequest(connector=connector, tenant_id=tenant_id),
-            graph,
+        await _verify_semantic_connector(
+            client=client,
+            tenant_id=tenant_id,
+            graph=graph,
+            connector=connector,
+            attached=attached,
+            status_reader=status_reader,
         )
-        if status.head is None:
-            raise SemanticContentNotReadyError(
-                f"required semantic pack {connector!r} has no committed head"
-            )
-        projection = status.projection
-        if (
-            getattr(projection, "projection", None) != "applied"
-            or getattr(projection, "graph", None) != graph
-        ):
-            raise SemanticContentNotReadyError(
-                f"required semantic pack {connector!r} is not projected"
-            )
-        source = attached.get(f"pack:{connector}")
-        origin = None if source is None else source.origin
-        if (
-            source is None
-            or getattr(origin, "origin", None) != "pack"
-            or getattr(origin, "connector", None) != connector
-            or getattr(origin, "record_id", None) != status.head.record_id
-            or not source.shapes_sha256
-        ):
-            raise SemanticContentNotReadyError(
-                f"required semantic pack {connector!r} is absent or stale"
-            )
 
 
 async def provision_semantic_content[ReprojectReceiptT, AttachReceiptT](

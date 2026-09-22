@@ -148,7 +148,7 @@ jobs:
           eg_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph"
           test "$(git -C "$eg_source" rev-parse HEAD)" = "49d63da5396fef7482fc3617df3f90a836661722"
           echo "PYTHONPATH=$eg_source${PYTHONPATH:+:$PYTHONPATH}" >> "$GITHUB_ENV"
-          uv sync --frozen --extra test --no-install-package epistemic-graph
+          uv sync --frozen --extra test --extra webui --no-install-package epistemic-graph
           PYTHONPATH="$eg_source${PYTHONPATH:+:$PYTHONPATH}" uv run --no-sync python -c \
             'from pathlib import Path; import epistemic_graph; from epistemic_graph.generated import connector_pack, source_ingestion, storage; root = Path(".uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph").resolve(); assert Path(epistemic_graph.__file__).resolve().is_relative_to(root); assert connector_pack.ConnectorPackStatusRequest; assert source_ingestion.SourceCheckpoint; assert storage.send_agent_component_content'
 

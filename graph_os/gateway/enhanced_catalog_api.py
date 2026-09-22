@@ -21,7 +21,13 @@ from agent_utilities.api import (
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 
-from graph_os.fleet.catalog_reader import FleetCatalog, FleetCatalogReader
+from graph_os.fleet.catalog_reader import (
+    CatalogServer as FleetCatalogServer,
+)
+from graph_os.fleet.catalog_reader import (
+    FleetCatalog,
+    FleetCatalogReader,
+)
 
 CatalogEntryKind = Literal["tool", "skill", "workflow"]
 
@@ -95,6 +101,56 @@ class WorkflowCapabilities(BaseModel):
     skills: tuple[CapabilityItem, ...]
 
 
+def _project_fleet_server(
+    server: FleetCatalogServer,
+) -> tuple[CatalogServer, tuple[CatalogEntry, ...]]:
+    provided = tuple(
+        item for item in server.provides if item.entry.kind in {"tool", "skill"}
+    )
+    registration = server.registration
+    projected_server = CatalogServer(
+        server_id=(
+            registration.server_id
+            if registration is not None
+            else f"srv:{server.component.server_name}"
+        ),
+        name=server.component.server_name,
+        url="" if registration is None else registration.url,
+        status="unavailable" if registration is None else "available",
+        tool_count=sum(item.entry.kind == "tool" for item in provided),
+        error="live registration unavailable" if registration is None else None,
+    )
+    entries = tuple(
+        CatalogEntry(
+            id=item.entry.component_id,
+            name=item.entry.upstream_name,
+            kind=cast(CatalogEntryKind, item.entry.kind),
+            description=item.entry.summary,
+            status="active",
+            authority="agent_component",
+            server_name=item.entry.server_name,
+            revision=item.entry.entry_revision,
+            definition_digest=item.entry.definition_digest,
+            content_digest=item.entry.content_digest,
+        )
+        for item in provided
+    )
+    return projected_server, entries
+
+
+def _project_workflow(workflow: WorkflowCatalogRecord) -> CatalogEntry:
+    return CatalogEntry(
+        id=workflow.workflow_id,
+        name=workflow.name,
+        kind="workflow",
+        description=workflow.description,
+        status=workflow.status,
+        authority="workflow_catalog",
+        revision=workflow.revision,
+        definition_digest=workflow.definition_digest,
+    )
+
+
 class EnhancedCatalogAuthority:
     """Join complete, verified catalog snapshots from their owning domains."""
 
@@ -139,61 +195,16 @@ class EnhancedCatalogAuthority:
         entries: list[CatalogEntry] = []
         seen_workflows: set[str] = set()
         for server in fleet.servers:
-            provided = [
-                item for item in server.provides if item.entry.kind in {"tool", "skill"}
-            ]
-            registration = server.registration
-            servers.append(
-                CatalogServer(
-                    server_id=(
-                        registration.server_id
-                        if registration is not None
-                        else f"srv:{server.component.server_name}"
-                    ),
-                    name=server.component.server_name,
-                    url="" if registration is None else registration.url,
-                    status=("unavailable" if registration is None else "available"),
-                    tool_count=sum(item.entry.kind == "tool" for item in provided),
-                    error=(
-                        "live registration unavailable"
-                        if registration is None
-                        else None
-                    ),
-                )
-            )
-            entries.extend(
-                CatalogEntry(
-                    id=item.entry.component_id,
-                    name=item.entry.upstream_name,
-                    kind=cast(CatalogEntryKind, item.entry.kind),
-                    description=item.entry.summary,
-                    status="active",
-                    authority="agent_component",
-                    server_name=item.entry.server_name,
-                    revision=item.entry.entry_revision,
-                    definition_digest=item.entry.definition_digest,
-                    content_digest=item.entry.content_digest,
-                )
-                for item in provided
-            )
+            projected_server, projected_entries = _project_fleet_server(server)
+            servers.append(projected_server)
+            entries.extend(projected_entries)
         for workflow in workflows:
             if workflow.workflow_id in seen_workflows:
                 raise RuntimeError(
                     "workflow catalog returned a duplicate current identity"
                 )
             seen_workflows.add(workflow.workflow_id)
-            entries.append(
-                CatalogEntry(
-                    id=workflow.workflow_id,
-                    name=workflow.name,
-                    kind="workflow",
-                    description=workflow.description,
-                    status=workflow.status,
-                    authority="workflow_catalog",
-                    revision=workflow.revision,
-                    definition_digest=workflow.definition_digest,
-                )
-            )
+            entries.append(_project_workflow(workflow))
         entries.sort(key=lambda item: (item.kind, item.name, item.id))
         servers.sort(key=lambda item: (item.name, item.server_id))
         return EnhancedCatalog(
