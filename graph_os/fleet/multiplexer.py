@@ -2637,24 +2637,18 @@ class MCPMultiplexer:
         if oauth_bearer_headers is not None:
             _svc_auth = None
         else:
-            from agent_utilities.mcp.client_credentials import child_auth
+            from graph_os.fleet.child_credentials import child_auth
 
             _svc_auth = child_auth(headers)
         use_sse = explicit_transport == "sse" or url.rstrip("/").endswith("/sse")
         if use_sse:
-            # D-MTT-1: `_svc_auth` is a local `httpx.Auth` (see
-            # `child_auth`'s docstring); `sse_client`'s `auth` param is
-            # typed `httpx2.Auth | None` (fastmcp's vendored SDK v2 HTTP
-            # client, a distinct package from this repo's own `httpx` —
-            # see `agent_utilities/mcp/httpx_boundary.py`). Coerce at
-            # this boundary rather than passing the foreign-typed object
-            # straight through.
-            from agent_utilities.mcp.httpx_boundary import coerce_httpx2_auth
-
+            # Every child auth is both an httpx.Auth and an httpx2.Auth
+            # (graph_os.fleet.child_credentials), so the SDK v2 SSE client
+            # accepts it without coercion.
             transport = sse_client(
                 url,
                 headers=headers,
-                auth=coerce_httpx2_auth(_svc_auth),
+                auth=_svc_auth,
                 httpx_client_factory=_secure_httpx_factory,
             )
         else:
@@ -2957,7 +2951,7 @@ class MCPMultiplexer:
         # and then wedges on expiry); derive that lifetime from the token TTL.
         session_max_age: float | None = None
         if is_remote:
-            from agent_utilities.mcp.client_credentials import service_session_max_age
+            from graph_os.fleet.child_credentials import service_session_max_age
 
             session_max_age = service_session_max_age(cfg.get("headers"))
         runtime: _child_resilience.ChildRuntime

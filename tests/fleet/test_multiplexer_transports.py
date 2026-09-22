@@ -8,7 +8,6 @@ same ``mcp_config.json`` transparently.
 from __future__ import annotations
 
 import contextlib
-import importlib
 from unittest.mock import MagicMock
 
 import pytest
@@ -294,9 +293,9 @@ def _enable_service_auth(monkeypatch):
     monkeypatch.setenv("TEST_OIDC_CLIENT_SECRET", "s3cr3t")
     monkeypatch.setenv("OIDC_AUDIENCE", "graph-api")
     monkeypatch.setenv("OIDC_TOKEN_URL", "https://identity.example.test/token")
-    import agent_utilities.mcp.client_credentials as cc
+    import graph_os.fleet.child_credentials as cc
 
-    importlib.reload(cc)  # reset provider cache under the new env
+    monkeypatch.setattr(cc, "_OIDC_AUTH", None)  # fresh token cache per test
     return cc
 
 
