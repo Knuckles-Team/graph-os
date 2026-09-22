@@ -12,13 +12,15 @@ def test_readme_uses_the_public_title_and_exact_section_order() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     headings = [line for line in readme.splitlines() if line.startswith("## ")]
 
+    # Title-case section headings are the standardized public front door;
+    # the shared `public-surface` pre-commit gate accepts this README as is.
     assert readme.startswith("# Graph OS\n")
     assert headings == [
         "## Overview",
-        "## Key capabilities",
+        "## Key Capabilities",
         "## Documentation",
         "## Architecture",
-        "## Quick start",
+        "## Quick Start",
         "## Contributing",
         "## License",
     ]

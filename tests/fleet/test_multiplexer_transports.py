@@ -196,16 +196,21 @@ async def test_probe_server_reports_stdio_prohibited_as_stated_reason(
     """``probe_server`` backs the WebUI's "Manage MCP tools" / catalog surface
     -- it must report the exact reason in ``error``, never an empty tool list
     indistinguishable from a healthy zero-tool server (the fail-closed rule:
-    a degraded read must never look like a healthy result)."""
+    a degraded read must never look like a healthy result).
+
+    Uses an ordinary fleet server name, not "graph-os" -- that name is
+    structurally excluded from the catalog (self, served natively) by the
+    EG-backed catalog source, so probing it would report "not in catalog"
+    rather than exercising the stdio-prohibition path under test."""
     from agent_utilities.core.config import config
 
     monkeypatch.setattr(config, "mcp_stdio_prohibited", True)
     config_path = tmp_path / "c.json"
     config_path.write_text(
-        '{"mcpServers": {"graph-os": {"command": "graph-os", "args": []}}}'
+        '{"mcpServers": {"example-mcp": {"command": "example-mcp", "args": []}}}'
     )
     mux = multiplexer_from_fixture(config_path)
-    info = await mux.probe_server("graph-os", force=True)
+    info = await mux.probe_server("example-mcp", force=True)
     assert info["tools"] == []
     assert info["error"] is not None
     assert "stdio transport is not permitted" in info["error"]

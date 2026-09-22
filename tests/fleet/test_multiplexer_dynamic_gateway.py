@@ -554,23 +554,21 @@ async def test_schema_refresh_rolls_back_partial_host_registration_atomically(
     await mux.aclose()
 
 
-async def test_detached_schema_refresh_notifies_the_affected_session_on_next_request(
-    tmp_path, monkeypatch
-):
-    """A background recovery never reuses a stale request context.
+_SCHEMA_SERVER = "schema-mcp"
+_SCHEMA_SESSION = "connected-client"
 
-    Instead it queues a revision for the session that had the forwarded tool
-    loaded. The regular ``tools/list`` middleware then delivers MCP's standard
-    notification through that new request's real outbound context.
-    """
+
+async def _mount_schema_child(tmp_path):
+    """Mount one schema-generating child, register its forwarder on a fresh
+    FastMCP host, and mark it loaded for ``_SCHEMA_SESSION`` -- the shared
+    setup for the ``_refresh_child_tools`` recovery/removal notification
+    tests below. Returns ``(mux, host, prefixed_name, runtime)``."""
     from fastmcp import FastMCP
 
-    server_name = "schema-mcp"
-    session_key = "connected-client"
     mux = multiplexer_from_fixture(
         _write_config(
             tmp_path,
-            {server_name: {"command": "schema-child", "args": []}},
+            {_SCHEMA_SERVER: {"command": "schema-child", "args": []}},
         )
     )
     original = _SchemaGenerationSession([_schema_tool("query", "legacy")], tag="legacy")
@@ -581,12 +579,24 @@ async def test_detached_schema_refresh_notifies_the_affected_session_on_next_req
     mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)  # type: ignore[method-assign]
     host = FastMCP("schema-refresh-host")
     mux._host_mcp = host
-    mounted = await mux.mount_child(server_name)
+    mounted = await mux.mount_child(_SCHEMA_SERVER)
     prefixed_name = mounted[0].name
     _register_forwarder(host, mux, mounted[0])
-    mux.session_loaded(session_key).add(prefixed_name)
+    mux.session_loaded(_SCHEMA_SESSION).add(prefixed_name)
+    return mux, host, prefixed_name, mux.children[_SCHEMA_SERVER]
 
-    runtime = mux.children[server_name]
+
+async def test_detached_schema_refresh_notifies_the_affected_session_on_next_request(
+    tmp_path, monkeypatch
+):
+    """A background recovery never reuses a stale request context.
+
+    Instead it queues a revision for the session that had the forwarded tool
+    loaded. The regular ``tools/list`` middleware then delivers MCP's standard
+    notification through that new request's real outbound context.
+    """
+    mux, host, prefixed_name, runtime = await _mount_schema_child(tmp_path)
+    server_name, session_key = _SCHEMA_SERVER, _SCHEMA_SESSION
     await asyncio.create_task(
         mux._refresh_child_tools(
             server_name,
@@ -631,30 +641,8 @@ async def test_detached_schema_refresh_notifies_the_affected_session_on_next_req
 
 async def test_removed_cached_tool_notifies_before_session_gate(tmp_path, monkeypatch):
     """A stale cached call gets its list-changed notice before ToolError."""
-    from fastmcp import FastMCP
-
-    server_name = "schema-mcp"
-    session_key = "connected-client"
-    mux = multiplexer_from_fixture(
-        _write_config(
-            tmp_path,
-            {server_name: {"command": "schema-child", "args": []}},
-        )
-    )
-    original = _SchemaGenerationSession([_schema_tool("query", "legacy")], tag="legacy")
-
-    async def fake_open_one_session(*_args):
-        return original
-
-    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)  # type: ignore[method-assign]
-    host = FastMCP("schema-refresh-host")
-    mux._host_mcp = host
-    mounted = await mux.mount_child(server_name)
-    prefixed_name = mounted[0].name
-    _register_forwarder(host, mux, mounted[0])
-    mux.session_loaded(session_key).add(prefixed_name)
-
-    runtime = mux.children[server_name]
+    mux, host, prefixed_name, runtime = await _mount_schema_child(tmp_path)
+    server_name, session_key = _SCHEMA_SERVER, _SCHEMA_SESSION
     await mux._refresh_child_tools(
         server_name,
         runtime,
@@ -702,14 +690,19 @@ async def test_mount_child_unknown_server(tmp_path):
 
 
 async def test_start_children_eager_unchanged(tmp_path):
+    # "graph-os" is structurally excluded from the catalog -- it is the self
+    # identity (served natively, always on), never a mountable fleet child --
+    # so this eager-start regression guard exercises two ordinary fleet
+    # members instead (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog).
     mux = _mux_with_children(
         tmp_path,
-        {CNT: [(CNT_TOOL, "containers")], "graph-os": [("graph_query", "query")]},
+        {CNT: [(CNT_TOOL, "containers")], "leanix-mcp": [("query", "query")]},
     )
     await mux.start_children()
     names = {t.name for t in mux.aggregated_tools}
     assert CNT_PREFIXED in names
-    assert "go__graph_query" in names
+    prefix = get_server_prefix("leanix-mcp")
+    assert any(n.startswith(f"{prefix}__") for n in names)
     assert mux._start_child.await_count == 2
 
 
@@ -1693,14 +1686,19 @@ def test_tool_is_verbose_tag_detection():
 @pytest.mark.asyncio
 async def test_always_on_holds_verbose_tools_in_catalog(tmp_path):
     """An always-on child's verbose tools are mounted (in the catalog, loadable)
-    but NOT auto-exposed at boot — only the condensed surface is."""
+    but NOT auto-exposed at boot — only the condensed surface is.
+
+    "graph-os" itself is structurally excluded from the catalog (self,
+    served natively) so this uses an ordinary fleet member to exercise the
+    same condensed/verbose boot filter."""
     from fastmcp import FastMCP
 
-    mux = _mux_with_children(tmp_path, {"graph-os": []})
+    server = "example-mcp"
+    mux = _mux_with_children(tmp_path, {server: []})
 
     async def fake_start_child(server_name, cfg):
         tools = [
-            _fake_tool("graph_write", "condensed", tags=["graph-os", "write"]),
+            _fake_tool("graph_write", "condensed", tags=["example-mcp", "write"]),
             _fake_tool(
                 "graph_write_add_node", "verbose", tags=["graph_write", "verbose"]
             ),
@@ -1710,7 +1708,7 @@ async def test_always_on_holds_verbose_tools_in_catalog(tmp_path):
     mux._start_child = AsyncMock(side_effect=fake_start_child)
 
     mcp = FastMCP("mux")
-    tools = await mux.mount_child("graph-os")
+    tools = await mux.mount_child(server)
     # Replicate the dynamic always-on boot filter:
     for tool in tools:
         if _tool_is_verbose(tool):
@@ -1805,10 +1803,13 @@ def test_tool_dispatchable_true_for_unknown_name_on_a_genuinely_serving_instance
     that matches no server at all is presumed a native host tool outside the
     progressive-disclosure surface, same as before D-SH-6's fix. This is the
     regression guard: D-SH-6 must not turn INTO a false denial for the
-    legitimate case it always covered."""
+    legitimate case it always covered.
+
+    The EG-backed catalog source (``tests.fleet.catalog_fixture``) composes
+    the catalog synchronously at construction, unlike the retired static
+    ``MCP_CONFIG`` path that deferred the first read to ``load_catalog()`` --
+    so a freshly-built fixture with an admissible server is already serving."""
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "a")]})
-    assert mux.is_serving() is False  # load_catalog() hasn't run yet
-    mux.load_catalog()
     assert mux.is_serving() is True  # at least one real server catalogued
     assert mux.tool_dispatchable("some_native_host_tool") is True
 
