@@ -20,7 +20,6 @@ from __future__ import annotations
 import importlib
 import ipaddress
 import logging
-import stat
 from collections.abc import Callable
 from types import SimpleNamespace
 from typing import Any
@@ -1292,317 +1291,53 @@ def _runtime_integrations_result(
     )
 
 
-def _engine_endpoint_reachability(
-    st: dict[str, Any], cfg: Any
-) -> tuple[list, list, Any]:
-    """``(endpoints, reachable, discovery_ready)`` for the resolved topology.
+def _check_engine() -> dict[str, Any]:
+    """Report the configured public EG coordinator contract, fully redacted.
 
-    A static group map is retained for migration/configuration audit only; it
-    cannot satisfy the live placement authority. Probe whether authenticated
-    ClusterMembers answers from a reachable seed for every multi-contact
-    topology, even when legacy map data is present. The probe is an
-    authenticated RPC (unlike the cheap raw-connect check), and the hermetic
-    testing guard makes it fail closed without dialing.
+    Runtime reachability is proven by GraphOS composition itself. Doctor does
+    not recreate AU engine election, placement, encryption, or autostart state.
     """
-    from agent_utilities.knowledge_graph.core.placement_catalog import (
-        discovery_reachable,
-    )
-
-    endpoints = st.get("endpoints", [])
-    reachable = [e for e in endpoints if e.get("reachable")]
-    discovery_ready = (
-        discovery_reachable([e["endpoint"] for e in reachable], cfg)
-        if len(endpoints) > 1
-        else None
-    )
-    return endpoints, reachable, discovery_ready
-
-
-def _engine_resource_limits(cfg: Any) -> dict[str, Any]:
-    """The engine's configured request/response and extraction size bounds."""
-    return {
-        "request_bytes": getattr(cfg, "epistemic_graph_max_request_bytes", 0),
-        "response_bytes": getattr(cfg, "epistemic_graph_max_response_bytes", 0),
-        "msgpack_items": getattr(cfg, "epistemic_graph_max_msgpack_items", 0),
-        "ast_files": getattr(cfg, "epistemic_graph_ast_max_files", 0),
-        "ast_source_bytes": getattr(cfg, "epistemic_graph_ast_max_source_bytes", 0),
-        "ast_total_bytes": getattr(cfg, "epistemic_graph_ast_max_total_bytes", 0),
-        "modality_bundle_bytes": getattr(
-            cfg, "epistemic_graph_modality_max_bundle_bytes", 0
-        ),
-        "modality_source_bytes": getattr(
-            cfg, "epistemic_graph_modality_max_source_bytes", 0
-        ),
-        "sqlite_bytes": getattr(cfg, "epistemic_graph_sqlite_max_bytes", 0),
-        "sqlite_rows": getattr(cfg, "epistemic_graph_sqlite_max_rows", 0),
-    }
-
-
-def _engine_redacted_status(
-    cfg: Any,
-    st: dict[str, Any],
-    resolved: Any,
-    encryption: dict[str, Any],
-    reachable: list,
-    discovery_ready: Any,
-) -> dict[str, Any]:
-    """Readiness counts only.
-
-    Endpoint strings can contain hostnames, usernames, local socket paths, or
-    customer-specific topology names. Doctor is frequently copied into issue
-    reports and traces, so expose readiness counts only.
-    """
-    endpoints = st.get("endpoints", [])
-    return {
-        "resolved_mode": resolved.mode,
-        "topology_mode": st.get("mode", "unknown"),
-        "configured_endpoint_count": len(endpoints),
-        "reachable_endpoint_count": len(reachable),
-        "placement_group_mapping_count": len(
-            getattr(cfg, "graph_raft_group_endpoints", {}) or {}
-        ),
-        "cluster_topology_discovery_ready": discovery_ready,
-        "autostart_allowed": bool(resolved.autostart_allowed),
-        "idle_shutdown_configured": bool(resolved.idle_shutdown_secs > 0),
-        "durable_encryption": encryption,
-        "runtime_directory_ref_count": sum(
-            bool(value)
-            for value in (
-                getattr(cfg, "epistemic_graph_sqlite_transfer_root_ref", None),
-                getattr(cfg, "epistemic_graph_backup_root_ref", None),
-            )
-        ),
-        "resource_limits": _engine_resource_limits(cfg),
-        "redacted": True,
-    }
-
-
-def _engine_runtime_directory_refs(cfg: Any) -> tuple[Any, ...]:
-    """The configured local runtime-directory references, in check order."""
-    return tuple(
-        reference
-        for reference in (
-            getattr(cfg, "epistemic_graph_sqlite_transfer_root_ref", None),
-            getattr(cfg, "epistemic_graph_backup_root_ref", None),
-        )
-        if reference
-    )
-
-
-def _rendered_directory_reference(resolver: Any, reference: Any) -> str:
-    """Resolve one reference to a bounded, control-character-free directory string."""
-    raw = resolver.resolve_ref(reference)
-    rendered = raw.decode("utf-8") if isinstance(raw, bytes) else str(raw or "")
-    if (
-        not rendered
-        or len(rendered.encode("utf-8")) > 4_096
-        or any(ord(character) < 32 for character in rendered)
-    ):
-        raise ValueError("invalid runtime directory")
-    return rendered
-
-
-def _assert_private_runtime_directory(resolver: Any, reference: Any) -> None:
-    """Raise unless the reference names an existing, non-symlink, private directory."""
-    import os
-    from pathlib import Path
-
-    candidate = Path(_rendered_directory_reference(resolver, reference))
-    metadata = candidate.lstat()
-    if candidate.is_symlink() or not candidate.is_dir():
-        raise ValueError("unsafe runtime directory")
-    candidate.resolve(strict=True)
-    if os.name == "posix" and stat.S_IMODE(metadata.st_mode) & 0o077:
-        raise ValueError("runtime directory is not private")
-
-
-def _engine_runtime_directory_gate(
-    resolved: Any, runtime_directory_refs: tuple[Any, ...], redacted_status: dict
-) -> dict[str, Any] | None:
-    """Every local runtime-directory reference must resolve to a private directory.
-
-    Any failure -- unresolvable reference, symlink, non-directory, or group/other
-    permissions -- marks the refs not ready and fails; it never reports ok.
-    """
-    if resolved.mode == "remote" or not runtime_directory_refs:
-        return None
     try:
-        from agent_utilities.security.secrets_client import create_secrets_client
+        from agent_utilities.core.config import AgentConfig
 
-        resolver = create_secrets_client()
-        for reference in runtime_directory_refs:
-            _assert_private_runtime_directory(resolver, reference)
-        redacted_status["runtime_directory_refs_ready"] = True
-    except Exception:  # noqa: BLE001 - diagnostics must not reveal paths/providers
-        redacted_status["runtime_directory_refs_ready"] = False
+        from graph_os.deployment.production_ops import (
+            ProductionOperationError,
+            _transport_for_endpoint,
+        )
+
+        endpoints = [
+            str(endpoint).strip()
+            for endpoint in (AgentConfig().graph_service_endpoints or [])
+            if str(endpoint).strip()
+        ]
+        if len(endpoints) != 1:
+            raise ProductionOperationError(
+                "GraphOS requires exactly one configured EG coordinator"
+            )
+        transport = _transport_for_endpoint(endpoints[0])
+    except Exception as exc:  # noqa: BLE001 - doctor reports bounded metadata only
         return _result(
             "engine",
             "fail",
-            "an enabled engine file capability has an unavailable or unsafe runtime directory",
+            f"engine coordinator configuration is invalid ({type(exc).__name__})",
             remediation=(
-                "Resolve each configured engine directory reference to an existing, "
-                "non-symlink private directory; do not place host paths in AgentConfig."
+                "Configure exactly one tcp://, tls://, or unix:// "
+                "GRAPH_SERVICE_ENDPOINTS coordinator."
             ),
-            data=redacted_status,
+            data={"configured_endpoint_count": 0, "redacted": True},
         )
-    return None
 
-
-def _engine_remote_result(
-    reachable: list,
-    endpoints: list,
-    runtime_directory_refs: tuple[Any, ...],
-    redacted_status: dict[str, Any],
-) -> dict[str, Any]:
-    """Verdict for ``resolved mode=remote``; remote never autostarts a stand-in."""
-    if not reachable:
-        return _result(
-            "engine",
-            "fail",
-            "configured remote engine is unreachable — "
-            "remote mode never autostarts a local stand-in (fail-loud)",
-            remediation="start the external engine (Docker/host) or fix GRAPH_SERVICE_ENDPOINTS",
-            skill="agent-utilities-deployment",
-            data=redacted_status,
-        )
-    if runtime_directory_refs:
-        return _result(
-            "engine",
-            "warn",
-            "remote engine reachable, but local runtime directory references are not applied remotely",
-            remediation=(
-                "Configure backup/SQLite roots in the remote engine deployment, "
-                "or remove the local-only references."
-            ),
-            data=redacted_status,
-        )
     return _result(
         "engine",
         "ok",
-        f"remote engine reachable ({len(reachable)}/{len(endpoints)} "
-        "endpoint(s)) — resolved mode=remote (deployed elsewhere)",
-        data=redacted_status,
+        "engine coordinator transport is configured; live readiness is enforced at startup",
+        data={
+            "configured_endpoint_count": 1,
+            "transport": "unix" if "socket_path" in transport else "network",
+            "tls": bool(transport.get("tls", False)),
+            "redacted": True,
+        },
     )
-
-
-def _engine_local_result(
-    resolved: Any, reachable: list, endpoints: list, redacted_status: dict[str, Any]
-) -> dict[str, Any]:
-    """Verdict for a local engine: shared, autostart-on-demand, or unreachable."""
-    if reachable:
-        return _result(
-            "engine",
-            "ok",
-            "engine reachable — resolved mode=shared "
-            "(reusing the already-running local engine)",
-            data=redacted_status,
-        )
-    # Nothing up locally — describe the autostart behaviour the resolver WILL
-    # take on first use, including the idle-shutdown lifecycle.
-    if resolved.autostart_allowed:
-        life = (
-            f"reference-counted (auto-stops {resolved.idle_shutdown_secs}s "
-            "after the last client disconnects)"
-            if resolved.idle_shutdown_secs > 0
-            else "persistent (never auto-stops — runs like a local service)"
-        )
-        return _result(
-            "engine",
-            "warn",
-            "no engine running yet — resolved mode=autostart: "
-            f"a detached, supervised engine will be spawned on first use, {life}",
-            remediation="no action needed (auto-provisions on demand); start eagerly with `graph-os-daemon` if preferred",
-            skill="agent-utilities-deployment",
-            data=redacted_status,
-        )
-    return _result(
-        "engine",
-        "fail",
-        f"no epistemic-graph engine endpoint reachable ({len(endpoints)} configured) and autostart disabled",
-        remediation="remove GRAPH_SERVICE_ENDPOINTS for the packaged local lifecycle, or start the configured external engine",
-        skill="agent-utilities-deployment",
-        data=redacted_status,
-    )
-
-
-def _check_engine() -> dict[str, Any]:
-    try:
-        from agent_utilities.core.config import AgentConfig
-        from agent_utilities.knowledge_graph.core.engine_resolver import resolve_engine
-        from agent_utilities.knowledge_graph.core.graph_compute import (
-            engine_encryption_readiness,
-        )
-
-        # Import gate only: _engine_endpoint_reachability re-imports it. Kept
-        # here so an engine install missing the placement catalog still reports
-        # `error` up front, exactly as it did before this check was split.
-        from agent_utilities.knowledge_graph.core.placement_catalog import (  # noqa: F401
-            discovery_reachable,
-        )
-        from agent_utilities.knowledge_graph.core.shard_topology import (
-            default_graph_name,
-            shard_topology_status,
-        )
-
-        cfg = AgentConfig()
-        st = shard_topology_status(cfg, probe=True, timeout=0.5)
-        resolved = resolve_engine(cfg, default_graph_name(cfg))
-        encryption = engine_encryption_readiness(cfg, remote=resolved.mode == "remote")
-    except Exception as exc:  # noqa: BLE001
-        return _result(
-            "engine",
-            "error",
-            f"shard topology probe failed ({type(exc).__name__})",
-        )
-    st["resolved_mode"] = resolved.mode
-    endpoints, reachable, discovery_ready = _engine_endpoint_reachability(st, cfg)
-    redacted_status = _engine_redacted_status(
-        cfg, st, resolved, encryption, reachable, discovery_ready
-    )
-
-    if not encryption["ready"]:
-        return _result(
-            "engine",
-            "fail",
-            "local durable-engine encryption is not configuration-ready",
-            remediation=(
-                "Configure EPISTEMIC_GRAPH_ENCRYPTION_KEY_REF with an external "
-                "runtime secret reference that resolves to bounded key material."
-            ),
-            data=redacted_status,
-        )
-
-    if len(endpoints) > 1 and not discovery_ready:
-        return _result(
-            "engine",
-            "fail",
-            "multiple coordinator contacts have no current engine-authoritative "
-            "cluster-topology discovery (ClusterMembers) answer from any "
-            "reachable contact",
-            remediation=(
-                "Ensure at least one configured GRAPH_SERVICE_ENDPOINTS seed is a "
-                "live cluster member self-reported via NodeInfoUpsert (ADR-1 / "
-                "W1.1) and answering the authenticated ClusterMembers RPC. "
-                "GRAPH_RAFT_GROUP_ENDPOINTS is migration/audit data only and "
-                "cannot replace discovery; clients never infer placement."
-            ),
-            data=redacted_status,
-        )
-
-    runtime_directory_refs = _engine_runtime_directory_refs(cfg)
-    directory_failure = _engine_runtime_directory_gate(
-        resolved, runtime_directory_refs, redacted_status
-    )
-    if directory_failure is not None:
-        return directory_failure
-
-    # CONCEPT:AU-OS.deployment.report-resolved-mode — report the RESOLVED mode (how this process reaches the
-    # engine), not just transport reachability.
-    if resolved.mode == "remote":
-        return _engine_remote_result(
-            reachable, endpoints, runtime_directory_refs, redacted_status
-        )
-    return _engine_local_result(resolved, reachable, endpoints, redacted_status)
 
 
 def _check_engine_request_context() -> dict[str, Any]:

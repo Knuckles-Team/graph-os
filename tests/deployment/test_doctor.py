@@ -680,157 +680,49 @@ def test_google_workspace_oauth_doctor_is_redacted(
     assert "oauth-broker.example.test" not in rendered
 
 
-def test_engine_doctor_never_returns_endpoint_or_socket_material(monkeypatch):
-    cfg = SimpleNamespace()
-    endpoint = "unix:///private/machine/path/engine.sock"
-    resolved = SimpleNamespace(
-        mode="remote",
-        endpoint=endpoint,
-        autostart_allowed=False,
-        idle_shutdown_secs=0,
-    )
-    monkeypatch.setattr("agent_utilities.core.config.AgentConfig", lambda: cfg)
+@pytest.mark.parametrize(
+    ("endpoint", "transport", "tls"),
+    [
+        ("unix:///private/engine.sock", "unix", False),
+        ("tcp://engine.invalid:9876", "network", False),
+        ("tls://engine.invalid:9876", "network", True),
+    ],
+)
+def test_engine_doctor_reports_only_redacted_public_transport(
+    monkeypatch, endpoint, transport, tls
+):
     monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.shard_topology.default_graph_name",
-        lambda _cfg: "default",
-    )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.shard_topology.shard_topology_status",
-        lambda *_args, **_kwargs: {
-            "mode": "single",
-            "endpoints": [{"endpoint": endpoint, "reachable": True}],
-        },
-    )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.engine_resolver.resolve_engine",
-        lambda *_args, **_kwargs: resolved,
+        "agent_utilities.core.config.AgentConfig",
+        lambda: SimpleNamespace(graph_service_endpoints=[endpoint]),
     )
 
     result = D._check_engine()
     rendered = json.dumps(result, sort_keys=True)
 
     assert result["status"] == "ok"
-    assert result["data"]["reachable_endpoint_count"] == 1
-    assert result["data"]["durable_encryption"] == {
-        "ready": True,
-        "source": "remote_managed",
-        "material_exposed": False,
+    assert result["data"] == {
+        "configured_endpoint_count": 1,
+        "transport": transport,
+        "tls": tls,
+        "redacted": True,
     }
-    assert result["data"]["redacted"] is True
     assert endpoint not in rendered
-    assert "/private/machine" not in rendered
 
 
-def _multi_endpoint_engine_config(monkeypatch, *, discovery_ready: bool | None):
-    """Shared fixture for the authenticated multi-contact discovery check:
-    two reachable contacts require a current ClusterMembers answer regardless
-    of any legacy static map data."""
-    cfg = SimpleNamespace(graph_raft_group_endpoints={})
-    resolved = SimpleNamespace(
-        mode="remote",
-        endpoint="tls://coordinator.invalid:9443",
-        autostart_allowed=False,
-        idle_shutdown_secs=0,
-    )
-    monkeypatch.setattr("agent_utilities.core.config.AgentConfig", lambda: cfg)
+@pytest.mark.parametrize("endpoints", [[], ["tcp://one:1", "tcp://two:2"]])
+def test_engine_doctor_requires_one_coordinator(monkeypatch, endpoints):
     monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.shard_topology.default_graph_name",
-        lambda _cfg: "default",
-    )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.shard_topology.shard_topology_status",
-        lambda *_args, **_kwargs: {
-            "mode": "sharded",
-            "endpoints": [
-                {"endpoint": "tls://a.invalid:9443", "reachable": True},
-                {"endpoint": "tls://b.invalid:9443", "reachable": True},
-            ],
-        },
-    )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.engine_resolver.resolve_engine",
-        lambda *_args, **_kwargs: resolved,
-    )
-    if discovery_ready is not None:
-        monkeypatch.setattr(
-            "agent_utilities.knowledge_graph.core.placement_catalog.discovery_reachable",
-            lambda *_args, **_kwargs: discovery_ready,
-        )
-    return cfg
-
-
-def test_engine_doctor_fails_when_discovery_unreachable_and_no_static_map(
-    monkeypatch,
-):
-    """The inverted check's FAIL leg: multi-contact, no override, and
-    engine-authoritative discovery answers from nobody -- the failure mode is
-    now "discovery unreachable", not "map missing"."""
-    _multi_endpoint_engine_config(monkeypatch, discovery_ready=False)
-
-    result = D._check_engine()
-
-    assert result["status"] == "fail"
-    assert "discovery" in result["detail"].lower()
-    assert result["data"]["cluster_topology_discovery_ready"] is False
-
-
-def test_engine_doctor_ok_when_discovery_reachable_and_no_static_map(monkeypatch):
-    """The inverted check's OK leg: multi-contact + no static map is fine
-    once `ClusterMembers` answers from a seed -- ADR-1's whole point."""
-    _multi_endpoint_engine_config(monkeypatch, discovery_ready=True)
-
-    result = D._check_engine()
-
-    assert result["status"] == "ok"
-    assert result["data"]["cluster_topology_discovery_ready"] is True
-
-
-def test_engine_doctor_does_not_trust_static_map_over_discovery(
-    monkeypatch,
-):
-    """A legacy static map cannot make a multi-contact engine ready."""
-    cfg = SimpleNamespace(graph_raft_group_endpoints={"0": "tls://mapped.invalid:9443"})
-    resolved = SimpleNamespace(
-        mode="remote",
-        endpoint="tls://coordinator.invalid:9443",
-        autostart_allowed=False,
-        idle_shutdown_secs=0,
-    )
-    monkeypatch.setattr("agent_utilities.core.config.AgentConfig", lambda: cfg)
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.shard_topology.default_graph_name",
-        lambda _cfg: "default",
-    )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.shard_topology.shard_topology_status",
-        lambda *_args, **_kwargs: {
-            "mode": "sharded",
-            "endpoints": [
-                {"endpoint": "tls://a.invalid:9443", "reachable": True},
-                {"endpoint": "tls://b.invalid:9443", "reachable": True},
-            ],
-        },
-    )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.engine_resolver.resolve_engine",
-        lambda *_args, **_kwargs: resolved,
-    )
-    probed: list[bool] = []
-
-    def record_discovery_probe(*_args: object, **_kwargs: object) -> bool:
-        probed.append(True)
-        return False
-
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.placement_catalog.discovery_reachable",
-        record_discovery_probe,
+        "agent_utilities.core.config.AgentConfig",
+        lambda: SimpleNamespace(graph_service_endpoints=endpoints),
     )
 
     result = D._check_engine()
 
     assert result["status"] == "fail"
-    assert probed == [True]
-    assert result["data"]["cluster_topology_discovery_ready"] is False
+    assert result["data"] == {
+        "configured_endpoint_count": 0,
+        "redacted": True,
+    }
 
 
 def _skill_certification_config(
@@ -1244,54 +1136,6 @@ def test_production_certification_doctor_rejects_nonempty_artifacts_redacted(
     rendered = json.dumps(result, sort_keys=True)
     assert str(tmp_path) not in rendered
     assert "private.json" not in rendered
-
-
-@pytest.mark.parametrize(("ready", "expected"), [(True, "warn"), (False, "fail")])
-def test_engine_doctor_reports_local_encryption_readiness_without_material(
-    monkeypatch, ready, expected
-):
-    cfg = SimpleNamespace(
-        graph_raft_group_endpoints={},
-        epistemic_graph_encryption_key_ref="env://PRIVATE_ENGINE_DATA_KEY",
-    )
-    resolved = SimpleNamespace(
-        mode="autostart",
-        autostart_allowed=True,
-        idle_shutdown_secs=60,
-    )
-    monkeypatch.setattr("agent_utilities.core.config.AgentConfig", lambda: cfg)
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.shard_topology.default_graph_name",
-        lambda _cfg: "default",
-    )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.shard_topology.shard_topology_status",
-        lambda *_args, **_kwargs: {
-            "mode": "single",
-            "endpoints": [{"endpoint": "private-runtime-endpoint", "reachable": False}],
-        },
-    )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.engine_resolver.resolve_engine",
-        lambda *_args, **_kwargs: resolved,
-    )
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.graph_compute.engine_encryption_readiness",
-        lambda *_args, **_kwargs: {
-            "ready": ready,
-            "source": "explicit_reference",
-            "material_exposed": False,
-        },
-    )
-
-    result = D._check_engine()
-    rendered = json.dumps(result, sort_keys=True)
-
-    assert result["status"] == expected
-    assert result["data"]["durable_encryption"]["ready"] is ready
-    assert result["data"]["durable_encryption"]["material_exposed"] is False
-    assert "PRIVATE_ENGINE_DATA_KEY" not in rendered
-    assert "private-runtime-endpoint" not in rendered
 
 
 def test_engine_request_context_doctor_reports_current_only_contract():
