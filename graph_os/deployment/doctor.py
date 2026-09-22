@@ -2140,77 +2140,6 @@ def _check_engine_request_context() -> dict[str, Any]:
     )
 
 
-def _check_graph_authority() -> dict[str, Any]:
-    """Verify that the live read/write authority is EpistemicGraphBackend.
-
-    The doctor only inspects an already-active backend. It never constructs a
-    connector, opens a local store, or exposes connection material.
-    """
-    try:
-        from agent_utilities.knowledge_graph.backends import get_active_backend
-        from agent_utilities.knowledge_graph.backends.brain_guarded_backend import (
-            BrainGuardedBackend,
-        )
-        from agent_utilities.knowledge_graph.backends.epistemic_graph_backend import (
-            EpistemicGraphBackend,
-        )
-        from agent_utilities.knowledge_graph.backends.fanout_backend import (
-            FanOutBackend,
-        )
-
-        backend = get_active_backend()
-        if backend is None:
-            return _result(
-                "graph_authority",
-                "skip",
-                "no graph authority active in this process (start GraphOS to evaluate)",
-            )
-        inner = backend.inner if isinstance(backend, BrainGuardedBackend) else backend
-        authority = inner.authority if isinstance(inner, FanOutBackend) else inner
-        if not isinstance(authority, EpistemicGraphBackend):
-            return _result(
-                "graph_authority",
-                "fail",
-                "active graph authority is not the required epistemic-graph engine",
-                remediation=(
-                    "restart GraphOS with current AgentConfig; declare external "
-                    "databases only as source connectors or projection mirrors"
-                ),
-                skill="database-environment-setup",
-                data={"authority_current": False},
-            )
-        hc = getattr(authority, "health_check", None)
-        ok = hc() if callable(hc) else True
-    except Exception as exc:  # noqa: BLE001
-        return _result(
-            "graph_authority",
-            "warn",
-            f"authority not evaluable ({type(exc).__name__})",
-            remediation="restart GraphOS and validate the configured engine lifecycle",
-            skill="database-environment-setup",
-            data={"authority_current": False},
-        )
-    if ok:
-        projection_count = len(getattr(inner, "_mirrors", {}))
-        return _result(
-            "graph_authority",
-            "ok",
-            "epistemic-graph authority reachable",
-            data={
-                "authority_current": True,
-                "projection_count": projection_count,
-            },
-        )
-    return _result(
-        "graph_authority",
-        "fail",
-        "epistemic-graph authority health check failed",
-        remediation="verify the managed epistemic-graph engine lifecycle",
-        skill="database-environment-setup",
-        data={"authority_current": True},
-    )
-
-
 def _check_secrets() -> dict[str, Any]:
     source_status: dict[str, Any] = {
         "state": "not_loaded",
@@ -3413,7 +3342,6 @@ CHECKS: dict[str, Callable[..., dict[str, Any]]] = {
     "engine_request_context": _check_engine_request_context,
     "engine": _check_engine,
     "engine_domains": _check_engine_domains,
-    "graph_authority": _check_graph_authority,
     "graph_connections": _check_graph_connections,
     "secrets": _check_secrets,
     "secrets_backend": _check_secrets_backend,

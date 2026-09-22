@@ -155,51 +155,6 @@ def test_run_doctor_redacts_configuration_load_failure(monkeypatch):
     assert "private configuration detail" not in json.dumps(rep, sort_keys=True)
 
 
-def test_graph_authority_doctor_rejects_external_primary(monkeypatch):
-    from agent_utilities.knowledge_graph import backends
-
-    class ExternalBackend:
-        pass
-
-    monkeypatch.setattr(backends, "get_active_backend", lambda: ExternalBackend())
-
-    result = D._check_graph_authority()
-
-    assert result["name"] == "graph_authority"
-    assert result["status"] == "fail"
-    assert result["data"] == {"authority_current": False}
-
-
-def test_graph_authority_doctor_accepts_fixed_fanout_authority(monkeypatch):
-    from agent_utilities.knowledge_graph import backends
-    from agent_utilities.knowledge_graph.backends.epistemic_graph_backend import (
-        EpistemicGraphBackend,
-    )
-    from agent_utilities.knowledge_graph.backends.fanout_backend import FanOutBackend
-
-    authority = object.__new__(EpistemicGraphBackend)
-    monkeypatch.setattr(
-        EpistemicGraphBackend,
-        "health_check",
-        lambda _self: True,
-        raising=False,
-    )
-    fanout = object.__new__(FanOutBackend)
-    fanout._authority = authority
-    fanout._mirrors = {
-        "projection": object.__new__(EpistemicGraphBackend),
-    }
-    monkeypatch.setattr(backends, "get_active_backend", lambda: fanout)
-
-    result = D._check_graph_authority()
-
-    assert result["status"] == "ok"
-    assert result["data"] == {
-        "authority_current": True,
-        "projection_count": 1,
-    }
-
-
 def test_unified_install_doctor_never_reports_local_roots(monkeypatch, tmp_path):
     from agent_utilities.core import paths, unified_install
     from agent_utilities.core.provider_materialization import build_asset_manifest
