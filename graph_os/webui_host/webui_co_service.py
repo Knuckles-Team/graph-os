@@ -13,7 +13,7 @@ Every piece of this was already built and only the last wire was missing:
   agent-webui's public application-composer seam, so the frontend has no
   reverse dependency on GraphOS and no duplicate route implementation.
 * ``ENABLE_WEB_UI`` is already real config, and
-  :func:`agent_utilities.mcp.co_service_supervisor.detect_composition` already
+  :func:`graph_os.mcp_server.composition.detect_composition` already
   reports it as part of the composition plan.
 
 What was missing is the branch that actually starts it. That branch previously
@@ -110,7 +110,7 @@ def run_web_ui(
     """Serve the WebUI dashboard until ``stop_event`` is set.
 
     A blocking ``run(stop_event)`` callable in the shape
-    :meth:`~agent_utilities.mcp.co_service_supervisor.CoServiceSupervisor.start_service`
+    :meth:`~graph_os.mcp_server.composition.CoServiceSupervisor.start_service`
     expects, so the supervisor's bounded-restart policy applies unchanged.
 
     Raises:
