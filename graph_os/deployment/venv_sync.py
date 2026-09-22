@@ -1096,6 +1096,17 @@ def _locked_distribution_names(workspace: Workspace) -> frozenset[str]:
 # ─────────────────────────────────────────────────────────────────────────────
 # Exclusive writer lock
 # ─────────────────────────────────────────────────────────────────────────────
+def _acquire_writer_lock(lock: Any, path: Path, *, blocking: bool) -> None:
+    from filelock import Timeout
+
+    try:
+        lock.acquire(timeout=-1 if blocking else 0)
+    except Timeout:
+        raise LockBusyError(
+            f"another reconciler holds {path}; not competing for the shared venv"
+        ) from None
+
+
 @contextmanager
 def exclusive_lock(workspace: Workspace, *, blocking: bool = False) -> Iterator[Path]:
     """Serialise every mutation of the shared venv/lock across processes.
@@ -1106,30 +1117,19 @@ def exclusive_lock(workspace: Workspace, *, blocking: bool = False) -> Iterator[
     reconciler (or the next one) drains it.
     """
 
-    # R-07: routed through the file_lock chokepoint (was a direct
-    # ``import fcntl``, POSIX-only and Windows-import-fatal). Imported here
-    # rather than at module scope to keep this module's existing lazy-import
-    # style for agent_utilities siblings (see e.g. venv_autosync above).
-    from agent_utilities.knowledge_graph.core.file_lock import lock_exclusive, unlock
+    from filelock import FileLock
 
     workspace.state_dir.mkdir(parents=True, exist_ok=True)
     path = workspace.state_dir / "writer.lock"
-    handle = path.open("a+", encoding="utf-8")
+    lock = FileLock(path)
     try:
-        if not lock_exclusive(handle.fileno(), blocking=blocking):
-            raise LockBusyError(
-                f"another reconciler holds {path}; not competing for the shared venv"
-            )
-        handle.seek(0)
-        handle.truncate()
-        handle.write(f"{os.getpid()} {datetime.now(UTC).isoformat()}\n")
-        handle.flush()
+        _acquire_writer_lock(lock, path, blocking=blocking)
+        path.write_text(
+            f"{os.getpid()} {datetime.now(UTC).isoformat()}\n", encoding="utf-8"
+        )
         yield path
     finally:
-        try:
-            unlock(handle.fileno())
-        finally:
-            handle.close()
+        lock.release()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1655,12 +1655,12 @@ class CleanPlanProbe:
 
 
 #: Modules imported to prove the environment is usable, not merely installed.
-#: ``agent_utilities.mcp.child_resilience`` is here for a specific reason: it is
+#: ``graph_os.fleet.child_resilience`` is here for a specific reason: it is
 #: the module whose silent ``ImportError`` under a stale ``fastmcp`` stopped an
 #: entire test module from collecting and hid thirteen defects for ten days.
 DEFAULT_IMPORT_PROBE_MODULES: tuple[str, ...] = (
     "agent_utilities",
-    "agent_utilities.mcp.child_resilience",
+    "graph_os.fleet.child_resilience",
 )
 
 
@@ -1670,8 +1670,8 @@ class ImportProbe:
     A canary that is simply *not installed* in this environment is not a
     failure — it is inapplicable, and reported as ``ok=None``.  A canary that is
     installed but raises on import IS a failure, and that distinction is the
-    entire value of the probe: the ten-day outage was ``agent_utilities.mcp
-    .child_resilience`` present-but-unimportable against a stale ``fastmcp``,
+    entire value of the probe: the ten-day outage was the child-resilience
+    surface present-but-unimportable against a stale ``fastmcp``,
     which reads as "installed and broken", not "absent".
     """
 
