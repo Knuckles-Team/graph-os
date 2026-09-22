@@ -1,6 +1,6 @@
 # Governed browser control
 
-`BrowserControlService` is Graph OS's single authority for remote calls to the
+`BrowserControlService` is GraphOS's single authority for remote calls to the
 small browser-local WebMCP catalog. Agent WebUI supplies an authenticated
 document channel and renders confirmation UI. It does not authorize calls,
 mint leases, own replay state, or persist outcomes.
@@ -15,62 +15,34 @@ the port.
 
 After a redirect, WebUI sends its short-lived server-only recent-auth grant and
 the reloaded page's current document, route, generation, catalog, and tool scope
-to `finalize_attended_arm`. Graph OS admits the grant in
+to `finalize_attended_arm`. GraphOS admits the grant in
 `recent_auth_active` and CAS-transitions that same durable node to an active arm
-with the final scope. WebSocket open CAS-consumes it. Graph OS accepts only that
+with the final scope. WebSocket open CAS-consumes it. GraphOS accepts only that
 final snapshot; pre-redirect document or generation evidence cannot open a
 channel.
 
 If finalization succeeds but the socket never opens, the WebUI DELETE path
 calls the same port's `revoke_attended_arm` operation before clearing its
-cookies. Graph OS validates the exact trusted binding and backchannel session,
+cookies. GraphOS validates the exact trusted binding and backchannel session,
 then CAS-revokes either an active or consumed receipt. An already revoked or
 expired exact receipt is idempotent; mismatched authority fails closed.
 
 Construction requires an asynchronous WebUI/Keycloak introspection or
-backchannel revalidator. Graph OS calls it at channel open and on every inbound
+backchannel revalidator. GraphOS calls it at channel open and on every inbound
 message, lease lookup, and call dispatch. The service is unavailable when that
 capability is not configured. The verified binding carries a zero-argument
 async closure whose captured credential remains inside WebUI; the configured
-adapter invokes it without exposing the token to Graph OS. The attended arm
+adapter invokes it without exposing the token to GraphOS. The attended arm
 cannot outlive the access token, and every lease is capped by both expiries.
 
-```mermaid
-sequenceDiagram
-    participant UI as Agent WebUI document
-    participant BFF as WebUI channel adapter
-    participant Caller as Graph OS agent/workflow
-    participant BC as BrowserControlService
-    participant KG as Epistemic Graph authority
-    participant AP as ActionPolicy
-
-    UI->>BFF: visible trusted step-up gesture
-    BFF->>BFF: verify OIDC evidence and seal recent-auth grant
-    BFF->>BC: finalize_attended_arm(grant, current binding)
-    BC->>KG: CAS recent-auth grant to exact active arm
-    BFF->>BC: open channel with verified binding/evidence
-    BC->>KG: CAS-consume exact arm receipt
-    UI->>BFF: register bounded local catalog
-    BFF->>BC: catalog.register + claimed digests
-    BC->>BC: recompute catalog and tool-scope digests
-    BC->>KG: publish generation and active document pointer
-    Caller->>BC: issue attended lease
-    BC->>AP: authorize exact capability set
-    BC->>KG: persist 5 minute lease, 15 minute hard cap
-    Caller->>BC: execute_call(exact request)
-    BC->>AP: authorize request digest
-    BC->>KG: admit deterministic WorkItem fence
-    BC->>KG: atomic pending RunTrace + ToolCall + Outcome
-    alt local UI mutation
-        BC->>UI: control.confirmation_request
-        UI->>BC: control.confirm(exact digest)
-        BC->>KG: atomically record confirmation
-    end
-    BC->>KG: claim WorkItem immediately before dispatch
-    BC->>UI: control.call
-    UI->>BC: control.result or control.cancelled
-    BC->>KG: atomic terminal provenance, then fenced WorkItem outcome
-```
+<ol class="site-flow" aria-label="Attended browser-control flow">
+  <li class="site-flow__step"><span class="site-flow__title">Step up</span><span class="site-flow__body">Agent WebUI verifies OIDC evidence and seals a one-use recent-auth grant.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Bind</span><span class="site-flow__body">GraphOS finalizes and CAS-consumes the exact attended document binding.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Register</span><span class="site-flow__body">The browser publishes a bounded catalog whose digests are recomputed and persisted.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Lease</span><span class="site-flow__body">ActionPolicy authorizes the exact capability set and GraphOS persists the capped lease.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Confirm</span><span class="site-flow__body">Mutations require a visible user confirmation bound to the exact request digest.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Record</span><span class="site-flow__body">Dispatch and terminal outcome are fenced by durable WorkItem, RunTrace, ToolCall, and provenance records.</span></li>
+</ol>
 
 The default lease lifetime is five minutes and the absolute cap is fifteen
 minutes. A lease can never outlive its attended arm or access token. In-place
@@ -79,7 +51,7 @@ channel registration, and lease issuance. Sign-out, backchannel revalidation
 failure, identity/tenant drift, origin/document/route/generation drift, expiry,
 explicit revocation, channel disconnect, timeout, and replay all fail closed.
 
-`catalog.register` carries `catalog_digest` and `tool_scope_digest`. Graph OS
+`catalog.register` carries `catalog_digest` and `tool_scope_digest`. GraphOS
 recomputes both from a closed canonical JSON subset and rejects any mismatch
 with the browser message or trusted server binding. That subset permits valid
 Unicode strings, booleans, null, arrays, objects, and integers in JavaScript's
@@ -87,16 +59,16 @@ safe range. It rejects floating numbers, unsafe integers, lone surrogates, and
 non-JSON shapes; object keys use JavaScript UTF-16 ordering. Shared Python and
 TypeScript vectors pin the exact UTF-8 bytes and digest. The consumed arm binds the
 exact ordered descriptor catalog, tool IDs, and schema digests before the
-catalog becomes active. Successful registration returns a Graph OS
+catalog becomes active. Successful registration returns a GraphOS
 `CatalogRegistrationReceipt`; the transport emits `channel.ready` only from
 that authoritative route, generation, catalog digest, and tool-scope digest.
-When a document pointer advances, Graph OS CAS-retires the prior registration;
+When a document pointer advances, GraphOS CAS-retires the prior registration;
 historical evidence remains queryable without accumulating multiple records
 that claim to be active.
 
 Mutation confirmation is a two-message handshake. The browser first receives
 `control.confirmation_request` and must not execute it. After the user returns
-the exact `sha256:<hex64>` digest, Graph OS durably records that confirmation,
+the exact `sha256:<hex64>` digest, GraphOS durably records that confirmation,
 claims the call fence, and sends `control.call` with
 `authorization=confirmed_mutation`. Read calls receive only `control.call` with
 `authorization=read` and no confirmation digest.
@@ -128,7 +100,7 @@ native atomic batch containing `RunTrace`, `ToolCall`, `OutcomeEvaluation`, and
 their edges; audit failure cancels the unclaimed fence and prevents dispatch.
 Terminal trace evidence is durable before the WorkItem terminal transition.
 Trace evidence uses the caller's content graph, while the deterministic
-WorkItem remains in Graph OS's existing `__control__` authority; durable replay
+WorkItem remains in GraphOS's existing `__control__` authority; durable replay
 queries each record through its owning graph view.
 Langfuse is reported as
 `recorded`, `not_configured`, or `unavailable`, and no Langfuse trace identifier
@@ -146,7 +118,7 @@ Authorized server-side agents call the action-routed `browser_control` tool.
 Its MCP form, automatic REST twin at `/browser/control`, and native workflow
 toolset all invoke `dispatch_browser_control`; that adapter marshals onto the
 event loop that owns the exact service injected into WebUI. It rejects calls
-until the attended WebUI loop is live and requires the caller's ambient
+when the attended WebUI loop is not live and requires the caller's ambient
 `kg:write` session to match the channel actor and tenant. The browser socket is
 response-only: it registers capabilities and returns confirmation, result, or
 cancellation events, but cannot mint its own lease or initiate a call.
@@ -170,7 +142,7 @@ there is no compatibility facade or AU runtime copy.
 | `mcp` + `graph_os.mcp_server` | One governed MCP/REST action router over the runtime binding |
 
 There is no browser-control persistence adapter or alternate executor. Durable
-records use the active Graph OS authority, and browser execution only uses the
+records use the active GraphOS authority, and browser execution only uses the
 authenticated channel sender.
 
 Catalog publication uses a recoverable three-step transition: create the

@@ -133,7 +133,7 @@ mcp_server = true
 served_paths = ["graph_os/mcp_server", "graph_os/gateway"]
 
 [tool.pipelines_hooks.ci_replica]
-build_affecting = ["pyproject.toml", "uv.lock", "mkdocs.yml", "docs/**", ".github/workflows/**", ".pre-commit-config.yaml"]
+build_affecting = ["pyproject.toml", "uv.lock", "mkdocs.yml", "docs/**", "overrides/**", ".github/workflows/**", ".pre-commit-config.yaml"]
 
 [tool.pipelines_hooks.ci_replica.workflows."release.yml"]
 blocking = true
@@ -145,7 +145,7 @@ publish-pypi = "requires a vX.Y.Z release tag and the pypi-publish environment; 
 
 [tool.pipelines_hooks.ci_replica.workflows."pages.yml"]
 blocking = false
-executable_jobs = ["build"]
+executable_jobs = []
 
 [tool.pipelines_hooks.ci_replica.workflows."pages.yml".skip_reasons]
-deploy = "deploys to the github-pages environment, which has no local equivalent; the build job it depends on is replayed"
+deploy = "calls the immutable shared Pages workflow; theme synchronization and the strict site build are verified directly, while hosted deployment requires the github-pages environment"

@@ -20,6 +20,7 @@ tests = "the pytest suite: wiring tests proving the console entry point and ever
 deploy = "graph-os deployment profile inputs (dev/test/prod) consumed by graph_os.deployment.genesis_environments"
 docker = "container delivery design and ownership notes; this repository does not publish a container image"
 docs = "MkDocs source for the public GitHub Pages documentation site"
+overrides = "canonical shared MkDocs Material template overrides for the ecosystem switcher and footer"
 ".github" = "GitHub Actions workflow definitions (release.yml, pages.yml)"
 ".kiss" = "hand-authored KISS structural-rule thresholds (.kiss/kiss.toml); every other entry would be a regenerated analysis cache and stays gitignored"
 

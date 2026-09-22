@@ -66,16 +66,24 @@ standard MCP server configuration format.
 
 ## Network transport
 
-Serve the streamable HTTP transport on a private listener:
+Serve the streamable HTTP transport on a private listener with a real token
+verifier. This example uses the JWT boundary:
 
 ```bash
-graph-os --transport streamable-http --host 127.0.0.1 --port 8000
+AUTH_JWT_AUDIENCE=graph-os KG_POLICY_VERSION=baseline-v1 \
+  graph-os --transport streamable-http \
+  --host 127.0.0.1 --port 8000 \
+  --auth-type jwt \
+  --token-jwks-uri https://identity.example/.well-known/jwks.json \
+  --token-issuer https://identity.example/ \
+  --token-audience graph-os
 ```
 
 Network serving is a security boundary. Configure validated identity, tenant
 isolation, TLS, and the deployment's authorization policy before exposing the
-listener. GraphOS refuses required authority that is absent or invalid; do not
-replace that behavior with an anonymous proxy or a static session.
+listener beyond loopback. GraphOS refuses network serving without a constructed
+authentication provider and rejects required authority that is absent or
+invalid.
 
 ## Validate a candidate
 
@@ -121,4 +129,4 @@ PyPI publication runs only for an explicit version tag and uses the protected
 it does not publish a package.
 
 See [Capability status](status.md) before deployment. Capability-gated paths
-must remain unavailable until their upstream authority is present and tested.
+remain unavailable whenever their required authority is absent or unverified.

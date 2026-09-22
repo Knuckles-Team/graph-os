@@ -1,54 +1,52 @@
 # Capability status
 
-GraphOS is version `0.1.0` and carries a pre-alpha package classifier. Its main
-runtime packages are implemented and tested. It is not yet correct to describe
-every end-to-end capability as complete: several paths require public contracts
-that are still being completed in adjacent repositories.
+This page describes the surface of GraphOS `0.1.0` as it is shipped. GraphOS
+reports missing authority as a typed unavailable result. It does not substitute
+a static catalog, process-local durable store, or fabricated success receipt.
 
-GraphOS treats an unavailable authority as a typed, fail-closed result. It does
-not substitute a static catalog, process-local store, legacy import, or
-fabricated success receipt.
+## Runtime surfaces
 
-## Implemented surfaces
-
-| Package | Current authority |
-|---|---|
-| `graph_os.mcp_server` | Native MCP composition, process authority, action routing, and `stdio`/`streamable-http` serving lifecycle |
-| `graph_os.fleet` | MCP child lifecycle, health, OAuth admission, collision-safe naming, and per-session discovery/loading |
-| `graph_os.gateway` | REST routes, dashboard aggregation, widget projection, and daemon lifecycle |
-| `graph_os.control_plane` | Fleet reconciliation and action-policy enforcement |
-| `graph_os.webui_host` | Optional Agent WebUI co-service supervision |
-| `graph_os.deployment` | Configuration, diagnostics, managed environments, release canary, and production operations |
-| `graph_os.a2a` | Authenticated Agent Card plus unary send/get/list/cancel over durable WorkItems |
-| `graph_os.browser_control` | Attended catalog, lease, policy, dispatch, cancellation, and provenance orchestration |
-
-MCP and REST handlers meet at the same application boundary. Dashboard
-connector widgets delegate through admitted fleet tools rather than importing
-connector clients. The WebUI co-service submits MCP inventory and invocation
-work to the exact multiplexer instance owned by the serving loop.
-
-## Capability-gated paths
-
-| Capability | Current behavior | Required authority |
+| Surface | Availability | Current authority |
 |---|---|---|
-| EG-backed fleet and browser catalog | Native startup injects the verified process clients into the generated registry/AgentComponent adapter, verifies an exhaustive stable snapshot, composes the public agent/workflow read ports, and refreshes before readiness; any missing authority aborts startup | Released `ListRegisteredServers` and typed AgentComponent-current generated contracts plus the matching AU public catalog port release |
-| Authenticated connector runner | GraphOS validates the endpoint, secret reference, request context, and scope before injecting its EG client and dynamic pack-import authority into the SDK; missing authority is refused | Released generated ConnectorPack/SourceIngest contracts, the matching SDK release, and a live catalog/policy resolver |
-| Semantic content packs | The serving lifecycle performs read-only status and GraphSchema checks for the independently identified `graph-os` and `agent-utilities` packs; it refuses absent, unprojected, or stale attachments and never imports or attaches during startup | A deployment provisioning pass with policy-issued ConnectorPack mutation contexts and GraphSchema write authority |
-| WebUI GraphOS route composition | GraphOS supplies one public application composer; it does not patch WebUI internals or restore WebUI-owned gateway fallbacks | An agent-webui release exposing the matching `application_composer` factory seam |
-| Durable four-family catalog reconciliation | Refresh returns `reingestion-unreconciled`; it does not claim publication | Governed generic MCP resource/template durability in epistemic-graph |
-| A2A budget-selected tool subset | A request with a context budget or non-empty selected-tool set is refused before admission | Live `AgentAssemble` support and a signed agent envelope that binds the allowed tool subset |
+| MCP composition | Available | One FastMCP lifecycle with `stdio` and authenticated `streamable-http` transports |
+| REST gateway | Available | The same application services used by MCP, projected through GraphOS routes |
+| Fleet gateway | Available with a verified catalog | Child lifecycle, health, OAuth admission, collision-safe naming, and per-session discovery |
+| Agent WebUI host | Available through the `webui` extra | Co-service supervision with an injected GraphOS application composer |
+| Unary A2A | Available | Authenticated Agent Card plus send, get, list, and cancel over durable WorkItems |
+| Browser control | Available when attended identity is configured | Catalog, lease, policy, dispatch, cancellation, and provenance orchestration |
+| Deployment operations | Available | Configuration, diagnostics, release canary, managed environments, backup, and restore validation |
 
-Ordinary authenticated A2A routing to an existing authorized agent remains
-available. Streaming, push notifications, and task transition history are not
-advertised by the Agent Card.
+MCP and REST handlers meet at the same application boundary. Connector widgets
+delegate through admitted fleet tools. The WebUI co-service submits work to the
+same multiplexer owned by the serving loop.
 
-## Release posture
+## Composition requirements
 
-The repository builds a Python wheel and publishes only from a version tag
-after the release workflow succeeds. A green `main` build is not itself a PyPI
-release. The status badges and package links populate after the first tagged
-publication.
+| Capability | Required runtime state | Behavior when absent |
+|---|---|---|
+| EG-backed fleet catalog | Generated server-registration and AgentComponent clients, plus the matching agent-utilities read ports | Startup refuses readiness; no static catalog is selected |
+| Connector runner | Generated ConnectorPack and SourceIngest clients, SDK runner, and live policy resolver | Connector execution is refused |
+| Semantic content packs | Provisioned `graph-os` and `agent-utilities` packs attached through GraphSchema | Content checks report the missing or stale attachment |
+| WebUI application routes | Agent WebUI installed with its application-composer seam | GraphOS runs without the optional WebUI co-service |
+| Attended browser control | WebUI identity validation, backchannel revalidation, and engine mutation authorities | Browser control remains unavailable |
 
-Before deploying a candidate, validate its configuration, run the deployment
-doctor, and execute the release canary described in the
+## Explicitly unavailable surfaces
+
+| Surface | Current result |
+|---|---|
+| Durable four-family MCP resource/template reconciliation | `reingestion-unreconciled`; GraphOS does not claim publication |
+| Context-budget-selected A2A tool subsets | Refused before admission because the signed request does not bind an enforceable subset |
+| A2A streaming, push notifications, and transition history | Not advertised by the Agent Card |
+
+Ordinary authenticated unary A2A routing to an authorized agent remains
+available.
+
+## Release evidence
+
+The repository builds a Python wheel and publishes from a version tag after the
+release workflow succeeds. A green `main` build updates source and documentation
+without publishing a package.
+
+Before changing live traffic, validate the resolved configuration, run the
+deployment doctor, and execute the release canary described in the
 [deployment guide](deployment.md).

@@ -1,7 +1,7 @@
 # Terms of Acceptance — the cccc and KISS gates
 
 This repository has **no accepted complexity exceptions**. Every measured
-Python function is subject to the configured cccc and KISS limits. Any future
+Python function is subject to the configured cccc and KISS limits. Any later
 exception must be a documented rule about a defensible class of code, never a
 file allowlist, frozen count, or inline suppression.
 

@@ -1,26 +1,37 @@
-site_name: graph-os
+INHERIT: .pipeline-theme/templates/mkdocs-theme/base.mkdocs.yml
+
+site_name: GraphOS
 site_description: >-
-  The deployable composition for the agent-utilities agent plane — MCP server,
-  REST gateway, control plane, fleet gateway, agent-webui hosting, and
-  deployment tooling.
+  The governed MCP, REST, A2A, fleet, and Agent WebUI runtime for the Knuckles
+  agent platform.
+site_url: https://knuckles-team.github.io/graph-os/
+repo_name: Knuckles-Team/graph-os
 repo_url: https://github.com/Knuckles-Team/graph-os
+edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: site
+strict: true
+copyright: Copyright &copy; Knuckles-Team — MIT licensed
 
-theme:
-  name: readthedocs
+plugins:
+  - search
+
+extra:
+  ecosystem:
+    current: graph-os
 
 nav:
   - Home: index.md
-  - Status: status.md
-  - Deployment: deployment.md
-  - Fleet gateway: fleet.md
-  - Gateway: gateway.md
-  - MCP server: mcp-server.md
-  - Unary A2A: a2a.md
-  - Browser control: browser-control-service.md
-  - Quality gate terms: quality-gate-terms.md
-
-markdown_extensions:
-  - tables
-  - fenced_code
+  - Start GraphOS: get-started.md
+  - How it fits: architecture.md
+  - Use GraphOS:
+      - MCP server: mcp-server.md
+      - REST gateway: gateway.md
+      - Fleet gateway: fleet.md
+      - Unary A2A: a2a.md
+      - Browser control: browser-control-service.md
+  - Operate:
+      - Deployment and configuration: deployment.md
+      - Capability status: status.md
+      - Quality gate terms: quality-gate-terms.md
+  - Glossary: glossary.md

@@ -7,8 +7,8 @@ create an A2A-specific task database, broker, worker, or orchestration loop.
 ## Discovery and transports
 
 The authenticated Agent Card is served at
-`/.well-known/agent-card.json`. The obsolete `/.well-known/agent.json` path is
-not served. The card advertises JSON-RPC at `/a2a`, `text/plain` messages, bearer
+`/.well-known/agent-card.json`. The card advertises JSON-RPC at `/a2a`,
+`text/plain` messages, bearer
 security, and truthfully disables streaming, push notifications, and state
 transition history.
 
@@ -29,15 +29,13 @@ request returns the same task. Reusing it with a different request is a conflict
 Task reads, listing cursors, and cancellation are isolated to the verified
 tenant and task owner.
 
-```mermaid
-flowchart LR
-    Client["A2A, MCP, or REST client"] --> Auth[verified bearer GraphSession]
-    Auth --> Service[typed unary A2A service]
-    Service --> Router[canonical capability router]
-    Router --> WorkItem[canonical WorkItem authority]
-    WorkItem --> Dispatch[signed AU agent dispatch]
-    Dispatch --> Trace[RunTrace and tool-call provenance]
-```
+<ol class="site-flow" aria-label="A2A request flow">
+  <li class="site-flow__step"><span class="site-flow__title">Authenticate</span><span class="site-flow__body">A2A, MCP, or REST establishes a verified bearer GraphSession.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Normalize</span><span class="site-flow__body">The typed unary service resolves one canonical capability request.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Admit</span><span class="site-flow__body">The WorkItem authority applies tenant, ownership, and idempotency fences.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Dispatch</span><span class="site-flow__body">agent-utilities receives a signed agent request.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Record</span><span class="site-flow__body">RunTrace and tool-call provenance bind the result to the request.</span></li>
+</ol>
 
 ## Tool-subset assembly status
 
@@ -46,9 +44,9 @@ covers the selected agent graph within the caller's context budget. This is not
 treated as an advisory list: execution must cryptographically carry and enforce
 the exact selection.
 
-The current epistemic-graph `AgentAssemble` handler is an explicit refusal stub,
-and the current signed AU `AgentTurnEnvelope` has no allowed-tool-subset field.
+The current epistemic-graph `AgentAssemble` operation returns unavailable, and
+the signed AU `AgentTurnEnvelope` has no allowed-tool-subset field.
 Therefore a request containing `contextBudgetTokens`, or any route decision with
 a non-empty selected-tool set, fails closed before durable admission. Ordinary
-routing to an existing authorized agent remains live. Streaming and push remain
-out of scope until their protocol phases are implemented and advertised.
+routing to an existing authorized agent remains live. Streaming and push are
+not part of the advertised Agent Card.
