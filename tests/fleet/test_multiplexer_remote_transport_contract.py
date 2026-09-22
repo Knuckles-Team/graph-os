@@ -26,7 +26,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from graph_os.fleet import multiplexer as mod
-from graph_os.fleet.multiplexer import MCPMultiplexer
+from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 
 def test_multiplexer_imports_the_sdk_v2_transport_names() -> None:
@@ -82,7 +82,7 @@ def recorded_http(monkeypatch):
 async def test_remote_child_uses_v2_http_client_keyword(recorded_http, tmp_path):
     """The URL is positional and the security-hardened client is passed as
     ``http_client=`` — the SDK v2 signature, not v1's headers/auth kwargs."""
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     result = await mux._start_child("fleet", {"url": "http://fleet.example/mcp"})
 
     assert result is not None, "remote streamable-http child must start"
@@ -99,7 +99,7 @@ async def test_remote_child_headers_ride_on_the_http_client(recorded_http, tmp_p
     """Child-declared headers must reach the wire. Under SDK v2 they can only
     do so baked into the client, so assert them there rather than on a kwarg
     the transport no longer accepts."""
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     await mux._start_child(
         "fleet",
         {"url": "http://fleet.example/mcp", "headers": {"X-Fleet-Tenant": "acme"}},

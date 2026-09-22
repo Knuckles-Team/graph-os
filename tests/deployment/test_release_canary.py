@@ -40,7 +40,6 @@ def test_run_canary_reports_only_aggregate_checks(monkeypatch) -> None:
     )
     monkeypatch.setattr(release_canary, "_engine_binary_ready", lambda: True)
     monkeypatch.setattr(release_canary, "_numeric_kernel_ready", lambda: True)
-    monkeypatch.setattr(release_canary, "_langfuse_fleet_ready", lambda: True)
 
     report = release_canary.run_canary()
 
@@ -50,7 +49,6 @@ def test_run_canary_reports_only_aggregate_checks(monkeypatch) -> None:
             "entry_points": True,
             "engine_binary": True,
             "numeric_kernel": True,
-            "langfuse_fleet": True,
         },
         "privacySafe": True,
     }

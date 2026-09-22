@@ -51,7 +51,7 @@ from agent_utilities.security.brain_context import ActorContext, use_actor
 from agent_utilities.security.secrets_client import SecretsBackend, SecretsClient
 
 from graph_os.fleet import multiplexer as mod
-from graph_os.fleet.multiplexer import MCPMultiplexer
+from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 RESOURCE_URL = "https://protected-mcp.example.com/mcp"
 REBOUND_URL = "https://attacker-controlled.example.com/mcp"
@@ -291,7 +291,7 @@ def test_cross_tenant_reuse_rejected():
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_start_child_skips_oauth_gated_server(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     cfg = {"url": RESOURCE_URL, "oauth_provider": _provider_cfg()}
     result = await mux._start_child("acme-remote", cfg)
     assert result is None
@@ -302,7 +302,7 @@ async def test_start_child_skips_oauth_gated_server(tmp_path):
 # Probe-cache exclusion
 # ---------------------------------------------------------------------------
 def test_cache_probe_never_stores_oauth_gated_result(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     mux._catalog = {
         "acme-remote": {"url": RESOURCE_URL, "oauth_provider": _provider_cfg()}
     }
@@ -311,7 +311,7 @@ def test_cache_probe_never_stores_oauth_gated_result(tmp_path):
 
 
 def test_probe_cache_hit_always_misses_for_oauth_gated_server(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     mux._catalog = {
         "acme-remote": {"url": RESOURCE_URL, "oauth_provider": _provider_cfg()}
     }
@@ -327,7 +327,7 @@ def test_probe_cache_hit_always_misses_for_oauth_gated_server(tmp_path):
 
 
 def test_probe_cache_unaffected_for_ordinary_servers(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     mux._catalog = {"plain-remote": {"url": RESOURCE_URL}}
     mux._cache_probe("plain-remote", {"tools": [], "error": None})
     assert "plain-remote" in mux._probe_cache
@@ -397,7 +397,7 @@ def remote_transport(monkeypatch):
 async def test_probe_server_fails_closed_without_grant_and_never_opens_a_transport(
     remote_transport, tmp_path
 ):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     cfg = {"url": RESOURCE_URL, "oauth_provider": _provider_cfg()}
     mux._catalog = {"acme-remote": cfg}
     with use_actor(verified_actor()):
@@ -416,7 +416,7 @@ async def test_probe_server_with_grant_forwards_bearer_bound_to_the_endpoint(
     actor = verified_actor()
     broker = _broker_with_stored_token(actor=actor)
     mod._REMOTE_OAUTH_BROKERS["acme"] = broker
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     cfg = {"url": RESOURCE_URL, "oauth_provider": _provider_cfg()}
     mux._catalog = {"acme-remote": cfg}
     with use_actor(actor):
@@ -432,7 +432,7 @@ async def test_probe_server_with_grant_forwards_bearer_bound_to_the_endpoint(
 
 def test_private_binding_sidechannel_rejects_public_catalog_spoof(tmp_path):
     """Grant authority is not a serializable/caller-populatable catalog field."""
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     info = {"tools": [], "skills": [], "prompts": [], "error": None}
     binding = OAuthGrantBinding(
         tenant_id="tenant-1",
@@ -465,7 +465,7 @@ async def test_local_probe_mints_tenant_visibility_without_public_metadata(
     remote_transport, tmp_path
 ):
     actor = verified_actor(tenant_id="tenant-local")
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     mux._catalog = {"local": {"url": RESOURCE_URL}}
 
     with use_actor(actor), use_session(verified_session(actor)):
@@ -487,7 +487,7 @@ async def test_local_probe_mints_tenant_visibility_without_public_metadata(
 
 
 def test_local_cache_binding_requires_verified_session(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     mux._catalog = {"local": {"url": RESOURCE_URL}}
     info = mux._cache_probe(
         "local", {"tools": [], "skills": [], "prompts": [], "error": None}
@@ -503,7 +503,7 @@ def test_local_cache_binding_requires_verified_session(tmp_path):
 
 
 def test_failed_probe_purges_prior_local_binding_and_cache_authority(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     mux._catalog = {"local": {"url": RESOURCE_URL}}
     actor = verified_actor(tenant_id="tenant-local")
     with use_actor(actor), use_session(verified_session(actor)):
@@ -525,7 +525,7 @@ def test_failed_probe_purges_prior_local_binding_and_cache_authority(tmp_path):
 
 
 def test_local_cache_binding_can_be_minted_on_verified_sync_thread(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     mux._catalog = {"local": {"url": RESOURCE_URL}}
     with suspend_session():
         info = mux._cache_probe(
@@ -548,7 +548,7 @@ async def test_probe_server_result_never_cached_across_principals(
     stranger = verified_actor(actor_id="user-b")
     broker = _broker_with_stored_token(actor=owner)
     mod._REMOTE_OAUTH_BROKERS["acme"] = broker
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     cfg = {"url": RESOURCE_URL, "oauth_provider": _provider_cfg()}
     mux._catalog = {"acme-remote": cfg}
 
@@ -576,7 +576,7 @@ async def test_probe_catalog_returns_plain_oauth_snapshot_and_private_binding(
     actor = verified_actor()
     broker = _broker_with_stored_token(actor=actor)
     mod._REMOTE_OAUTH_BROKERS["acme"] = broker
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     mux._catalog = {
         "acme-remote": {"url": RESOURCE_URL, "oauth_provider": _provider_cfg()}
     }

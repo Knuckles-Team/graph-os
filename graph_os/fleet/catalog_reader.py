@@ -202,6 +202,12 @@ class FleetCatalogReadPort(Protocol):
     ) -> ComponentContent: ...
 
 
+class FleetCatalogSource(Protocol):
+    """A composed authority capable of returning one verified fleet view."""
+
+    async def read(self) -> FleetCatalog: ...
+
+
 class FleetCatalogReader:
     """Read and verify one complete EG-native fleet catalog snapshot."""
 

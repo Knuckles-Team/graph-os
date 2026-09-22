@@ -27,7 +27,7 @@ Usage:
     graph-os --transport streamable-http --host 127.0.0.1 --port 8004
 
 Cross-IDE Discovery:
-    Register in ``~/.config/agent-utilities/mcp_config.json``::
+    Register the Graph OS endpoint with the MCP client::
 
         {
           "mcpServers": {
@@ -2234,7 +2234,7 @@ def _build_server(bootstrap: bool = True):
             "and kg_ingest_* for adding data.\n\n"
             "graph-os is ALSO the MCP fleet gateway: its own KG/engine tools are "
             "always on, and it can load ANY other MCP server (declared in "
-            "mcp_config.json) ON DEMAND. Hundreds more tools across dozens of "
+            "epistemic-graph fleet catalog) ON DEMAND. Hundreds more tools across dozens of "
             "servers exist but are NOT loaded yet — so when you need a capability "
             "you don't see, do NOT assume it's unavailable; use the fleet meta-tools:\n"
             "  • find_tools(query) — semantic search for the right tool by intent\n"

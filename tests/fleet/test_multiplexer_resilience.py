@@ -22,7 +22,7 @@ from graph_os.fleet.child_resilience import (
     MCPChildUnavailableError,
     MCPError,
 )
-from graph_os.fleet.multiplexer import MCPMultiplexer
+from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 
 class GatedSession:
@@ -125,7 +125,7 @@ async def test_zero_max_concurrency_is_rejected():
 
 
 async def test_multiplexer_surfaces_busy_error_as_typed_tool_result(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     # Seed the catalog directly (bypassing the on-disk config read) so
     # call_proxied_tool's "is this child still declared" gate — a deliberate
     # truthfulness check, not something a test may route around — sees
@@ -215,7 +215,7 @@ async def test_multiplexer_opens_pool_size_connections_for_http_child(
     monkeypatch.setattr(mod, "streamable_http_client", fake_http)
     monkeypatch.setattr(mod, "ClientSession", FakeSessionCM)
 
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     # A non-loopback remote child must be HTTPS (fail-closed transport gate
     # in _open_one_session) — this test is about pool sizing, not that gate,
     # so use a scheme the gate actually admits.
@@ -268,7 +268,7 @@ async def test_stdio_child_ignores_pool_size_and_keeps_one_pipe(tmp_path, monkey
     monkeypatch.setattr(mod, "stdio_client", fake_stdio)
     monkeypatch.setattr(mod, "ClientSession", FakeSessionCM)
 
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child(
         "stdio-child", {"command": "child", "args": [], "pool_size": 3}
     )
@@ -626,7 +626,7 @@ async def test_boot_connect_failure_raises_and_does_not_retry():
 
 
 async def test_multiplexer_status_snapshot_reports_every_child(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     up = ChildRuntime("alive", {"max_concurrency": 4})
     up.adopt_sessions([EchoSession()])
     mux.children["alive"] = up
@@ -773,7 +773,7 @@ async def test_busy_rejections_do_not_count_as_breaker_failures():
 
 
 async def test_multiplexer_surfaces_circuit_open_as_typed_tool_result(tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     # Seed the catalog directly (bypassing the on-disk config read) so
     # call_proxied_tool's "is this child still declared" gate — a deliberate
     # truthfulness check, not something a test may route around — sees

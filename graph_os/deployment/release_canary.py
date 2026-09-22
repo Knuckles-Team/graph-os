@@ -2,10 +2,11 @@
 
 The canary deliberately does not start GraphOS or the Epistemic Graph server.  It
 proves that the promoted Python environment exposes the current console entry
-points, the packaged server binary, the folded native numeric kernel, and the
-catalogued Langfuse child launcher/tool contract.  The release promoter
-separately proves that no GraphOS or engine process exists before or after this
-command.
+points, the packaged server binary, and the folded native numeric kernel. The
+release promoter separately proves that no GraphOS or engine process exists
+before or after this command. Fleet readiness is intentionally not reconstructed
+from a file here: GraphOS startup reads and verifies the live EG-backed catalog
+before serving.
 """
 
 from __future__ import annotations
@@ -14,7 +15,6 @@ import argparse
 import importlib
 import importlib.metadata
 import json
-import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -62,44 +62,6 @@ def _numeric_kernel_ready() -> bool:
         return False
 
 
-def _launcher_ready(declaration: dict[str, Any]) -> bool:
-    """The catalog declaration names a runnable stdio or remote transport."""
-    if declaration.get("url"):
-        return str(declaration.get("transport") or "streamable-http") in {
-            "http",
-            "sse",
-            "streamable-http",
-        }
-    command = declaration.get("command")
-    if not isinstance(command, str) or not command:
-        return False
-    return shutil.which(command) is not None
-
-
-def _langfuse_fleet_ready() -> bool:
-    """Prove catalog, launcher, and child tool through the fleet boundary."""
-    import asyncio
-
-    from graph_os.fleet.multiplexer import MCPMultiplexer, _resolve_config_path
-
-    mux = MCPMultiplexer(_resolve_config_path(None))
-    declaration = mux.load_catalog().get("langfuse-mcp")
-    if not isinstance(declaration, dict) or not _launcher_ready(declaration):
-        return False
-
-    async def probe() -> bool:
-        result = await MCPMultiplexer.probe_declaration(
-            "langfuse-mcp", declaration, timeout=30.0
-        )
-        tools = result.get("tools", ()) if isinstance(result, dict) else ()
-        return not result.get("error") and any(
-            isinstance(tool, dict) and tool.get("name") == "langfuse_observability"
-            for tool in tools
-        )
-
-    return asyncio.run(probe())
-
-
 def run_canary() -> dict[str, Any]:
     """Return only aggregate booleans; never return paths, versions, or identities."""
 
@@ -107,7 +69,6 @@ def run_canary() -> dict[str, Any]:
         "entry_points": _entry_points_ready(),
         "engine_binary": _engine_binary_ready(),
         "numeric_kernel": _numeric_kernel_ready(),
-        "langfuse_fleet": _langfuse_fleet_ready(),
     }
     return {
         "status": "passed" if all(checks.values()) else "failed",

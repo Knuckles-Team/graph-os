@@ -10,7 +10,7 @@ import pytest
 from fastmcp.exceptions import ToolError
 
 from graph_os.fleet import multiplexer as mod
-from graph_os.fleet.multiplexer import MCPMultiplexer
+from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 
 class _Policy:
@@ -119,7 +119,7 @@ async def test_runtime_policy_owns_spawn_catalog_call_and_teardown(
         lambda *_args, **_kwargs: _SessionContext(events),
     )
 
-    mux = MCPMultiplexer(tmp_path / "mcp_config.json")
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     declaration = {
         "runtime_policy": "official-provider",
         "provider_profile": "deployment-profile",
@@ -162,7 +162,7 @@ async def test_runtime_policy_rejects_persistent_transport_overrides(
         called = True
 
     monkeypatch.setattr(mod, "_load_runtime_child_policy_factory", load)
-    mux = MCPMultiplexer(tmp_path / "mcp_config.json")
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
 
     result = await mux._start_child(
         "hosted-enterprise-architecture",

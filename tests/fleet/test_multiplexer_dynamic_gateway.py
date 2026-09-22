@@ -21,7 +21,6 @@ from fastmcp.tools import Tool
 
 from graph_os.fleet.multiplexer import (
     _LOCAL_SESSION_META_KEY,
-    MCPMultiplexer,
     SessionVisibilityMiddleware,
     _gated_tool_names,
     _make_forwarder,
@@ -32,6 +31,7 @@ from graph_os.fleet.multiplexer import (
     _tool_is_verbose,
     get_server_prefix,
 )
+from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 CNT = "container-manager-mcp"
 CNT_TOOL = "cm_container_operations"
@@ -66,7 +66,7 @@ def _write_config(tmp_path, servers: dict) -> object:
 
 @pytest.mark.asyncio
 async def test_forwarder_preserves_child_tool_error_as_outer_error(tmp_path) -> None:
-    mux = MCPMultiplexer(tmp_path / "mcp_config.json")
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     mux.call_proxied_tool = AsyncMock(
         return_value=mcp.types.CallToolResult(
             content=[mcp.types.TextContent(type="text", text="private child detail")],
@@ -85,7 +85,7 @@ async def test_remove_host_forwarder_converges_only_after_verified_absence(
     """An idempotent reload is logged safely; a live forwarder is never hidden."""
     from fastmcp import FastMCP
 
-    mux = MCPMultiplexer(_write_config(tmp_path, {}))
+    mux = multiplexer_from_fixture(_write_config(tmp_path, {}))
     host = FastMCP("forwarder-cleanup-host")
     mux._host_mcp = host
     absent_name = "synthetic__already_absent"
@@ -196,7 +196,7 @@ def _mux_with_children(tmp_path, tool_map: dict[str, list[tuple[str, str]]]):
     servers = {name: {"command": "python", "args": ["-m", name]} for name in tool_map}
     servers["mcp-multiplexer"] = {"command": "self"}  # must be excluded
     servers["off"] = {"command": "python", "disabled": True}  # must be excluded
-    mux = MCPMultiplexer(_write_config(tmp_path, servers))
+    mux = multiplexer_from_fixture(_write_config(tmp_path, servers))
 
     async def fake_start_child(server_name, cfg):
         tools = [_fake_tool(n, d) for n, d in tool_map.get(server_name, [])]
@@ -220,59 +220,6 @@ def test_load_catalog_excludes_self_and_disabled(tmp_path):
     assert "off" not in catalog
     # idempotent / cached
     assert mux.load_catalog() is catalog
-
-
-def test_load_catalog_auto_registers_native_langfuse_mcp(tmp_path, monkeypatch):
-    config_path = tmp_path / "missing.json"
-    native = {
-        "command": "langfuse-mcp",
-        "args": [],
-        "env": {
-            "LANGFUSE_HOST": "https://telemetry.example.test",
-            "LANGFUSE_PUBLIC_KEY": "synthetic-public",
-            "LANGFUSE_SECRET_KEY": "synthetic-secret",
-            "LANGFUSE_PERSISTENCE_HMAC_KEY": "synthetic-persistence-material",
-            "LANGFUSE_PERSISTENCE_HMAC_MATERIALIZED": "true",
-        },
-    }
-    monkeypatch.setattr(
-        "agent_utilities.observability.langfuse_trust.native_langfuse_mcp_config",
-        lambda: native,
-    )
-    prepare = MagicMock(side_effect=AssertionError("native config prepared twice"))
-    monkeypatch.setattr(
-        "agent_utilities.observability.langfuse_trust.prepare_langfuse_mcp_config",
-        prepare,
-    )
-
-    catalog = MCPMultiplexer(config_path).load_catalog()
-
-    assert catalog["langfuse-mcp"]["command"] == "langfuse-mcp"
-    assert "UV_NATIVE_TLS" not in catalog["langfuse-mcp"]["env"]
-    assert prepare.call_count == 0
-    assert catalog["langfuse-mcp"]["_runtime_materialized_secret_keys"] == [
-        "LANGFUSE_PERSISTENCE_HMAC_KEY",
-        "LANGFUSE_SECRET_KEY",
-    ]
-
-
-def test_load_catalog_classifies_native_langfuse_failure(tmp_path, monkeypatch, caplog):
-    from agent_utilities.observability.langfuse_trust import LangfuseTrustError
-
-    monkeypatch.setattr(
-        "agent_utilities.observability.langfuse_trust.native_langfuse_mcp_config",
-        MagicMock(side_effect=LangfuseTrustError("langfuse_credentials_missing")),
-    )
-
-    catalog = MCPMultiplexer(tmp_path / "missing.json").load_catalog()
-
-    assert catalog == {}
-    assert "credentials configuration invalid" in caplog.text
-    assert "invalid CA bundle" not in caplog.text
-    # The anti-pattern this regression guards: only logging the generic
-    # category ("credentials") discards *why* -- the actual reason string
-    # must also reach the log text.
-    assert "langfuse_credentials_missing" in caplog.text
 
 
 def test_load_catalog_admits_explicit_remote_langfuse_entry_via_direct_key_pair(
@@ -306,7 +253,7 @@ def test_load_catalog_admits_explicit_remote_langfuse_entry_via_direct_key_pair(
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-synthetic")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-synthetic")
 
-    catalog = MCPMultiplexer(config_path).load_catalog()
+    catalog = multiplexer_from_fixture(config_path).load_catalog()
 
     assert "langfuse-mcp" in catalog
     assert catalog["langfuse-mcp"]["transport"] == "streamable-http"
@@ -336,7 +283,7 @@ def test_load_catalog_still_rejects_when_neither_ref_nor_direct_key_present(
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("LANGFUSE_HOST", "https://langfuse.example.test")
 
-    catalog = MCPMultiplexer(config_path).load_catalog()
+    catalog = multiplexer_from_fixture(config_path).load_catalog()
 
     assert "langfuse-mcp" not in catalog
     assert "langfuse_credentials_missing" in caplog.text
@@ -386,7 +333,7 @@ async def test_recovered_child_replaces_exposed_schema_without_catalog_polling(
         [_schema_tool("query", "fresh")], tag="equivalent"
     )
     generations = [legacy, refreshed, equivalent]
-    mux = MCPMultiplexer(config_path)
+    mux = multiplexer_from_fixture(config_path)
 
     async def fake_open_one_session(*_args):
         return generations.pop(0)
@@ -454,7 +401,7 @@ async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     from fastmcp import FastMCP
 
     server_name = "schema-mcp"
-    mux = MCPMultiplexer(
+    mux = multiplexer_from_fixture(
         _write_config(
             tmp_path,
             {server_name: {"command": "schema-child", "args": []}},
@@ -525,7 +472,7 @@ async def test_schema_refresh_rolls_back_partial_host_registration_atomically(
     from fastmcp import FastMCP
 
     server_name = "schema-mcp"
-    mux = MCPMultiplexer(
+    mux = multiplexer_from_fixture(
         _write_config(
             tmp_path,
             {server_name: {"command": "schema-child", "args": []}},
@@ -620,7 +567,7 @@ async def test_detached_schema_refresh_notifies_the_affected_session_on_next_req
 
     server_name = "schema-mcp"
     session_key = "connected-client"
-    mux = MCPMultiplexer(
+    mux = multiplexer_from_fixture(
         _write_config(
             tmp_path,
             {server_name: {"command": "schema-child", "args": []}},
@@ -650,7 +597,7 @@ async def test_detached_schema_refresh_notifies_the_affected_session_on_next_req
         )
     )
 
-    assert mux._catalog_reconciler.pending_generation(session_key) == 1
+    assert mux._session_notifications.pending_generation(session_key) == 1
     assert mux._session_loaded[session_key] == set()
     assert await host.get_tool(prefixed_name) is None
 
@@ -677,7 +624,7 @@ async def test_detached_schema_refresh_notifies_the_affected_session_on_next_req
     assert await middleware.on_list_tools(SimpleNamespace(), call_next) == []
     assert len(context.notifications) == 1
     assert context.notifications[0].method == "notifications/tools/list_changed"
-    assert not mux._catalog_reconciler.has_pending(session_key)
+    assert not mux._session_notifications.has_pending(session_key)
     assert session_key not in mux._session_loaded
     await mux.aclose()
 
@@ -688,7 +635,7 @@ async def test_removed_cached_tool_notifies_before_session_gate(tmp_path, monkey
 
     server_name = "schema-mcp"
     session_key = "connected-client"
-    mux = MCPMultiplexer(
+    mux = multiplexer_from_fixture(
         _write_config(
             tmp_path,
             {server_name: {"command": "schema-child", "args": []}},
@@ -715,7 +662,7 @@ async def test_removed_cached_tool_notifies_before_session_gate(tmp_path, monkey
         mux._catalog_epoch,
         [],
     )
-    assert mux._catalog_reconciler.pending_generation(session_key) == 1
+    assert mux._session_notifications.pending_generation(session_key) == 1
     assert mux._session_loaded[session_key] == set()
 
     class _LiveContext:
@@ -743,7 +690,7 @@ async def test_removed_cached_tool_notifies_before_session_gate(tmp_path, monkey
         await middleware.on_call_tool(context, should_not_dispatch)
     assert len(context.notifications) == 1
     assert context.notifications[0].method == "notifications/tools/list_changed"
-    assert not mux._catalog_reconciler.has_pending(session_key)
+    assert not mux._session_notifications.has_pending(session_key)
     assert session_key not in mux._session_loaded
     await mux.aclose()
 
@@ -1104,7 +1051,7 @@ async def test_concurrent_probes_honor_their_own_per_server_deadline(tmp_path):
             "probe_timeout": 5.0,
         },
     }
-    mux = MCPMultiplexer(_write_config(tmp_path, servers))
+    mux = multiplexer_from_fixture(_write_config(tmp_path, servers))
 
     async def _open(server, cfg, stack):
         if server == "quick-timeout-mcp":
@@ -1660,7 +1607,7 @@ async def test_one_shot_tool_call_prunes_session_visibility_state(tmp_path):
     """Auto-unload must leave no process-global key after the one-shot call."""
     from fastmcp import Client, FastMCP
 
-    mux = MCPMultiplexer(tmp_path / "mcp_config.json")
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     mcp = FastMCP("test-mux")
 
     @mcp.tool()
@@ -1695,7 +1642,7 @@ async def test_explicit_unload_prunes_session_visibility_state(tmp_path):
     """List-only one-shot sessions retract visibility before termination."""
     from fastmcp import Client, FastMCP
 
-    mux = MCPMultiplexer(tmp_path / "mcp_config.json")
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     mcp = FastMCP("test-mux")
     mux._local_gated = {"graph_jobs"}
     _register_meta_tools(mcp, mux)
@@ -1783,7 +1730,7 @@ async def test_server_load_holds_verbose(tmp_path):
     """CONCEPT:AU-ECO.mcp.tool-mode-standardization — load_tools(servers=[X]) exposes only X's condensed tools; verbose
     1:1 tools stay loadable only by EXPLICIT name, so a server-load never floods context."""
     servers = {"svc": {"command": "python", "args": ["-m", "svc"]}}
-    mux = MCPMultiplexer(_write_config(tmp_path, servers))
+    mux = multiplexer_from_fixture(_write_config(tmp_path, servers))
 
     async def fake_start_child(server_name, cfg):
         tools = [
@@ -1873,7 +1820,7 @@ def test_tool_dispatchable_false_for_unknown_name_on_a_non_serving_instance(tmp_
     name unknown to its bookkeeping — verified live in-pod to return True for
     BOTH a real probed tool name and an invented one, which is exactly the
     mounted-vs-callable lie the reconciliation gate exists to close."""
-    mux = MCPMultiplexer(_write_config(tmp_path, {}))  # no servers at all
+    mux = multiplexer_from_fixture(_write_config(tmp_path, {}))  # no servers at all
     assert mux.is_serving() is False
     assert mux.tool_dispatchable("servicenow_servicenow_account") is False
     assert mux.tool_dispatchable("any_other_invented_name") is False

@@ -20,11 +20,11 @@ import mcp.types
 import pytest
 
 from graph_os.fleet.multiplexer import (
-    MCPMultiplexer,
     ToolResult,
     _make_forwarder,
     _tool_result_from_child,
 )
+from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 
 def _child_result_with_annotations_and_meta() -> mcp.types.CallToolResult:
@@ -43,7 +43,7 @@ def _child_result_with_annotations_and_meta() -> mcp.types.CallToolResult:
 
 @pytest.mark.asyncio
 async def test_forwarded_result_preserves_content_annotations(tmp_path) -> None:
-    mux = MCPMultiplexer(tmp_path / "mcp_config.json")
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     mux.call_proxied_tool = AsyncMock(
         return_value=_child_result_with_annotations_and_meta()
     )
@@ -61,7 +61,7 @@ async def test_forwarded_result_preserves_content_annotations(tmp_path) -> None:
 async def test_forwarded_result_preserves_meta(tmp_path) -> None:
     """The wire ``_meta`` — including a readOnlyHint-style key — must survive
     the child -> multiplexer -> host conversion, not be silently dropped."""
-    mux = MCPMultiplexer(tmp_path / "mcp_config.json")
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     mux.call_proxied_tool = AsyncMock(
         return_value=_child_result_with_annotations_and_meta()
     )
@@ -77,7 +77,7 @@ async def test_direct_vs_forwarded_parity(tmp_path) -> None:
     result must agree on content, annotations, and meta — no semantic drift
     between calling a child directly and calling it through the fleet
     gateway."""
-    mux = MCPMultiplexer(tmp_path / "mcp_config.json")
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     raw_result = _child_result_with_annotations_and_meta()
     mux.call_proxied_tool = AsyncMock(return_value=raw_result)
 
@@ -95,7 +95,7 @@ async def test_direct_vs_forwarded_parity(tmp_path) -> None:
 
 @pytest.mark.asyncio
 async def test_structured_content_still_forwarded(tmp_path) -> None:
-    mux = MCPMultiplexer(tmp_path / "mcp_config.json")
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     mux.call_proxied_tool = AsyncMock(
         return_value=mcp.types.CallToolResult(
             content=[mcp.types.TextContent(type="text", text="ok")],

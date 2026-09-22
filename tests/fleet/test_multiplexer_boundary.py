@@ -7,7 +7,6 @@ import pytest
 from fastmcp.exceptions import ToolError
 
 from graph_os.fleet.multiplexer import (
-    MCPMultiplexer,
     _assert_bounded_delegated_value,
     _bounded_tool_catalog,
     _resolve_runtime_value,
@@ -15,6 +14,7 @@ from graph_os.fleet.multiplexer import (
     _selected_child_provider_profile,
     attest_runtime_child_config,
 )
+from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 
 def test_noncredential_field_cannot_expand_secret_environment_name() -> None:
@@ -127,7 +127,7 @@ def test_catalog_symlink_is_not_executed(tmp_path) -> None:
     except OSError:
         pytest.skip("symlinks are unavailable on this platform")
 
-    assert MCPMultiplexer(link).load_catalog() == {}
+    assert multiplexer_from_fixture(link).load_catalog() == {}
 
 
 def test_catalog_rejects_inline_child_credentials(tmp_path) -> None:
@@ -145,7 +145,7 @@ def test_catalog_rejects_inline_child_credentials(tmp_path) -> None:
         )
     )
 
-    assert MCPMultiplexer(catalog).load_catalog() == {}
+    assert multiplexer_from_fixture(catalog).load_catalog() == {}
 
 
 def test_catalog_preserves_neutral_child_secret_alias(tmp_path) -> None:
@@ -164,7 +164,7 @@ def test_catalog_preserves_neutral_child_secret_alias(tmp_path) -> None:
         encoding="utf-8",
     )
 
-    loaded = MCPMultiplexer(catalog).load_catalog()
+    loaded = multiplexer_from_fixture(catalog).load_catalog()
 
     assert loaded["child"]["env"] == {"API_TOKEN": "env://CHILD_TOKEN_ALIAS"}
 
@@ -211,7 +211,7 @@ def test_catalog_rejects_direct_provider_profile_environment(tmp_path) -> None:
         encoding="utf-8",
     )
 
-    assert MCPMultiplexer(catalog).load_catalog() == {}
+    assert multiplexer_from_fixture(catalog).load_catalog() == {}
 
 
 @pytest.mark.parametrize(

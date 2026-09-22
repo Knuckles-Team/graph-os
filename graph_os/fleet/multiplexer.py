@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Multi-MCP Server Multiplexer.
 
-Aggregates multiple underlying MCP servers (declared in an ``mcp_config.json``)
+Aggregates MCP servers declared by epistemic-graph's fleet authorities
 into a single unified server, delegating tool calls dynamically based on
 prefixed tool names. This speeds up boot times and avoids per-server process
 resource contention for clients with tool-count limits.
@@ -32,7 +32,6 @@ import math
 import os
 import re
 import secrets
-import stat
 import sys
 import tempfile
 import threading
@@ -93,8 +92,8 @@ from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamable_http_client
 
 import graph_os.fleet.catalog_reader as _catalog_reader
-import graph_os.fleet.catalog_reconciliation as _catalog_reconciliation
 import graph_os.fleet.child_resilience as _child_resilience
+from graph_os.fleet.session_notifications import SessionCatalogNotifications
 
 # Direct all logs to stderr so stdout remains perfectly clean for stdio JSON-RPC
 logging.basicConfig(
@@ -104,13 +103,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("mcp_multiplexer")
 _SESSION_KEY = secrets.token_bytes(32)
-#: Total "unknown tool" relist-and-retry attempts a stable-dispatch caller
-#: gets against ONE child connection generation before it fails closed
-#: (`MCPMultiplexer._retry_read_only_unknown`). A single `dispatch_catalog_tool`
-#: call only ever issues one retry, but with no cap on the number of separate
-#: dispatch calls a caller can make, a child that keeps genuinely lacking the
-#: tool would otherwise be relisted and retried without limit.
-_UNKNOWN_TOOL_RETRY_MAX_PER_GENERATION = 3
 _CONFIG_MAX_BYTES = 4 * 1024 * 1024
 _ENGINE_CONFIG_FIELDS = frozenset(
     {
@@ -200,7 +192,7 @@ _PROMPT_HARVEST_SPEC = _ResourceHarvestSpec(
 # consume (BUG-PE-054). ``_SKILL_HARVEST_BUDGET_SEC``/``_PROMPT_HARVEST_BUDGET_SEC``
 # above are 120s, but every harvest runs INSIDE ``probe_server``'s own
 # ``asyncio.wait_for(_probe(), timeout=probe_to)`` — and ``probe_to`` is the
-# per-server ``timeout`` from ``mcp_config.json``, in practice 10-15s. An inner
+# per-server EG component ``timeout``, in practice 10-15s. An inner
 # best-effort budget 8-12x larger than the outer deadline it lives in is not a
 # bound at all: measured live 2026-08-25 against the homelab fleet,
 # ``fan-manager-mcp``'s prompt harvest spent 16.3s retrying two unservable
@@ -279,12 +271,11 @@ _RUNTIME_CHILD_POLICY_INTERNAL_KEY = "_runtime_child_policy"
 _LIVE_MULTIPLEXERS: weakref.WeakSet[_typing.Any] = weakref.WeakSet()
 
 
-def _release_identifier() -> str:
-    """Installed release identity with a deterministic source-tree fallback."""
-    try:
-        return importlib.metadata.version("agent-utilities")
-    except importlib.metadata.PackageNotFoundError:
-        return "unpackaged"
+class _ProbeOnlyCatalogReader:
+    """Fail-closed reader for one explicitly supplied, non-serving probe."""
+
+    async def read(self) -> _catalog_reader.FleetCatalog:
+        raise RuntimeError("a probe-only multiplexer cannot refresh fleet authority")
 
 
 def _catalog_error_text(result: _typing.Any) -> str:
@@ -966,27 +957,6 @@ def _resource_body_text(result: _typing.Any) -> str:
     return "\n".join(parts)
 
 
-def _read_catalog_text(path: Path) -> str:
-    """Read one bounded regular catalog from the synchronous startup path."""
-    if path.is_symlink():
-        raise RuntimeError("MCP catalog symlinks are not accepted")
-    try:
-        metadata = path.stat()
-    except OSError as exc:
-        raise RuntimeError("MCP catalog is unavailable") from exc
-    if not stat.S_ISREG(metadata.st_mode):
-        raise RuntimeError("MCP catalog must be a regular file")
-    if metadata.st_size > _CONFIG_MAX_BYTES:
-        raise RuntimeError("MCP catalog exceeds its size boundary")
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise RuntimeError("MCP catalog is unavailable") from exc
-    if len(text.encode("utf-8")) > _CONFIG_MAX_BYTES:
-        raise RuntimeError("MCP catalog exceeds its size boundary")
-    return text
-
-
 def _validate_externalized_child_secrets(cfg: dict[str, _typing.Any]) -> None:
     """Reject credentials committed inline in a persistent child catalog."""
     for container_name in ("env", "headers"):
@@ -1444,7 +1414,7 @@ def _require_fleet_capability(kind: str, extra_scopes: list[str] | None = None) 
 # Prefixes are derived 100% algorithmically (no per-server lookup table), so any
 # MCP server — bundled or third-party — gets a sensible, unique prefix with zero
 # code changes. Pin a specific one per server via the ``prefix`` key in its
-# mcp_config entry; uniqueness across the fleet is then guaranteed by the
+# AgentComponent entry; uniqueness across the fleet is then guaranteed by the
 # catalog-aware collision resolver (:meth:`MCPMultiplexer._build_prefix_map`).
 
 
@@ -2237,20 +2207,8 @@ class MCPMultiplexer:
 
     def __init__(
         self,
-        config_path: Path,
-        *,
-        catalog_reader: (
-            _catalog_reader.FleetCatalogReader
-            | _catalog_reader.DeferredFleetCatalogReader
-            | None
-        ) = None,
+        catalog_reader: _catalog_reader.FleetCatalogSource,
     ):
-        self.config_path = config_path
-        # The EG reader is the native catalog authority.  ``None`` is retained
-        # only for the standalone/unit-test constructor; a serving composition
-        # passes the reader and calls ``refresh_engine_catalog`` before child
-        # startup.  Keeping this explicit prevents an accidental static-config
-        # fallback once the native composition is installed.
         self._fleet_catalog_reader = catalog_reader
         self._fleet_catalog: _catalog_reader.FleetCatalog | None = None
         self.exit_stack = contextlib.AsyncExitStack()
@@ -2284,12 +2242,7 @@ class MCPMultiplexer:
         # ``tools/list_changed`` notification on that session's next request.
         # Entries are bounded by the existing per-session visibility state and
         # disappear with it, so an idle client cannot accumulate revisions.
-        self._catalog_reconciler = _catalog_reconciliation.McpCatalogReconciler(
-            release_id=_release_identifier()
-        )
-        self._replica_catalog_identities: _collections_abc.Callable[
-            [], list[_catalog_reconciliation.CatalogIdentity]
-        ] = list
+        self._session_notifications = SessionCatalogNotifications()
         # Incremented before a hot catalog reload tears down child runtimes so
         # a late callback from an old generation can never repopulate fresh
         # routing state with a stale declaration.
@@ -2400,11 +2353,6 @@ class MCPMultiplexer:
         # Serving composition replaces this no-op with the process singleton's
         # event-loop claim. Standalone multiplexers retain local-loop behavior.
         self._claim_serving_loop: _typing.Callable[[], None] = lambda: None
-        # Optional process-owned bridge into source_sync's ONE fleet-catalog
-        # writer.  Serving GraphOS and the REST process inject it at composition
-        # time; a standalone/probe-only multiplexer reports ingestion unavailable
-        # instead of constructing a second engine or writer.
-        self._fleet_catalog_writer: _typing.Any = None
         # CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog — the ONE bounded eager posture.
         # Catalog server names (``MCP_ALWAYS_LOAD``) and server-qualified or
         # prefixed tool names (``MCP_ALWAYS_LOAD_TOOLS``) that are mounted on a
@@ -2426,7 +2374,6 @@ class MCPMultiplexer:
         # reporting the same tool unknown — this budget makes the total
         # retries per child generation finite instead of relying on caller
         # good behavior.
-        self._unknown_tool_retry_budget: dict[tuple[str, int], int] = {}
         _LIVE_MULTIPLEXERS.add(self)
         _register_child_health_sampler()
 
@@ -2466,14 +2413,10 @@ class MCPMultiplexer:
         """Read and publish the authoritative EG fleet catalog.
 
         This is the asynchronous composition seam for graph-os startup.  The
-        old ``load_catalog`` parser remains available to a bare unit-test
-        multiplexer, but a configured reader never consults that static file:
-        the first successful refresh installs the verified snapshot and all
+        The first successful refresh installs the verified snapshot and all
         prefix/discovery state is rebuilt from it.
         """
         reader = self._fleet_catalog_reader
-        if reader is None:
-            return self.load_catalog()
         catalog = await reader.read()
         if self.children or self.sessions:
             raise RuntimeError(
@@ -3658,83 +3601,6 @@ class MCPMultiplexer:
         )
         return server_name, runtime, tools, cfg
 
-    def _read_catalog_document(self) -> dict[str, _typing.Any]:
-        """Read and parse the persistent MCP config document, fail-soft to empty.
-
-        The document is parsed LITERALLY. Runtime references are resolved only
-        at the exact child boundary that consumes them, so secret values never
-        enter this catalog wholesale.
-        """
-        empty: dict[str, _typing.Any] = {"mcpServers": {}}
-        if not self.config_path.exists():
-            return empty
-        try:
-            content = _read_catalog_text(self.config_path)
-        except Exception as exc:
-            logger.error(
-                "Failed to read MCP config: %s: %s",
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return empty
-        if not content:
-            return empty
-        try:
-            return _typing.cast("dict[str, _typing.Any]", json.loads(content))
-        except Exception as exc:
-            logger.error(
-                "Failed to parse MCP config: %s: %s",
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return empty
-
-    @staticmethod
-    def _augment_native_langfuse(servers: dict) -> set[int]:
-        """Materialize the built-in Langfuse child when the config declares none.
-
-        Returns the ids of the runtime-materialized configs: they are already
-        attested here and must not be re-validated as if they came from disk.
-        """
-        from agent_utilities.observability.langfuse_trust import (
-            LangfuseTrustError,
-            is_langfuse_server,
-            native_langfuse_mcp_config,
-        )
-
-        if any(
-            isinstance(cfg, dict) and is_langfuse_server(str(name), cfg)
-            for name, cfg in servers.items()
-        ):
-            return set()
-        try:
-            native = native_langfuse_mcp_config()
-        except LangfuseTrustError as exc:
-            # LangfuseTrustError.category AND .reason are both small,
-            # fixed-vocabulary labels drawn from a closed set (see the
-            # class docstring: "a stable, non-sensitive trust failure" --
-            # LangfuseTrustError.__init__ rejects any reason outside its
-            # _CATEGORIES map). Read both into locals before logging so
-            # this out-of-boundary logger's static exception-redaction
-            # check can see neither is the raw exception object, and log
-            # .reason verbatim rather than through redact_for_log: that
-            # helper is for genuinely sensitive runtime values (paths,
-            # endpoints), and hashing an already-safe fixed-vocabulary
-            # string only destroys the diagnostic detail this log line
-            # exists to carry.
-            category = exc.category
-            reason = exc.reason
-            logger.error(
-                "Native Langfuse MCP disabled: %s configuration invalid (%s)",
-                category,
-                reason,
-            )
-            return set()
-        if native is None:
-            return set()
-        servers["langfuse-mcp"] = native
-        return {id(native)}
-
     @staticmethod
     def _catalog_entry_admissible(
         server_name: _typing.Any, cfg: _typing.Any, skip: _typing.Any
@@ -3784,11 +3650,7 @@ class MCPMultiplexer:
                 cfg = prepare_langfuse_mcp_config(cfg)
             return attest_runtime_child_config(cfg)
         except LangfuseTrustError as exc:
-            # See the analogous native_langfuse_mcp_config() handler in
-            # _augment_native_langfuse: category and reason are both
-            # fixed-vocabulary, non-sensitive labels read into locals before
-            # logging (reason logged verbatim, not through redact_for_log,
-            # for the same reason given there).
+            # Category and reason are fixed-vocabulary, non-sensitive labels.
             category = exc.category
             reason = exc.reason
             logger.error(
@@ -3812,29 +3674,7 @@ class MCPMultiplexer:
         if self._catalog is not None:
             return self._catalog
 
-        if self._fleet_catalog_reader is not None:
-            self._catalog = {}
-            return self._catalog
-
         self._catalog = {}
-        config_data = self._read_catalog_document()
-        servers = config_data.get("mcpServers") or {}
-        if not isinstance(servers, dict) or len(servers) > 512:
-            servers = {}
-        runtime_materialized_configs = self._augment_native_langfuse(servers)
-
-        # The host server never mounts itself as a child (avoids self-recursion).
-        # Defaults to the retired standalone multiplexer name; graph-os's
-        # attach_fleet_loader widens this to include "graph-os".
-        skip = getattr(self, "_skip_servers", None) or {"mcp-multiplexer"}
-        for server_name, cfg in servers.items():
-            if not self._catalog_entry_admissible(server_name, cfg, skip):
-                continue
-            admitted = self._admit_catalog_entry(
-                server_name, cfg, id(cfg) in runtime_materialized_configs
-            )
-            if admitted is not None:
-                self._catalog[str(server_name)] = admitted
         return self._catalog
 
     @staticmethod
@@ -4076,7 +3916,7 @@ class MCPMultiplexer:
 
     def _queue_tool_list_change_for_sessions(self, session_keys: list[str]) -> None:
         """Queue one list revision for explicitly identified live sessions."""
-        self._catalog_reconciler.queue_pending(session_keys)
+        self._session_notifications.queue(session_keys)
 
     async def notify_pending_tools_changed(self) -> bool:
         """Deliver this live session's queued ``tools/list_changed`` event.
@@ -4087,12 +3927,12 @@ class MCPMultiplexer:
         older revision is acknowledged.
         """
         session_key = _session_key()
-        revision = self._catalog_reconciler.pending_generation(session_key)
+        revision = self._session_notifications.pending_generation(session_key)
         if revision is None:
             return True
         if self._host_mcp is None or not await _notify_tools_changed(self._host_mcp):
             return False
-        self._catalog_reconciler.acknowledge_pending(session_key, revision)
+        self._session_notifications.acknowledge(session_key, revision)
         self.prune_session_visibility(session_key)
         return True
 
@@ -4419,227 +4259,6 @@ class MCPMultiplexer:
             return []
         return self._register_child_result(s_name, payload, tools, r_cfg)
 
-    def _authorization_scope_digest(self) -> str:
-        """Digest only the ambient verified capability partition."""
-        capabilities = _request_capabilities()
-        payload = ["local-process"] if capabilities is None else sorted(capabilities)
-        return hashlib.sha256(
-            json.dumps(payload, separators=(",", ":")).encode("utf-8")
-        ).hexdigest()
-
-    def _config_revision(self) -> str:
-        """Content address the effective mountable declaration set."""
-        payload = json.dumps(
-            self.load_catalog(), sort_keys=True, separators=(",", ":"), default=str
-        )
-        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
-
-    def catalog_identity(self) -> _catalog_reconciliation.CatalogIdentity:
-        """Identity shared by discovery, REST, dispatch, and resume."""
-        return self._catalog_reconciler.current(
-            self._authorization_scope_digest(), config_revision=self._config_revision()
-        ).identity
-
-    def catalog_snapshot(self) -> _catalog_reconciliation.CatalogSnapshot:
-        """Current immutable snapshot for the ambient authorization scope."""
-        return self._catalog_reconciler.current(
-            self._authorization_scope_digest(), config_revision=self._config_revision()
-        )
-
-    def catalog_discovery_identity(self) -> dict[str, _typing.Any]:
-        """Return identity plus the server-minted token for this session."""
-        identity = self.catalog_identity()
-        session_id = _session_key()
-        token = hmac.new(
-            _SESSION_KEY,
-            f"{session_id}:{identity.snapshot_digest}".encode(),
-            hashlib.sha256,
-        ).hexdigest()
-        self._catalog_reconciler.bind_session(
-            session_id, identity, resume_token_digest=token
-        )
-        return {**identity.model_dump(mode="json"), "resume_token_digest": token}
-
-    def _catalog_child_candidate(
-        self, server_name: str, info: _collections_abc.Mapping[str, _typing.Any]
-    ) -> _catalog_reconciliation.ChildCatalogCandidate:
-        """Project one bounded probe into the immutable protocol authority."""
-        prefix = self.server_prefix(server_name)
-        tools: list[dict[str, _typing.Any]] = []
-        for item in info.get("tools", ()):
-            original = item["name"]
-            entry = dict(item)
-            entry.update(
-                {
-                    "name": f"{prefix}__{original}",
-                    "originalName": original,
-                    "server": server_name,
-                }
-            )
-            tools.append(entry)
-        runtime = self.children.get(server_name)
-        child_generation = int(getattr(runtime, "restart_count", 0)) + (
-            1 if runtime is not None else 0
-        )
-        return _catalog_reconciliation.ChildCatalogCandidate.build(
-            server_name=server_name,
-            child_connection_generation=child_generation,
-            tools=tools,
-            resources=info.get("resources", ()),
-            resource_templates=info.get("resource_templates", ()),
-            prompts=info.get("native_prompts", ()),
-        )
-
-    async def _reconcile_catalog(
-        self, *, deadline_ms: int, request_id: str
-    ) -> _catalog_reconciliation.CatalogRefreshResult:
-        """Probe, persist, cohort-check, then atomically publish all families."""
-        scope = self._authorization_scope_digest()
-        config_revision = self._config_revision()
-        rows = await self._probe_catalog_candidate_rows(deadline_ms)
-        catalog = {server: info for server, info in rows}
-        candidate = self._catalog_reconciler.candidate(
-            authorization_scope_digest=scope,
-            config_revision=config_revision,
-            children=(
-                self._catalog_child_candidate(server, info) for server, info in rows
-            ),
-        )
-        self._catalog_reconciler.assert_homogeneous(
-            candidate.identity, self._replica_catalog_identities()
-        )
-        writer_result = await self._write_catalog_candidate(
-            catalog,
-            catalog_generation=candidate.identity.catalog_generation,
-            snapshot_digest=candidate.identity.snapshot_digest,
-        )
-        published, changed = self._catalog_reconciler.publish(
-            candidate, affected_session_ids=tuple(self._session_loaded)
-        )
-        identity = published.identity
-        return _catalog_reconciliation.CatalogRefreshResult(
-            request_id=request_id,
-            served_instance_id=identity.served_instance_id,
-            release_id=identity.release_id,
-            config_revision=identity.config_revision,
-            catalog_generation=identity.catalog_generation,
-            snapshot_digest=identity.snapshot_digest,
-            changed=changed,
-            pending_list_change_generation=self._pending_catalog_highwater(),
-            reingestion_state="reconciled",
-            reconciliation_receipt_digest=_catalog_reconciliation.reconciliation_receipt_digest(
-                identity, writer_result
-            ),
-        )
-
-    async def _probe_catalog_candidate_rows(
-        self, deadline_ms: int
-    ) -> list[tuple[str, dict[str, _typing.Any]]]:
-        """Probe every declaration under one bounded concurrency/deadline."""
-        semaphore = asyncio.Semaphore(_PROBE_CONCURRENCY)
-
-        async def probe(server_name: str) -> tuple[str, dict[str, _typing.Any]]:
-            async with semaphore:
-                info = await self.probe_server(server_name, force=True)
-            if info.get("error") or info.get("catalog_family_errors"):
-                raise _catalog_reconciliation.CatalogContractError(
-                    "catalog-snapshot-incomplete",
-                    "a declared child did not provide a complete snapshot",
-                    retryable=True,
-                )
-            return server_name, info
-
-        try:
-            return await asyncio.wait_for(
-                asyncio.gather(*(probe(name) for name in sorted(self.load_catalog()))),
-                timeout=deadline_ms / 1000,
-            )
-        except TimeoutError as exc:
-            raise _catalog_reconciliation.CatalogContractError(
-                "refresh-deadline-exceeded",
-                "catalog reconciliation exceeded its deadline",
-                retryable=True,
-            ) from exc
-
-    async def _write_catalog_candidate(
-        self,
-        catalog: dict[str, dict[str, _typing.Any]],
-        *,
-        catalog_generation: int,
-        snapshot_digest: str,
-    ) -> dict[str, _typing.Any]:
-        """Obtain the downstream acknowledgement required before publication.
-
-        A generic ``status: "ok"`` is not sufficient evidence that the writer
-        ingested THIS candidate: it binds and verifies the writer's receipt
-        against the exact ``catalog_generation``/``snapshot_digest`` this
-        write was for, so a stale or unrelated acknowledgement can never be
-        mistaken for reconciliation of the candidate about to be published.
-        """
-        writer = self._fleet_catalog_writer
-        if writer is None:
-            raise _catalog_reconciliation.CatalogContractError(
-                "reingestion-unreconciled",
-                "catalog reconciliation writer is unavailable",
-                retryable=True,
-            )
-        configs = {server: self.load_catalog()[server] for server in catalog}
-        result = await writer(
-            catalog,
-            configs,
-            self._take_discovery_bindings(catalog),
-            catalog_generation=catalog_generation,
-            snapshot_digest=snapshot_digest,
-        )
-        if not (isinstance(result, dict) and result.get("status") == "ok"):
-            raise _catalog_reconciliation.CatalogContractError(
-                "reingestion-unreconciled",
-                "catalog reconciliation was not acknowledged",
-                retryable=True,
-            )
-        if (
-            result.get("catalog_generation") != catalog_generation
-            or result.get("snapshot_digest") != snapshot_digest
-        ):
-            raise _catalog_reconciliation.CatalogContractError(
-                "reingestion-unreconciled",
-                "catalog reconciliation acknowledged a different generation/"
-                "digest than the candidate being published",
-                retryable=True,
-            )
-        return result
-
-    def _pending_catalog_highwater(self) -> int | None:
-        return max(
-            (
-                value
-                for session in self._session_loaded
-                if (value := self._catalog_reconciler.pending_generation(session))
-                is not None
-            ),
-            default=None,
-        )
-
-    async def refresh_catalog(
-        self, request: _catalog_reconciliation.CatalogRefreshRequest
-    ) -> _catalog_reconciliation.CatalogRefreshResult:
-        """Execute the exact optimistic refresh contract for this scope."""
-        current = self._catalog_reconciler.current(
-            self._authorization_scope_digest(), config_revision=self._config_revision()
-        )
-        self._catalog_reconciler.validate_refresh(request, current)
-        return await self._reconcile_catalog(
-            deadline_ms=request.deadline_ms, request_id=request.request_id
-        )
-
-    async def reconcile_current_catalog(
-        self, *, request_id: str, deadline_ms: int = 120_000
-    ) -> _catalog_reconciliation.CatalogRefreshResult:
-        """Internal config seam using the same atomic reconciliation path."""
-        return await self._reconcile_catalog(
-            deadline_ms=deadline_ms, request_id=request_id
-        )
-
     async def delegated_server_tools(
         self, server_name: str
     ) -> list[dict[str, _typing.Any]]:
@@ -4700,134 +4319,6 @@ class MCPMultiplexer:
             first, "mimeType", None
         )
         return {"uri": uri, "text": text, "mimeType": str(mime_type or "text/plain")}
-
-    async def dispatch_catalog_tool(
-        self,
-        *,
-        tool_name: str,
-        arguments: dict[str, _typing.Any],
-        expected_catalog_generation: int,
-        expected_snapshot_digest: str,
-    ) -> MCPCallToolResult:
-        """Resolve and invoke one tool against the caller's exact snapshot."""
-        scope = self._authorization_scope_digest()
-        child, entry = self._catalog_reconciler.resolve_tool(
-            public_name=tool_name,
-            expected_generation=expected_catalog_generation,
-            expected_snapshot_digest=expected_snapshot_digest,
-            authorization_scope_digest=scope,
-            config_revision=self._config_revision(),
-        )
-        descriptor = entry.as_dict()
-        if self.tool_to_server.get(tool_name) != (
-            child.server_name,
-            descriptor.get("originalName"),
-        ):
-            raise _catalog_reconciliation.CatalogContractError(
-                "dispatcher-target-not-visible", "live route no longer matches snapshot"
-            )
-        result = await self.call_proxied_tool(tool_name, arguments)
-        return await self._retry_read_only_unknown(
-            child=child,
-            descriptor=descriptor,
-            tool_name=tool_name,
-            arguments=arguments,
-            result=result,
-        )
-
-    async def _retry_read_only_unknown(
-        self,
-        *,
-        child: _catalog_reconciliation.ChildCatalogCandidate,
-        descriptor: dict[str, _typing.Any],
-        tool_name: str,
-        arguments: dict[str, _typing.Any],
-        result: MCPCallToolResult,
-    ) -> MCPCallToolResult:
-        """Relist and retry one same-generation, read-only advertised miss.
-
-        Bounded on two independent axes so this can never become an
-        unbounded retry loop:
-
-        * **Count** — at most :data:`_UNKNOWN_TOOL_RETRY_MAX_PER_GENERATION`
-          retries total per ``(server, child_connection_generation)``, tracked
-          in :attr:`_unknown_tool_retry_budget`. A single call only ever
-          issues one retry, but nothing previously stopped a caller from
-          re-invoking dispatch repeatedly against a persistently-broken
-          child; the budget now makes that finite.
-        * **Schema compatibility** — the relisted tool's own ``inputSchema``
-          must be byte-identical to the snapshot's descriptor before the
-          SAME ``arguments`` are ever resent. A relist that proves the name
-          exists again but under a CHANGED schema is not proof the retry is
-          safe — it is proof the tool was redefined, so retrying blind could
-          send arguments the new schema never agreed to. That case fails
-          closed (returns the original miss) exactly like a still-missing
-          name.
-        """
-        target = self._read_only_relist_target(child, descriptor, result)
-        if target is None:
-            return result
-        budget_key = (child.server_name, child.child_connection_generation)
-        spent = self._unknown_tool_retry_budget.get(budget_key, 0)
-        if spent >= _UNKNOWN_TOOL_RETRY_MAX_PER_GENERATION:
-            return result
-        session, original_name = target
-        relisted = await session.list_tools()
-        relisted_tool = next(
-            (item for item in relisted.tools if item.name == original_name), None
-        )
-        if relisted_tool is None:
-            return result
-        if not _tool_schema_compatible(descriptor, relisted_tool):
-            return result
-        self._unknown_tool_retry_budget[budget_key] = spent + 1
-        # One retry per this check, only after AU received the request and
-        # proved the same read-only descriptor — same name, same schema —
-        # still exists on the same child generation, and the per-generation
-        # budget above has not been exhausted.
-        return await self.call_proxied_tool(tool_name, arguments)
-
-    def _read_only_relist_target(
-        self,
-        child: _catalog_reconciliation.ChildCatalogCandidate,
-        descriptor: dict[str, _typing.Any],
-        result: MCPCallToolResult,
-    ) -> tuple[_typing.Any, str] | None:
-        """Eligible same-generation relist target, or ``None`` fail closed."""
-        if not bool(getattr(result, "is_error", False)):
-            return None
-        if not (descriptor.get("annotations") or {}).get("readOnlyHint", False):
-            return None
-        if "unknown tool" not in _catalog_error_text(result):
-            return None
-        runtime = self.children.get(child.server_name)
-        session = getattr(runtime, "primary_session", None)
-        generation = int(getattr(runtime, "restart_count", -1)) + 1
-        original = descriptor.get("originalName")
-        if (
-            session is None
-            or generation != child.child_connection_generation
-            or not isinstance(original, str)
-        ):
-            return None
-        return session, original
-
-    def resume_catalog_session(
-        self, request: _catalog_reconciliation.CatalogSessionResumeRequest
-    ) -> _catalog_reconciliation.CatalogSessionResumeResult:
-        """Validate reconnect continuity against the homogeneous cohort."""
-        scope = self._authorization_scope_digest()
-        current = self._catalog_reconciler.current(
-            scope, config_revision=self._config_revision()
-        )
-        peers = self._replica_catalog_identities()
-        self._catalog_reconciler.assert_homogeneous(current.identity, peers)
-        return self._catalog_reconciler.resume_session(
-            request,
-            authorization_scope_digest=scope,
-            config_revision=self._config_revision(),
-            cohort_homogeneous=True,
-        )
 
     def prefixed_tools_for_server(self, server_name: str) -> list[MCPTool]:
         """All aggregated prefixed tools currently owned by ``server_name``."""
@@ -5607,7 +5098,7 @@ class MCPMultiplexer:
         materialized = _runtime_materialized(declaration)
         if not materialized:
             _validate_externalized_child_secrets(declaration)
-        multiplexer = cls(Path())
+        multiplexer = cls(_ProbeOnlyCatalogReader())
         multiplexer._catalog = {server_name: dict(declaration)}
         try:
             return await multiplexer.probe_server(
@@ -6409,7 +5900,7 @@ class MCPMultiplexer:
             for name in catalog
         ]
         return {
-            "catalog_identity": self.catalog_discovery_identity(),
+            "catalog_authority": "epistemic_graph",
             "total_servers": len(servers),
             "total_tools": sum(s["tool_count"] for s in servers),
             "servers_running": sorted(self.children.keys()),
@@ -6637,7 +6128,7 @@ class MCPMultiplexer:
             # Keep an empty visibility record only while a detached recovery
             # still owes this client a schema-removal notification. The record
             # is removed by ``notify_pending_tools_changed`` after delivery.
-            if not self._catalog_reconciler.has_pending(session_key):
+            if not self._session_notifications.has_pending(session_key):
                 self._session_loaded.pop(session_key, None)
 
     def requested_prefixed(
@@ -6682,7 +6173,7 @@ class MCPMultiplexer:
         """
         mounted = self._mounted_tool_counts()
         snapshot = {
-            "catalog_identity": self.catalog_identity().model_dump(mode="json"),
+            "catalog_source": "epistemic_graph",
             "children": {
                 name: {
                     **runtime.status(),
@@ -6764,21 +6255,10 @@ class MCPMultiplexer:
             self._child_tool_digests.clear()
             self._child_schema_revisions.clear()
             self._child_schema_refresh_errors.clear()
-            self._catalog_reconciler.clear_pending()
+            self._session_notifications.clear()
             for policy in policies:
                 _close_runtime_child_policy(policy)
         await self.exit_stack.aclose()
-
-
-def _resolve_config_path(explicit: str | None) -> Path:
-    """Resolve the MCP fleet file from an explicit value or the XDG config."""
-    if explicit:
-        return Path(explicit)
-    if setting("MCP_CONFIG"):
-        return Path(setting("MCP_CONFIG"))
-    from agent_utilities.core.paths import config_dir
-
-    return config_dir() / "mcp_config.json"
 
 
 def _tool_result_from_child(result: MCPCallToolResult) -> _fastmcp_tools.ToolResult:
@@ -7825,96 +7305,6 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
             structured_content=payload,
         )
 
-    async def _catalog_refresh(
-        request_id: str,
-        expected_config_revision: str,
-        expected_catalog_generation: int,
-        expected_snapshot_digest: str,
-        deadline_ms: int,
-    ) -> _fastmcp_tools.ToolResult:
-        _require_fleet_capability("manage")
-        try:
-            request = _catalog_reconciliation.CatalogRefreshRequest(
-                request_id=request_id,
-                expected_config_revision=expected_config_revision,
-                expected_catalog_generation=expected_catalog_generation,
-                expected_snapshot_digest=expected_snapshot_digest,
-                deadline_ms=deadline_ms,
-            )
-            payload = (await mux.refresh_catalog(request)).model_dump(mode="json")
-        except ValueError:
-            contract_exc = _catalog_reconciliation.CatalogContractError(
-                "refresh-request-schema-mismatch",
-                "catalog refresh request did not match the v1 contract",
-            )
-            payload = _catalog_reconciliation.refresh_error(
-                request_id, contract_exc, mux.catalog_snapshot()
-            ).model_dump(mode="json")
-        except _catalog_reconciliation.CatalogContractError as exc:
-            payload = _catalog_reconciliation.refresh_error(
-                request_id, exc, mux.catalog_snapshot()
-            ).model_dump(mode="json")
-        return _fastmcp_tools.ToolResult(
-            content=[
-                mcp_types.TextContent(type="text", text=json.dumps(payload, indent=2))
-            ],
-            structured_content=payload,
-        )
-
-    async def _catalog_dispatch(
-        tool_name: str,
-        arguments: dict[str, _typing.Any],
-        expected_catalog_generation: int,
-        expected_snapshot_digest: str,
-    ) -> _fastmcp_tools.ToolResult:
-        _require_fleet_capability("delegate")
-        try:
-            result = await mux.dispatch_catalog_tool(
-                tool_name=tool_name,
-                arguments=arguments,
-                expected_catalog_generation=expected_catalog_generation,
-                expected_snapshot_digest=expected_snapshot_digest,
-            )
-        except _catalog_reconciliation.CatalogContractError as exc:
-            raise _fastmcp_exceptions.ToolError("MCP catalog dispatch refused") from exc
-        return _tool_result_from_child(result)
-
-    async def _catalog_session_resume(
-        session_id: str,
-        previous_served_instance_id: str,
-        release_id: str,
-        config_revision: str,
-        catalog_generation: int,
-        snapshot_digest: str,
-        child_connection_generation: int,
-        authorization_scope_digest: str,
-        resume_token_digest: str,
-        deadline_ms: int,
-    ) -> _fastmcp_tools.ToolResult:
-        _require_fleet_capability("delegate")
-        try:
-            request = _catalog_reconciliation.CatalogSessionResumeRequest(
-                session_id=session_id,
-                previous_served_instance_id=previous_served_instance_id,
-                release_id=release_id,
-                config_revision=config_revision,
-                catalog_generation=catalog_generation,
-                snapshot_digest=snapshot_digest,
-                child_connection_generation=child_connection_generation,
-                authorization_scope_digest=authorization_scope_digest,
-                resume_token_digest=resume_token_digest,
-                deadline_ms=deadline_ms,
-            )
-            payload = mux.resume_catalog_session(request).model_dump(mode="json")
-        except (_catalog_reconciliation.CatalogContractError, ValueError) as exc:
-            raise _fastmcp_exceptions.ToolError(
-                "MCP catalog session resume refused"
-            ) from exc
-        return _fastmcp_tools.ToolResult(
-            content=[mcp_types.TextContent(type="text", text=json.dumps(payload))],
-            structured_content=payload,
-        )
-
     mcp.add_tool(
         _fastmcp_tools.FunctionTool(
             name="find_tools",
@@ -8089,114 +7479,6 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
             fn=_unload_tools,
         )
     )
-    mcp.add_tool(
-        _fastmcp_tools.FunctionTool(
-            name="catalog_refresh",
-            description=(
-                "Atomically reconcile tools, prompts, resources, and resource "
-                "templates for the caller's exact catalog generation."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "request_id": {
-                        "type": "string",
-                        "pattern": "^[A-Za-z0-9_.:-]{1,256}$",
-                    },
-                    "expected_config_revision": {"type": "string"},
-                    "expected_catalog_generation": {
-                        "type": "integer",
-                        "minimum": 0,
-                    },
-                    "expected_snapshot_digest": {
-                        "type": "string",
-                        "pattern": "^[0-9a-f]{64}$",
-                    },
-                    "deadline_ms": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 120000,
-                    },
-                },
-                "required": [
-                    "request_id",
-                    "expected_config_revision",
-                    "expected_catalog_generation",
-                    "expected_snapshot_digest",
-                    "deadline_ms",
-                ],
-            },
-            fn=_catalog_refresh,
-        )
-    )
-    mcp.add_tool(
-        _fastmcp_tools.FunctionTool(
-            name="catalog_dispatch",
-            description=(
-                "Invoke one already-visible tool against an exact catalog "
-                "generation and digest; stale identities fail closed."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "tool_name": {"type": "string", "minLength": 1},
-                    "arguments": {"type": "object"},
-                    "expected_catalog_generation": {
-                        "type": "integer",
-                        "minimum": 0,
-                    },
-                    "expected_snapshot_digest": {
-                        "type": "string",
-                        "pattern": "^[0-9a-f]{64}$",
-                    },
-                },
-                "required": [
-                    "tool_name",
-                    "arguments",
-                    "expected_catalog_generation",
-                    "expected_snapshot_digest",
-                ],
-            },
-            fn=_catalog_dispatch,
-        )
-    )
-    mcp.add_tool(
-        _fastmcp_tools.FunctionTool(
-            name="catalog_session_resume",
-            description="Validate reconnect continuity without replaying a tool call.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "session_id": {"type": "string"},
-                    "previous_served_instance_id": {"type": "string"},
-                    "release_id": {"type": "string"},
-                    "config_revision": {"type": "string"},
-                    "catalog_generation": {"type": "integer", "minimum": 0},
-                    "snapshot_digest": {"type": "string"},
-                    "child_connection_generation": {
-                        "type": "integer",
-                        "minimum": 0,
-                    },
-                    "authorization_scope_digest": {"type": "string"},
-                    "resume_token_digest": {"type": "string"},
-                    "deadline_ms": {"type": "integer", "minimum": 1},
-                },
-                "required": [
-                    "session_id",
-                    "previous_served_instance_id",
-                    "release_id",
-                    "config_revision",
-                    "catalog_generation",
-                    "snapshot_digest",
-                    "child_connection_generation",
-                    "authorization_scope_digest",
-                    "resume_token_digest",
-                    "deadline_ms",
-                ],
-            },
-            fn=_catalog_session_resume,
-        )
-    )
     _register_status_tool(mcp, mux)
 
 
@@ -8280,25 +7562,17 @@ def _always_load_setting(field: str, alias: str) -> list[str]:
 def attach_fleet_loader(
     mcp,
     *,
-    config_path: str | None = None,
-    catalog_reader: (
-        _catalog_reader.FleetCatalogReader
-        | _catalog_reader.DeferredFleetCatalogReader
-        | None
-    ) = None,
+    catalog_reader: _catalog_reader.FleetCatalogSource,
     self_server: str = "graph-os",
     embed_fn=None,
     authority_scope=None,
-    catalog_writer=None,
 ) -> MCPMultiplexer:
     """Attach on-demand MCP fleet-loading to an EXISTING FastMCP server (graph-os).
 
     graph-os serves its own KG/engine tools natively (always on). This composes the
     fleet-aggregation engine on top so the SAME server can also reach the rest of the
-    MCP fleet on demand — a serving composition supplies the EG catalog reader,
-    while standalone callers may retain the legacy ``mcp_config.json`` source. It
+    MCP fleet on demand from the mandatory EG catalog reader. It
     registers the meta-tools ``find_tools`` / ``list_catalog`` / ``load_tools`` /
-    ``catalog_refresh`` / ``catalog_dispatch`` / ``catalog_session_resume`` /
     ``multiplexer_status`` plus a per-session
     progressive-disclosure middleware. Child
     servers are mounted LAZILY (each as an isolated subprocess/HTTP session via
@@ -8322,21 +7596,17 @@ def attach_fleet_loader(
     keep their request-minted ambient session. The callback is never derived
     from child configuration or caller arguments.
 
-    ``catalog_reader`` is the graph-os/epistemic-graph read port. When present,
-    the returned multiplexer starts empty and the composition root must await
-    ``refresh_engine_catalog()`` before starting children; it never reads the
-    legacy static ``mcp_config.json`` as a fallback. Without a reader, the
-    standalone/unit-test constructor retains its static-file behavior.
+    ``catalog_reader`` is the mandatory graph-os/epistemic-graph read port. The
+    returned multiplexer starts empty and the composition root must await
+    ``refresh_engine_catalog()`` before starting children.
     """
-    resolved = _resolve_config_path(config_path or setting("MCP_CONFIG"))
     logger.info("graph-os fleet loader initializing")
-    mux = MCPMultiplexer(resolved, catalog_reader=catalog_reader)
+    mux = MCPMultiplexer(catalog_reader)
     # Keep the host solely for lifecycle replacement of mux-owned forwarding
     # schemas after a child generation recovers.  Standalone mux/probe paths
     # deliberately leave this unset.
     mux._host_mcp = mcp
     mux._authority_scope = authority_scope
-    mux._fleet_catalog_writer = catalog_writer
     # graph-os is the HOST server — never mount it (or the retired standalone
     # multiplexer name) as a child of itself.
     mux._skip_servers = {"mcp-multiplexer", self_server}

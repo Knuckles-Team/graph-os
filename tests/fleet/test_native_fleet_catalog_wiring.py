@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import inspect
 import json
 from dataclasses import dataclass
-from pathlib import Path
 
 from graph_os.fleet.catalog_reader import (
     CatalogServer,
@@ -18,6 +18,7 @@ from graph_os.fleet.catalog_reader import (
     ServerRegistration,
 )
 from graph_os.fleet.multiplexer import MCPMultiplexer
+from graph_os.fleet.session_notifications import SessionCatalogNotifications
 
 CONTEXT = ReadContext(
     tenant_id="tenant-a",
@@ -86,24 +87,12 @@ class Reader:
         return self.catalog
 
 
-def test_native_module_is_not_an_au_forwarding_facade() -> None:
-    import graph_os.fleet.multiplexer as module
-
-    assert module.__name__ == "graph_os.fleet.multiplexer"
-    assert module.MCPMultiplexer.__module__ == "graph_os.fleet.multiplexer"
-
-
-def test_reader_authority_blocks_static_catalog_fallback(tmp_path: Path) -> None:
-    static_path = tmp_path / "mcp_config.json"
-    static_path.write_text(
-        json.dumps({"mcpServers": {"static-child": {"url": "https://static"}}}),
-        encoding="utf-8",
-    )
+def test_reader_is_the_only_catalog_authority() -> None:
     snapshot = FleetCatalog(
         context=CONTEXT,
         servers=(_server("remote-child", "https://engine.example/mcp", {}),),
     )
-    mux = MCPMultiplexer(static_path, catalog_reader=Reader(snapshot))
+    mux = MCPMultiplexer(Reader(snapshot))
 
     assert mux.load_catalog() == {}
     catalog = asyncio.run(mux.refresh_engine_catalog())
@@ -111,10 +100,11 @@ def test_reader_authority_blocks_static_catalog_fallback(tmp_path: Path) -> None
     assert set(catalog) == {"remote-child"}
     assert catalog["remote-child"]["url"] == "https://engine.example/mcp"
     assert catalog["remote-child"]["transport"] == "streamable-http"
-    assert "static-child" not in catalog
+    assert "config_path" not in inspect.signature(MCPMultiplexer).parameters
+    assert "MCP_CONFIG" not in inspect.getsource(MCPMultiplexer)
 
 
-def test_engine_component_transport_policy_is_preserved(tmp_path: Path) -> None:
+def test_engine_component_transport_policy_is_preserved() -> None:
     snapshot = FleetCatalog(
         context=CONTEXT,
         servers=(
@@ -131,7 +121,7 @@ def test_engine_component_transport_policy_is_preserved(tmp_path: Path) -> None:
             ),
         ),
     )
-    mux = MCPMultiplexer(tmp_path / "missing.json", catalog_reader=Reader(snapshot))
+    mux = MCPMultiplexer(Reader(snapshot))
 
     catalog = asyncio.run(mux.refresh_engine_catalog())
 
@@ -139,3 +129,32 @@ def test_engine_component_transport_policy_is_preserved(tmp_path: Path) -> None:
     assert catalog["oauth-child"]["transport"] == "sse"
     assert catalog["oauth-child"]["oauth_provider"] == {"provider_id": "provider-a"}
     assert catalog["oauth-child"]["timeout"] == 15
+
+
+def test_retired_reconciliation_symbols_are_absent() -> None:
+    import graph_os.fleet.multiplexer as module
+
+    source = inspect.getsource(module)
+    for retired in (
+        'name="catalog_refresh"',
+        'name="catalog_dispatch"',
+        'name="catalog_session_resume"',
+        "McpCatalogReconciler",
+        "_fleet_catalog_writer",
+    ):
+        assert retired not in source
+
+
+def test_session_notification_state_is_ephemeral_and_acknowledged() -> None:
+    notifications = SessionCatalogNotifications()
+
+    notifications.queue(["session-a", "session-b"])
+    generation = notifications.pending_generation("session-a")
+
+    assert generation == 1
+    assert notifications.pending_generation("session-b") == generation
+    notifications.acknowledge("session-a", generation)
+    assert not notifications.has_pending("session-a")
+    assert notifications.has_pending("session-b")
+    notifications.clear()
+    assert not notifications.has_pending("session-b")

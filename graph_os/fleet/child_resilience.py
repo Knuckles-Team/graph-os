@@ -12,7 +12,7 @@ multiplexer was restarted.
 
 * **Bounded concurrency** — an ``asyncio.Semaphore`` caps in-flight calls per
   child (``MCP_CHILD_MAX_CONCURRENCY``, per-server ``max_concurrency``
-  override in ``mcp_config.json``). Excess calls queue for at most
+  override in the server's AgentComponent configuration). Excess calls queue for at most
   ``MCP_CHILD_QUEUE_TIMEOUT`` seconds, then fail with the typed
   :class:`MCPChildBusyError` instead of hanging.
 * **Session pools** — remote children may hold N round-robin connections
@@ -842,7 +842,7 @@ class ChildRuntime:
                     f"Child server '{self.name}' is at its concurrency limit "
                     f"({self.max_concurrency} in-flight calls); call queued "
                     f"longer than {self.queue_timeout}s. Retry later or raise "
-                    f"'max_concurrency' for this server in mcp_config.json.",
+                    "'max_concurrency' for this server in AgentComponent configuration.",
                 ) from None
             finally:
                 self._queued -= 1

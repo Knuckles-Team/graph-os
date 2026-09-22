@@ -15,7 +15,6 @@ import pytest
 from graph_os.fleet.multiplexer import (
     MCPMultiplexer,
     SessionVisibilityMiddleware,
-    attach_fleet_loader,
 )
 from graph_os.fleet.shared_multiplexer import (
     ServedMultiplexerBindingError,
@@ -26,6 +25,10 @@ from graph_os.fleet.shared_multiplexer import (
     run_on_served_multiplexer,
 )
 from graph_os.webui_host.mcp_delegation import webui_mcp_delegation_helpers
+from tests.fleet.catalog_fixture import (
+    attach_multiplexer_from_fixture,
+    multiplexer_from_fixture,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -104,7 +107,7 @@ async def test_attached_serving_middleware_claims_loop_for_same_instance(
     config = tmp_path / "mcp.json"
     config.write_text('{"mcpServers": {}}', encoding="utf-8")
     host = FastMCP("owner-loop-proof")
-    mux = attach_fleet_loader(host, config_path=str(config))
+    mux = attach_multiplexer_from_fixture(host, config)
     middleware = SessionVisibilityMiddleware(mux, host)
 
     async def call_next(_context: object) -> list[object]:
@@ -125,7 +128,7 @@ async def test_lifespan_claims_owner_before_any_mcp_request(tmp_path: Any) -> No
     config = tmp_path / "mcp.json"
     config.write_text('{"mcpServers": {}}', encoding="utf-8")
     host = FastMCP("startup-owner-proof")
-    mux = attach_fleet_loader(host, config_path=str(config))
+    mux = attach_multiplexer_from_fixture(host, config)
 
     async with host._lifespan_manager():
 
@@ -184,7 +187,7 @@ async def test_native_delegation_uses_served_probe_child_pool_and_bounds(
 ) -> None:
     config = tmp_path / "mcp.json"
     config.write_text('{"mcpServers": {}}', encoding="utf-8")
-    mux = MCPMultiplexer(config)
+    mux = multiplexer_from_fixture(config)
     monkeypatch.setattr(
         "graph_os.fleet.multiplexer._require_fleet_capability", lambda *_args: None
     )

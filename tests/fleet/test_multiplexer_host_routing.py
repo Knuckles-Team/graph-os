@@ -7,6 +7,7 @@ from graph_os.fleet.multiplexer import (
     clean_tool_name,
     get_server_prefix,
 )
+from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 
 def test_get_server_prefix_hosts():
@@ -103,7 +104,7 @@ async def test_multiplexer_start_children_aggregation(tmp_path):
     config_path = tmp_path / "mcp_config.json"
     config_path.write_text(json.dumps(config), encoding="utf-8")
 
-    multiplexer = MCPMultiplexer(config_path)
+    multiplexer = multiplexer_from_fixture(config_path)
 
     # Mock _start_child to return a successful tuple for healthy, and None for failing
     async def mock_start_child(server_name, cfg):

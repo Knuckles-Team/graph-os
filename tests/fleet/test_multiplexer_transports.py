@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from graph_os.fleet import multiplexer as mod
-from graph_os.fleet.multiplexer import MCPMultiplexer
+from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 
 @contextlib.asynccontextmanager
@@ -80,7 +80,7 @@ def transports(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_remote_child_uses_streamable_http(transports, tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child("egeria-mcp", {"url": "http://egeria-mcp.example/mcp"})
     assert res is not None and res[0] == "egeria-mcp"
     assert len(transports["http"]) == 1 and not transports["stdio"]
@@ -95,7 +95,7 @@ async def test_remote_http_child_rejected_when_host_not_allowlisted(
     MCP_HTTP_ALLOWED_PRIVATE_HOSTS (or the child's own ``allowed_private_hosts``)
     still fails closed — the allowlist opts specific trusted hosts IN, it does
     not disable the check fleet-wide."""
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child(
         "untrusted-mcp", {"url": "http://untrusted-mcp.example/mcp"}
     )
@@ -107,7 +107,7 @@ async def test_remote_http_child_rejected_when_host_not_allowlisted(
 async def test_remote_http_child_allowed_via_per_child_allowlist(transports, tmp_path):
     """A host absent from the fleet-wide MCP_HTTP_ALLOWED_PRIVATE_HOSTS can still
     be trusted per-child via the server's own ``allowed_private_hosts``."""
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child(
         "scoped-mcp",
         {
@@ -121,7 +121,7 @@ async def test_remote_http_child_allowed_via_per_child_allowlist(transports, tmp
 
 @pytest.mark.asyncio
 async def test_stdio_child_still_uses_stdio(transports, tmp_path, capsys):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child("graph-os", {"command": "graph-os", "args": []})
     assert res is not None
     assert len(transports["stdio"]) == 1 and not transports["http"]
@@ -146,7 +146,7 @@ async def test_child_initialization_honors_configured_connect_budget(
         return await real_wait_for(awaitable, timeout=timeout)
 
     monkeypatch.setattr(mod.asyncio, "wait_for", recording_wait_for)
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     async with contextlib.AsyncExitStack() as stack:
         await mux._open_one_session(
             "slow-cold-start",
@@ -168,7 +168,7 @@ async def test_stdio_child_refused_when_prohibited(transports, tmp_path, monkeyp
     from agent_utilities.core.config import config
 
     monkeypatch.setattr(config, "mcp_stdio_prohibited", True)
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child("graph-os", {"command": "graph-os", "args": []})
     assert res is None
     assert not transports["stdio"]
@@ -181,7 +181,7 @@ async def test_open_one_session_raises_stated_reason_when_stdio_prohibited(
     from agent_utilities.core.config import config
 
     monkeypatch.setattr(config, "mcp_stdio_prohibited", True)
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     with pytest.raises(RuntimeError, match="stdio transport is not permitted"):
         async with contextlib.AsyncExitStack() as stack:
             await mux._open_one_session(
@@ -204,7 +204,7 @@ async def test_probe_server_reports_stdio_prohibited_as_stated_reason(
     config_path.write_text(
         '{"mcpServers": {"graph-os": {"command": "graph-os", "args": []}}}'
     )
-    mux = MCPMultiplexer(config_path)
+    mux = multiplexer_from_fixture(config_path)
     info = await mux.probe_server("graph-os", force=True)
     assert info["tools"] == []
     assert info["error"] is not None
@@ -219,7 +219,7 @@ async def test_remote_child_unaffected_by_stdio_prohibition(
     from agent_utilities.core.config import config
 
     monkeypatch.setattr(config, "mcp_stdio_prohibited", True)
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child("egeria-mcp", {"url": "http://egeria-mcp.example/mcp"})
     assert res is not None
     assert len(transports["http"]) == 1 and not transports["stdio"]
@@ -227,7 +227,7 @@ async def test_remote_child_unaffected_by_stdio_prohibition(
 
 @pytest.mark.asyncio
 async def test_child_initialization_rejects_unbounded_timeout(transports, tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     async with contextlib.AsyncExitStack() as stack:
         with pytest.raises(RuntimeError, match="initialization timeout is invalid"):
             await mux._open_one_session(
@@ -243,7 +243,7 @@ async def test_child_initialization_rejects_unbounded_timeout(transports, tmp_pa
 
 @pytest.mark.asyncio
 async def test_sse_url_uses_sse(transports, tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child("foo", {"url": "http://foo.example/sse"})
     assert res is not None
     assert len(transports["sse"]) == 1 and not transports["http"]
@@ -251,7 +251,7 @@ async def test_sse_url_uses_sse(transports, tmp_path):
 
 @pytest.mark.asyncio
 async def test_explicit_transport_without_url_is_remote(transports, tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child(
         "bar", {"transport": "streamable-http", "url": "http://bar.example/mcp"}
     )
@@ -261,7 +261,7 @@ async def test_explicit_transport_without_url_is_remote(transports, tmp_path):
 @pytest.mark.asyncio
 async def test_header_var_expansion(transports, tmp_path, monkeypatch):
     monkeypatch.setenv("MY_TOKEN", "secret123")
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     await mux._start_child(
         "auth-mcp",
         {
@@ -276,7 +276,7 @@ async def test_header_var_expansion(transports, tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_no_command_no_url_is_skipped(transports, tmp_path):
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     res = await mux._start_child("bad", {})
     assert res is None
     assert not transports["stdio"] and not transports["http"] and not transports["sse"]
@@ -302,7 +302,7 @@ async def test_remote_child_gets_per_request_service_auth(
     """A jwt child is authenticated via a per-request httpx.Auth, not a frozen
     Authorization header — so the pooled session survives token expiry."""
     cc = _enable_service_auth(monkeypatch)
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     await mux._start_child("egeria-mcp", {"url": "http://egeria-mcp.example/mcp"})
     # MCP SDK v2 takes a pre-configured client instead of headers/auth kwargs,
     # so the auth+header contract is asserted on the client the multiplexer
@@ -325,7 +325,7 @@ async def test_child_own_authorization_not_overridden(
     # (_resolve_runtime_value) — same as any other sensitive catalog value,
     # this child's own bearer must be a runtime reference or ${VAR} template.
     monkeypatch.setenv("CHILD_OWN_TOKEN", "child-own")
-    mux = MCPMultiplexer(tmp_path / "c.json")
+    mux = multiplexer_from_fixture(tmp_path / "c.json")
     await mux._start_child(
         "auth-mcp",
         {
