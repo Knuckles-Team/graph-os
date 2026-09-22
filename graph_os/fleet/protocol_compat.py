@@ -5,8 +5,8 @@ from __future__ import annotations
 
 CONCEPT:AU-ECO.mcp.protocol-compat-bridge
 
-`agent-utilities` targets `fastmcp>=4.0.0b1` by default (see the `[mcp]` extra in
-`pyproject.toml`), which transitively uses the MCP Python SDK v2 line. Earlier
+GraphOS targets `fastmcp>=4.0.0b1` directly in `pyproject.toml`, which
+transitively uses the MCP Python SDK v2 line. Earlier
 Pydantic-AI releases read the SDK's legacy camelCase fields and assumed the
 initialize handshake, so AU briefly carried process-global aliases, a copied
 `MCPToolset` method body, and an explicit legacy-mode pin.
@@ -300,7 +300,28 @@ def _declared_extra_floor(distribution: str, package: str, extra: str) -> Any | 
     return None
 
 
-def _source_shadow_floor(package: str, extra: str) -> tuple[Any | None, str | None]:
+def _declared_runtime_floor(distribution: str, package: str) -> Any | None:
+    """Return a base runtime requirement from installed distribution metadata."""
+
+    try:
+        reqs = importlib.metadata.requires(distribution) or []
+    except importlib.metadata.PackageNotFoundError:
+        return None
+    env = _extra_marker_environment("")
+    if env is None:
+        return None
+    for raw in reqs:
+        req = _parse_requirement(raw)
+        if (
+            req is not None
+            and req.name.lower() == package.lower()
+            and (req.marker is None or req.marker.evaluate(env))
+        ):
+            return req
+    return None
+
+
+def _source_shadow_floor(package: str) -> tuple[Any | None, str | None]:
     """Return the ``package`` floor declared by the SOURCE tree actually imported.
 
     CONCEPT:AU-ECO.mcp.protocol-compat-bridge
@@ -321,10 +342,11 @@ def _source_shadow_floor(package: str, extra: str) -> tuple[Any | None, str | No
     import tomllib
     from pathlib import Path
 
-    import agent_utilities
     from packaging.requirements import InvalidRequirement, Requirement
 
-    origin = getattr(agent_utilities, "__file__", None)
+    import graph_os
+
+    origin = getattr(graph_os, "__file__", None)
     if not origin:
         return None, None
     manifest = Path(origin).resolve().parent.parent / "pyproject.toml"
@@ -334,15 +356,13 @@ def _source_shadow_floor(package: str, extra: str) -> tuple[Any | None, str | No
         declared = tomllib.loads(manifest.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError) as exc:
         warnings.warn(
-            f"agent-utilities: could not read the source manifest {manifest} to "
+            f"graph-os: could not read the source manifest {manifest} to "
             f"cross-check the declared '{package}' floor: {type(exc).__name__}",
             RuntimeWarning,
             stacklevel=2,
         )
         return None, None
-    raw_reqs = (declared.get("project", {}).get("optional-dependencies", {})).get(
-        extra, []
-    )
+    raw_reqs = declared.get("project", {}).get("dependencies", [])
     for raw in raw_reqs:
         try:
             req = Requirement(raw)
@@ -388,14 +408,14 @@ def _source_floor_reconciliation(
     distribution: str, metadata_requirement: Any
 ) -> tuple[Any, str | None]:
     """Prefer an imported source manifest floor and report metadata drift."""
-    shadow_requirement, manifest = _source_shadow_floor("fastmcp", "mcp")
+    shadow_requirement, manifest = _source_shadow_floor("fastmcp")
     if shadow_requirement is None or str(shadow_requirement.specifier) == str(
         metadata_requirement.specifier
     ):
         return metadata_requirement, None
     divergence = (
         f"source/installed divergence: the imported source ({manifest}) declares "
-        f"fastmcp '{shadow_requirement.specifier}' under [mcp] while the installed "
+        f"fastmcp '{shadow_requirement.specifier}' while the installed "
         f"{distribution} metadata declares '{metadata_requirement.specifier}' — this "
         "environment was provisioned from a different revision than the source it "
         "now runs"
@@ -403,8 +423,8 @@ def _source_floor_reconciliation(
     return shadow_requirement, divergence
 
 
-def check_mcp_sdk_floor(distribution: str = "agent-utilities") -> dict[str, Any]:
-    """Compare the installed `mcp`/`fastmcp` SDK against the declared `[mcp]` floor.
+def check_mcp_sdk_floor(distribution: str = "graph-os") -> dict[str, Any]:
+    """Compare installed MCP packages against GraphOS runtime requirements.
 
     CONCEPT:AU-ECO.mcp.protocol-compat-bridge
 
@@ -417,29 +437,29 @@ def check_mcp_sdk_floor(distribution: str = "agent-utilities") -> dict[str, Any]
     `agent-utilities doctor` and a CI regression test) instead of surfacing
     only as a swallowed `ImportError` deep in a child transport.
 
-    The `fastmcp` floor is read from `distribution`'s own extra metadata
-    (`[mcp]` -> `fastmcp>=...`); the `mcp` floor is derived transitively from
+    The `fastmcp` floor is read from `distribution`'s base runtime metadata;
+    the `mcp` floor is derived transitively from
     `fastmcp-slim`'s own installed metadata (fastmcp's real runtime
     dependency) rather than a second, hand-maintained copy of the same
     constraint.
 
     Returns ``{"ok": bool | None, "detail": str}``. ``ok=None`` means the
-    check could not run (the `[mcp]` extra floor isn't declared at all, e.g.
-    a build of this package that dropped the extra) — distinct from a real
+    check could not run (the runtime floor is not declared at all, e.g. a
+    malformed build) — distinct from a real
     mismatch.
     """
-    fastmcp_requirement = _declared_extra_floor(distribution, "fastmcp", "mcp")
+    fastmcp_requirement = _declared_runtime_floor(distribution, "fastmcp")
     if fastmcp_requirement is None:
         return {
             "ok": None,
-            "detail": f"{distribution} declares no 'fastmcp' floor under the [mcp] extra",
+            "detail": f"{distribution} declares no runtime 'fastmcp' floor",
         }
     try:
         installed_fastmcp = importlib.metadata.version("fastmcp")
     except importlib.metadata.PackageNotFoundError:
         return {
             "ok": False,
-            "detail": "fastmcp is not installed (the [mcp] extra is absent)",
+            "detail": "fastmcp is not installed",
         }
 
     fastmcp_requirement, divergence = _source_floor_reconciliation(

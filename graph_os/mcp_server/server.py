@@ -117,7 +117,7 @@ def _preflight_mcp_sdk_floor() -> None:
     continue, for an operator who is knowingly running a mismatched pair during a
     migration).
     """
-    from agent_utilities.mcp.protocol_compat import check_mcp_sdk_floor
+    from graph_os.fleet.protocol_compat import check_mcp_sdk_floor
 
     result = check_mcp_sdk_floor()
     if result["ok"] is True:
