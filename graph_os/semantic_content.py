@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from agent_connector_sdk.mcp.content import ConnectorContent
+from agent_connector_sdk.ports.sink import Sink
 from agent_connector_sdk.runner.provisioning import (
     ProvisionOutcome,
     provision_connector_content,
@@ -15,8 +16,8 @@ from agent_connector_sdk.runner.provisioning import (
 from graph_os.content import connector_content
 
 ContentProvider = Callable[[], ConnectorContent]
-AttachPack = Callable[[str], Awaitable[Any]]
-ReprojectPack = Callable[[str], Awaitable[Any]]
+type AttachPack[T] = Callable[[str], Awaitable[T]]
+type ReprojectPack[T] = Callable[[str], Awaitable[T]]
 
 
 class SemanticContentNotReadyError(RuntimeError):
@@ -24,13 +25,13 @@ class SemanticContentNotReadyError(RuntimeError):
 
 
 @dataclass(frozen=True, slots=True)
-class SemanticProvisionReceipt:
+class SemanticProvisionReceipt[ReprojectReceiptT, AttachReceiptT]:
     """Unmodified receipts from the three owning authorities."""
 
     connector: str
     import_outcome: ProvisionOutcome
-    reproject_receipt: Any
-    attach_receipt: Any
+    reproject_receipt: ReprojectReceiptT
+    attach_receipt: AttachReceiptT
 
 
 def default_content_providers() -> tuple[ContentProvider, ...]:
@@ -72,7 +73,7 @@ async def verify_semantic_content(
     if schema_reader is None:
         from epistemic_graph.generated import reasoning
 
-        schema_reader = reasoning.send_graph_schema_list  # type: ignore[attr-defined]
+        schema_reader = cast(Any, reasoning).send_graph_schema_list
     if status_reader is None:
         from epistemic_graph.generated.storage import send_connector_pack_status
 
@@ -121,13 +122,13 @@ async def verify_semantic_content(
             )
 
 
-async def provision_semantic_content(
+async def provision_semantic_content[ReprojectReceiptT, AttachReceiptT](
     providers: Sequence[ContentProvider],
     *,
-    sink: Any,
-    reproject_pack: ReprojectPack,
-    attach_pack: AttachPack,
-) -> tuple[SemanticProvisionReceipt, ...]:
+    sink: Sink,
+    reproject_pack: ReprojectPack[ReprojectReceiptT],
+    attach_pack: AttachPack[AttachReceiptT],
+) -> tuple[SemanticProvisionReceipt[ReprojectReceiptT, AttachReceiptT], ...]:
     """Import and attach each provider under its own connector identity.
 
     ``sink`` is the already-authenticated SDK EpistemicGraph sink and
@@ -139,7 +140,7 @@ async def provision_semantic_content(
     connectors = tuple(content.connector for content in contents)
     if len(set(connectors)) != len(connectors):
         raise ValueError("semantic content providers must have unique connectors")
-    receipts: list[SemanticProvisionReceipt] = []
+    receipts: list[SemanticProvisionReceipt[ReprojectReceiptT, AttachReceiptT]] = []
     for content in contents:
         outcome = await provision_connector_content(content, sink=sink)
         reproject_receipt = await reproject_pack(content.connector)
