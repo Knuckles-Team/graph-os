@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from .application import AmbientA2AAuthenticator, create_a2a_handlers
-from .authority import WorkItemA2AAuthority
-from .routing import OrchestratorA2ARouter
+from .composition import compose_a2a_service, hosted_control_plane
 from .service import A2AService
 
 _SERVICE: A2AService | None = None
@@ -17,10 +16,9 @@ def _service() -> A2AService:
     if _SERVICE is None:
         from graph_os.mcp_server import runtime
 
-        provider = runtime._get_engine
-        _SERVICE = A2AService(
-            authority=WorkItemA2AAuthority(provider),
-            router=OrchestratorA2ARouter(provider),
+        _SERVICE = compose_a2a_service(
+            control_plane_for=hosted_control_plane(runtime.graph_client),
+            graph_client_for=runtime.graph_client,
         )
     return _SERVICE
 
