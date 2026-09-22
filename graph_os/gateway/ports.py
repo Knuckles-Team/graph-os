@@ -8,7 +8,7 @@ implementations by transport modules.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any, Protocol, runtime_checkable
 
 __all__ = [
@@ -36,11 +36,6 @@ class GatewayApplicationPort(Protocol):
 
     def remote_oauth_grant_bindings(self, actor: Any) -> Sequence[Any]:
         """Return current fleet OAuth bindings from the fleet authority."""
-
-    def toggle_states_batch(
-        self, engine: Any, items: Sequence[tuple[str, str]]
-    ) -> Mapping[tuple[str, str], bool]:
-        """Read enabled state for a bounded batch of catalog identities."""
 
 
 _application: GatewayApplicationPort | None = None

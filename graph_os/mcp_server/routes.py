@@ -112,10 +112,6 @@ def mount_rest_routes(app, prefix: str = "") -> None:
     route("/goals/{goal_id}/iterations", get_goal_iterations, ["GET"])
     route("/goals/{goal_id}/cancel", cancel_goal, ["POST"])
 
-    # ── Tools introspection / toggles ──
-    route("/tools", runtime.get_tools_endpoint, ["GET"])
-    route("/tools/toggle", runtime.toggle_tool_endpoint, ["POST"])
-
     # ── Bilateral graph execution (action-routed) ──
     route("/graph/query", runtime.graph_query_endpoint, ["POST"])
     route("/query/tabular", runtime.tabular_query_endpoint, ["POST"])
