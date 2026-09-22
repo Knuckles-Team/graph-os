@@ -37,6 +37,11 @@ dependencies = [
     # source through its own .uv-workspace-siblings declaration.
     "epistemic-graph>=2.27.0,<3.0.0",
     "fastapi>=0.139.2",
+    # Fleet child service identity and the remote OAuth broker authenticate
+    # outbound HTTP directly; each auth object is both an httpx.Auth and an
+    # httpx2.Auth (the MCP SDK v2 client transport).
+    "httpx>=0.28.1",
+    "httpx2>=2.12.0",
     "filelock>=3.32.0",
     "prometheus-client>=0.25.0",
     "pydantic>=2.13.4,<3.0.0",
