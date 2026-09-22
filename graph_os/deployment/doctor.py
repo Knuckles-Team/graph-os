@@ -381,10 +381,10 @@ def _check_mcp_sdk_floor() -> dict[str, Any]:
     A runtime that resolved an older SDK line (`mcp` v1 while the extra declares
     `fastmcp>=4.0.0b1` / SDK v2) previously only failed as a swallowed `ImportError`
     deep inside `child_resilience.py` at serve time (D-ISR-2). This surfaces that
-    mismatch here instead — see `agent_utilities.mcp.protocol_compat.check_mcp_sdk_floor`.
+    mismatch here instead through GraphOS's native protocol compatibility gate.
     """
     try:
-        from agent_utilities.mcp.protocol_compat import check_mcp_sdk_floor
+        from graph_os.fleet.protocol_compat import check_mcp_sdk_floor
     except ImportError as exc:
         return _result(
             "mcp_sdk_floor",
@@ -402,8 +402,7 @@ def _check_mcp_sdk_floor() -> dict[str, Any]:
         outcome["detail"],
         remediation=(
             "reinstall/rebuild the runtime image so `mcp`/`fastmcp` resolve the "
-            "versions declared by the `[mcp]` extra in pyproject.toml (e.g. "
-            "`pip install -U 'agent-utilities[mcp]'` or re-lock and redeploy)"
+            "versions declared by GraphOS in pyproject.toml (re-lock and redeploy)"
         ),
     )
 

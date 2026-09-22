@@ -1818,7 +1818,7 @@ class SdkFloorProbe:
         script = (
             "import json, sys\n"
             "try:\n"
-            "    from agent_utilities.mcp.protocol_compat import check_mcp_sdk_floor\n"
+            "    from graph_os.fleet.protocol_compat import check_mcp_sdk_floor\n"
             "except Exception as exc:\n"
             "    json.dump({'ok': None, 'detail': f'unavailable: {type(exc).__name__}: {exc}'}, sys.stdout)\n"
             "else:\n"
