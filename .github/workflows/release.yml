@@ -147,6 +147,8 @@ jobs:
           set -euo pipefail
           eg_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph"
           test "$(git -C "$eg_source" rev-parse HEAD)" = "49d63da5396fef7482fc3617df3f90a836661722"
+          python -m pip install 'maturin>=1,<2'
+          python "$eg_source/scripts/build_numeric_kernel.py"
           echo "PYTHONPATH=$eg_source${PYTHONPATH:+:$PYTHONPATH}" >> "$GITHUB_ENV"
           uv sync --frozen --extra test --extra webui --no-install-package epistemic-graph
           PYTHONPATH="$eg_source${PYTHONPATH:+:$PYTHONPATH}" uv run --no-sync python -c \

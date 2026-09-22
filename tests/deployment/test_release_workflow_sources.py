@@ -125,6 +125,8 @@ def test_release_workflow_uses_pinned_epistemic_graph_contract_overlay() -> None
     assert "PYTHONPATH=$eg_source" in command
     assert 'git -C "$eg_source" rev-parse HEAD' in command
     assert "49d63da5396fef7482fc3617df3f90a836661722" in command
+    assert "python -m pip install 'maturin>=1,<2'" in command
+    assert 'python "$eg_source/scripts/build_numeric_kernel.py"' in command
     assert "epistemic_graph.__file__" in command
     assert "source_ingestion.SourceCheckpoint" in command
     assert "storage.send_agent_component_content" in command
