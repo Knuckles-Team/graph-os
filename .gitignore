@@ -41,6 +41,7 @@ site/
 *.swp
 
 # Fleet-shared entries required by the gitignore-convergence hook
+/.specify/
 dist-*/
 target-*/
 .venv/
