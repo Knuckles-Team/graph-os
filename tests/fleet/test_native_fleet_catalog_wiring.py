@@ -18,7 +18,6 @@ from graph_os.fleet.catalog_reader import (
     ServerRegistration,
 )
 from graph_os.fleet.multiplexer import MCPMultiplexer
-from graph_os.mcp_server.bootstrap import _bind_mcp_probe_port
 
 CONTEXT = ReadContext(
     tenant_id="tenant-a",
@@ -92,17 +91,6 @@ def test_native_module_is_not_an_au_forwarding_facade() -> None:
 
     assert module.__name__ == "graph_os.fleet.multiplexer"
     assert module.MCPMultiplexer.__module__ == "graph_os.fleet.multiplexer"
-
-
-def test_engine_probe_port_uses_native_fleet_runtime() -> None:
-    import graph_os.fleet.multiplexer as native
-
-    engine = type("Engine", (), {})()
-
-    _bind_mcp_probe_port(engine)
-
-    assert engine.mcp_probe_port.multiplexer_factory is native.MCPMultiplexer
-    assert engine.mcp_probe_port.resolve_config_path is native._resolve_config_path
 
 
 def test_reader_authority_blocks_static_catalog_fallback(tmp_path: Path) -> None:

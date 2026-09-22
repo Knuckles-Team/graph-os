@@ -60,5 +60,9 @@ def test_bootstrap_has_no_retired_legacy_query_runtime() -> None:
         "bound_to_graph",
         "fanout_execute",
         "_ontology_system",
+        "_bind_ontology_package_sync",
+        "_bind_mcp_probe_port",
+        "_runtime_authority_binders",
+        "_sync_ontologies_at_boot",
     }
     assert all(symbol not in bootstrap for symbol in retired_symbols)

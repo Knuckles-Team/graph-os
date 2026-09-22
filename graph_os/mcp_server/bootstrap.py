@@ -10,7 +10,7 @@ import logging
 import re
 import threading
 import time
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -33,65 +33,6 @@ get_existing_disabled_batch = cast(Any, None)
 setting = cast(Any, None)
 
 
-def _bind_ontology_package_sync(value: Any) -> None:
-    """Bind the current ontology adapter once per engine instance."""
-    from agent_utilities.mcp.tools.ontology_tools import _sync_package_ontologies
-
-    if getattr(value, "_ontology_package_sync", None) is not _sync_package_ontologies:
-        value._ontology_package_sync = _sync_package_ontologies
-
-
-def _bind_mcp_probe_port(value: Any) -> None:
-    """Bind canonical multiplexer/config/async seams for KG MCP consumers."""
-    from agent_utilities.knowledge_graph.core.engine_mcp_discovery import MCPProbePort
-    from agent_utilities.protocols.source_connectors.connectors.mcp_package import (
-        _run_async,
-    )
-
-    from graph_os.fleet.multiplexer import MCPMultiplexer, _resolve_config_path
-
-    port = MCPProbePort(
-        probe_declaration=MCPMultiplexer.probe_declaration,
-        resolve_config_path=_resolve_config_path,
-        multiplexer_factory=MCPMultiplexer,
-        run_async=_run_async,
-    )
-    if getattr(value, "mcp_probe_port", None) != port:
-        value.mcp_probe_port = port
-
-
-_RuntimeAuthorityBinder = Callable[[Any], object]
-
-
-def _runtime_authority_binders() -> tuple[_RuntimeAuthorityBinder, ...]:
-    """Return the available process-owned runtime binders."""
-    binders: tuple[_RuntimeAuthorityBinder, ...] = (
-        _bind_ontology_package_sync,
-        _bind_mcp_probe_port,
-    )
-    try:
-        from agent_utilities.mcp.tools.data_prep_tools import (
-            register_process_data_prep_runtime,
-        )
-    except Exception:  # noqa: BLE001 - optional adapters must not block boot
-        logger.warning("data prep runtime registration deferred", exc_info=True)
-    else:
-        return (register_process_data_prep_runtime, *binders)
-    return binders
-
-
-def _bind_runtime_authorities(
-    value: Any, binders: tuple[_RuntimeAuthorityBinder, ...]
-) -> Any:
-    """Bind independent runtime capabilities without suppressing later ones."""
-    for binder in binders:
-        try:
-            binder(value)
-        except Exception:  # noqa: BLE001 - optional adapters must not block boot
-            logger.warning("runtime capability registration deferred", exc_info=True)
-    return value
-
-
 def _get_engine():
     """Lazily initialize and return the IntelligenceGraphEngine singleton.
 
@@ -105,21 +46,14 @@ def _get_engine():
     from agent_utilities.knowledge_graph.backends import create_backend
     from agent_utilities.knowledge_graph.core.engine import IntelligenceGraphEngine
 
-    def _register_runtime_authorities(value: Any) -> Any:
-        # Registration is process-owned startup state.  The served callers can
-        # only resolve these recorded adapters, never select one from request
-        # data. Each optional binder is isolated so one failure cannot suppress
-        # the remaining capabilities.
-        return _bind_runtime_authorities(value, _runtime_authority_binders())
-
     engine = IntelligenceGraphEngine.get_active()
     if engine is not None:
-        return _register_runtime_authorities(engine)
+        return engine
 
     with _ENGINE_LOCK:
         engine = IntelligenceGraphEngine.get_active()
         if engine is not None:
-            return _register_runtime_authorities(engine)
+            return engine
         # First-run: ensure XDG dirs exist and create backend
         ensure_dirs()
 
@@ -130,9 +64,7 @@ def _get_engine():
                 defer_background_start=True,
             )
 
-        return _register_runtime_authorities(
-            IntelligenceGraphEngine.get_or_create(factory=_factory)
-        )
+        return IntelligenceGraphEngine.get_or_create(factory=_factory)
 
 
 def _neutral_capability_name(value: object, *, fallback_ref: str) -> str:
@@ -946,7 +878,6 @@ def _run_boot_hydration_plan(
             lambda: _ingest_capabilities(engine, skip_skill_names=skip_skill_names),
         ),
         ("prompts", 2, _ingest_prompts_at_boot),
-        ("ontologies", 3, lambda: _sync_ontologies_at_boot(engine)),
         (
             "code_and_connectors",
             4,
@@ -1094,35 +1025,6 @@ def _ingest_self_tool_surface_at_boot(engine: Any) -> None:
         logger.info("Queued self tool-surface boot hydration: %s", job_id)
     except Exception as exc:
         logger.error("Self tool-surface boot enqueue failed: %s", exc)
-
-
-def _sync_ontologies_at_boot(engine: Any) -> None:
-    """Load package ontologies after runnable resources are available.
-
-    CONCEPT:AU-KG.ontology.integrity-bootstrap — ``activate_graph()`` runs FIRST
-    and unconditionally, so the dedicated ontology graph's SHACL/ICV integrity
-    policy is registered even on a boot with zero federated ontology content
-    to load (which would otherwise never reach the ``load()``/``_load_axioms``
-    chokepoint that also performs activation). Idempotent; safe every boot.
-    """
-    sync_packages = engine._ontology_package_sync
-    from agent_utilities.knowledge_graph.ontology.lifecycle import OntologyLifecycle
-
-    lc = OntologyLifecycle(engine=engine)
-    activation = lc.activate_graph()
-    if not activation.get("activated") and activation.get("reason") not in (
-        "no engine RDF surface",
-    ):
-        logger.error(
-            "Ontology graph activation failed at boot: %s", activation.get("reason")
-        )
-
-    report = sync_packages(lc)
-    if report.get("providers_loaded"):
-        logger.info(
-            "Ontology federation: loaded %d package ontolog(ies) at boot",
-            report["providers_loaded"],
-        )
 
 
 def _set_readiness_authority(session: Any) -> object:
