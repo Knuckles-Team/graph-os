@@ -14,7 +14,7 @@ from .doctor_support import _prescription, _result
 # deployment-profile split used for required capabilities does not apply here.
 # Once an operator opts in by naming an endpoint, a static (non-live)
 # check reports "ok" (declared) and a `live=True` doctor additionally proves
-# reachability -- mirroring _check_graph_connections/_check_langfuse.
+# reachability -- mirroring the live Langfuse check.
 #
 # Each attaches a `_prescription()`: the exact checked-in manifest path
 # (services/<name>/k8s/manifests.yaml, verified live against the running cluster
