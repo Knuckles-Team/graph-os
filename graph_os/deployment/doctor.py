@@ -202,22 +202,6 @@ def _check_langfuse(live: bool = False) -> Any:
     )
 
 
-def _ingestion_freshness(*args: Any, **kwargs: Any) -> Any:
-    return _doctor_coverage._ingestion_freshness(*args, **kwargs)
-
-
-def _ingestion_coverage_result(*args: Any, **kwargs: Any) -> Any:
-    return _doctor_coverage._ingestion_coverage_result(*args, **kwargs)
-
-
-def _check_ingestion_coverage(*args: Any, **kwargs: Any) -> Any:
-    return _doctor_coverage._check_ingestion_coverage(*args, **kwargs)
-
-
-def _check_connector_coverage(*args: Any, **kwargs: Any) -> Any:
-    return _doctor_coverage._check_connector_coverage(*args, **kwargs)
-
-
 def _check_workspace_config(*args: Any, **kwargs: Any) -> Any:
     return _doctor_coverage._check_workspace_config(*args, **kwargs)
 
@@ -3568,8 +3552,6 @@ CHECKS: dict[str, Callable[..., dict[str, Any]]] = {
     "engine_domains": _check_engine_domains,
     "graph_authority": _check_graph_authority,
     "graph_connections": _check_graph_connections,
-    "ingestion_coverage": _check_ingestion_coverage,
-    "connector_coverage": _check_connector_coverage,
     "secrets": _check_secrets,
     "secrets_backend": _check_secrets_backend,
     "auth": _check_auth,
