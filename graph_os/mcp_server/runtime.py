@@ -1,42 +1,15 @@
 #!/usr/bin/python
-"""Knowledge Graph MCP Server — Thin wrapper over IntelligenceGraphEngine.
+"""GraphOS MCP server runtime: tool registry, dispatch and host routes.
 
-CONCEPT:AU-ECO.mcp.knowledge-graph-exposure — Knowledge Graph MCP Exposure
+The server is built by the agent-connector-sdk factory with GraphOS host
+policy (:mod:`graph_os.mcp_server.serving`). Every registered action tool is
+dispatched through :func:`_execute_tool` under the verified caller session,
+and each has exactly one REST twin in :data:`ACTION_TOOL_ROUTES`.
 
-Exposes the internal Knowledge Graph as MCP tools for external agents
-(Claude Code, Antigravity IDE, OpenCode, Devin) to query, search, and
-ingest data into the shared unified KG.
+Usage::
 
-Architecture:
-    This module reuses the existing ``create_mcp_server()`` infrastructure
-    from ``agent_utilities.mcp.server_factory`` — zero new abstractions.
-    All tools delegate to ``IntelligenceGraphEngine`` methods that already
-    exist in the 15-phase pipeline.
-
-Security:
-    - Read-only by default for external agents.
-    - Write access requires ``kg:write`` scope via MCP auth.
-    - Every write carries provenance: ``agent_id``, ``session_id``,
-      ``workspace_path`` for multi-agent traceability.
-
-Usage:
-    # Start as stdio MCP server (default):
     graph-os --transport stdio
-
-    # Start as HTTP transport:
     graph-os --transport streamable-http --host 127.0.0.1 --port 8004
-
-Cross-IDE Discovery:
-    Register the Graph OS endpoint with the MCP client::
-
-        {
-          "mcpServers": {
-            "graph-os": {
-              "command": "graph-os",
-              "args": ["--transport", "stdio"]
-            }
-          }
-        }
 """
 
 from __future__ import annotations

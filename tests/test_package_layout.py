@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import re
 from pathlib import Path
 
 import pytest
@@ -112,3 +113,38 @@ def test_bootstrap_has_no_retired_legacy_query_runtime() -> None:
         Path(__file__).parents[1] / "graph_os" / "mcp_server" / "runtime.py"
     ).read_text(encoding="utf-8")
     assert "get_existing_disabled_batch" not in runtime
+
+
+def _production_sources(*areas: str) -> dict[str, str]:
+    package_root = Path(__file__).parents[1] / "graph_os"
+    roots = [package_root / area for area in areas] if areas else [package_root]
+    return {
+        path.relative_to(package_root).as_posix(): path.read_text(encoding="utf-8")
+        for root in roots
+        for path in root.rglob("*.py")
+    }
+
+
+def _imports(source: str, module: str) -> bool:
+    pattern = rf"^\s*(?:from|import) {re.escape(module)}(?:\.|\s)"
+    return re.search(pattern, source, flags=re.MULTILINE) is not None
+
+
+def test_no_production_module_imports_au_private_mcp_internals() -> None:
+    offenders = [
+        name
+        for name, source in _production_sources().items()
+        if _imports(source, "agent_utilities.mcp")
+    ]
+
+    assert offenders == []
+
+
+def test_fleet_a2a_and_deployment_use_no_au_knowledge_graph_internals() -> None:
+    offenders = [
+        name
+        for name, source in _production_sources("fleet", "a2a", "deployment").items()
+        if _imports(source, "agent_utilities.knowledge_graph")
+    ]
+
+    assert offenders == []
