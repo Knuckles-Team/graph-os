@@ -53,6 +53,9 @@ class Authority:
     async def cancel(self, task_id: str) -> A2ATask:
         return self.task.model_copy(update={"status": A2ATaskStatus(state="canceled")})
 
+    async def output(self, task_id: str) -> str | None:
+        return "the answer" if task_id == self.task.id else None
+
 
 def _app() -> tuple[Any, Authenticator, Authority]:
     auth = Authenticator()
@@ -260,10 +263,16 @@ def test_message_stream_follows_the_task_to_its_final_state() -> None:
     assert response.headers["content-type"].startswith("text/event-stream")
     frames = _frames(response.text)
     kinds = [frame["result"]["kind"] for frame in frames]
-    assert kinds == ["task", "status-update", "status-update"]
-    states = [frame["result"]["status"]["state"] for frame in frames]
+    assert kinds == ["task", "status-update", "artifact-update", "status-update"]
+    answer = frames[2]["result"]["artifact"]["parts"][0]["text"]
+    assert answer == "the answer"
+    states = [
+        frame["result"]["status"]["state"]
+        for frame in frames
+        if frame["result"]["kind"] != "artifact-update"
+    ]
     assert states == ["submitted", "working", "completed"]
-    assert [frame["result"].get("final") for frame in frames[1:]] == [False, True]
+    assert [frame["result"].get("final") for frame in frames[-2:]] == [None, True]
     assert all(frame["_id"] for frame in frames)
 
 
@@ -296,8 +305,12 @@ def test_resubscribe_skips_the_state_the_client_already_saw() -> None:
     }
 
     first = _frames(client.post("/a2a", headers=headers, json=body).text)
-    assert [frame["result"]["final"] for frame in first] == [True]
-    seen = first[0]["_id"]
+    assert [frame["result"]["kind"] for frame in first] == [
+        "artifact-update",
+        "status-update",
+    ]
+    assert first[-1]["result"]["final"] is True
+    seen = first[-1]["_id"]
     again = client.post("/a2a", headers={**headers, "Last-Event-ID": seen}, json=body)
     assert again.text == ""
 

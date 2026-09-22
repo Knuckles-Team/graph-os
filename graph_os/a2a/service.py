@@ -11,12 +11,15 @@ from typing import Any
 from .authority import A2ATaskAuthority
 from .models import (
     A2AAgentCard,
+    A2AArtifact,
     A2AListResult,
     A2AMessage,
     A2ASkill,
     A2ATask,
+    A2ATaskArtifactUpdateEvent,
     A2ATaskStatus,
     A2ATaskStatusUpdateEvent,
+    A2ATextPart,
 )
 from .routing import A2ARouter
 
@@ -28,7 +31,7 @@ __all__ = [
     "state_fence",
 ]
 
-StreamEvent = A2ATask | A2ATaskStatusUpdateEvent
+StreamEvent = A2ATask | A2ATaskStatusUpdateEvent | A2ATaskArtifactUpdateEvent
 _FINAL_STATES = frozenset({"completed", "canceled", "failed", "rejected"})
 
 
@@ -129,8 +132,31 @@ class A2AService:
             context_budget_tokens=context_budget_tokens,
         )
         yield task
+        if task.status.state == "completed":
+            async for event in self._answer(task):
+                yield event
         async for event in self._follow(task, seen=event_id(task)):
             yield event
+
+    async def _answer(self, task: A2ATask) -> AsyncIterator[StreamEvent]:
+        """The completed task's answer as one artifact, when the run has one."""
+        text = await self.authority.output(task.id)
+        if text:
+            yield A2ATaskArtifactUpdateEvent(
+                task_id=task.id,
+                context_id=task.context_id,
+                artifact=A2AArtifact(
+                    artifact_id=f"{task.id}:answer", parts=[A2ATextPart(text=text)]
+                ),
+            )
+
+    async def _status_events(self, task: A2ATask) -> AsyncIterator[StreamEvent]:
+        """One observed state; a completed task's answer precedes its final."""
+        final = task.status.state in _FINAL_STATES
+        if task.status.state == "completed":
+            async for event in self._answer(task):
+                yield event
+        yield _status_event(task, final=final)
 
     async def resubscribe(
         self, task_id: str, *, last_event_id: str | None = None
@@ -140,7 +166,8 @@ class A2AService:
         if task is None:
             raise LookupError("A2A task not found")
         if event_id(task) != last_event_id:
-            yield _status_event(task, final=task.status.state in _FINAL_STATES)
+            async for event in self._status_events(task):
+                yield event
         async for event in self._follow(task, seen=event_id(task)):
             yield event
 
@@ -159,7 +186,8 @@ class A2AService:
             if event_id(latest) != seen:
                 seen = event_id(latest)
                 interval = policy.poll_interval_s
-                yield _status_event(latest, final=latest.status.state in _FINAL_STATES)
+                async for event in self._status_events(latest):
+                    yield event
             else:
                 interval = min(interval * 2, policy.max_interval_s)
             current = latest

@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .authority import A2AIdempotencyConflict, A2ATaskNotCancelable
-from .models import A2AMessage, A2ATask
+from .models import A2AMessage, A2ATask, A2ATaskArtifactUpdateEvent
 from .routing import A2AAssemblyUnavailable
 from .service import A2AService, state_fence
 
@@ -141,6 +141,8 @@ def _sse(request_id: Any, body: dict[str, Any], *, event: str | None = None) -> 
 
 
 def _event_fence(event: Any) -> str:
+    if isinstance(event, A2ATaskArtifactUpdateEvent):
+        return f"{event.task_id}:artifact:{event.artifact.artifact_id}"
     task_id = event.id if isinstance(event, A2ATask) else event.task_id
     return state_fence(task_id, event.status)
 

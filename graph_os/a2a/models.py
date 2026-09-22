@@ -9,6 +9,7 @@ from pydantic.alias_generators import to_camel
 
 __all__ = [
     "A2AAgentCard",
+    "A2AArtifact",
     "A2AAgentCapabilities",
     "A2AContextBudget",
     "A2AListResult",
@@ -18,6 +19,7 @@ __all__ = [
     "A2ATask",
     "A2ATaskState",
     "A2ATaskStatus",
+    "A2ATaskArtifactUpdateEvent",
     "A2ATaskStatusUpdateEvent",
     "A2ATextPart",
 ]
@@ -33,7 +35,7 @@ class _WireModel(BaseModel):
 
 class A2ATextPart(_WireModel):
     kind: Literal["text"] = "text"
-    text: str = Field(min_length=1, max_length=65_536)
+    text: str = Field(min_length=1, max_length=100_000)
 
 
 class A2AMessage(_WireModel):
@@ -72,6 +74,7 @@ class A2ARouteDecision(_WireModel):
     agent_graph_ref: str | None = Field(default=None, max_length=512)
     run_spec_ref: str | None = Field(default=None, max_length=512)
     decision_record_ref: str | None = Field(default=None, max_length=512)
+    task_iri: str | None = Field(default=None, max_length=128)
 
     @field_validator("selected_tools")
     @classmethod
@@ -111,6 +114,22 @@ class A2ATaskStatusUpdateEvent(_WireModel):
     status: A2ATaskStatus
     final: bool
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class A2AArtifact(_WireModel):
+    artifact_id: str = Field(min_length=1, max_length=128)
+    name: str = "answer"
+    parts: list[A2ATextPart] = Field(min_length=1, max_length=1)
+
+
+class A2ATaskArtifactUpdateEvent(_WireModel):
+    """The completed task's answer, streamed before its final status."""
+
+    task_id: str = Field(pattern=r"^a2a-[0-9a-f]{64}$")
+    context_id: str
+    kind: Literal["artifact-update"] = "artifact-update"
+    artifact: A2AArtifact
+    last_chunk: bool = True
 
 
 class A2AListResult(_WireModel):

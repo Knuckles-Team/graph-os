@@ -44,8 +44,14 @@ class _ControlPlane:
         self.items: dict[str, WorkItemSnapshot] = {}
         self.dispatched: list[str] = []
         self.cancel_refused = False
+        self.dispatch_requests: list[Any] = []
+        self.outputs: dict[str, Any] = {}
+
+    async def get_run_output(self, request: Any) -> Any:
+        return self.outputs.get(request.run_id)
 
     async def submit_agent_task(self, request: Any) -> AgentTaskDispatchResult:
+        self.dispatch_requests.append(request)
         existing = self.items.get(request.work_item_id)
         if existing is None:
             existing = WorkItemSnapshot(
@@ -191,18 +197,45 @@ async def test_in_flight_cancel_is_not_cancelable(bound) -> None:
         await authority.cancel(task.id)
 
 
-async def test_selected_tool_subset_is_refused_before_durable_admission() -> None:
-    authority = WorkItemA2AAuthority(lambda session: pytest.fail("store accessed"))
-    with pytest.raises(A2AAssemblyUnavailable, match="cannot yet enforce"):
-        await authority.dispatch(
-            message=_message(),
-            idempotency_key="key",
-            decision=A2ARouteDecision(
-                agent_name="expert",
-                selected_tools=("graph_query",),
-                selection_mode="agent-assemble",
-            ),
-        )
+async def test_assembled_tool_subset_and_task_travel_with_the_dispatch(
+    bound,
+) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+
+    await authority.dispatch(
+        message=_message(),
+        idempotency_key="key",
+        decision=A2ARouteDecision(
+            agent_name="expert",
+            selected_tools=("graph_query",),
+            selection_mode="eg-agent-assemble",
+            task_iri="eg:task/research",
+        ),
+    )
+
+    request = plane.dispatch_requests[0]
+    assert request.allowed_tools == ("graph_query",)
+    assert request.task_iri == "eg:task/research"
+
+
+async def test_output_reads_only_an_owned_succeeded_run(bound) -> None:
+    from agent_utilities.api import RunOutput
+
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+    task = await authority.dispatch(
+        message=_message(),
+        idempotency_key="k",
+        decision=A2ARouteDecision(agent_name="expert", selection_mode="router"),
+    )
+    plane.outputs[task.id] = RunOutput(run_id=task.id, status="succeeded", output="42")
+
+    assert await authority.output(task.id) == "42"
+    plane.outputs[task.id] = RunOutput(run_id=task.id, status="running")
+    assert await authority.output(task.id) is None
+    bound[0] = _OTHER
+    assert await authority.output(task.id) is None
 
 
 class _Assembly:
@@ -257,7 +290,7 @@ async def test_budgeted_route_carries_the_proved_tool_subset(session_bound) -> N
 async def test_unbudgeted_route_resolves_an_authorized_agent(session_bound) -> None:
     class Plane:
         async def resolve_capability(self, request: Any) -> CapabilityResolution:
-            assert request.task == "do work"
+            assert request.task_iri == "eg:task/review"
             return CapabilityResolution(
                 kind="agent",
                 name="expert",
@@ -268,8 +301,23 @@ async def test_unbudgeted_route_resolves_an_authorized_agent(session_bound) -> N
             )
 
     router = ControlPlaneA2ARouter(lambda session: Plane(), EgAssemblyRouter(None))
+    message = A2AMessage(
+        role="user",
+        parts=[A2ATextPart(text="do work")],
+        message_id="m",
+        metadata={"graphOsTaskIris": ["eg:task/review"]},
+    )
 
-    decision = await router.route(_message(), context_budget_tokens=None)
+    decision = await router.route(message, context_budget_tokens=None)
 
     assert decision.agent_name == "expert"
+    assert decision.task_iri == "eg:task/review"
     assert decision.selected_tools == ()
+
+
+async def test_untyped_free_text_is_refused_before_any_search(session_bound) -> None:
+    router = ControlPlaneA2ARouter(
+        lambda session: pytest.fail("control plane accessed"), EgAssemblyRouter(None)
+    )
+    with pytest.raises(A2AAssemblyUnavailable, match="typed task"):
+        await router.route(_message(), context_budget_tokens=None)

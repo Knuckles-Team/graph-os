@@ -18,12 +18,13 @@ from typing import Any, Protocol, runtime_checkable
 from agent_utilities.api import (
     AgentControlPlane,
     AgentTaskDispatchRequest,
+    AgentWorkItemNotCancelable,
+    RunOutputRequest,
     WorkItemCancelRequest,
     WorkItemGetRequest,
     WorkItemListRequest,
     WorkItemSnapshot,
 )
-from agent_utilities.api.agent_control_contracts import AgentWorkItemNotCancelable
 from agent_utilities.security.persistence_privacy import persistence_reference
 
 from .models import (
@@ -33,7 +34,6 @@ from .models import (
     A2ATaskState,
     A2ATaskStatus,
 )
-from .routing import A2AAssemblyUnavailable
 
 __all__ = [
     "A2AIdempotencyConflict",
@@ -87,6 +87,8 @@ class A2ATaskAuthority(Protocol):
     ) -> tuple[list[A2ATask], str | None]: ...
 
     async def cancel(self, task_id: str) -> A2ATask: ...
+
+    async def output(self, task_id: str) -> str | None: ...
 
 
 def _digest(value: Any) -> str:
@@ -194,12 +196,6 @@ class WorkItemA2AAuthority:
         idempotency_key: str,
         decision: A2ARouteDecision,
     ) -> A2ATask:
-        if decision.selected_tools:
-            # The signed AU dispatch carrier cannot enforce a tool allowlist at
-            # execution time; refuse before durable admission.
-            raise A2AAssemblyUnavailable(
-                "canonical agent dispatch cannot yet enforce an assembled tool subset"
-            )
         session, control_plane, owner_ref = self._bound("kg:write")
         task_id = task_id_for(session.tenant, owner_ref, idempotency_key)
         context_id = "a2a-context-" + _digest(
@@ -224,6 +220,10 @@ class WorkItemA2AAuthority:
                 session_ref=context_id,
                 task=message.task_text(),
                 agent_name=decision.agent_name,
+                # The signed dispatch carrier binds and the worker enforces
+                # the assembled subset; None keeps the agent's own tools.
+                allowed_tools=decision.selected_tools or None,
+                task_iri=decision.task_iri,
                 metadata={
                     "a2a_schema": _A2A_METADATA_SCHEMA,
                     "a2a_context_id": context_id,
@@ -273,6 +273,16 @@ class WorkItemA2AAuthority:
         )
         tasks = [project(item) for item in page.items if _owned(item, owner_ref)]
         return tasks, _encode_cursor(page.next_cursor, session.tenant, owner_ref)
+
+    async def output(self, task_id: str) -> str | None:
+        """The owned task's final answer text (AU run output), if any."""
+        _session, control_plane, owner_ref = self._bound("kg:read")
+        if await self._owned_item(control_plane, task_id, owner_ref) is None:
+            return None
+        result = await control_plane.get_run_output(RunOutputRequest(run_id=task_id))
+        if result is None or result.status != "succeeded" or not result.output:
+            return None
+        return result.output
 
     async def cancel(self, task_id: str) -> A2ATask:
         _session, control_plane, owner_ref = self._bound("kg:write")

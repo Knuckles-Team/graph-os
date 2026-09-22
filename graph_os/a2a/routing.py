@@ -1,7 +1,9 @@
 """Governed agent routing for inbound A2A messages.
 
 Ordinary routing asks AU's public control plane to resolve the message to an
-authorized agent capability (EG ``AgentComponent`` search). A request that
+authorized agent capability (EG ``AgentComponent`` search). Free text is never
+searched: the caller declares a typed ``eg:task/*`` term or an agent name in
+message metadata, and a message with neither is refused. A request that
 carries a context budget is routed by EG ``AgentAssemble`` instead, which
 proves the smallest agent graph and tool subset covering the task; that path
 fails closed until the connected engine serves the method.
@@ -9,9 +11,9 @@ fails closed until the connected engine serves the method.
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, get_args, runtime_checkable
 
-from agent_utilities.api import CapabilitySearchRequest
+from agent_utilities.api import CapabilitySearchRequest, TaskIri
 
 from .models import A2AMessage, A2ARouteDecision
 
@@ -21,6 +23,7 @@ __all__ = [
     "AssemblyRouter",
     "ControlPlaneA2ARouter",
     "EgAssemblyRouter",
+    "AGENT_NAME_METADATA_KEY",
     "TASK_IRIS_METADATA_KEY",
 ]
 
@@ -61,10 +64,22 @@ class ControlPlaneA2ARouter:
             )
         from agent_utilities.api import resolve_session
 
+        task_iri = _typed_task_iri(message)
+        agent_name = _declared_agent_name(message)
+        if task_iri is None and agent_name is None:
+            raise A2AAssemblyUnavailable(
+                "routing needs a typed task: declare graphOsTaskIris "
+                "(an eg:task/* term) or graphOsAgentName in message metadata"
+            )
         session = resolve_session(required_scope="kg:read")
-        resolution = await self._control_plane_for(session).resolve_capability(
-            CapabilitySearchRequest(task=message.task_text())
-        )
+        try:
+            resolution = await self._control_plane_for(session).resolve_capability(
+                CapabilitySearchRequest(
+                    task=message.task_text(), task_iri=task_iri, agent_name=agent_name
+                )
+            )
+        except LookupError as exc:
+            raise A2AAssemblyUnavailable("no authorized agent covers the task") from exc
         if resolution.kind != "agent":
             raise A2AAssemblyUnavailable(
                 "resolved capability requires unavailable governed assembly"
@@ -73,11 +88,16 @@ class ControlPlaneA2ARouter:
             agent_name=resolution.name,
             selection_mode="canonical-capability-router",
             decision_record_ref=resolution.component_id or None,
+            task_iri=task_iri,
         )
 
 
 #: Message metadata key carrying caller-declared native ``eg:task/*`` IRIs.
 TASK_IRIS_METADATA_KEY = "graphOsTaskIris"
+#: Message metadata key naming one authorized agent explicitly.
+AGENT_NAME_METADATA_KEY = "graphOsAgentName"
+#: The typed task terms AU's capability search accepts.
+_ROUTABLE_TASK_IRIS = frozenset(get_args(TaskIri))
 _ASSEMBLY_KINDS = ("a2a_agent_card", "tool")
 
 
@@ -88,6 +108,23 @@ def _declared_task_iris(message: A2AMessage) -> tuple[str, ...]:
     ):
         raise ValueError(f"{TASK_IRIS_METADATA_KEY} must list eg:task/ IRIs")
     return tuple(declared)
+
+
+def _typed_task_iri(message: A2AMessage) -> Any:
+    """The first declared task IRI AU's typed capability search accepts."""
+    for iri in _declared_task_iris(message):
+        if iri in _ROUTABLE_TASK_IRIS:
+            return iri
+    return None
+
+
+def _declared_agent_name(message: A2AMessage) -> str | None:
+    name = message.metadata.get(AGENT_NAME_METADATA_KEY)
+    if name is None:
+        return None
+    if not isinstance(name, str) or not 1 <= len(name.strip()) <= 512:
+        raise ValueError(f"{AGENT_NAME_METADATA_KEY} must be a non-empty agent name")
+    return name.strip()
 
 
 class EgAssemblyRouter:
@@ -125,4 +162,5 @@ class EgAssemblyRouter:
             selected_tools=outcome.tool_ids,
             selection_mode="eg-agent-assemble",
             decision_record_ref=outcome.record_id or None,
+            task_iri=_typed_task_iri(message),
         )

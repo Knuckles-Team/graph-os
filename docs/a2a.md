@@ -53,21 +53,24 @@ state.
   <li class="site-flow__step"><span class="site-flow__title">Record</span><span class="site-flow__body">RunTrace and tool-call provenance bind the result to the request.</span></li>
 </ol>
 
-## Tool-subset assembly status
+## Routing and tool-subset assembly
 
-The intended multiplexer exposure is the smallest authorized tool subset that
-covers the selected agent graph within the caller's context budget. It is not
-treated as an advisory list: execution must carry and enforce the exact
-selection.
+Routing never searches free text. A message declares a typed task in metadata
+`graphOsTaskIris` (`eg:task/research`, `implement`, `review`, `operate` or
+`communicate`) or names an agent in `graphOsAgentName`; the control plane then
+resolves an authorized agent. A message with neither is refused.
 
 A request with `contextBudgetTokens` is routed by epistemic-graph
-`AgentAssemble` over typed requirements (caller-declared `eg:task/*` IRIs in
-message metadata `graphOsTaskIris`, otherwise only the digest of the text).
-The same assembly answers `find_tools` when it is given `context_budget_tokens`,
+`AgentAssemble` over the same typed requirements (without declared tasks only
+the digest of the text is sent). The proved tool subset travels with the
+dispatch as a signed allowed-tool list that the agent worker enforces. The same
+assembly answers `find_tools` when it is given `context_budget_tokens`,
 evaluate-only. Both fail closed while the connected engine does not serve
-`AgentAssemble`. Because the signed agent-dispatch request cannot yet carry an
-allowed-tool subset, a route decision with a non-empty selection is refused
-before durable admission. Push notifications are not advertised.
+`AgentAssemble`. Push notifications are not advertised.
 
-The A2A facade and its doctor check fail closed until agent-utilities
-publishes `compose_hosted_agent_control_plane`.
+## Answers
+
+When a streamed task completes, its answer (the agent run's bounded, redacted
+final output from the control plane) is sent as one `artifact-update` event
+before the final status event. `tasks/resubscribe` to a completed task sends
+it too.
