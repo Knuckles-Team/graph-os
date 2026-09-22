@@ -104,3 +104,41 @@ def test_daemon_role_rejects_unknown_values(monkeypatch) -> None:
     assert bootstrap.daemon_role() == "auto"
     monkeypatch.setattr(bootstrap, "setting", lambda key, default=None: " Client ")
     assert bootstrap.daemon_role() == "client"
+
+
+def test_auto_role_becomes_client_when_another_host_holds_the_lock(
+    monkeypatch,
+) -> None:
+    import agent_utilities.api.runtime as au_runtime
+
+    calls: list[str] = []
+
+    def open_runtime(*, role: str, defer_background_start: bool) -> Any:
+        calls.append(role)
+        assert defer_background_start is True
+        if role == "host":
+            raise au_runtime.HostAlreadyRunning("held")
+        return SimpleNamespace(engine="engine", role=role)
+
+    monkeypatch.setattr(au_runtime, "open_process_runtime", open_runtime)
+    monkeypatch.setattr(bootstrap, "daemon_role", lambda: "auto")
+
+    assert bootstrap._get_engine() == "engine"
+    assert calls == ["host", "client"]
+
+
+def test_explicit_client_role_never_takes_the_host_lock(monkeypatch) -> None:
+    import agent_utilities.api.runtime as au_runtime
+
+    calls: list[str] = []
+    monkeypatch.setattr(
+        au_runtime,
+        "open_process_runtime",
+        lambda *, role, defer_background_start: (
+            calls.append(role) or SimpleNamespace(engine="e")
+        ),
+    )
+    monkeypatch.setattr(bootstrap, "daemon_role", lambda: "client")
+
+    bootstrap._get_engine()
+    assert calls == ["client"]

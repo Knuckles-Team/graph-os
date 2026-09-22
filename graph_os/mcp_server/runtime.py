@@ -508,9 +508,6 @@ _AGENT_ID = setting("AGENT_ID", f"mcp-client-{uuid.uuid4().hex}")
 _SESSION_ID = setting("SESSION_ID", uuid.uuid4().hex)
 
 
-_ENGINE_LOCK = threading.Lock()
-
-
 _ensure_process_authority_current = cast(Any, None)
 _get_engine = cast(Any, None)
 graph_client = cast(Any, None)
@@ -529,7 +526,6 @@ import graph_os.mcp_server.bootstrap as _bootstrap
 for _bootstrap_name in (
     "_AGENT_ID",
     "_AUTHORITY_KEEPALIVE_ACTIVE",
-    "_ENGINE_LOCK",
     "_PROCESS_AUTHORITY_STOP",
     "_PROCESS_AUTHORITY_THREAD",
     "_PROCESS_SESSION",

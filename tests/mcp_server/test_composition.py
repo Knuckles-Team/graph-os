@@ -35,7 +35,6 @@ def test_bootstrap_exports_bind_runtime_host_state() -> None:
         ]
         is runtime._AUTHORITY_KEEPALIVE_ACTIVE
     )
-    assert runtime._get_engine.__globals__["_ENGINE_LOCK"] is runtime._ENGINE_LOCK
 
 
 @pytest.mark.asyncio

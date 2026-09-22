@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 # state injection explicit avoids an eager bootstrap↔runtime import cycle.
 _AGENT_ID = cast(Any, None)
 _AUTHORITY_KEEPALIVE_ACTIVE = cast(Any, None)
-_ENGINE_LOCK = cast(Any, None)
 _PROCESS_AUTHORITY_STOP = cast(Any, None)
 _PROCESS_AUTHORITY_THREAD = cast(Any, None)
 _PROCESS_SESSION = cast(Any, None)
@@ -26,38 +25,30 @@ _SESSION_ID = cast(Any, None)
 setting = cast(Any, None)
 
 
-def _get_engine():
-    """Lazily initialize and return the IntelligenceGraphEngine singleton.
+def _open_runtime() -> Any:
+    """Open (or return) the one AU process runtime through AU's public port.
 
-    Thread-safe double-checked locking prevents concurrent runtime callers from
-    racing a second authority into existence. Direct GraphOS startup resolves
-    this engine synchronously only through the bounded materialization barrier;
-    noncritical worker startup remains asynchronous.
-    (CONCEPT:EG-KG.storage.nonblocking-checkpoint)
+    ``KG_DAEMON_ROLE=client`` never takes the host lock; ``host`` takes it or
+    fails; ``auto`` becomes host when the lock is free and client otherwise.
+    Materialization is deferred: the serving lifecycle starts workers only
+    after the bounded materialization barrier.
     """
-    from agent_utilities.core.paths import ensure_dirs
-    from agent_utilities.knowledge_graph.backends import create_backend
-    from agent_utilities.knowledge_graph.core.engine import IntelligenceGraphEngine
+    from agent_utilities.api.runtime import HostAlreadyRunning, open_process_runtime
 
-    engine = IntelligenceGraphEngine.get_active()
-    if engine is not None:
-        return engine
+    role = daemon_role()
+    if role == "auto":
+        try:
+            return open_process_runtime(role="host", defer_background_start=True)
+        except HostAlreadyRunning:
+            role = "client"
+    return open_process_runtime(
+        role="host" if role == "host" else "client", defer_background_start=True
+    )
 
-    with _ENGINE_LOCK:
-        engine = IntelligenceGraphEngine.get_active()
-        if engine is not None:
-            return engine
-        # First-run: ensure XDG dirs exist and create backend
-        ensure_dirs()
 
-        def _factory():
-            backend = create_backend()
-            return IntelligenceGraphEngine(
-                backend=backend,
-                defer_background_start=True,
-            )
-
-        return IntelligenceGraphEngine.get_or_create(factory=_factory)
+def _get_engine():
+    """Return the process engine held by the AU runtime (opened on first use)."""
+    return _open_runtime().engine
 
 
 def _drain_engine_transport() -> None:
@@ -66,20 +57,13 @@ def _drain_engine_transport() -> None:
     A drain that times out is logged as such; continuity is never claimed and a
     restarted process mints a fresh session.
     """
-    from agent_utilities.knowledge_graph.core.engine import IntelligenceGraphEngine
-
-    engine = IntelligenceGraphEngine.get_active()
-    compute = getattr(engine, "graph_compute", None) if engine is not None else None
-    if compute is None:
-        return
-    status = compute.drain()
-    if getattr(status, "timed_out", False):
+    result = _open_runtime().drain_and_close()
+    if result.timed_out:
         logger.error(
             "GraphOS transport drain timed out with %s active request(s); "
             "continuity is not claimed",
-            getattr(status, "active_requests", "unknown"),
+            result.active_requests,
         )
-    compute.close()
 
 
 def graph_client(graph: str) -> Any:

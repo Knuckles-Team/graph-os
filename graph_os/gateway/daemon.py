@@ -15,7 +15,6 @@ and surface its state via the ``/daemon/*`` routes on ``dashboard_router``.
 from __future__ import annotations
 
 import logging
-import os
 import threading
 import time
 from dataclasses import replace
@@ -248,15 +247,13 @@ def start_host_daemon(*, defer_background_start: bool = False) -> Any:
         from agent_utilities.security.run_token import require_token_secret
 
         require_token_secret()
-        # The gateway process is the authoritative daemon host.
-        os.environ["KG_DAEMON_ROLE"] = "host"
-        from agent_utilities.knowledge_graph.core.engine import (
-            IntelligenceGraphEngine,
-        )
+        # The gateway process is the authoritative daemon host: AU's runtime
+        # port takes the singleton host lock before it creates the engine.
+        from agent_utilities.api.runtime import open_process_runtime
 
-        _engine = IntelligenceGraphEngine.get_or_create(
-            defer_background_start=defer_background_start
-        )
+        _engine = open_process_runtime(
+            role="host", defer_background_start=defer_background_start
+        ).engine
         if not defer_background_start:
             try:
                 # Ensure the on-demand task-worker pool is up in the host.
@@ -388,7 +385,7 @@ def stop_host_daemon() -> None:
     except Exception as exc:  # noqa: BLE001
         logger.warning("warm-parent drain on shutdown skipped: %s", exc)
     try:
-        from agent_utilities.knowledge_graph.core.host_lock import release_host_lock
+        from agent_utilities.api.runtime import release_host_lock
 
         release_host_lock()
     except Exception as exc:  # noqa: BLE001
@@ -405,7 +402,7 @@ def main() -> None:
     blocks, draining the durable task queue that ``KG_DAEMON_ROLE=client``
     processes (MCP server / CLI / scripts) submit to. The singleton host lock
     (``host_lock.py``) guarantees only one host runs; a second start raises a
-    descriptive ``KGHostAlreadyRunning``. Console entry point: ``graph-os-daemon``.
+    descriptive ``HostAlreadyRunning``. Console entry point: ``graph-os-daemon``.
     (CONCEPT:EG-KG.storage.nonblocking-checkpoint / OS-5.9)
 
     Flags: ``--drain-queue`` purges the durable queue before starting (recovery);
@@ -416,10 +413,7 @@ def main() -> None:
     import logging
     import signal
 
-    from agent_utilities.knowledge_graph.core.host_lock import (
-        KGHostAlreadyRunning,
-        host_lock_holder,
-    )
+    from agent_utilities.api.runtime import HostAlreadyRunning, host_lock_holder
 
     ap = argparse.ArgumentParser(prog="graph-os-daemon")
     ap.add_argument(
@@ -484,7 +478,7 @@ def main() -> None:
     with use_actor(session.actor), use_session(session):
         try:
             start_host_daemon()
-        except KGHostAlreadyRunning as exc:
+        except HostAlreadyRunning as exc:
             logger.error("KG host is already running: %s", exc)
             raise SystemExit(2) from None
 
