@@ -64,7 +64,7 @@ async def test_registration_exposes_exact_mcp_rest_and_native_subset(
         )
         assert payload["id"] == task.id
         card = json.loads(await mcp.tools["graph_a2a"](action="card"))
-        assert card["capabilities"]["streaming"] is False
+        assert card["capabilities"]["streaming"] is True
     finally:
         if prior is None:
             runtime.REGISTERED_TOOLS.pop("graph_a2a", None)

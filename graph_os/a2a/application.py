@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterator
 from typing import Any, Protocol, runtime_checkable
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .authority import A2AIdempotencyConflict, A2ATaskNotCancelable
-from .models import A2AMessage
+from .models import A2AMessage, A2ATask
 from .routing import A2AAssemblyUnavailable
-from .service import A2AService
+from .service import A2AService, state_fence
 
 __all__ = [
     "A2AAuthenticator",
@@ -119,17 +121,87 @@ async def _invoke_method(
     return _error(request_id, -32601, "Method not found", 404)
 
 
+_STREAM_METHODS = frozenset({"message/stream", "tasks/resubscribe"})
+_WRITE_METHODS = frozenset({"message/send", "message/stream", "tasks/cancel"})
+_KNOWN_ERRORS = (
+    A2AIdempotencyConflict,
+    A2AAssemblyUnavailable,
+    A2ATaskNotCancelable,
+    ValidationError,
+    TypeError,
+    ValueError,
+    LookupError,
+)
+
+
+def _sse(request_id: Any, body: dict[str, Any], *, event: str | None = None) -> str:
+    frame = json.dumps({"jsonrpc": "2.0", "id": request_id, **body}, default=str)
+    prefix = f"id: {event}\n" if event else ""
+    return f"{prefix}event: message\ndata: {frame}\n\n"
+
+
+def _event_fence(event: Any) -> str:
+    task_id = event.id if isinstance(event, A2ATask) else event.task_id
+    return state_fence(task_id, event.status)
+
+
+async def _sse_frames(
+    request_id: Any, events: AsyncIterator[Any]
+) -> AsyncIterator[str]:
+    """Render service events as JSON-RPC SSE frames; a failure ends the stream."""
+    try:
+        async for event in events:
+            payload = event.model_dump(mode="json", by_alias=True)
+            yield _sse(request_id, {"result": payload}, event=_event_fence(event))
+    except _KNOWN_ERRORS as error:
+        yield _sse(request_id, {"error": _error_body(error)})
+
+
+def _open_stream(
+    service: A2AService, request: Request, method: str, raw: dict[str, Any]
+) -> AsyncIterator[Any]:
+    if method == "tasks/resubscribe":
+        task = _TaskParams.model_validate(raw)
+        return service.resubscribe(
+            task.id, last_event_id=request.headers.get("Last-Event-ID")
+        )
+    send = _SendParams.model_validate(raw)
+    key = request.headers.get("Idempotency-Key", "")
+    if not key:
+        raise ValueError("Idempotency-Key is required")
+    return service.stream_message(
+        message=send.message,
+        idempotency_key=key,
+        context_budget_tokens=send.context_budget_tokens,
+    )
+
+
+def _error_body(error: Exception) -> dict[str, Any]:
+    code, _status = _error_code(error)
+    message = "Invalid params" if code == -32602 else str(error)
+    return {"code": code, "message": message}
+
+
+def _error_code(error: Exception) -> tuple[int, int]:
+    for kind, code, status in (
+        (A2AIdempotencyConflict, -32009, 409),
+        (A2AAssemblyUnavailable, -32003, 503),
+        (A2ATaskNotCancelable, -32002, 409),
+        (LookupError, -32001, 404),
+    ):
+        if isinstance(error, kind):
+            return code, status
+    return -32602, 400
+
+
 def _application_error(request_id: Any, error: Exception) -> JSONResponse:
-    """Translate known service failures without echoing caller input."""
-    if isinstance(error, A2AIdempotencyConflict):
-        return _error(request_id, -32009, str(error), 409)
-    if isinstance(error, A2AAssemblyUnavailable):
-        return _error(request_id, -32003, str(error), 503)
-    if isinstance(error, A2ATaskNotCancelable):
-        return _error(request_id, -32002, str(error), 409)
-    # Pydantic errors may echo caller text in ``input_value``. Keep the wire
-    # error stable and privacy-safe; details belong in local logs.
-    return _error(request_id, -32602, "Invalid params")
+    """Translate known service failures without echoing caller input.
+
+    Pydantic errors may echo caller text in ``input_value``, so every
+    parameter error is the stable ``Invalid params``.
+    """
+    body = _error_body(error)
+    return _error(request_id, body["code"], body["message"], _error_code(error)[1])
 
 
 def create_a2a_handlers(
@@ -147,25 +219,25 @@ def create_a2a_handlers(
             headers={"Cache-Control": "no-store"},
         )
 
-    async def json_rpc(request: Request) -> JSONResponse:
+    async def json_rpc(request: Request) -> Response:
         envelope = await _request_envelope(request)
         if isinstance(envelope, JSONResponse):
             return envelope
         request_id, method, raw_params = envelope
-        scope = "kg:write" if method in {"message/send", "tasks/cancel"} else "kg:read"
+        scope = "kg:write" if method in _WRITE_METHODS else "kg:read"
         await authenticator.authenticate(request, scope=scope)
         try:
+            if method in _STREAM_METHODS:
+                events = _open_stream(service, request, method, raw_params)
+                return StreamingResponse(
+                    _sse_frames(request_id, events),
+                    media_type="text/event-stream",
+                    headers={"Cache-Control": "no-store"},
+                )
             result = await _invoke_method(
                 service, request, method, raw_params, request_id
             )
-        except (
-            A2AIdempotencyConflict,
-            A2AAssemblyUnavailable,
-            A2ATaskNotCancelable,
-            ValidationError,
-            TypeError,
-            ValueError,
-        ) as error:
+        except _KNOWN_ERRORS as error:
             return _application_error(request_id, error)
         if isinstance(result, JSONResponse):
             return result

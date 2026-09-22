@@ -18,6 +18,7 @@ __all__ = [
     "A2ATask",
     "A2ATaskState",
     "A2ATaskStatus",
+    "A2ATaskStatusUpdateEvent",
     "A2ATextPart",
 ]
 
@@ -101,13 +102,24 @@ class A2ATask(_WireModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class A2ATaskStatusUpdateEvent(_WireModel):
+    """One streamed task state transition; ``final`` closes the stream."""
+
+    task_id: str = Field(pattern=r"^a2a-[0-9a-f]{64}$")
+    context_id: str
+    kind: Literal["status-update"] = "status-update"
+    status: A2ATaskStatus
+    final: bool
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class A2AListResult(_WireModel):
     tasks: list[A2ATask]
     next_cursor: str | None = None
 
 
 class A2AAgentCapabilities(_WireModel):
-    streaming: Literal[False] = False
+    streaming: Literal[True] = True
     push_notifications: Literal[False] = False
     state_transition_history: Literal[False] = False
 

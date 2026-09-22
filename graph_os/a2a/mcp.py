@@ -1,4 +1,4 @@
-"""MCP/REST and native HTTP registration for the unary A2A facade."""
+"""MCP/REST and native HTTP registration for the A2A facade."""
 
 from __future__ import annotations
 
@@ -29,8 +29,9 @@ def register_a2a_tools(mcp: Any) -> None:
     @mcp.tool(
         name="graph_a2a",
         description=(
-            "Discover or manage governed unary A2A tasks. Actions: card, send, "
-            "get, list, cancel. Streaming and push are not supported."
+            "Discover or manage governed A2A tasks. Actions: card, send, get, "
+            "list, cancel. Streaming (message/stream, tasks/resubscribe) is "
+            "served on the native /a2a route; push notifications are not."
         ),
         tags={"graph-os", "a2a", "orchestration"},
     )
