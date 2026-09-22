@@ -57,3 +57,22 @@ The EG-backed catalog reader and durable resource/template reconciliation are
 explicit capability gates. Without their generated engine contracts, the
 affected refresh path returns a typed failure and does not fall back to a
 static catalog or process-local durability. See [Capability status](status.md).
+
+## Outbound child identity
+
+`MCP_CLIENT_AUTH` selects the service identity the multiplexer presents to an
+authenticated remote child; a child that declares its own `Authorization`
+header is never overridden, and an incomplete selected mode fails closed.
+
+| Mode | Settings |
+|---|---|
+| `oidc-client-credentials` | `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET_REF`, `OIDC_AUDIENCE`, and `OIDC_TOKEN_URL` or `OIDC_ISSUER`; optional `OIDC_SCOPE` |
+| `basic` | `MCP_BASIC_AUTH_USERNAME`, `MCP_BASIC_AUTH_PASSWORD_REF` |
+| `rotating-file-bearer` | `MCP_BEARER_TOKEN_FILE` (mode 0600, re-read on every request) |
+| `none` (default) | — |
+
+OIDC tokens come from the agent-connector-sdk client-credentials provider and
+are shared by every child. A service-authenticated child session is recycled
+before its bearer's lifetime elapses. OAuth-gated children use the caller's
+own per-principal grant from the remote OAuth broker instead, never the
+service identity.

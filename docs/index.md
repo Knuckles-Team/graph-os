@@ -51,7 +51,7 @@
   <div class="site-ownership__grid">
     <div class="site-ownership__item">
       <span class="site-ownership__label">GraphOS owns</span>
-      <span class="site-ownership__value">Process lifecycle, MCP and REST composition, unary A2A, request policy, fleet supervision, and optional WebUI hosting.</span>
+      <span class="site-ownership__value">Process lifecycle, MCP and REST composition, streaming A2A, request policy, fleet supervision, and optional WebUI hosting.</span>
     </div>
     <div class="site-ownership__item">
       <span class="site-ownership__label">GraphOS delegates</span>
