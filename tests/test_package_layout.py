@@ -64,5 +64,7 @@ def test_bootstrap_has_no_retired_legacy_query_runtime() -> None:
         "_bind_mcp_probe_port",
         "_runtime_authority_binders",
         "_sync_ontologies_at_boot",
+        "_ingest_self_tool_surface_at_boot",
+        "_graphos_self_tool_surface",
     }
     assert all(symbol not in bootstrap for symbol in retired_symbols)

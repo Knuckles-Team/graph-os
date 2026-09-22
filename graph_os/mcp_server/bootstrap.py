@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import hashlib
 import json
 import logging
 import re
@@ -20,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 # Bound by ``runtime`` after this module's definitions load. Keeping the host
 # state injection explicit avoids an eager bootstrap↔runtime import cycle.
-REGISTERED_TOOLS = cast(Any, None)
 _AGENT_ID = cast(Any, None)
 _AUTHORITY_KEEPALIVE_ACTIVE = cast(Any, None)
 _ENGINE_LOCK = cast(Any, None)
@@ -861,17 +859,15 @@ def _run_boot_hydration_plan(
 ) -> None:
     """Run GraphOS boot hydration in its fixed resource-priority order.
 
-    1. bounded GraphOS/fleet tool metadata, then runnable skills and MCP declarations;
+    1. fleet metadata, runnable skills, and MCP declarations;
     2. prompts/agent templates;
-    3. package ontologies; and
-    4. codebases and configured connectors through their durable delta queues.
+    3. codebases and configured connectors through their durable delta queues.
 
     Each step is isolated so a failed optional source cannot prevent later
     priority classes from making progress.
     """
     steps = (
         ("fleet_tool_schemas", 1, lambda: _enqueue_fleet_tool_schema_hydration(engine)),
-        ("graphos_tool_surface", 1, lambda: _ingest_self_tool_surface_at_boot(engine)),
         (
             "capabilities",
             1,
@@ -964,67 +960,6 @@ def _ingest_prompts_at_boot() -> None:
         logger.info("Ingested prompt-base library at boot (Phase C hydration)")
     except Exception as exc:
         logger.error("Prompt-base boot ingestion failed: %s", exc)
-
-
-def _graphos_self_tool_surface() -> list[dict[str, Any]]:
-    """In-process snapshot of graph-os's own registered MCP tool surface.
-
-    CONCEPT:AU-KG.ingest.self-tool-surface — the exact shape
-    :func:`~agent_utilities.knowledge_graph.ingestion.engine.register_self_tool_surface_provider`
-    expects: a plain, synchronous, zero-argument callable that reads the
-    already-built ``REGISTERED_TOOLS`` dict (populated by
-    ``register_tool_surface`` during :func:`_build_server`, which always runs
-    before this process starts serving). Reading a module-global dict is the
-    entire implementation — no network call, no MCP round-trip, no self-probe.
-    """
-    return [
-        {
-            "name": name,
-            "description": (getattr(func, "__doc__", None) or "").strip(),
-        }
-        for name, func in sorted(REGISTERED_TOOLS.items())
-    ]
-
-
-def _ingest_self_tool_surface_at_boot(engine: Any) -> None:
-    """Queue graph-os's own ~95 ``:MCPServer``/``:Tool`` nodes at boot.
-
-    CONCEPT:AU-KG.ingest.self-tool-surface (Phase E → Phase F wiring). The
-    provider is registered synchronously because workers share this process,
-    while the native ChangeEnvelope materialization runs as a fenced,
-    checkpointable priority-one WorkItem. Queue publication therefore cannot
-    hold up prompts, ontologies, or later boot-plan checkpoints when the
-    operational graph is cold or write-contended.
-    """
-    try:
-        from agent_utilities.knowledge_graph.ingestion.engine import (
-            register_self_tool_surface_provider,
-        )
-
-        register_self_tool_surface_provider(_graphos_self_tool_surface)
-        submit = getattr(engine, "submit_task", None)
-        if not callable(submit):
-            return
-        surface_digest = hashlib.sha256(
-            json.dumps(
-                _graphos_self_tool_surface(),
-                sort_keys=True,
-                separators=(",", ":"),
-                default=str,
-            ).encode("utf-8")
-        ).hexdigest()[:16]
-        job_id = submit(
-            target_path="graph-os",
-            is_codebase=False,
-            provenance={"boot_hydration": True},
-            task_type="self_tool_surface",
-            priority=1,
-            skip_dedupe=True,
-            job_id=f"boot:self-tool-surface:{surface_digest}",
-        )
-        logger.info("Queued self tool-surface boot hydration: %s", job_id)
-    except Exception as exc:
-        logger.error("Self tool-surface boot enqueue failed: %s", exc)
 
 
 def _set_readiness_authority(session: Any) -> object:

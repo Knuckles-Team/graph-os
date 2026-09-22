@@ -2289,7 +2289,6 @@ set_process_session = cast(Any, None)
 import graph_os.mcp_server.bootstrap as _bootstrap
 
 for _bootstrap_name in (
-    "REGISTERED_TOOLS",
     "_AGENT_ID",
     "_AUTHORITY_KEEPALIVE_ACTIVE",
     "_ENGINE_LOCK",
