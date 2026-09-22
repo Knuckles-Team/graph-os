@@ -11,8 +11,8 @@ from .doctor_support import _prescription, _result
 # Every check below follows the same shape: absent (endpoint unconfigured) -> "skip",
 # never fatal on any profile -- none of these services is required by any documented
 # deployment_profile, so "not required" is unconditionally true and the tiny-vs-else
-# split _check_config/_check_engine_domains use for a REQUIRED capability does not
-# apply here. Once an operator opts in by naming an endpoint, a static (non-live)
+# deployment-profile split used for required capabilities does not apply here.
+# Once an operator opts in by naming an endpoint, a static (non-live)
 # check reports "ok" (declared) and a `live=True` doctor additionally proves
 # reachability -- mirroring _check_graph_connections/_check_langfuse.
 #
