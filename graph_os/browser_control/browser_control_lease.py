@@ -55,7 +55,7 @@ class BrowserLeaseMixin(BrowserControlMixinState):
         lease_id = new_lease_id()
         await self._sync_runner(
             lambda: create_lease(
-                self._authority,
+                self._engine,
                 lease_id=lease_id,
                 refs=channel.refs,
                 catalog_digest=channel.catalog_digest,
@@ -94,10 +94,10 @@ class BrowserLeaseMixin(BrowserControlMixinState):
         if status == "active":
             updated = await self._sync_runner(
                 lambda: transition_lease(
-                    self._authority,
+                    self._engine,
                     request.lease_id,
                     current=current,
-                    updates={"status": "revoked"},
+                    to="revoked",
                 )
             )
             if not updated:
@@ -148,7 +148,7 @@ class BrowserLeaseMixin(BrowserControlMixinState):
     async def _lease_context(
         self, lease_id: str, *, allow_expired: bool = False
     ) -> tuple[_ChannelState, dict[str, Any]]:
-        current = await self._sync_runner(lambda: read_lease(self._authority, lease_id))
+        current = await self._sync_runner(lambda: read_lease(self._engine, lease_id))
         if current is None:
             raise PermissionError("browser control lease is unavailable")
         authority_expiry = min(
@@ -214,10 +214,10 @@ class BrowserLeaseMixin(BrowserControlMixinState):
     async def _expire_lease(self, lease_id: str, current: dict[str, Any]) -> None:
         await self._sync_runner(
             lambda: transition_lease(
-                self._authority,
+                self._engine,
                 lease_id,
                 current=current,
-                updates={"status": "expired"},
+                to="expired",
             )
         )
 

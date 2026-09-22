@@ -216,11 +216,81 @@ class _EgWorkItems:
         return self._authority.cancel_work_item(request)
 
 
+class _EgControlLeases:
+    """The generated EG ``control_leases`` namespace, over the fake authority."""
+
+    def __init__(self, authority: _Authority) -> None:
+        self._authority = authority
+
+    def issue(self, *, tenant: str, lease_id: str, **request: Any) -> dict[str, Any]:
+        if lease_id in self._authority.nodes:
+            return {"outcome": "collision", "lease": None}
+        assert (
+            0
+            < request["issued_at_ms"]
+            <= request["expires_at_ms"]
+            <= request["hard_expires_at_ms"]
+        )
+        self._authority.nodes[lease_id] = {
+            "id": lease_id,
+            "node_type": "ControlLease",
+            "tenant": tenant,
+            "kind": request["kind"],
+            "grant": dict(request["grant"]),
+            "status": "active",
+            "issued_at_ms": request["issued_at_ms"],
+            "expires_at_ms": request["expires_at_ms"],
+            "hard_expires_at_ms": request["hard_expires_at_ms"],
+            "revision": 1,
+        }
+        return {
+            "outcome": "issued",
+            "lease": self.get(tenant=tenant, lease_id=lease_id),
+        }
+
+    def get(self, *, tenant: str, lease_id: str) -> dict[str, Any] | None:
+        node = self._authority.nodes.get(lease_id)
+        if node is None or node.get("tenant") != tenant or "grant" not in node:
+            return None
+        return {
+            key: node[key]
+            for key in (
+                "kind",
+                "grant",
+                "status",
+                "issued_at_ms",
+                "expires_at_ms",
+                "hard_expires_at_ms",
+                "revision",
+            )
+        } | {"lease_id": lease_id}
+
+    def transition(
+        self, *, tenant: str, lease_id: str, expected_revision: int, to: str, **_: Any
+    ) -> dict[str, Any]:
+        node = self._authority.nodes.get(lease_id)
+        if node is None or node.get("tenant") != tenant:
+            return {"outcome": "not_found", "lease": None}
+        if node["revision"] != expected_revision or node["status"] != "active":
+            return {
+                "outcome": "conflict",
+                "lease": self.get(tenant=tenant, lease_id=lease_id),
+            }
+        node.update(status=to, revision=expected_revision + 1)
+        return {
+            "outcome": "applied",
+            "lease": self.get(tenant=tenant, lease_id=lease_id),
+        }
+
+
 class _Engine:
     def __init__(self) -> None:
         self._work_item_engine = _Authority()
         self.graph_compute = SimpleNamespace(
-            client=SimpleNamespace(work_items=_EgWorkItems(self._work_item_engine))
+            client=SimpleNamespace(
+                work_items=_EgWorkItems(self._work_item_engine),
+                control_leases=_EgControlLeases(self._work_item_engine),
+            )
         )
         self.trace_batches: list[list[dict[str, Any]]] = []
         self.fail_audit = False
@@ -1591,7 +1661,7 @@ async def test_claim_lifetime_is_capped_to_remaining_authority(
         binding = _binding(session)
         lease = await _lease(service, binding, tool)
         lease_node = engine._work_item_engine.nodes[lease.lease_id]
-        lease_node["expires_at"] = time.time() + 1.0
+        lease_node["expires_at_ms"] = int((time.time() + 1.0) * 1000)
         execution = asyncio.create_task(
             service.execute_call(
                 BrowserCallRequest(

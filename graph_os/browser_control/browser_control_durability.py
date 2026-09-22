@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import secrets
 from dataclasses import dataclass
 from typing import Any, cast
@@ -10,7 +11,6 @@ from typing import Any, cast
 from agent_utilities.security.persistence_privacy import persistence_reference
 
 from graph_os.browser_control.browser_control_binding import (
-    BINDING_PROPERTY_NAMES,
     BindingReferences,
     binding_properties,
 )
@@ -36,8 +36,31 @@ def new_lease_id() -> str:
     return f"browserlease_{secrets.token_hex(16)}"
 
 
+_LEASE_KIND = "browser.control"
+
+
+def _control_leases(engine: Any) -> Any:
+    """The generated EG ``control_leases`` namespace of the session-routed client."""
+    compute = getattr(engine, "graph_compute", None)
+    namespace = getattr(getattr(compute, "client", None), "control_leases", None)
+    if namespace is None:
+        raise RuntimeError("EG ControlLease authority is unavailable")
+    return namespace
+
+
+def _ms(seconds: float) -> int:
+    """Floor to EG's integer milliseconds; never extends a lease."""
+    return math.floor(seconds * 1000)
+
+
+def _session_tenant() -> str:
+    from agent_utilities.api import resolve_session
+
+    return str(resolve_session().tenant)
+
+
 def create_lease(
-    authority: Any,
+    engine: Any,
     *,
     lease_id: str,
     refs: BindingReferences,
@@ -49,54 +72,65 @@ def create_lease(
     expires_at: float,
     hard_expires_at: float,
 ) -> None:
-    properties = {
-        "id": lease_id,
-        "node_type": "BrowserControlLease",
-        **binding_properties(refs),
-        "catalog_digest": catalog_digest,
-        "tool_ids": list(tool_ids),
-        "schema_digests": schema_digests,
-        "policy_references": list(policy_references),
-        "issued_at": issued_at,
-        "expires_at": expires_at,
-        "hard_expires_at": hard_expires_at,
-        "status": "active",
-    }
-    if not authority.create_node_if_absent(lease_id, properties=properties):
+    """Issue one immutable EG ``ControlLease`` carrying the browser grant."""
+    answer = _control_leases(engine).issue(
+        tenant=refs.tenant,
+        lease_id=lease_id,
+        kind=_LEASE_KIND,
+        grant={
+            **binding_properties(refs),
+            "catalog_digest": catalog_digest,
+            "tool_ids": list(tool_ids),
+            "schema_digests": schema_digests,
+            "policy_references": list(policy_references),
+        },
+        issued_at_ms=_ms(issued_at),
+        expires_at_ms=_ms(expires_at),
+        hard_expires_at_ms=_ms(hard_expires_at),
+        idempotency_key=persistence_reference(
+            "browser_lease_issue", lease_id, namespace=refs.tenant_reference
+        ),
+    )
+    if answer.get("outcome") != "issued":
         raise RuntimeError("lease identifier collision")
 
 
-def read_lease(authority: Any, lease_id: str) -> dict[str, Any] | None:
-    names = (
-        *BINDING_PROPERTY_NAMES,
-        "tool_ids",
-        "schema_digests",
-        "policy_references",
-        "issued_at",
-        "expires_at",
-        "hard_expires_at",
-        "status",
-    )
-    returns = ", ".join(f"l.{name} AS {name}" for name in names)
-    rows = authority.query_cypher(
-        f"MATCH (l:BrowserControlLease {{id: $id}}) RETURN {returns} LIMIT 2",
-        {"id": lease_id},
-    )
-    if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict):
+def _lease_state(view: dict[str, Any]) -> dict[str, Any] | None:
+    if view.get("kind") != _LEASE_KIND or not isinstance(view.get("grant"), dict):
         return None
-    return rows[0]
+    return {
+        **view["grant"],
+        "status": view["status"],
+        "issued_at": view["issued_at_ms"] / 1000,
+        "expires_at": view["expires_at_ms"] / 1000,
+        "hard_expires_at": view["hard_expires_at_ms"] / 1000,
+        "revision": view["revision"],
+    }
+
+
+def read_lease(engine: Any, lease_id: str) -> dict[str, Any] | None:
+    """The caller tenant's browser lease, or ``None`` when not visible."""
+    view = _control_leases(engine).get(tenant=_session_tenant(), lease_id=lease_id)
+    return _lease_state(view) if isinstance(view, dict) else None
 
 
 def transition_lease(
-    authority: Any,
+    engine: Any,
     lease_id: str,
     *,
     current: dict[str, Any],
-    updates: dict[str, Any],
+    to: str,
 ) -> bool:
-    """CAS one lease transition against its complete previously-read state."""
-
-    return bool(authority.compare_and_set_node_fields(lease_id, current, updates))
+    """CAS ``active -> revoked|expired`` on the lease revision read in ``current``."""
+    revision = int(current["revision"])
+    answer = _control_leases(engine).transition(
+        tenant=_session_tenant(),
+        lease_id=lease_id,
+        expected_revision=revision,
+        to=to,
+        idempotency_key=f"{lease_id}:{revision}:{to}",
+    )
+    return answer.get("outcome") == "applied"
 
 
 def commit_call_outcome(
