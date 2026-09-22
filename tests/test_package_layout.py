@@ -71,6 +71,7 @@ def test_bootstrap_has_no_retired_legacy_query_runtime() -> None:
         "_ingest_native_tool_capabilities",
         "_enqueue_fleet_tool_schema_hydration",
         "_hydrate_code_and_configured_connectors",
+        "_run_enabled_boot_hydration",
         "derive_capability_synonyms",
         "run_breadth_ingest",
         "sweep_all_sources",

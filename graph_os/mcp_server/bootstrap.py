@@ -1325,22 +1325,13 @@ def _engine_bootstrap_is_client(engine: Any, fallback_role: str) -> bool:
     return "client" in {requested_role, effective_role}
 
 
-def _run_enabled_boot_hydration(
-    engine: Any,
-    *,
-    client_role: bool,
-    background_sync_enabled: bool,
-    skip_skill_names: frozenset[str],
-) -> None:
-    """Hydrate only on the elected background-sync host."""
-    if client_role or not background_sync_enabled:
-        return
-    _run_boot_hydration_plan(engine, skip_skill_names=skip_skill_names)
-
-
 def _start_engine_bootstrap(session: Any) -> None:
-    """Establish engine/skill readiness, then start noncritical services."""
-    from agent_utilities.core.config import config
+    """Establish engine readiness, then start the elected host workers.
+
+    Semantic content is verified by the native composition root through the
+    current EG ConnectorPack and GraphSchema read contracts. Startup therefore
+    never discovers or ingests skills, prompts, sources, or fleet declarations.
+    """
     from agent_utilities.knowledge_graph.core.engine_tasks import (
         _authorized_background_thread,
         _require_verified_background_session,
@@ -1348,7 +1339,6 @@ def _start_engine_bootstrap(session: Any) -> None:
     )
     from agent_utilities.knowledge_graph.core.session import use_session
     from agent_utilities.security.brain_context import use_actor
-    from agent_utilities.skills import BUNDLED_SKILLS
 
     verified_session = _require_verified_background_session(session)
     with (
@@ -1356,63 +1346,10 @@ def _start_engine_bootstrap(session: Any) -> None:
         use_session(verified_session),
     ):
         engine = _get_engine()
-        # Correctness gate: unlike missing packaged skills, a partially
-        # materialized graph cannot safely accept one-shot boot hydration or
-        # worker claims.  Let this failure stop startup so the orchestrator can
-        # retry the process instead of advertising a silently incomplete graph.
+        # A partially materialized graph cannot safely accept worker claims.
+        # Let this failure stop startup so the orchestrator retries rather than
+        # advertising a silently incomplete graph.
         _wait_for_engine_materialization(engine)
-    try:
-        with (
-            use_actor(verified_session.actor),
-            use_session(verified_session),
-        ):
-            readiness = _ensure_bundled_skills_ready(engine)
-    except Exception as exc:
-        # Packaged-skill readiness is a CAPABILITY concern, not a correctness or
-        # security one, so it must not decide whether graph-os serves at all. A
-        # server that refuses to boot because some bundled skills did not ingest
-        # takes down every unrelated tool, the health surface, and the operator's
-        # ability to diagnose the very problem — the failure mode is far worse
-        # than running degraded. Record it, surface it in /health, keep serving.
-        # The LOG line preserves the real cause (an operator needs to see WHICH
-        # packaged skill failed and why, not just "SERVING DEGRADED" for every
-        # distinct cause — HANDOFF-2026-07-22 turned exactly this omission into
-        # an hours-long dead end); ``exc.args[0]`` (not ``str(exc)``/``exc``
-        # itself, and no ``exc_info=True``) keeps the served-boundary
-        # exception-surface gate satisfied. The `/health`-published readiness
-        # dict below is a DIFFERENT, wider-audience surface and stays
-        # type-only (D-LR-2).
-        logger.error(
-            "GraphOS packaged-skill bootstrap failed; SERVING DEGRADED (%s: %s)",
-            type(exc).__name__,
-            exc.args[0] if exc.args else "",
-        )
-        _set_bundled_skill_readiness(
-            {
-                "required": len(BUNDLED_SKILLS),
-                "ready": 0,
-                "not_ready": sorted(BUNDLED_SKILLS),
-                # See _ensure_bundled_skills_ready's identical comment: this
-                # dict is published for the /health HTTP surface, not logged,
-                # so only the exception TYPE is exposed here (D-LR-2).
-                "error": type(exc).__name__,
-            }
-        )
-        return
-
-    _set_bundled_skill_readiness(readiness)
-    if readiness.get("not_ready"):
-        logger.error(
-            "GraphOS is SERVING DEGRADED: %d/%d packaged skills ready, not_ready=%s",
-            readiness.get("ready", 0),
-            readiness.get("required", 0),
-            readiness.get("not_ready"),
-        )
-    logger.info(
-        "GraphOS packaged-skill readiness established (%d/%d)",
-        readiness["ready"],
-        readiness["required"],
-    )
     # An explicit client role is a hard serving-plane boundary. In particular,
     # stale KG_LOOP/maintenance settings must not turn a network-facing GraphOS
     # process into an autonomous scheduler or queue worker. The requested role
@@ -1459,15 +1396,6 @@ def _start_engine_bootstrap(session: Any) -> None:
                 and not getattr(engine.backend, "read_only", False)
             ):
                 engine.start_task_workers()
-            # The listener barrier already reconciled bundled skills.  Continue
-            # broader discovery via the durable, fixed-priority plan without
-            # blocking serving.
-            _run_enabled_boot_hydration(
-                engine,
-                client_role=client_role,
-                background_sync_enabled=config.knowledge_graph_sync_background,
-                skip_skill_names=frozenset(BUNDLED_SKILLS),
-            )
         except Exception as exc:
             logger.error("KG engine background bootstrap failed: %s", exc)
 
@@ -1478,8 +1406,7 @@ def _start_engine_bootstrap(session: Any) -> None:
             name="KGEngineBootstrap",
         ).start()
     except Exception as exc:
-        # Packaged delegation is already ready. Optional workers, provider
-        # discovery, and ontology federation remain retryable operational work.
+        # Worker startup remains retryable operational work.
         logger.error("GraphOS noncritical bootstrap launch failed: %s", exc)
 
 
