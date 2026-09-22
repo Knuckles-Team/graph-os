@@ -75,5 +75,16 @@ def test_bootstrap_has_no_retired_legacy_query_runtime() -> None:
         "derive_capability_synonyms",
         "run_breadth_ingest",
         "sweep_all_sources",
+        "_ensure_bundled_skills_ready",
+        "_ingest_skill_capabilities",
+        "_ingest_prompts_at_boot",
+        "_run_boot_hydration_plan",
+        "_record_hydration_manifest",
+        "get_existing_disabled_batch",
     }
     assert all(symbol not in bootstrap for symbol in retired_symbols)
+
+    runtime = (
+        Path(__file__).parents[1] / "graph_os" / "mcp_server" / "runtime.py"
+    ).read_text(encoding="utf-8")
+    assert "get_existing_disabled_batch" not in runtime

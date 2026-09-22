@@ -53,7 +53,6 @@ from types import MappingProxyType
 from typing import Any, cast
 
 from agent_utilities.core.config import setting
-from agent_utilities.security.identifiers import validate_identifier
 
 from graph_os._version import __version__
 
@@ -391,120 +390,6 @@ def build_native_graphos_toolset(tool_names: list[str], *, toolset_id: str) -> A
         id=toolset_id,
         metadata={"graphos_native": True},
     )
-
-
-def get_existing_disabled_batch(
-    engine, node_ids: list[str], *, label: str = "CallableResource"
-) -> dict[str, bool]:
-    """Resolve many nodes' prior ``disabled`` flag in ONE engine round trip.
-
-    The boot skill-ingestion loop (:func:`_ingest_skill_capabilities`) used to
-    call a since-removed singular per-id helper once per skill file — N engine
-    round trips for N skills against the out-of-process engine, the
-    per-element-loop shape the engine's own design rule forbids ("batch,
-    never per-element"). This resolves every id's prior ``disabled`` flag in
-    a single ``query_cypher`` call (falling back to the in-memory
-    ``graph_compute`` cache per id first, when that cache is available).
-
-    The query is scoped to ``label`` — the verified label of every id the
-    caller is passing. The default, ``:CallableResource``, is the original
-    (and still sole default) caller's label: the skill runnable-resource ids
-    built in :func:`_ingest_skill_capabilities` (see ``ingest_runnable_skill``'s
-    ``engine._upsert_node("CallableResource", resource_id, ...)``).
-    :func:`_ingest_capabilities`'s MCP-config and native-tool loops pass
-    ``label="MCPServer"``/``label="NativeTool"`` respectively. An unlabeled
-    ``MATCH (n)`` here would clone every node's property blob in the whole
-    graph on every boot; the label makes it an indexed lookup instead. Kept
-    to exactly one label per call (no unlabeled fallback) so this stays the
-    single round trip the batching contract above — and
-    ``test_boot_skill_ingest_batches_existing_disabled_lookup`` — require.
-
-    Fail-closed: a lookup that could not complete (an exception from the
-    in-memory cache or ``query_cypher``) marks every id still unresolved at
-    that point ``True`` (disabled) in the returned mapping — never omitted,
-    since call sites read a missing key as "not disabled". A genuinely absent
-    id (query executed successfully, found nothing) is left absent, exactly
-    as before — that is a brand-new node with no prior state, not a failure.
-    """
-    safe_label = validate_identifier(label, kind="label")
-    result: dict[str, bool] = {}
-    remaining = list(dict.fromkeys(node_ids))  # de-dupe, preserve order
-    if not remaining:
-        return result
-    remaining = _disabled_batch_cache_lookup(engine, remaining, result)
-    if not remaining:
-        return result
-    _disabled_batch_engine_lookup(engine, safe_label, remaining, result)
-    return result
-
-
-def _disabled_batch_cache_lookup(
-    engine, node_ids: list[str], result: dict[str, bool]
-) -> list[str]:
-    """Resolve as many ids as possible from the in-memory graph-compute cache.
-
-    Mutates ``result`` in place for ids found in the cache. Returns the ids
-    still unresolved (for the caller to fall through to the engine query).
-    Fails closed: on any lookup error, marks every id passed in as disabled
-    in ``result`` and returns an empty list.
-    """
-    try:
-        if hasattr(engine, "graph_compute") and hasattr(engine.graph_compute, "graph"):
-            graph = engine.graph_compute.graph
-            still_remaining = []
-            for node_id in node_ids:
-                if node_id in graph:
-                    result[node_id] = bool(graph.nodes[node_id].get("disabled", False))
-                else:
-                    still_remaining.append(node_id)
-            return still_remaining
-    except Exception as exc:  # noqa: BLE001 — surfaced as fail-closed below
-        logger.error(
-            "get_existing_disabled_batch: in-memory cache lookup failed — "
-            "failing closed for %d id(s): %s",
-            len(node_ids),
-            type(exc).__name__,
-        )
-        for node_id in node_ids:
-            result[node_id] = True
-        return []
-    return node_ids
-
-
-def _disabled_batch_engine_lookup(
-    engine, safe_label: str, node_ids: list[str], result: dict[str, bool]
-) -> None:
-    """Resolve the remaining ids via one ``query_cypher`` round trip.
-
-    Mutates ``result`` in place. Fails closed: on any query error, marks
-    every id passed in as disabled in ``result``.
-    """
-    try:
-        # Re-validated here (not just trusted via the ``safe_label`` name
-        # from the caller) so this interpolation site is safe by
-        # construction on its own — an invalid label falls through to the
-        # same fail-closed handling as any other lookup error below.
-        safe_label = validate_identifier(safe_label, kind="label")
-        res = engine.query_cypher(
-            f"MATCH (n:{safe_label}) WHERE n.id IN $node_ids "
-            "RETURN n.id AS id, n.disabled AS disabled",
-            {"node_ids": node_ids},
-        )
-        if not isinstance(res, list):
-            raise TypeError(f"expected a list of rows, got {type(res).__name__}")
-    except Exception as exc:  # noqa: BLE001 — surfaced as fail-closed below
-        logger.error(
-            "get_existing_disabled_batch(%d ids) lookup failed — failing "
-            "closed (treating every unresolved id as disabled): %s",
-            len(node_ids),
-            type(exc).__name__,
-        )
-        for node_id in node_ids:
-            result[node_id] = True
-        return
-    for row in res:
-        if isinstance(row, dict) and row.get("id"):
-            result[str(row["id"])] = bool(row.get("disabled", False))
 
 
 def safe_json_load(s: Any) -> Any:
@@ -2297,7 +2182,6 @@ for _bootstrap_name in (
     "_PROCESS_SESSION",
     "_PROCESS_SESSION_REFRESH_LOCK",
     "_SESSION_ID",
-    "get_existing_disabled_batch",
     "setting",
 ):
     # ``bootstrap`` declares these names as explicit cycle-breaking host slots.
