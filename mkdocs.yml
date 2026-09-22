@@ -13,6 +13,10 @@ site_dir: site
 strict: true
 copyright: Copyright &copy; Knuckles-Team — MIT licensed
 
+theme:
+  logo: assets/brands/graph-os-logo-v1.png
+  favicon: assets/brands/graph-os-logo-v1.png
+
 plugins:
   - search
 
@@ -23,6 +27,8 @@ extra:
 nav:
   - Home: index.md
   - Start Graph OS: get-started.md
+  - Capabilities: capabilities.md
+  - Interfaces: interfaces.md
   - How it fits: architecture.md
   - Use Graph OS:
       - MCP server: mcp-server.md
