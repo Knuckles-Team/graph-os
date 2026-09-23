@@ -30,7 +30,7 @@ nav:
   - Capabilities: capabilities.md
   - Interfaces: interfaces.md
   - How it fits: architecture.md
-  - Use Graph OS:
+  - Components:
       - MCP server: mcp-server.md
       - REST gateway: gateway.md
       - Fleet gateway: fleet.md
