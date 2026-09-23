@@ -102,6 +102,8 @@ def test_boot_installs_and_uninstalls_the_runner_and_assembler(
         runner = decide.current_runner()
         assert runner is not None and runner is composition.runner
         assert runner.tenant == "tenant-a"
+        assert runner.bindings is composition.bindings
+        assert not composition.refresher.done()
         assert assembly._INSTALLED[0] is not None
         assert graphos_decide.current_decide() is composition
     finally:
@@ -122,3 +124,76 @@ def test_a_failed_boot_keeps_every_point_on_its_fallback(
         is None
     )
     assert graphos_decide.current_decide() is None
+
+
+# ------------------------------------------------------------ binding refresh
+
+
+def _schema(question_id: str) -> Any:
+    return _entry(f"decide.schema.{question_id}", "feature_schema")
+
+
+async def test_a_published_schema_binds_and_a_retired_one_falls_back() -> None:
+    from agent_utilities.decide import POINTS
+
+    components = _Components({})
+    bindings = graphos_decide.RefreshingBindings(
+        components,
+        "tenant-a",
+        await graphos_decide.resolve_bindings(components, "tenant-a"),
+    )
+    point = POINTS["au.route.cost"]
+    assert bindings.binding_for(point) is None
+    components.published["decide.schema.au.route.cost"] = _schema("au.route.cost")
+    assert await bindings.refresh() is True
+    assert bindings.binding_for(point) is not None
+    del components.published["decide.schema.au.route.cost"]
+    assert await bindings.refresh() is True
+    assert bindings.binding_for(point) is None
+
+
+async def test_a_failed_refresh_keeps_the_last_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from agent_utilities.decide import POINTS
+
+    components = _Components({"decide.schema.au.route.cost": _schema("au.route.cost")})
+    bindings = graphos_decide.RefreshingBindings(
+        components,
+        "tenant-a",
+        await graphos_decide.resolve_bindings(components, "tenant-a"),
+    )
+
+    async def unavailable(request: Any) -> Any:
+        raise ConnectionError("engine gone")
+
+    monkeypatch.setattr(components, "current", unavailable)
+    assert await bindings.refresh() is False
+    assert bindings.binding_for(POINTS["au.route.cost"]) is not None
+
+
+async def test_the_refresh_runs_on_its_interval() -> None:
+    import asyncio
+
+    components = _Components({})
+    bindings = graphos_decide.RefreshingBindings(
+        components,
+        "tenant-a",
+        await graphos_decide.resolve_bindings(components, "tenant-a"),
+    )
+    task = asyncio.ensure_future(bindings.refresh_forever(0.01))
+    components.published["decide.schema.au.route.cost"] = _schema("au.route.cost")
+    for _ in range(200):
+        if "au.route.cost" in bindings.by_question:
+            break
+        await asyncio.sleep(0.01)
+    task.cancel()
+    await asyncio.gather(task, return_exceptions=True)
+    assert "au.route.cost" in bindings.by_question
+
+
+def test_the_refresh_interval_is_bounded() -> None:
+    with pytest.raises(ValueError, match="refresh interval"):
+        graphos_decide.install_decide(
+            SimpleNamespace(), session(), _Policy(allowed=True), refresh_interval_s=1.0
+        )

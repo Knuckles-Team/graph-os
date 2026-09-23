@@ -16,7 +16,11 @@ Point bindings are resolved from the Agent Library: each point's
 promoted ``decide.head.<question_id>`` DecisionHead) at its current
 revision. An unpublished point stays unbound and runs its deterministic
 fallback, so installing the runner changes no behaviour until an operator
-publishes a schema.
+publishes a schema. graph-os consumes no Agent Library publish event, so
+:class:`RefreshingBindings` re-reads the bindings on a bounded interval: a
+newly published schema binds within one interval, and a retired one returns
+its point to the fallback. A failed re-read keeps the last good snapshot
+(logged); an unreachable EG makes every decision fall back anyway.
 
 The commit context is minted exactly like AU's pack-import authority: the
 verified process session and an effect-authorizing AU ``ActionPolicy``
@@ -44,6 +48,7 @@ __all__ = [
     "DecideCommitRefused",
     "DecideComposition",
     "DecideLoop",
+    "RefreshingBindings",
     "current_decide",
     "decision_commit_context",
     "install_decide",
@@ -53,6 +58,9 @@ __all__ = [
 
 _ACTION_KIND = "decision_commit"
 _SYNC_TIMEOUT_S = 10.0
+#: Default, minimum and maximum binding re-read interval (seconds).
+REFRESH_INTERVAL_S = 60.0
+_REFRESH_BOUNDS_S = (5.0, 3600.0)
 
 
 class DecideCommitRefused(RuntimeError):
@@ -118,6 +126,51 @@ async def resolve_bindings(components: Any, tenant: str) -> Any:
             head=None if head is None else _dependency(head),
         )
     return StaticBindings(bound)
+
+
+class RefreshingBindings:
+    """AU ``Bindings`` over an atomically swapped snapshot, re-read on an interval."""
+
+    def __init__(self, components: Any, tenant: str, initial: Any) -> None:
+        self._components = components
+        self._tenant = tenant
+        self._snapshot = initial
+
+    @property
+    def by_question(self) -> dict[str, Any]:
+        return dict(self._snapshot.by_question)
+
+    def binding_for(self, point: Any) -> Any:
+        return self._snapshot.binding_for(point)
+
+    async def refresh(self) -> bool:
+        """Re-read every binding; ``False`` (snapshot kept) when the read fails."""
+        try:
+            fresh = await resolve_bindings(self._components, self._tenant)
+        except (RuntimeError, ConnectionError, TimeoutError, ValueError) as exc:
+            logger.warning(
+                "Decide binding refresh failed (%s); keeping the last snapshot",
+                type(exc).__name__,
+            )
+            return False
+        if set(fresh.by_question) != set(self._snapshot.by_question):
+            logger.info(
+                "Decide bindings changed: %d points bound", len(fresh.by_question)
+            )
+        self._snapshot = fresh
+        return True
+
+    async def refresh_forever(self, interval_s: float) -> None:
+        while True:
+            await asyncio.sleep(interval_s)
+            await self.refresh()
+
+
+def _bounded_interval(interval_s: float) -> float:
+    low, high = _REFRESH_BOUNDS_S
+    if not low <= interval_s <= high:
+        raise ValueError(f"binding refresh interval must be within {low}..{high}s")
+    return interval_s
 
 
 def _opaque_principal(actor_id: str) -> str:
@@ -194,11 +247,14 @@ class DecideComposition:
     runner: Any
     assembler: Any
     loop: DecideLoop
+    bindings: RefreshingBindings
+    refresher: Any
 
     def uninstall(self) -> None:
         from agent_utilities import decide
         from agent_utilities.decide.consumers.assembly import install_assembler
 
+        self.refresher.cancel()
         decide.install_runner(None)
         install_assembler(None)
         _INSTALLED[0] = None
@@ -213,7 +269,12 @@ def current_decide() -> DecideComposition | None:
     return _INSTALLED[0]
 
 
-def install_decide(client: Any, session: Any, policy: Any) -> DecideComposition:
+def install_decide(
+    client: Any,
+    session: Any,
+    policy: Any,
+    refresh_interval_s: float = REFRESH_INTERVAL_S,
+) -> DecideComposition:
     """Install the process runner and assembler for ``session``'s tenant."""
     from agent_utilities import decide
     from agent_utilities.decide.consumers.assembly import Assembler, install_assembler
@@ -221,9 +282,14 @@ def install_decide(client: Any, session: Any, policy: Any) -> DecideComposition:
     from agent_utilities.layers.clients import LayerClients
 
     tenant = str(session.tenant)
+    interval = _bounded_interval(refresh_interval_s)
     loop = DecideLoop()
     layers = LayerClients.for_session(client, session)
-    bindings = loop.run(resolve_bindings(layers.components, tenant))
+    bindings = RefreshingBindings(
+        layers.components,
+        tenant,
+        loop.run(resolve_bindings(layers.components, tenant)),
+    )
     runner = decide.DecisionRunner(
         transport=GeneratedTransport(client=client, graph=tenant, loop=loop.loop),
         bindings=bindings,
@@ -234,7 +300,10 @@ def install_decide(client: Any, session: Any, policy: Any) -> DecideComposition:
     )
     decide.install_runner(runner)
     install_assembler(assembler, run=loop.run)
-    composition = DecideComposition(runner, assembler, loop)
+    refresher = asyncio.run_coroutine_threadsafe(
+        bindings.refresh_forever(interval), loop.loop
+    )
+    composition = DecideComposition(runner, assembler, loop, bindings, refresher)
     _INSTALLED[0] = composition
     logger.info(
         "Decide installed for tenant: %d of %d points bound",
