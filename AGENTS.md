@@ -115,8 +115,9 @@ secret history, lock verification, and the local CI replica. Do not bypass a
 failure, add an inline suppression, freeze a baseline, or weaken a threshold.
 Scanner acceptance rules live in `docs/quality-gate-terms.md`.
 
-Shared hooks come from `Knuckles-Team/pipelines` at the immutable revision in
-`.config/pre-commit.yaml`; CI and local checks use that same revision. A local
+Shared hooks come from `Knuckles-Team/pipelines` at `main` -- the one
+sanctioned exception to this repo's immutable-pin policy, pinned in
+`.config/pre-commit.yaml`; CI and local checks use that same ref. A local
 checkout substitution must be command-local and must never mutate repository
 or global Git configuration.
 

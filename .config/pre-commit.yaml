@@ -85,9 +85,10 @@ repos:
     args: ["--locked"]
     stages: [pre-push, manual]
 
-# ── Shared gates (Knuckles-Team/pipelines, pinned) ─────────────────────────────
+# ── Shared gates (Knuckles-Team/pipelines, at main -- the sanctioned exception
+#    to this repo's immutable-pin policy) ──────────────────────────────────────
 - repo: https://github.com/Knuckles-Team/pipelines
-  rev: 1d12b14a9f51c889316591c6314f4fc835660870 # gate inputs under .config/
+  rev: main # gate inputs under .config/
   hooks:
   # scanners (pinned versions; never installed by a hook)
   - id: complexity-staged

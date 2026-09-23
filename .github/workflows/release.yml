@@ -207,7 +207,7 @@ jobs:
       - name: Shared scanner hooks (versions, censuses incl. orphan modules, clone differentials)
         run: |
           set -euo pipefail
-          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@1d12b14a9f51c889316591c6314f4fc835660870' \
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' \
             pipelines-hook scanner-versions cccc kiss dupehound jscpd
           for hook in complexity-census kiss-census dupehound-changed jscpd-differential jscpd-census; do
             uvx --from pre-commit==4.6.0 pre-commit run --config .config/pre-commit.yaml "$hook" --hook-stage manual --all-files
