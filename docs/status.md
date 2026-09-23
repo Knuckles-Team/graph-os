@@ -37,7 +37,7 @@ same multiplexer owned by the serving loop.
 | Durable four-family MCP resource/template reconciliation | `reingestion-unreconciled`; GraphOS does not claim publication |
 | Context-budget-selected A2A tool subsets | Refused before admission because the signed request does not bind an enforceable subset |
 | A2A push notifications and transition history | Not advertised by the Agent Card |
-| `AgentAssemble` routing and `find_tools` budgets | Fail closed until epistemic-graph serves `AgentAssemble` |
+| `AgentAssemble` routing and `find_tools` budgets | Unbudgeted routing falls back to capability search, budgeted routing fails closed, and `find_tools` returns ranked tools with the reason, until epistemic-graph serves `AgentAssemble` and Decide is installed |
 
 Authenticated A2A `message/stream` and `tasks/resubscribe` stream task state
 and the completed task's answer over SSE.
