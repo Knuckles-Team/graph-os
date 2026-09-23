@@ -81,10 +81,10 @@ class LeasedTrainerDispatcher:
         try:
             return await self._run_under_lease(spec, lease)
         finally:
-            self._admission.leases.release(lease)
+            await self._admission.leases.release(lease, self._clock_ms())
 
     async def _lease_lost(self, lease: TrainingLease) -> None:
-        while self._admission.leases.is_live(lease, self._clock_ms()):
+        while await self._admission.leases.is_live(lease, self._clock_ms()):
             await asyncio.sleep(self._interval)
 
     async def _run_under_lease(self, spec: Any, lease: TrainingLease) -> Any:

@@ -126,15 +126,22 @@ class TrainingAdmissionRequest(ControlPlaneModel):
 
 
 class TrainingLease(ControlPlaneModel):
-    """The fenced resource lease one training attempt holds on one host."""
+    """The fenced EG ``CapacityLease`` one training attempt holds on one host.
+
+    ``lease_epoch``/``fence_token`` are the engine-minted fence: renew and
+    release must present them, and a cell repartition (a new epoch) makes the
+    lease stale rather than silently valid.
+    """
 
     lease_id: str = _Id
     tenant_id: str = _Id
     host_id: str = _Id
+    cell_id: str = _Id
     work_item_id: str = _Id
     capability_id: str = _Id
     gpu_memory_bytes: int = Field(ge=1)
-    fence: int = Field(ge=1)
+    lease_epoch: int = Field(ge=1)
+    fence_token: int = Field(ge=1)
     expires_at_ms: int = Field(ge=0)
 
 

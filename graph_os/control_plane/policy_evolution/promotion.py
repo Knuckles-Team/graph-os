@@ -1,7 +1,7 @@
 """Release-pointer promotion and rollback for model-policy versions (EH-347).
 
-The pointer is graph-os state: EG records carry identity only and there is
-no pointer record. Every move is an explicit compare-and-swap on the
+The pointer is graph-os-owned state, committed to EG as a CAS node
+(:mod:`.eg_pointer`); the EG policy records carry identity only. Every move is an explicit compare-and-swap on the
 revision and version the caller last read; a promotion additionally needs the
 capability's ``promote`` control (default off) and an accepted held-out
 evaluation, and a rollback may only return to the immutable version the
@@ -11,7 +11,6 @@ refuses to register a version for it.
 
 from __future__ import annotations
 
-import threading
 from typing import Protocol
 
 from .models import (
@@ -29,7 +28,6 @@ from .records import (
 )
 
 __all__ = [
-    "InMemoryReleasePointerRepository",
     "ModelPolicyReleaseService",
     "ReleasePointerRepository",
 ]
@@ -38,43 +36,14 @@ __all__ = [
 class ReleasePointerRepository(Protocol):
     """Durable owner of the one pointer per tenant/family/channel."""
 
-    def get(self, pointer_id: str) -> ModelPolicyReleasePointer | None: ...
+    async def get(self, pointer_id: str) -> ModelPolicyReleasePointer | None: ...
 
-    def compare_and_swap(
+    async def compare_and_swap(
         self,
         expected_revision: int,
         expected_version_id: str | None,
         pointer: ModelPolicyReleasePointer,
     ) -> ModelPolicyReleasePointer: ...
-
-
-class InMemoryReleasePointerRepository:
-    """Reference CAS implementation (atomic under one lock)."""
-
-    def __init__(self) -> None:
-        self._lock = threading.Lock()
-        self._pointers: dict[str, ModelPolicyReleasePointer] = {}
-
-    def get(self, pointer_id: str) -> ModelPolicyReleasePointer | None:
-        with self._lock:
-            return self._pointers.get(pointer_id)
-
-    def compare_and_swap(
-        self,
-        expected_revision: int,
-        expected_version_id: str | None,
-        pointer: ModelPolicyReleasePointer,
-    ) -> ModelPolicyReleasePointer:
-        with self._lock:
-            current = self._pointers.get(pointer.pointer_id)
-            revision = current.revision if current is not None else 0
-            version = current.version_id if current is not None else None
-            if revision != expected_revision or version != expected_version_id:
-                raise PolicyEvolutionControlError("RELEASE_CAS_CONFLICT")
-            if pointer.revision != revision + 1:
-                raise PolicyEvolutionControlError("RELEASE_REVISION_NOT_MONOTONIC")
-            self._pointers[pointer.pointer_id] = pointer
-            return pointer
 
 
 def _next_pointer(
@@ -122,14 +91,18 @@ class ModelPolicyReleaseService:
         self._records = records
         self._repository = repository
 
-    def current(
+    async def current(
         self, tenant_id: str, family: str, channel: str
     ) -> ModelPolicyReleasePointer | None:
-        return self._repository.get(release_pointer_id(tenant_id, family, channel))
+        return await self._repository.get(
+            release_pointer_id(tenant_id, family, channel)
+        )
 
     async def apply(self, mutation: PolicyReleaseMutation) -> ModelPolicyReleasePointer:
         """Promote or roll back by CAS; refuse before any state changes."""
-        current = self.current(mutation.tenant_id, mutation.family, mutation.channel)
+        current = await self.current(
+            mutation.tenant_id, mutation.family, mutation.channel
+        )
         _require_expected(mutation, current)
         await require_control(
             self._records, mutation.capability_id, "promote", mutation.granted_scopes
@@ -147,7 +120,7 @@ class ModelPolicyReleaseService:
                 "RELEASE_ROLLBACK_TARGET_INVALID",
                 "rollback returns only to the version the pointer replaced",
             )
-        return self._repository.compare_and_swap(
+        return await self._repository.compare_and_swap(
             mutation.expected_revision,
             mutation.expected_version_id,
             _next_pointer(mutation, current),

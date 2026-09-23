@@ -11,12 +11,13 @@ capability record enables them.
 """
 
 from .admission import (
-    InMemoryTrainingLeaseBook,
     PolicyTrainingAdmission,
     TrainingLeaseBook,
     choose_training_host,
 )
 from .dispatch import HostFacts, LeasedTrainerDispatcher, TrainerTransport
+from .eg_capacity import EgCapacityLeaseBook, training_cell_id
+from .eg_pointer import EgReleasePointerRepository
 from .models import (
     HostCapacity,
     HostLimits,
@@ -29,11 +30,7 @@ from .models import (
     TrainingAdmissionRequest,
     TrainingLease,
 )
-from .promotion import (
-    InMemoryReleasePointerRepository,
-    ModelPolicyReleaseService,
-    ReleasePointerRepository,
-)
+from .promotion import ModelPolicyReleaseService, ReleasePointerRepository
 from .records import PolicyRecordReader
 
 __all__ = [
@@ -41,8 +38,8 @@ __all__ = [
     "HostFacts",
     "HostLimits",
     "HostPressure",
-    "InMemoryReleasePointerRepository",
-    "InMemoryTrainingLeaseBook",
+    "EgCapacityLeaseBook",
+    "EgReleasePointerRepository",
     "InferenceSloPolicy",
     "LeasedTrainerDispatcher",
     "ModelPolicyReleasePointer",
@@ -58,4 +55,5 @@ __all__ = [
     "TrainingLease",
     "TrainingLeaseBook",
     "choose_training_host",
+    "training_cell_id",
 ]

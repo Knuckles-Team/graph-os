@@ -16,12 +16,12 @@ import pytest
 
 from graph_os.a2a.policy_training import compose_policy_training_path, policy_records
 from graph_os.control_plane.policy_evolution import (
+    EgCapacityLeaseBook,
+    EgReleasePointerRepository,
     HostCapacity,
     HostLimits,
     HostPressure,
     InferenceSloPolicy,
-    InMemoryReleasePointerRepository,
-    InMemoryTrainingLeaseBook,
     LeasedTrainerDispatcher,
     ModelPolicyReleaseService,
     PolicyEvolutionControlError,
@@ -30,7 +30,10 @@ from graph_os.control_plane.policy_evolution import (
     ProtectedModel,
     TrainingAdmissionRequest,
     choose_training_host,
+    training_cell_id,
 )
+
+from .eg_fakes import fake_eg_client
 
 GIB = 1024**3
 CAP = "polcap:" + "a" * 64
@@ -155,28 +158,22 @@ def _request(
     )
 
 
-def _no_leases(_host: str) -> int:
-    return 0
+FREE = {"gb10": 48 * GIB, "r820": 24 * GIB}
 
 
 # --------------------------------------------------------------- host choice
 
 
-def test_most_free_eligible_host_after_the_inference_reserve() -> None:
-    # gb10: 120 - 72 reserved = 48 free; r820: 24 free.
+def test_most_free_eligible_host() -> None:
     assert (
-        choose_training_host(
-            _request(gib=20), HOSTS, _healthy(), LIMITS, SLO, _no_leases
-        )
+        choose_training_host(_request(gib=20), HOSTS, _healthy(), LIMITS, FREE)
         == "gb10"
     )
 
 
-def test_the_inference_reserve_is_never_lent_to_training() -> None:
+def test_a_host_without_free_capacity_is_the_slo_reserve() -> None:
     with pytest.raises(PolicyEvolutionControlError) as refused:
-        choose_training_host(
-            _request(gib=49), HOSTS, _healthy(), LIMITS, SLO, _no_leases
-        )
+        choose_training_host(_request(gib=49), HOSTS, _healthy(), LIMITS, FREE)
     assert refused.value.code == "TRAINING_SLO_RESERVE"
 
 
@@ -192,58 +189,75 @@ def test_the_inference_reserve_is_never_lent_to_training() -> None:
 )
 def test_a_pressured_host_is_refused(override: dict[str, Any], code: str) -> None:
     pressure = {"gb10": _pressure("gb10", **override)}
+    request = _request(host_constraint=frozenset({"gb10"}))
     with pytest.raises(PolicyEvolutionControlError) as refused:
-        choose_training_host(
-            _request(host_constraint=frozenset({"gb10"})),
-            HOSTS,
-            pressure,
-            LIMITS,
-            SLO,
-            _no_leases,
-        )
+        choose_training_host(request, HOSTS, pressure, LIMITS, FREE)
     assert refused.value.code == code
 
 
 def test_an_unobserved_host_is_refused() -> None:
     with pytest.raises(PolicyEvolutionControlError) as refused:
-        choose_training_host(_request(), HOSTS, {}, LIMITS, SLO, _no_leases)
+        choose_training_host(_request(), HOSTS, {}, LIMITS, FREE)
     assert refused.value.code == "TRAINING_HOST_PRESSURE_UNOBSERVED"
-
-
-def test_an_incomplete_slo_policy_fails_closed() -> None:
-    partial = InferenceSloPolicy(required_models=6, protected=SLO.protected[:5])
-    with pytest.raises(PolicyEvolutionControlError) as refused:
-        choose_training_host(_request(), HOSTS, _healthy(), LIMITS, partial, _no_leases)
-    assert refused.value.code == "TRAINING_SLO_POLICY_INCOMPLETE"
 
 
 # ------------------------------------------------------------------ admission
 
 
-def _admission(records: _Records | None = None) -> PolicyTrainingAdmission:
-    return PolicyTrainingAdmission(
-        records or _records(), InMemoryTrainingLeaseBook(), SLO, LIMITS
+def _admission(
+    records: _Records | None = None, slo: InferenceSloPolicy = SLO
+) -> PolicyTrainingAdmission:
+    book = EgCapacityLeaseBook(
+        fake_eg_client(),
+        tenant_ref="tenant-a",
+        owner_digest="graph-os",
+        policy_digest="slo-v1",
     )
+    return PolicyTrainingAdmission(records or _records(), book, slo, LIMITS)
 
 
-async def test_admission_leases_and_counts_live_leases_against_capacity() -> None:
+async def test_the_ledger_floor_is_the_inference_reserve() -> None:
     admission = _admission()
     first = await admission.admit(_request("wi-1", gib=30), HOSTS, _healthy(), 0)
-    assert (first.host_id, first.fence) == ("gb10", 1)
+    assert first.host_id == "gb10" and first.cell_id == training_cell_id("gb10")
+    # gb10: 120 GiB capacity, 72 GiB floor, 30 leased -> 18 free; r820 24 free.
+    second = await admission.admit(_request("wi-2", gib=20), HOSTS, _healthy(), 0)
+    assert second.host_id == "r820"
     with pytest.raises(PolicyEvolutionControlError) as refused:
-        await admission.admit(_request("wi-2", gib=30), HOSTS, _healthy(), 0)
+        await admission.admit(_request("wi-3", gib=30), HOSTS, _healthy(), 0)
     assert refused.value.code == "TRAINING_SLO_RESERVE"
-    admission.leases.release(first)
-    second = await admission.admit(_request("wi-2", gib=30), HOSTS, _healthy(), 0)
-    assert second.fence == 2
+    await admission.leases.release(first, 0)
+    third = await admission.admit(_request("wi-3", gib=30), HOSTS, _healthy(), 0)
+    assert third.host_id == "gb10" and third.fence_token > first.fence_token
 
 
-async def test_one_live_lease_per_work_item() -> None:
+async def test_a_repeated_attempt_replays_its_one_lease() -> None:
     admission = _admission()
-    await admission.admit(_request("wi-1", gib=10), HOSTS, _healthy(), 0)
+    first = await admission.admit(_request("wi-1", gib=10), HOSTS, _healthy(), 0)
+    again = await admission.admit(_request("wi-1", gib=10), HOSTS, _healthy(), 0)
+    assert again == first
+
+
+async def test_a_changed_reserve_advances_the_cell_epoch_and_stales_leases() -> None:
+    admission = _admission()
+    lease = await admission.admit(_request("wi-1", gib=10), HOSTS, _healthy(), 0)
+    assert await admission.leases.is_live(lease, 1)
+    tighter = InferenceSloPolicy(
+        required_models=6,
+        protected=(
+            *SLO.protected[:5],
+            SLO.protected[5].model_copy(update={"reserved_gpu_memory_bytes": 20 * GIB}),
+        ),
+    )
+    await admission.leases.provision(HOSTS[0], tighter.reserved_on("gb10"), 2)
+    assert not await admission.leases.is_live(lease, 3)
+
+
+async def test_an_incomplete_slo_policy_fails_closed() -> None:
+    partial = InferenceSloPolicy(required_models=6, protected=SLO.protected[:5])
     with pytest.raises(PolicyEvolutionControlError) as refused:
-        await admission.admit(_request("wi-1", gib=10), HOSTS, _healthy(), 0)
-    assert refused.value.code == "TRAINING_ATTEMPT_ALREADY_LEASED"
+        await _admission(slo=partial).admit(_request(), HOSTS, _healthy(), 0)
+    assert refused.value.code == "TRAINING_SLO_POLICY_INCOMPLETE"
 
 
 @pytest.mark.parametrize(
@@ -316,18 +330,22 @@ async def test_the_job_runs_under_a_lease_that_is_released_afterwards() -> None:
     transport = _Transport()
     outcome = await _dispatcher(admission, transport).run(_spec())
     assert outcome.status == "succeeded"
-    assert transport.leases and admission.leases.leased_bytes("gb10", 0) == 0
+    assert transport.leases
+    assert not await admission.leases.is_live(transport.leases[0], 0)
+    assert await admission.leases.free_bytes("gb10", 0) == 48 * GIB
 
 
 async def test_lease_loss_cancels_the_external_job() -> None:
-    admission = _admission()
-    leases = admission.leases
-    assert isinstance(leases, InMemoryTrainingLeaseBook)
+    client = fake_eg_client()
+    book = EgCapacityLeaseBook(
+        client, tenant_ref="tenant-a", owner_digest="graph-os", policy_digest="slo-v1"
+    )
+    admission = PolicyTrainingAdmission(_records(), book, SLO, LIMITS)
     transport = _Transport(hold=asyncio.Event())
     running = asyncio.ensure_future(_dispatcher(admission, transport).run(_spec()))
     while not transport.leases:
         await asyncio.sleep(0)
-    leases.revoke(transport.leases[0].work_item_id)
+    client.capacity_leases.revoke(transport.leases[0].lease_id)
     outcome = await asyncio.wait_for(running, timeout=5)
     assert outcome.status == "cancelled" and transport.cancelled
 
@@ -360,7 +378,9 @@ def _mutation(**overrides: Any) -> PolicyReleaseMutation:
 
 
 def _service(records: _Records) -> ModelPolicyReleaseService:
-    return ModelPolicyReleaseService(records, InMemoryReleasePointerRepository())
+    return ModelPolicyReleaseService(
+        records, EgReleasePointerRepository(fake_eg_client())
+    )
 
 
 async def _live_v1(records: _Records) -> ModelPolicyReleaseService:
@@ -417,7 +437,7 @@ async def test_promotion_needs_an_accepted_held_out_evaluation(
             _mutation(expected_revision=1, expected_version_id=V1, next_version_id=V2)
         )
     assert refused.value.code == code
-    live = service.current("tenant-a", "qwen-policy", "stable")
+    live = await service.current("tenant-a", "qwen-policy", "stable")
     assert live is not None and live.version_id == V1
 
 
@@ -483,3 +503,36 @@ def test_composition_fails_closed_until_au_publishes_the_training_path() -> None
         assert refused.value.code == "POLICY_TRAINING_PATH_UNAVAILABLE"
     else:
         assert type(compose()).__name__ == "PolicyTrainingPath"
+
+
+# ----------------------------------------------------------- durable pointer
+
+
+async def test_the_pointer_is_an_eg_node_moved_only_by_engine_cas() -> None:
+    client = fake_eg_client()
+    repository = EgReleasePointerRepository(client)
+    records = _records()
+    records.put(EVAL + "0", "policy_evaluation", _evaluation(version=V1, baseline=None))
+    service = ModelPolicyReleaseService(records, repository)
+    pointer = await service.apply(_mutation(evaluation_id=EVAL + "0"))
+    stored = client.nodes.nodes[pointer.pointer_id]
+    assert stored["kind"] == "model_policy_release_pointer"
+    assert stored["version_id"] == V1 and stored["revision"] == 1
+    # A second writer racing the first move loses on the engine's create-if-absent.
+    with pytest.raises(PolicyEvolutionControlError) as refused:
+        await repository.compare_and_swap(0, None, pointer)
+    assert refused.value.code == "RELEASE_CAS_CONFLICT"
+
+
+async def test_a_tampered_pointer_node_is_refused() -> None:
+    client = fake_eg_client()
+    repository = EgReleasePointerRepository(client)
+    records = _records()
+    records.put(EVAL + "0", "policy_evaluation", _evaluation(version=V1, baseline=None))
+    pointer = await ModelPolicyReleaseService(records, repository).apply(
+        _mutation(evaluation_id=EVAL + "0")
+    )
+    client.nodes.nodes[pointer.pointer_id]["version_id"] = V2
+    with pytest.raises(PolicyEvolutionControlError) as refused:
+        await repository.get(pointer.pointer_id)
+    assert refused.value.code == "RELEASE_POINTER_TAMPERED"
