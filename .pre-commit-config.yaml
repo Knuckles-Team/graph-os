@@ -163,13 +163,7 @@ repos:
   # `$PWD`-relative path, which breaks in a worktree. Falls back to PyPI (CI).
   - id: dependency-readiness
     name: Dependency readiness — declared and imported dependencies respect layer order
-    entry: >-
-      bash -c '
-      CANON_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)";
-      P="$CANON_ROOT/../agents/repository-manager";
-      [ -d "$P" ] || P=repository-manager;
-      uv run --no-project --python 3.12 --prerelease=allow --with "$P" python -m repository_manager.dependency_readiness .
-      '
+    entry: bash -c 'CANON_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"; P=""; d="$CANON_ROOT"; while [ "$d" != "/" ]; do [ -d "$d/agent-packages/agents/repository-manager" ] && { P="$d/agent-packages/agents/repository-manager"; break; }; d=$(dirname "$d"); done; [ -n "$P" ] || P=repository-manager; uv run --no-project --python 3.12 --prerelease=allow --with "$P" python -m repository_manager.dependency_readiness .'
     language: system
     pass_filenames: false
     always_run: true
