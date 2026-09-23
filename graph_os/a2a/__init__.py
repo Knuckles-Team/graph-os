@@ -20,6 +20,7 @@ from .models import (
     A2ARouteDecision,
     A2ATask,
 )
+from .policy_training import compose_policy_training_path, policy_records
 from .routing import (
     A2AAssemblyUnavailable,
     A2ARouter,
@@ -51,4 +52,6 @@ __all__ = [
     "compose_a2a_service",
     "create_a2a_application",
     "create_a2a_handlers",
+    "compose_policy_training_path",
+    "policy_records",
 ]
