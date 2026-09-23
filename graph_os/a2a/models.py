@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from agent_utilities.api import TaskIri
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 
@@ -74,7 +75,9 @@ class A2ARouteDecision(_WireModel):
     agent_graph_ref: str | None = Field(default=None, max_length=512)
     run_spec_ref: str | None = Field(default=None, max_length=512)
     decision_record_ref: str | None = Field(default=None, max_length=512)
-    task_iri: str | None = Field(default=None, max_length=128)
+    #: One of AU's typed task terms (``agent_utilities.api.TaskIri``); the
+    #: dispatch request accepts nothing else.
+    task_iri: TaskIri | None = None
 
     @field_validator("selected_tools")
     @classmethod
