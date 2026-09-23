@@ -66,8 +66,11 @@ async def require_control(
         raise PolicyEvolutionControlError(
             "POLICY_CAPABILITY_MISSING", capability_id
         ) from missing
-    setting = getattr(capability.controls, control)
-    if not setting.enabled:
+    # The generated DTO omits defaulted fields: an absent ``controls``, an
+    # absent control or an absent ``enabled`` all mean OFF (the Rust
+    # ``#[serde(default)]``), never an implicit grant.
+    setting = getattr(capability.controls, control, None)
+    if setting is None or setting.enabled is not True:
         raise PolicyEvolutionControlError(f"POLICY_{control.upper()}_DISABLED")
     if setting.scope is None or str(setting.scope) not in granted_scopes:
         raise PolicyEvolutionControlError(
