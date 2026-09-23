@@ -12,7 +12,13 @@ Every payload is normalized to one internal :class:`FleetEvent` shape, then
 each event is
 
 * persisted as a ``FleetEvent`` KG node (the durable observation, following the
-  ExecutionSummary/PerformanceAnomaly node-write pattern), and
+  ExecutionSummary/PerformanceAnomaly node-write pattern; ``FleetEvent`` is not
+  a native-only label, so this generic write is unaffected by the connected
+  engine's row guard) — this remains the ``fleet_event_triage`` daemon
+  worker's source of truth, read back by this exact node id;
+* mirrored onto the append-only ``fleet.events`` broker stream (EG-283/EG-5)
+  so the swarm-wide ``/api/fleet/trace``/``/api/fleet/touched`` queries never
+  need ad-hoc Cypher — best-effort, additive, never blocks ingestion; and
 * enqueued as a durable ``fleet_event_triage`` task on the engine task queue,
   so the host daemon's workers act on it via
   :mod:`agent_utilities.knowledge_graph.adaptation.fleet_event_triage`.
@@ -24,6 +30,15 @@ accepted. With neither boundary, ingress is denied. A bounded,
 concurrency-safe, privacy-keyed per-source counter caps event
 storms (429 when exceeded). Persisted nodes contain only pseudonymous references
 and normalized classifications; raw webhook content is never retained.
+
+The stream mirror publishes under
+:func:`agent_utilities.security.request_identity.system_write_session` — the
+ambient verified session when one is bound (a middleware-authenticated
+caller), else this process's own background/system write authority. EG's
+native broker authority refuses a write to a ``fleet.``-prefixed stream
+without the exact ``fleet:events`` scope (or ``fleet:*``/``kg:admin``;
+eg-workitem WRAPUP §3d), so that authority now carries it
+(``request_identity._GRAPH_AUTH_SCOPES``/``mint_local_process_session``).
 """
 
 from __future__ import annotations
@@ -39,10 +54,20 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
+import msgpack
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
+
+#: The exact scope EG's native broker authority requires for a write to a
+#: ``fleet.``-prefixed stream (or ``fleet:*``/``kg:admin``).
+FLEET_EVENTS_SCOPE = "fleet:events"
+#: The append-only broker stream fleet events are mirrored onto.
+FLEET_EVENTS_STREAM = "fleet.events"
+_FLEET_STREAM_MAX_MESSAGES = 100_000
+_FLEET_STREAM_MAX_AGE_MS = 30 * 86_400_000  # 30 days
+_fleet_stream_declared = False
 
 # Canonical severity vocabulary (normalized from each sender's own wording).
 _SEVERITY_MAP = {
@@ -274,8 +299,53 @@ def _correlation_stamp() -> dict[str, str]:
     return stamp
 
 
-def persist_event(engine: Any, event: FleetEvent) -> str:
-    """Write the event as a ``FleetEvent`` KG node; returns the node id."""
+async def _ensure_fleet_stream_declared(client: Any) -> None:
+    """Idempotently upsert the ``fleet.events`` retention policy (EG-283).
+
+    No lock: ``StreamDeclare`` is itself an idempotent upsert, so a race that
+    calls it twice is harmless — this flag only skips the redundant RPC on
+    the common path.
+    """
+    global _fleet_stream_declared
+    if _fleet_stream_declared:
+        return
+    await client.broker.stream_declare(
+        FLEET_EVENTS_STREAM,
+        max_messages=_FLEET_STREAM_MAX_MESSAGES,
+        max_age_ms=_FLEET_STREAM_MAX_AGE_MS,
+    )
+    _fleet_stream_declared = True
+
+
+async def _mirror_event_to_stream(event_id: str, properties: dict[str, Any]) -> None:
+    """Best-effort mirror of one ``FleetEvent`` onto the ``fleet.events``
+    broker stream (EG-5). The KG node ``persist_event`` writes remains the
+    triage pipeline's source of truth; this is additive for
+    ``/api/fleet/trace``/``/api/fleet/touched`` and never blocks ingestion.
+    """
+    try:
+        from agent_utilities.security.request_identity import system_write_session
+
+        from graph_os.gateway.ports import gateway_application
+
+        session = system_write_session()
+        session.require_scope(FLEET_EVENTS_SCOPE)
+        claims = session.engine_verified_context()
+        client = gateway_application().graph_client(session.tenant)
+        payload = {"event_id": event_id, **properties}
+        now_ms = int(time.time() * 1000)
+        with client.use_verified_context(claims):
+            await _ensure_fleet_stream_declared(client)
+            await client.broker.stream_publish(
+                FLEET_EVENTS_STREAM, msgpack.packb(payload, use_bin_type=True), now_ms
+            )
+    except Exception as exc:  # noqa: BLE001 — the KG node + triage enqueue are authoritative
+        logger.warning("fleet-events stream mirror failed: %s", exc)
+
+
+async def persist_event(engine: Any, event: FleetEvent) -> str:
+    """Write the event as a ``FleetEvent`` KG node and mirror it onto the
+    ``fleet.events`` broker stream; returns the node id."""
     from agent_utilities.security.persistence_privacy import persistence_reference
 
     event_id = f"fleet_event:{uuid.uuid4().hex}"
@@ -306,6 +376,7 @@ def persist_event(engine: Any, event: FleetEvent) -> str:
     }
     properties.update(_correlation_stamp())
     engine.add_node(event_id, "FleetEvent", properties=properties)
+    await _mirror_event_to_stream(event_id, properties)
     return event_id
 
 
@@ -393,7 +464,11 @@ async def fleet_events_receive(request: Request) -> JSONResponse:
             status_code=503,
         )
 
-    accepted = [record for ev in events if (record := _accept_event(engine, ev))]
+    accepted = []
+    for ev in events:
+        record = await _accept_event(engine, ev)
+        if record:
+            accepted.append(record)
 
     return _accepted_response(accepted)
 
@@ -481,9 +556,9 @@ def _available_engine() -> Any:
         return None
 
 
-def _accept_event(engine: Any, event: FleetEvent) -> dict[str, Any] | None:
+async def _accept_event(engine: Any, event: FleetEvent) -> dict[str, Any] | None:
     try:
-        event_id = persist_event(engine, event)
+        event_id = await persist_event(engine, event)
     except Exception as exc:
         logger.warning("fleet-events persist failed: %s", exc)
         return None

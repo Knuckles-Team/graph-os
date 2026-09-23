@@ -37,6 +37,12 @@ dependencies = [
     # source through its own .uv-workspace-siblings declaration.
     "epistemic-graph>=2.27.0,<3.0.0",
     "fastapi>=0.139.2",
+    # The fleet gateway encodes/decodes the "fleet.events" broker stream's
+    # msgpack payloads directly (gateway/fleet.py, gateway/fleet_events.py);
+    # a transitive pin from epistemic-graph/mcp is not enough for this
+    # package's own imports (same rationale as epistemic-graph's own note
+    # above).
+    "msgpack>=1.2.1",
     # Fleet child service identity and the remote OAuth broker authenticate
     # outbound HTTP directly; each auth object is both an httpx.Auth and an
     # httpx2.Auth (the MCP SDK v2 client transport).

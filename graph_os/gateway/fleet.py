@@ -20,9 +20,15 @@ no separate supervisor service. Everything here surfaces state the ecosystem
   sessions owned by another host get ``pause_requested``/``kill_requested``,
   which the owning host's goal loop reconciles on its next tick
   (CONCEPT:AU-OS.state.fleet-supervisory-plane-at).
-* **approvals** — pending mutation/risk approvals stored as ``ActionApproval`` nodes,
-  read and decided through the parity-covered ``graph_query`` / ``graph_governance``
+* **approvals** — pending mutation/risk approvals are ``action.approval`` EG
+  ControlLease records (a generic ``ActionApproval`` node write is refused by
+  the connected engine's native row guard; eg-workitem WRAPUP §3d), read and
+  decided through the parity-covered ``graph_query`` / ``graph_governance``
   tools.
+* **trace / touched** — swarm-wide correlation reads over typed EG surfaces:
+  ``ListWorkItems.metadata_match`` for ``fleet_trace``'s correlation-id join,
+  and a bounded ``StreamRead`` over the append-only ``fleet.events`` stream
+  for ``fleet_touched``'s blast-radius query (eg-workitem WRAPUP EG-5).
 
 These handlers are plain Starlette callables mounted by the gateway; the
 ``agent-webui`` Fleet Dashboard consumes them.
@@ -34,7 +40,12 @@ import logging
 import time
 from typing import Any
 
+import msgpack
 from agent_utilities.core import sessions as _sessions
+from agent_utilities.orchestration.action_policy import (
+    ACTION_APPROVAL_KIND,
+    approval_lease_to_props,
+)
 from agent_utilities.orchestration.fleet_health import (
     _domain_sql,
     collect_fleet_health,
@@ -94,6 +105,23 @@ def _tenant_scope(dialect: str) -> tuple[str, list[Any]]:
         raise
     except Exception as exc:
         raise PermissionError("Fleet supervision authority is unavailable") from exc
+
+
+async def _verified_graph_client(required_scope: str) -> tuple[Any, Any, Any]:
+    """Resolve ``(session, session-routed EG client, verified claims)``.
+
+    Mirrors ``gateway/graph_api.py``'s SPARQL/SQL handlers: every typed EG
+    call this module makes runs under ``client.use_verified_context(claims)``
+    for the caller's own verified tenant, never a raw unauthenticated client.
+    """
+    from agent_utilities.api.session import resolve_session
+
+    from graph_os.gateway.ports import gateway_application
+
+    session = resolve_session(required_scope=required_scope)
+    claims = session.engine_verified_context()
+    client = gateway_application().graph_client(session.tenant)
+    return session, client, claims
 
 
 def _page_params(
@@ -361,29 +389,27 @@ async def fleet_kill(request: Request) -> JSONResponse:
 async def fleet_approvals(request: Request) -> JSONResponse:
     """List pending mutation/risk approvals.
 
-    ``ActionApproval`` is immutable approval evidence filed by the operational
-    ActionPolicy gate (CONCEPT:AU-OS.deployment.fleet-lifecycle-control). A WorkItem is
-    created or
-    released only after authorization; unclaimed operational work is never
+    Pending approvals are ``active`` ``action.approval`` EG ControlLease
+    records filed by the operational ActionPolicy gate
+    (CONCEPT:AU-OS.deployment.fleet-lifecycle-control). A WorkItem is created
+    or released only after authorization; unclaimed operational work is never
     misrepresented as a pending human decision.
     """
 
     pending: list = []
     note = None
     try:
-        from graph_os.gateway.ports import gateway_application
-
-        rows = (
-            gateway_application()
-            .engine()
-            .query_cypher(
-                "MATCH (a:ActionApproval {status: 'pending'}) RETURN a LIMIT 200"
+        session, client, claims = await _verified_graph_client("kg:read")
+        with client.use_verified_context(claims):
+            page = await client.control_leases.list(
+                tenant=session.tenant,
+                kind=ACTION_APPROVAL_KIND,
+                status="active",
+                limit=200,
             )
-        )
-        for row in rows or []:
-            props = row.get("a") if isinstance(row, dict) else None
-            if isinstance(props, dict):
-                pending.append(props)
+        for lease in (page or {}).get("leases") or []:
+            if isinstance(lease, dict):
+                pending.append(approval_lease_to_props(lease))
     except Exception as exc:
         logger.warning("Fleet approval source unavailable: %s", exc)
         note = "approval_source_unavailable"
@@ -394,7 +420,7 @@ async def fleet_approvals(request: Request) -> JSONResponse:
 
 
 async def fleet_grant_approval(request: Request) -> JSONResponse:
-    """Atomically grant or deny a pending ``ActionApproval`` by id."""
+    """Atomically grant or deny a pending ``action.approval`` lease by id."""
 
     try:
         body = await request.json()
@@ -481,6 +507,52 @@ async def fleet_verify_action(request: Request) -> JSONResponse:
         return JSONResponse(public_error_payload(exc, logger=logger), status_code=500)
 
 
+#: The append-only broker stream fleet events are published to (EG-283/EG-5;
+#: writes require the ``fleet:events`` scope per eg-workitem WRAPUP §3d).
+_FLEET_EVENTS_STREAM = "fleet.events"
+#: Safety bound on one request's full-stream scan (fleet_trace/fleet_touched
+#: have no subject/correlation index on an append-only stream — unlike the
+#: retired ad-hoc Cypher match, this is a bounded linear scan of the retained
+#: log, newest-declared retention window only).
+_FLEET_EVENTS_SCAN_MAX_MESSAGES = 200_000
+
+
+async def _scan_fleet_events(client: Any) -> list[dict[str, Any]]:
+    """Read the whole retained ``fleet.events`` stream, decoded, oldest first.
+
+    There is no per-field index on an append-only stream (unlike the retired
+    ad-hoc Cypher match), so callers filter/sort the result themselves;
+    ``_FLEET_EVENTS_SCAN_MAX_MESSAGES`` bounds one request's scan to the
+    stream's own declared retention window.
+    """
+    events: list[dict[str, Any]] = []
+    offset = 0
+    scanned = 0
+    while scanned < _FLEET_EVENTS_SCAN_MAX_MESSAGES:
+        batch = await client.broker.stream_read(
+            _FLEET_EVENTS_STREAM, from_offset=offset, max=1000
+        )
+        if not batch:
+            break
+        for _msg_offset, raw in batch:
+            scanned += 1
+            try:
+                event = msgpack.unpackb(raw, raw=False)
+            except Exception:  # noqa: BLE001 — one malformed message never sinks the scan
+                continue
+            if isinstance(event, dict):
+                events.append(event)
+        offset = batch[-1][0] + 1
+    return events
+
+
+async def _stream_events_by_correlation(
+    client: Any, correlation_id: str, limit: int
+) -> list[dict[str, Any]]:
+    events = await _scan_fleet_events(client)
+    return [e for e in events if e.get("correlation_id") == correlation_id][:limit]
+
+
 async def fleet_trace(request: Request) -> JSONResponse:
     """Swarm-wide cross-agent correlation query
     (CONCEPT:AU-OS.observability.run-wide-correlation-id).
@@ -501,19 +573,24 @@ async def fleet_trace(request: Request) -> JSONResponse:
     except (TypeError, ValueError):
         limit = 500
     try:
-        from graph_os.gateway.ports import gateway_application
-
-        rows = (
-            gateway_application()
-            .engine()
-            .query_cypher(
-                "MATCH (n) WHERE n.correlation_id = $cid RETURN n LIMIT $limit",
-                {"cid": cid, "limit": limit},
-            )
-        )
-        nodes = [row.get("n") if isinstance(row, dict) else row for row in (rows or [])]
+        session, client, claims = await _verified_graph_client("kg:read")
+        nodes: list[Any] = []
+        with client.use_verified_context(claims):
+            cursor = None
+            while len(nodes) < limit:
+                page = await client.work_items.list(
+                    tenant=session.tenant,
+                    cursor=cursor,
+                    limit=min(100, limit - len(nodes)),
+                    metadata_match={"correlation_id": cid},
+                )
+                nodes.extend(page.get("items") or [])
+                cursor = page.get("next_cursor")
+                if cursor is None:
+                    break
+            nodes.extend(await _stream_events_by_correlation(client, cid, limit))
         return JSONResponse(
-            {"status": "success", "correlation_id": cid, "nodes": nodes}
+            {"status": "success", "correlation_id": cid, "nodes": nodes[:limit]}
         )
     except Exception as exc:  # noqa: BLE001 — degrade gracefully when engine cold
         return JSONResponse(public_error_payload(exc, logger=logger), status_code=500)
@@ -534,20 +611,12 @@ async def fleet_touched(request: Request) -> JSONResponse:
             {"status": "error", "message": "resource is required"}, status_code=400
         )
     try:
-        from graph_os.gateway.ports import gateway_application
-
-        rows = (
-            gateway_application()
-            .engine()
-            .query_cypher(
-                "MATCH (e:FleetEvent) WHERE e.subject = $res "
-                "RETURN e ORDER BY e.received_at DESC LIMIT $limit",
-                {"res": resource, "limit": _MAX_PAGE},
-            )
-        )
-        events = [
-            row.get("e") if isinstance(row, dict) else row for row in (rows or [])
-        ]
+        _session, client, claims = await _verified_graph_client("kg:read")
+        with client.use_verified_context(claims):
+            all_events = await _scan_fleet_events(client)
+        events = [e for e in all_events if e.get("subject") == resource]
+        events.sort(key=lambda e: e.get("received_at") or "", reverse=True)
+        events = events[:_MAX_PAGE]
         actors = sorted(
             {e["actor_id"] for e in events if isinstance(e, dict) and e.get("actor_id")}
         )
