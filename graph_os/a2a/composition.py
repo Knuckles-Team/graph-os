@@ -12,6 +12,7 @@ from graph_os.assembly import AgentAssembly
 
 from .application import A2AAuthenticator, create_a2a_application
 from .authority import WorkItemA2AAuthority
+from .decide_routing import DecideA2ARouter
 from .routing import ControlPlaneA2ARouter, EgAssemblyRouter
 from .service import A2ACardMetadata, A2AService
 
@@ -54,6 +55,14 @@ def hosted_control_plane(graph_client_for: GraphClientFor) -> Callable[[Any], An
     return control_plane_for
 
 
+def _installed_assembler() -> Any:
+    """The boot-installed Decide assembler, or ``None`` (current routing only)."""
+    from graph_os.decide import current_decide
+
+    composition = current_decide()
+    return None if composition is None else composition.assembler
+
+
 def compose_a2a_service(
     *,
     control_plane_for: Callable[[Any], Any],
@@ -63,8 +72,11 @@ def compose_a2a_service(
     """One A2A service over the control plane and EG assembly."""
     return A2AService(
         authority=WorkItemA2AAuthority(control_plane_for),
-        router=ControlPlaneA2ARouter(
-            control_plane_for, EgAssemblyRouter(AgentAssembly(graph_client_for))
+        router=DecideA2ARouter(
+            ControlPlaneA2ARouter(
+                control_plane_for, EgAssemblyRouter(AgentAssembly(graph_client_for))
+            ),
+            _installed_assembler,
         ),
         card_metadata=card_metadata or A2ACardMetadata(),
     )
