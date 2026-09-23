@@ -46,7 +46,7 @@ suppress inline.
 
 ## KISS — this repository's own thresholds
 
-`.kiss/kiss.toml`'s `[python]` table records the enforced KISS 0.4.10 limits.
+`.config/kiss.toml`'s `[python]` table records the enforced KISS 0.4.10 limits.
 Recalibrate a threshold only from a reviewed measurement that explains why the
 metric misrepresents a class of code. Record the methodology beside the value;
 never tune a threshold merely to make the current tree pass.
@@ -60,13 +60,13 @@ pass — see AGENTS.md "Orphan-module wiring gate (Python)".
 ## Running the scanners
 
 ```bash
-pre-commit run complexity-staged                        # cccc, on the staged diff
-pre-commit run kiss-staged                              # KISS, on the staged diff
-pre-commit run complexity-census --hook-stage manual --all-files
-pre-commit run kiss-census --hook-stage manual --all-files    # whole package + orphan_module
-pre-commit run dupehound-changed
-pre-commit run jscpd-differential --hook-stage manual --all-files
-pre-commit run jscpd-census --hook-stage manual --all-files
+pre-commit run -c .config/pre-commit.yaml complexity-staged                        # cccc, on the staged diff
+pre-commit run -c .config/pre-commit.yaml kiss-staged                              # KISS, on the staged diff
+pre-commit run -c .config/pre-commit.yaml complexity-census --hook-stage manual --all-files
+pre-commit run -c .config/pre-commit.yaml kiss-census --hook-stage manual --all-files    # whole package + orphan_module
+pre-commit run -c .config/pre-commit.yaml dupehound-changed
+pre-commit run -c .config/pre-commit.yaml jscpd-differential --hook-stage manual --all-files
+pre-commit run -c .config/pre-commit.yaml jscpd-census --hook-stage manual --all-files
 ```
 
 Never run bare `kiss check` — it writes the self-calibrating `.kissconfig`.

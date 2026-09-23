@@ -97,15 +97,15 @@ uv run mypy graph_os
 Install the repository hooks once:
 
 ```bash
-uvx --from pre-commit==4.6.0 pre-commit install \
+uvx --from pre-commit==4.6.0 pre-commit install -c .config/pre-commit.yaml \
   --hook-type pre-commit --hook-type pre-push
 ```
 
 Run the normal hooks and release evidence before handoff:
 
 ```bash
-uvx --from pre-commit==4.6.0 pre-commit run --all-files
-uvx --from pre-commit==4.6.0 pre-commit run pytest --hook-stage manual --all-files
+uvx --from pre-commit==4.6.0 pre-commit run -c .config/pre-commit.yaml --all-files
+uvx --from pre-commit==4.6.0 pre-commit run -c .config/pre-commit.yaml pytest --hook-stage manual --all-files
 uv run --no-project --with "mkdocs>=1.6,<2" mkdocs build --strict
 uv build --wheel --out-dir dist
 ```
@@ -116,7 +116,7 @@ failure, add an inline suppression, freeze a baseline, or weaken a threshold.
 Scanner acceptance rules live in `docs/quality-gate-terms.md`.
 
 Shared hooks come from `Knuckles-Team/pipelines` at the immutable revision in
-`.pre-commit-config.yaml`; CI and local checks use that same revision. A local
+`.config/pre-commit.yaml`; CI and local checks use that same revision. A local
 checkout substitution must be command-local and must never mutate repository
 or global Git configuration.
 

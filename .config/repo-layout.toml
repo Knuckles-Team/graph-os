@@ -1,0 +1,29 @@
+# Repository-root justification manifest, read by the shared root-hygiene hook
+# (Knuckles-Team/pipelines).
+#
+# This is NOT a ratchet. Every tracked root directory, non-dot root file and root
+# dot-file must have a line here: an entry not listed is a gate FAILURE, and a
+# listed entry that stops being tracked is also a failure. Every tool input that
+# accepts a path override lives in .config/; the root keeps only what a tool
+# discovers nowhere else.
+
+[dirs]
+graph_os = "the GraphOS Python package: MCP/REST composition, fleet, gateway, control plane, WebUI host, A2A, browser control, deployment, and console entry points"
+tests = "the pytest suite: wiring tests proving the console entry point and every package under graph_os/ are live, imported members of the package"
+deploy = "deployment inputs: genesis.yaml run-plan manifest and dev/test/prod profiles consumed by graph_os.deployment.genesis_environments, plus the container-delivery boundary note"
+docs = "MkDocs source for the public GitHub Pages documentation site"
+".config" = "tool configuration: pre-commit suite (pre-commit -c), bump2version (--config-file), KISS thresholds, vulture whitelist, this manifest, generated MkDocs theme overrides (custom_dir)"
+".github" = "GitHub Actions workflow definitions (GitHub discovers only .github/)"
+
+[files]
+"AGENTS.md" = "agent-facing repository architecture, commands, quality gates, and safe-development contract (discovered at the root)"
+"CHANGELOG.md" = "release changelog, updated by the bump2version release flow (conventional root location GitHub and PyPI link)"
+"CLAUDE.md" = "Claude Code project instructions (@AGENTS.md import; discovered at the root)"
+"LICENSE" = "MIT license text included in source distributions and wheels (detected at the root)"
+"README.md" = "project readme and PyPI long description (GitHub/PyPI render the root readme; the public-surface gate reads it here)"
+"pyproject.toml" = "package metadata, deployment runtime dependencies/scripts, and the [tool.pipelines_hooks] shared-hook configuration"
+"mkdocs.yml" = "Pages site config; mkdocs and the shared pages_pipeline/readiness TCK read it only at the root, and its INHERIT/docs_dir paths are root-relative"
+"uv.lock" = "uv lockfile (uv discovers it only beside pyproject.toml)"
+
+[dotfiles]
+".gitignore" = "git exclusion patterns (git reads only the root file; carries the fleet-shared REQUIRED set)"
