@@ -22,12 +22,7 @@ from graph_os.a2a.authority import (
     WorkItemA2AAuthority,
 )
 from graph_os.a2a.models import A2AMessage, A2ARouteDecision, A2ATextPart
-from graph_os.a2a.routing import (
-    A2AAssemblyUnavailable,
-    ControlPlaneA2ARouter,
-    EgAssemblyRouter,
-)
-from graph_os.assembly import AssemblyOutcome, AssemblyUnavailable
+from graph_os.a2a.routing import A2AAssemblyUnavailable, ControlPlaneA2ARouter
 
 _SESSION = SimpleNamespace(tenant="tenant-a", actor=SimpleNamespace(actor_id="actor-a"))
 _OTHER = SimpleNamespace(tenant="tenant-a", actor=SimpleNamespace(actor_id="actor-b"))
@@ -238,53 +233,17 @@ async def test_output_reads_only_an_owned_succeeded_run(bound) -> None:
     assert await authority.output(task.id) is None
 
 
-class _Assembly:
-    def __init__(self, outcome: Any) -> None:
-        self.outcome = outcome
-        self.requirements: Any = None
-
-    async def assemble(self, session: Any, requirements: Any) -> AssemblyOutcome:
-        self.requirements = requirements
-        if isinstance(self.outcome, Exception):
-            raise self.outcome
-        return self.outcome
-
-
 @pytest.fixture
 def session_bound(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("agent_utilities.api.resolve_session", lambda *a, **k: _SESSION)
 
 
-async def test_context_budget_fails_closed_while_agent_assemble_is_unavailable(
-    session_bound,
-) -> None:
-    assembly = _Assembly(AssemblyUnavailable("not served"))
+async def test_a_budget_never_reaches_capability_search(session_bound) -> None:
     router = ControlPlaneA2ARouter(
-        lambda session: pytest.fail("control plane accessed"),
-        EgAssemblyRouter(assembly),
+        lambda session: pytest.fail("control plane accessed")
     )
-    with pytest.raises(A2AAssemblyUnavailable, match="not served"):
+    with pytest.raises(A2AAssemblyUnavailable, match="budgeted routing"):
         await router.route(_message(), context_budget_tokens=4096)
-    assert assembly.requirements.context_budget_tokens == 4096
-
-
-async def test_budgeted_route_carries_the_proved_tool_subset(session_bound) -> None:
-    assembly = _Assembly(
-        AssemblyOutcome(record_id="decision:abc", agent_id="expert", tool_ids=("t1",))
-    )
-    router = ControlPlaneA2ARouter(lambda session: None, EgAssemblyRouter(assembly))
-    message = A2AMessage(
-        role="user",
-        parts=[A2ATextPart(text="summarize")],
-        message_id="m",
-        metadata={"graphOsTaskIris": ["eg:task/summarize"]},
-    )
-
-    decision = await router.route(message, context_budget_tokens=2048)
-
-    assert decision.selected_tools == ("t1",)
-    assert decision.decision_record_ref == "decision:abc"
-    assert assembly.requirements.task_iris == ("eg:task/summarize",)
 
 
 async def test_unbudgeted_route_resolves_an_authorized_agent(session_bound) -> None:
@@ -300,7 +259,7 @@ async def test_unbudgeted_route_resolves_an_authorized_agent(session_bound) -> N
                 alternatives=(),
             )
 
-    router = ControlPlaneA2ARouter(lambda session: Plane(), EgAssemblyRouter(None))
+    router = ControlPlaneA2ARouter(lambda session: Plane())
     message = A2AMessage(
         role="user",
         parts=[A2ATextPart(text="do work")],
@@ -317,7 +276,7 @@ async def test_unbudgeted_route_resolves_an_authorized_agent(session_bound) -> N
 
 async def test_untyped_free_text_is_refused_before_any_search(session_bound) -> None:
     router = ControlPlaneA2ARouter(
-        lambda session: pytest.fail("control plane accessed"), EgAssemblyRouter(None)
+        lambda session: pytest.fail("control plane accessed")
     )
     with pytest.raises(A2AAssemblyUnavailable, match="typed task"):
         await router.route(_message(), context_budget_tokens=None)

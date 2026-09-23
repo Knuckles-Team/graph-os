@@ -29,7 +29,6 @@ from .routing import (
     A2AAssemblyUnavailable,
     A2ARouter,
     ControlPlaneA2ARouter,
-    EgAssemblyRouter,
 )
 from .service import A2ACardMetadata, A2AService
 
@@ -50,7 +49,6 @@ __all__ = [
     "A2ATaskNotCancelable",
     "AmbientA2AAuthenticator",
     "ControlPlaneA2ARouter",
-    "EgAssemblyRouter",
     "WorkItemA2AAuthority",
     "compose_a2a",
     "compose_a2a_service",

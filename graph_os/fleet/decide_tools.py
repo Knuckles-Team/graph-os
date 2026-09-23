@@ -78,9 +78,9 @@ async def assembled_tool_subset(
     fallback_tools = _ranked_tools(ranked)
     tools, answer = await tool_subset(
         composition.assembler,
-        list(capability_iris),
-        budget,
         lambda reasons: fallback_tools,
+        context_budget_tokens=budget,
+        capabilities=tuple(capability_iris),
     )
     record = (answer.result or {}).get("record") or {}
     result: dict[str, Any] = {

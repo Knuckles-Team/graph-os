@@ -8,12 +8,12 @@ from typing import Any
 
 from agent_utilities.api import AgentControlPlane, AgentControlPlaneUnavailable
 
-from graph_os.assembly import AgentAssembly
+from graph_os.decide import current_decide
 
 from .application import A2AAuthenticator, create_a2a_application
 from .authority import WorkItemA2AAuthority
 from .decide_routing import DecideA2ARouter
-from .routing import ControlPlaneA2ARouter, EgAssemblyRouter
+from .routing import ControlPlaneA2ARouter
 from .service import A2ACardMetadata, A2AService
 
 __all__ = [
@@ -55,28 +55,16 @@ def hosted_control_plane(graph_client_for: GraphClientFor) -> Callable[[Any], An
     return control_plane_for
 
 
-def _installed_assembler() -> Any:
-    """The boot-installed Decide assembler, or ``None`` (current routing only)."""
-    from graph_os.decide import current_decide
-
-    composition = current_decide()
-    return None if composition is None else composition.assembler
-
-
 def compose_a2a_service(
     *,
     control_plane_for: Callable[[Any], Any],
-    graph_client_for: GraphClientFor,
     card_metadata: A2ACardMetadata | None = None,
 ) -> A2AService:
-    """One A2A service over the control plane and EG assembly."""
+    """One A2A service over the control plane and EG assembly (via Decide)."""
     return A2AService(
         authority=WorkItemA2AAuthority(control_plane_for),
         router=DecideA2ARouter(
-            ControlPlaneA2ARouter(
-                control_plane_for, EgAssemblyRouter(AgentAssembly(graph_client_for))
-            ),
-            _installed_assembler,
+            ControlPlaneA2ARouter(control_plane_for), current_decide
         ),
         card_metadata=card_metadata or A2ACardMetadata(),
     )
@@ -85,14 +73,12 @@ def compose_a2a_service(
 def compose_a2a(
     *,
     control_plane_for: Callable[[Any], Any],
-    graph_client_for: GraphClientFor,
     authenticator: A2AAuthenticator,
     card_metadata: A2ACardMetadata | None = None,
 ) -> A2AComposition:
     """Compose the standalone A2A application over the shared service."""
     service = compose_a2a_service(
         control_plane_for=control_plane_for,
-        graph_client_for=graph_client_for,
         card_metadata=card_metadata,
     )
     return A2AComposition(

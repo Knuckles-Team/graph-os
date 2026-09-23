@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 CATALOG = "sha256:" + "c" * 64
+RECORD_ID = "decision:" + "d" * 64
 
 
 def record(outcome: str, digest: str = "d" * 64) -> dict[str, Any]:
@@ -24,8 +25,13 @@ def solved(
 ) -> dict[str, Any]:
     return {
         "record": record("solved"),
+        "graph": {"graph_id": "graph-a", "version": "1"},
         "agents": [
-            {"agent_id": agent_id, "tools": [{"component_id": t} for t in tools]}
+            {
+                "agent_id": agent_id,
+                "version": "1",
+                "tools": [{"component_id": t} for t in tools],
+            }
         ],
     }
 
@@ -37,8 +43,12 @@ def abstained() -> dict[str, Any]:
 @dataclass
 class FakeGraphs:
     answer: dict[str, Any]
+    client: Any = None
+    graph: str = "tenant-a"
     requests: list[dict[str, Any]] = field(default_factory=list)
     commits: list[Any] = field(default_factory=list)
+    published: list[tuple[Any, Any, Any]] = field(default_factory=list)
+    publish_fails: bool = False
 
     async def assemble(self, request: dict[str, Any]) -> dict[str, Any]:
         self.requests.append(dict(request))
@@ -46,7 +56,29 @@ class FakeGraphs:
 
     async def commit_decision(self, request: Any) -> dict[str, Any]:
         self.commits.append(request)
-        return {"record_id": request["record"]["record_id"], "replayed": False}
+        return {
+            "record_id": request["record"]["record_id"],
+            "replayed": False,
+            "component": {
+                "component": {
+                    "kind": "decision_record",
+                    "definition_digest": "sha256:" + "e" * 64,
+                }
+            },
+        }
+
+    async def publish_graph(
+        self,
+        draft: Any,
+        context: Any,
+        *,
+        evidence: Any = None,
+        idempotency_key: str | None = None,
+    ) -> Any:
+        if self.publish_fails:
+            raise RuntimeError("AgentGraph publish refused")
+        self.published.append((draft, context, evidence))
+        return {"graph_id": draft["graph_id"]}
 
 
 def assembler(answer: dict[str, Any], *, commit_ok: bool = True) -> Any:
@@ -64,6 +96,21 @@ def assembler(answer: dict[str, Any], *, commit_ok: bool = True) -> Any:
         }
 
     return Assembler(FakeGraphs(answer), "tenant-a", commit_context=context)
+
+
+class FakeAuthority:
+    def __init__(self) -> None:
+        self.minted: list[dict[str, str]] = []
+
+    def context(self, **fields: str) -> Any:
+        self.minted.append(fields)
+        return SimpleNamespace(model_dump=lambda mode="json": {"minted": fields})
+
+
+def composition(answer: dict[str, Any], *, commit_ok: bool = True) -> Any:
+    return SimpleNamespace(
+        assembler=assembler(answer, commit_ok=commit_ok), authority=FakeAuthority()
+    )
 
 
 def session() -> Any:

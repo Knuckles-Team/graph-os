@@ -22,25 +22,24 @@ newly published schema binds within one interval, and a retired one returns
 its point to the fallback. A failed re-read keeps the last good snapshot
 (logged); an unreachable EG makes every decision fall back anyway.
 
-The commit context is minted exactly like AU's pack-import authority: the
-verified process session and an effect-authorizing AU ``ActionPolicy``
-receipt bound to the exact record, then EG's generated
-``AgentLibraryMutationContext``. A denied or unavailable receipt raises
-:class:`DecideCommitRefused`; call sites then use their fallback rather than
-act on an unrecorded decision.
+Mutation contexts (``DecisionCommit``, routed agent/graph publishes) are
+minted by :mod:`graph_os.decide_context`.
 """
 
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
-import secrets
 import threading
-import time
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
+
+from graph_os.decide_context import (
+    DecideCommitRefused,
+    MutationAuthority,
+    decision_commit_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,15 +55,10 @@ __all__ = [
     "resolve_bindings",
 ]
 
-_ACTION_KIND = "decision_commit"
 _SYNC_TIMEOUT_S = 10.0
 #: Default, minimum and maximum binding re-read interval (seconds).
 REFRESH_INTERVAL_S = 60.0
 _REFRESH_BOUNDS_S = (5.0, 3600.0)
-
-
-class DecideCommitRefused(RuntimeError):
-    """No verified, policy-authorized context exists for this DecisionCommit."""
 
 
 class DecideLoop:
@@ -173,73 +167,6 @@ def _bounded_interval(interval_s: float) -> float:
     return interval_s
 
 
-def _opaque_principal(actor_id: str) -> str:
-    normalized = actor_id.strip()
-    if normalized.startswith("principal:sha256:"):
-        return normalized
-    return "principal:sha256:" + hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-
-
-def _receipt(policy: Any, session: Any, record: Mapping[str, Any]) -> Any:
-    from agent_utilities.orchestration.action_policy import ActionRequest
-
-    request = ActionRequest(
-        kind=_ACTION_KIND,
-        target=str(record.get("record_id") or ""),
-        params={"tenant_id": str(session.tenant)},
-        source="graph-os",
-        reason="commit an assembly DecisionRecord",
-        actor_id=str(session.actor.actor_id),
-    )
-    decision = policy.decide(request)
-    receipt = decision.receipt
-    if (
-        not decision.allowed
-        or receipt is None
-        or not receipt.authorizes_effect
-        or receipt.request_digest != request.digest()
-    ):
-        raise DecideCommitRefused("DecisionCommit is not authorized by policy")
-    return receipt
-
-
-def decision_commit_context(
-    session: Any, policy: Any
-) -> Callable[[Mapping[str, Any]], Awaitable[Mapping[str, Any]]]:
-    """The ``commit_context`` provider AU's Assembler commits through."""
-
-    async def provide(record: Mapping[str, Any]) -> Mapping[str, Any]:
-        from epistemic_graph.generated.connector_pack import (
-            AgentLibraryMutationContext,
-        )
-
-        receipt = _receipt(policy, session, record)
-        principal = _opaque_principal(str(session.actor.actor_id))
-        context = AgentLibraryMutationContext(
-            request_id=secrets.randbits(63),
-            principal=principal,
-            caller_principal=principal,
-            attempt_nonce=secrets.token_hex(32),
-            tenant_id=str(session.tenant),
-            actor_scope=principal,
-            purpose_id="decision:commit",
-            policy_revision=str(session.policy_version),
-            policy_digest=f"sha256:{receipt.request_digest}",
-            policy_decision_id=str(receipt.receipt_id),
-            idempotency_key=f"decision:{record.get('record_digest', '')}",
-            expected_revision=None,
-            trace_id=session.trace_context,
-            created_at_ms=int(time.time() * 1000),
-        )
-        return {
-            "context": context.model_dump(mode="json"),
-            "record": dict(record),
-            "expected_catalog_digest": str(record["inputs"]["catalog_digest"]),
-        }
-
-    return provide
-
-
 @dataclass(frozen=True)
 class DecideComposition:
     """What boot installed: the runner, the assembler and their loop."""
@@ -249,6 +176,7 @@ class DecideComposition:
     loop: DecideLoop
     bindings: RefreshingBindings
     refresher: Any
+    authority: MutationAuthority
 
     def uninstall(self) -> None:
         from agent_utilities import decide
@@ -295,6 +223,7 @@ def install_decide(
         bindings=bindings,
         tenant=tenant,
     )
+    authority = MutationAuthority(session, policy)
     assembler = Assembler(
         layers.graphs, tenant, commit_context=decision_commit_context(session, policy)
     )
@@ -303,7 +232,9 @@ def install_decide(
     refresher = asyncio.run_coroutine_threadsafe(
         bindings.refresh_forever(interval), loop.loop
     )
-    composition = DecideComposition(runner, assembler, loop, bindings, refresher)
+    composition = DecideComposition(
+        runner, assembler, loop, bindings, refresher, authority
+    )
     _INSTALLED[0] = composition
     logger.info(
         "Decide installed for tenant: %d of %d points bound",

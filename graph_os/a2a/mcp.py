@@ -18,7 +18,6 @@ def _service() -> A2AService:
 
         _SERVICE = compose_a2a_service(
             control_plane_for=hosted_control_plane(runtime.graph_client),
-            graph_client_for=runtime.graph_client,
         )
     return _SERVICE
 

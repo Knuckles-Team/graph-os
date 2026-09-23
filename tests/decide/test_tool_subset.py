@@ -40,8 +40,9 @@ async def test_a_solved_subset_is_returned_and_never_committed_unsampled(
     assert result["sampled_commit"] is None
     assert decider.graphs.commits == []
     request = decider.graphs.requests[0]
-    assert request["requirements"]["constraints"] == {"context_budget_tokens": 4096}
-    assert request["candidates"] == {"kinds": ["tool"]}
+    assert request["requirements"]["constraints"]["context_budget_tokens"] == 4096
+    assert request["requirements"]["capabilities"] == ["cap:containers"]
+    assert request["candidates"]["kinds"] == ["tool"]
 
 
 async def test_a_sampled_record_is_committed(

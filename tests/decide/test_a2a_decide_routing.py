@@ -1,4 +1,4 @@
-"""EH-044: A2A inbound routing consults EG assembly first, falls back otherwise."""
+"""EH-044: A2A routing through EG assembly first; publish the routed graph."""
 
 from __future__ import annotations
 
@@ -8,8 +8,9 @@ import pytest
 
 from graph_os.a2a.decide_routing import CAPABILITY_IRIS_METADATA_KEY, DecideA2ARouter
 from graph_os.a2a.models import A2AMessage, A2ARouteDecision, A2ATextPart
+from graph_os.a2a.routing import TASK_IRIS_METADATA_KEY, A2AAssemblyUnavailable
 
-from .fakes import abstained, assembler, solved
+from .fakes import RECORD_ID, abstained, composition, solved
 
 CURRENT = A2ARouteDecision(agent_name="current-agent", selection_mode="current")
 
@@ -25,10 +26,14 @@ class _Inner:
         return CURRENT
 
 
-def _message(capabilities: list[str] | None = None) -> A2AMessage:
-    metadata = (
-        {} if capabilities is None else {CAPABILITY_IRIS_METADATA_KEY: capabilities}
-    )
+def _message(
+    capabilities: list[str] | None = None, tasks: list[str] | None = None
+) -> A2AMessage:
+    metadata: dict[str, Any] = {}
+    if capabilities is not None:
+        metadata[CAPABILITY_IRIS_METADATA_KEY] = capabilities
+    if tasks is not None:
+        metadata[TASK_IRIS_METADATA_KEY] = tasks
     return A2AMessage(
         role="user",
         message_id="m-1",
@@ -37,54 +42,110 @@ def _message(capabilities: list[str] | None = None) -> A2AMessage:
     )
 
 
-async def test_a_solved_and_committed_assembly_routes_the_task() -> None:
-    inner = _Inner()
-    decider = assembler(solved(tools=("tool-x", "tool-y")))
-    router = DecideA2ARouter(inner, lambda: decider)
-    decision = await router.route(
-        _message(["cap:summarise", "cap:incident"]), context_budget_tokens=None
+@pytest.fixture
+def published_agents(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, Any]]:
+    sent: list[dict[str, Any]] = []
+
+    async def send_agent_library(
+        client: Any, params: dict[str, Any], graph: Any
+    ) -> Any:
+        sent.append(params["op"])
+        return {"ok": True}
+
+    monkeypatch.setattr(
+        "epistemic_graph.generated.storage.send_agent_library", send_agent_library
     )
-    assert decision.agent_name == "agent-a"
-    assert decision.selected_tools == ("tool-x", "tool-y")
-    assert decision.selection_mode == "eg-decide-assembly"
-    assert decision.decision_record_ref == "decision:" + "d" * 64
+    return sent
+
+
+async def test_a_solved_route_is_committed_and_published_with_its_evidence(
+    published_agents: list[dict[str, Any]],
+) -> None:
+    inner, decide = _Inner(), composition(solved(tools=("tool-x", "tool-y")))
+    router = DecideA2ARouter(inner, lambda: decide)
+    decision = await router.route(
+        _message(["cap:incident"], ["eg:task/research"]), context_budget_tokens=None
+    )
+    assert (decision.agent_name, decision.selected_tools) == (
+        "agent-a",
+        ("tool-x", "tool-y"),
+    )
+    assert decision.decision_record_ref == RECORD_ID
+    assert decision.agent_graph_ref == "graph-a"
+    assert decision.task_iri == "eg:task/research"
     assert inner.calls == 0
-    request = decider.graphs.requests[0]
-    assert request["requirements"]["capabilities"] == ["cap:incident", "cap:summarise"]
-    assert len(decider.graphs.commits) == 1
+    graphs = decide.assembler.graphs
+    request = graphs.requests[0]["requirements"]
+    assert request["tasks"] == ["eg:task/research"]
+    assert request["capabilities"] == ["cap:incident"]
+    assert "summarise" not in str(graphs.requests[0])
+    assert len(graphs.commits) == 1
+    # Agents are published before the graph that pins them.
+    assert [op["request"]["entry"]["agent_id"] for op in published_agents] == [
+        "agent-a"
+    ]
+    draft, _context, evidence = graphs.published[0]
+    assert draft["graph_id"] == "graph-a"
+    assert evidence["component_id"] == RECORD_ID
+    kinds = [minted["kind"] for minted in decide.authority.minted]
+    assert kinds == ["agent_library_publish", "agent_graph_publish"]
+
+
+async def test_a_failed_publish_keeps_the_committed_route(
+    published_agents: list[dict[str, Any]],
+) -> None:
+    decide = composition(solved())
+    decide.assembler.graphs.publish_fails = True
+    decision = await DecideA2ARouter(_Inner(), lambda: decide).route(
+        _message(["cap:incident"]), context_budget_tokens=None
+    )
+    assert decision.decision_record_ref == RECORD_ID
+    assert decision.agent_graph_ref is None
 
 
 @pytest.mark.parametrize(
-    ("capabilities", "answer", "commit_ok"),
-    [
-        (["cap:summarise"], abstained(), True),
-        (["cap:summarise"], solved(), False),
-        (None, solved(), True),
-    ],
+    ("answer", "commit_ok", "installed"),
+    [(abstained(), True, True), (solved(), False, True), (solved(), True, False)],
 )
-async def test_everything_else_falls_back_to_current_routing(
-    capabilities: list[str] | None, answer: dict[str, Any], commit_ok: bool
+async def test_unbudgeted_falls_back_to_current_routing(
+    published_agents: list[dict[str, Any]],
+    answer: dict[str, Any],
+    commit_ok: bool,
+    installed: bool,
 ) -> None:
-    inner = _Inner()
-    decider = assembler(answer, commit_ok=commit_ok)
-    router = DecideA2ARouter(inner, lambda: decider)
-    assert (
-        await router.route(_message(capabilities), context_budget_tokens=None)
-        == CURRENT
-    )
-    assert inner.calls == 1
-    assert decider.graphs.commits == []
-
-
-async def test_no_installed_assembler_and_budgeted_requests_keep_current_path() -> None:
-    inner = _Inner()
-    router = DecideA2ARouter(inner, lambda: None)
+    inner, decide = _Inner(), composition(answer, commit_ok=commit_ok)
+    router = DecideA2ARouter(inner, lambda: decide if installed else None)
     assert (
         await router.route(_message(["cap:x"]), context_budget_tokens=None) == CURRENT
     )
-    decider = assembler(solved())
-    budgeted = DecideA2ARouter(inner, lambda: decider)
-    assert (
-        await budgeted.route(_message(["cap:x"]), context_budget_tokens=4096) == CURRENT
+    assert inner.calls == 1
+    assert decide.assembler.graphs.published == []
+
+
+async def test_a_budgeted_route_is_assembled_under_its_budget(
+    published_agents: list[dict[str, Any]],
+) -> None:
+    inner, decide = _Inner(), composition(solved())
+    decision = await DecideA2ARouter(inner, lambda: decide).route(
+        _message(tasks=["eg:task/review"]), context_budget_tokens=4096
     )
-    assert decider.graphs.requests == []
+    assert decision.decision_record_ref == RECORD_ID
+    request = decide.assembler.graphs.requests[0]["requirements"]
+    assert request["constraints"]["context_budget_tokens"] == 4096
+    assert inner.calls == 0
+
+
+@pytest.mark.parametrize(
+    ("answer", "installed", "reason"),
+    [(abstained(), True, "abstained"), (solved(), False, "no_runner")],
+)
+async def test_a_budgeted_route_fails_closed_naming_why(
+    answer: dict[str, Any], installed: bool, reason: str
+) -> None:
+    inner, decide = _Inner(), composition(answer)
+    router = DecideA2ARouter(inner, lambda: decide if installed else None)
+    with pytest.raises(A2AAssemblyUnavailable, match=reason):
+        await router.route(
+            _message(tasks=["eg:task/review"]), context_budget_tokens=4096
+        )
+    assert inner.calls == 0
