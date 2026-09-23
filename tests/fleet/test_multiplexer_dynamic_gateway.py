@@ -1669,36 +1669,11 @@ async def test_find_tools_meta_returns_structured(tmp_path):
     assert "unavailable" in payload
 
 
-async def test_find_tools_budget_fails_closed_without_assembly(tmp_path):
-    from fastmcp import FastMCP
-    from fastmcp.exceptions import ToolError
-
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
-    _seed_probe(mux, {CNT: [(CNT_TOOL, "manage docker containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    find = await mcp.get_tool("find_tools")
-
-    with pytest.raises(ToolError, match="not configured"):
-        await find.fn(query="docker containers", context_budget_tokens=4096)
-
-
-async def test_find_tools_budget_returns_the_assembled_subset(tmp_path, monkeypatch):
+async def test_find_tools_budget_names_why_it_fell_back(tmp_path, monkeypatch):
     from fastmcp import FastMCP
 
-    from graph_os.assembly import AssemblyOutcome
-
-    class Assembly:
-        async def assemble(self, session, requirements):
-            assert requirements.kinds == ("tool",)
-            assert requirements.context_budget_tokens == 4096
-            return AssemblyOutcome(
-                record_id="decision:1", agent_id=None, tool_ids=(CNT_TOOL,)
-            )
-
-    monkeypatch.setattr("agent_utilities.api.resolve_session", lambda *a, **k: object())
+    monkeypatch.setattr("graph_os.decide.current_decide", lambda: None)
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
-    mux._tool_assembly = Assembly()
     _seed_probe(mux, {CNT: [(CNT_TOOL, "manage docker containers")]})
     mcp = FastMCP("test-mux")
     _register_meta_tools(mcp, mux)
@@ -1706,10 +1681,9 @@ async def test_find_tools_budget_returns_the_assembled_subset(tmp_path, monkeypa
 
     result = await find.fn(query="docker containers", context_budget_tokens=4096)
 
-    assert result.structured_content["assembled"] == {
-        "decision_record": "decision:1",
-        "tool_ids": [CNT_TOOL],
-    }
+    assembled = result.structured_content["assembled"]
+    assert assembled["decided"] is False and assembled["reason"] == "no_runner"
+    assert assembled["tool_ids"] == [CNT_PREFIXED]
 
 
 def test_prefix_sanity():
