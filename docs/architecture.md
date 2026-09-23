@@ -42,3 +42,22 @@ capabilities through one governed surface.
 
 Use the [capability status](status.md) page for the exact surface exposed by the
 current package.
+
+## Subsystem deep dives
+
+Relocated here from agent-utilities per RF-ADR-009 (graph-os owns runtime
+composition, the gateway, MCP/A2A, and fleet):
+
+- [Agent bus](architecture/agent-bus.md) — cross-session/host/provider messaging.
+- [Atlas source catalog](architecture/atlas-source-catalog.md)
+- [Engine sharding](architecture/engine-sharding.md) — authoritative engine placement.
+- [Fleet autonomy](architecture/fleet-autonomy.md) — the autonomous remediation control plane.
+- [Fleet scale authority](architecture/fleet-scale-authority.md) — single replica-writer authority.
+- [Gateway daemon](architecture/gateway-daemon.md) — the one host process and everything it runs.
+- [Gateway scaling](architecture/gateway-scaling.md)
+- [Self-hosting cutover](architecture/graphos-self-hosting.md) — the current unified-in-process topology.
+- [Identity inheritance](architecture/identity-inheritance.md) — IdP-agnostic role inheritance.
+- [MCP 2026-07-28 protocol surface](architecture/mcp-2026-protocol-surface.md)
+- [MCP fleet authentication](architecture/mcp-auth.md)
+- [Embedded fleet gateway](architecture/fleet-gateway.md) — the MCP multiplexer.
+- [Multi-tenant streamable HTTP](architecture/multi-tenant-streamable-http.md)
