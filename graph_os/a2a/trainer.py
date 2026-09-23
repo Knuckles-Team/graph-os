@@ -13,6 +13,14 @@ The trainer's final task artifact is a JSON report
 — becomes a ``failed`` outcome: graph-os never fabricates a success. With no
 registered trainer the transport refuses with
 ``TRAINING_TRAINER_NOT_REGISTERED`` before any job leaves the process.
+
+Every call carries graph-os's outbound service identity — the same one
+``graph_os.fleet.child_credentials`` presents to authenticated fleet
+children (``MCP_CLIENT_AUTH``: OIDC client credentials, basic, or a rotating
+bearer file). A trainer whose registry entry declares
+``auth_required: true`` is refused with ``TRAINING_TRAINER_AUTH_UNAVAILABLE``
+when no credential resolves; the transport never degrades to an anonymous
+call to such a trainer.
 """
 
 from __future__ import annotations
@@ -40,8 +48,9 @@ __all__ = [
 
 TRAINER_ROLE = "policy-trainer"
 _FINAL = {"completed", "failed", "rejected", "canceled"}
-Poster = Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]]
+Poster = Callable[[str, dict[str, Any], dict[str, str]], Awaitable[dict[str, Any]]]
 OutcomeFactory = Callable[..., Any]
+Credential = Callable[[], Any]
 
 
 @dataclass(frozen=True)
@@ -49,6 +58,7 @@ class TrainerEndpoint:
     name: str
     url: str
     trainer_image_digest: str
+    auth_required: bool = False
 
 
 class TrainerRegistry(Protocol):
@@ -81,14 +91,40 @@ class EgTrainerRegistry:
             )
             digest = resources.get("trainer_image_digest")
             if live and resources.get("a2a_role") == TRAINER_ROLE and digest:
-                return TrainerEndpoint(entry.name, entry.url, str(digest))
+                return TrainerEndpoint(
+                    entry.name,
+                    entry.url,
+                    str(digest),
+                    resources.get("auth_required") is True,
+                )
         raise PolicyEvolutionControlError(
             "TRAINING_TRAINER_NOT_REGISTERED",
             "no live A2A agent declares the policy-trainer role",
         )
 
 
-async def _safe_post(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _service_identity() -> Any:
+    from graph_os.fleet.child_credentials import child_auth
+
+    return child_auth(None)
+
+
+async def authorization_header(auth: Any, url: str) -> str | None:
+    """The ``Authorization`` value an ``httpx.Auth`` puts on one request."""
+    import httpx
+
+    flow = auth.async_auth_flow(httpx.Request("POST", url))
+    try:
+        request = await flow.__anext__()
+    finally:
+        await flow.aclose()
+    value = request.headers.get("Authorization")
+    return str(value) if value else None
+
+
+async def _safe_post(
+    url: str, payload: dict[str, Any], headers: dict[str, str]
+) -> dict[str, Any]:
     from agent_utilities.protocols.source_connectors.http_safety import (
         configured_source_http_policy,
         safe_post_json_async,
@@ -98,6 +134,7 @@ async def _safe_post(url: str, payload: dict[str, Any]) -> dict[str, Any]:
     value = await safe_post_json_async(
         url,
         payload,
+        headers=headers or None,
         timeout=60.0,
         max_bytes=policy["max_bytes"],
         allowed_private_hosts=policy["allowed_private_hosts"],
@@ -159,16 +196,37 @@ class A2ATrainerTransport:
         *,
         poster: Poster = _safe_post,
         outcome: OutcomeFactory = _au_outcome,
+        credential: Credential = _service_identity,
         poll_interval_s: float = 5.0,
     ) -> None:
         self._registry = registry
         self._post = poster
+        self._credential = credential
         self._outcome = outcome
         self._interval = poll_interval_s
         self._tasks: dict[str, tuple[TrainerEndpoint, str]] = {}
 
-    async def _call(self, url: str, body: dict[str, Any]) -> dict[str, Any]:
-        answer = await self._post(url, body)
+    async def _headers(self, endpoint: TrainerEndpoint) -> dict[str, str]:
+        from graph_os.fleet.child_credentials import ChildAuthConfigurationError
+
+        try:
+            auth = self._credential()
+            header = (
+                None if auth is None else await authorization_header(auth, endpoint.url)
+            )
+        except ChildAuthConfigurationError:
+            header = None
+        if header is None and endpoint.auth_required:
+            raise PolicyEvolutionControlError(
+                "TRAINING_TRAINER_AUTH_UNAVAILABLE",
+                "the trainer requires a service credential and none resolved",
+            )
+        return {} if header is None else {"Authorization": header}
+
+    async def _call(
+        self, endpoint: TrainerEndpoint, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        answer = await self._post(endpoint.url, body, await self._headers(endpoint))
         result = answer.get("result")
         if "error" in answer or not isinstance(result, dict):
             raise PolicyEvolutionControlError(
@@ -186,7 +244,7 @@ class A2ATrainerTransport:
             metadata={"graphOsPolicyJob": payload["job_id"]},
         )
         task = await self._call(
-            endpoint.url,
+            endpoint,
             _rpc(
                 "message/send",
                 {"message": message.model_dump(by_alias=True, mode="json")},
@@ -205,7 +263,7 @@ class A2ATrainerTransport:
         while str((task.get("status") or {}).get("state")) not in _FINAL:
             await asyncio.sleep(self._interval)
             task = await self._call(
-                endpoint.url, _rpc("tasks/get", {"id": task_id}, task_id)
+                endpoint, _rpc("tasks/get", {"id": task_id}, task_id)
             )
         return self._final_outcome(endpoint, task)
 
@@ -247,5 +305,5 @@ class A2ATrainerTransport:
             endpoint = await self._registry.resolve()
             return self._terminal(endpoint, "cancelled")
         endpoint, task_id = known
-        await self._call(endpoint.url, _rpc("tasks/cancel", {"id": task_id}, task_id))
+        await self._call(endpoint, _rpc("tasks/cancel", {"id": task_id}, task_id))
         return self._terminal(endpoint, "cancelled")

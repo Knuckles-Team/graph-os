@@ -15,6 +15,7 @@ from graph_os.control_plane.policy_evolution import (
     PolicyEvolutionControlError,
     TrainingLease,
 )
+from graph_os.fleet.child_credentials import ChildAuthConfigurationError, HeaderAuth
 
 DIGEST = "d" * 64
 LEASE = TrainingLease(
@@ -74,9 +75,13 @@ class _Trainer:
         }
     )
     calls: list[dict[str, Any]] = field(default_factory=list)
+    headers: list[dict[str, str]] = field(default_factory=list)
 
-    async def post(self, url: str, body: dict[str, Any]) -> dict[str, Any]:
+    async def post(
+        self, url: str, body: dict[str, Any], headers: dict[str, str]
+    ) -> dict[str, Any]:
         self.calls.append(body)
+        self.headers.append(headers)
         if body["method"] == "tasks/cancel":
             return {"result": {"id": "t-1", "status": {"state": "canceled"}}}
         state = self.states.pop(0) if self.states else "working"
@@ -90,11 +95,18 @@ def _outcome(**fields: Any) -> Any:
     return SimpleNamespace(**fields)
 
 
-def _transport(trainer: _Trainer, *entries: Any) -> A2ATrainerTransport:
+def _no_credential() -> Any:
+    return None
+
+
+def _transport(
+    trainer: _Trainer, *entries: Any, credential: Any = _no_credential
+) -> A2ATrainerTransport:
     return A2ATrainerTransport(
         _registry(*(entries or (_entry(),))),
         poster=trainer.post,
         outcome=_outcome,
+        credential=credential,
         poll_interval_s=0,
     )
 
@@ -157,10 +169,72 @@ async def test_no_live_registered_trainer_is_a_typed_refusal(
     entries: tuple[Any, ...],
 ) -> None:
     trainer = _Trainer(states=["completed"])
-    transport = A2ATrainerTransport(
-        _registry(*entries), poster=trainer.post, outcome=_outcome, poll_interval_s=0
+    transport = (
+        _transport(trainer, *entries)
+        if entries
+        else A2ATrainerTransport(
+            _registry(),
+            poster=trainer.post,
+            outcome=_outcome,
+            credential=_no_credential,
+            poll_interval_s=0,
+        )
     )
     with pytest.raises(PolicyEvolutionControlError) as refused:
         await transport.run(SPEC, LEASE)
     assert refused.value.code == "TRAINING_TRAINER_NOT_REGISTERED"
     assert trainer.calls == []
+
+
+# ------------------------------------------------------------- service identity
+
+
+async def test_every_call_carries_the_service_credential() -> None:
+    trainer = _Trainer(states=["working", "completed"])
+    auth = HeaderAuth(lambda: "Bearer service-token")
+    transport = _transport(trainer, _entry(auth_required=True), credential=lambda: auth)
+    outcome = await transport.run(SPEC, LEASE)
+    assert outcome.status == "succeeded"
+    assert trainer.headers and all(
+        headers == {"Authorization": "Bearer service-token"}
+        for headers in trainer.headers
+    )
+
+
+async def test_a_trainer_without_required_auth_accepts_the_anonymous_call() -> None:
+    trainer = _Trainer(states=["completed"])
+    await _transport(trainer).run(SPEC, LEASE)
+    assert trainer.headers == [{}]
+
+
+def _unconfigured() -> Any:
+    raise ChildAuthConfigurationError("outbound MCP oidc identity is incomplete")
+
+
+@pytest.mark.parametrize("credential", [_no_credential, _unconfigured])
+async def test_required_auth_without_a_credential_fails_closed(credential: Any) -> None:
+    trainer = _Trainer(states=["completed"])
+    transport = _transport(trainer, _entry(auth_required=True), credential=credential)
+    with pytest.raises(PolicyEvolutionControlError) as refused:
+        await transport.run(SPEC, LEASE)
+    assert refused.value.code == "TRAINING_TRAINER_AUTH_UNAVAILABLE"
+    assert trainer.calls == []
+
+
+async def test_the_default_identity_is_graph_os_outbound_service_identity(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    token = tmp_path / "bearer"
+    token.write_text("rotated-token\n", encoding="utf-8")
+    token.chmod(0o600)
+    monkeypatch.setenv("MCP_CLIENT_AUTH", "rotating-file-bearer")
+    monkeypatch.setenv("MCP_BEARER_TOKEN_FILE", str(token))
+    trainer = _Trainer(states=["completed"])
+    transport = A2ATrainerTransport(
+        _registry(_entry(auth_required=True)),
+        poster=trainer.post,
+        outcome=_outcome,
+        poll_interval_s=0,
+    )
+    await transport.run(SPEC, LEASE)
+    assert trainer.headers == [{"Authorization": "Bearer rotated-token"}]

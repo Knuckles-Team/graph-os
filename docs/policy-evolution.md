@@ -37,7 +37,12 @@ The trainer is an A2A agent that registers in EG's server registry with
 `a2a_role: policy-trainer` and its image digest. Graph OS sends the job as one
 `message/send`, follows it with `tasks/get`, and cancels it with
 `tasks/cancel`. If no live trainer is registered, the attempt is refused
-before any job is sent. Only a completed task with a valid JSON report counts
+before any job is sent.
+
+Every trainer call carries Graph OS's outbound service identity, the same
+one it presents to authenticated fleet children (`MCP_CLIENT_AUTH`). If a
+trainer's registry entry declares `auth_required: true` and no credential
+resolves, the call is refused with `TRAINING_TRAINER_AUTH_UNAVAILABLE`. Only a completed task with a valid JSON report counts
 as a success.
 
 ## Release pointer
