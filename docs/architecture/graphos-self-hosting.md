@@ -233,7 +233,7 @@ spec:
       nodeSelector: {kubernetes.io/hostname: <ENGINE_NODE>}
       terminationGracePeriodSeconds: 60   # covers the engine's clean shutdown + graph-os preStop
 
-      # ── NATIVE SIDECAR (k8s >=1.29; this cluster is 1.35) ─────────────────────────
+      # -- NATIVE SIDECAR (k8s >=1.29; this cluster is 1.35) --
       # kubelet blocks the `containers:` below from starting until this startupProbe
       # passes — no polling wait-init script, no sleep, no crash-loop-and-retry on
       # graph-os. Same mechanism bundled-core-pod.yaml's Variant A already uses and
