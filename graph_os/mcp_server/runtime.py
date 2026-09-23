@@ -356,7 +356,10 @@ def safe_json_load(s: Any) -> Any:
     return s
 
 
-from agent_utilities.security.error_surface import public_error_payload
+from agent_utilities.security.error_surface import (
+    failed_operation_http_status,
+    public_error_payload,
+)
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -448,6 +451,40 @@ def _is_engine_dispatch_client_error(parsed: Any) -> bool:
     return False
 
 
+def _tool_result_response(
+    tool_name: str, parsed: Any, *, engine_domain: bool
+) -> JSONResponse:
+    """Wrap one tool result for REST, never restating a failure as success.
+
+    * U-74 (GOC-83-W05): an ``engine_<domain>`` action-name or parameter
+      mistake never raises (see :func:`_is_engine_dispatch_client_error`), so
+      it becomes a deterministic 400 instead of a 200 ``"success"``.
+    * EH-386: a typed failed ``OperationResult`` (``public_error_json``, e.g.
+      an engine ``ACCESS_DENIED`` write) gets its public code's HTTP status
+      (400/403/500/503) with ``"status": "failed"``. It is the same shared
+      mapping AU's own twins use (``error_surface.failed_operation_http_status``).
+    * Fleet health/topology evidence that is not ready keeps the supervisory
+      fail-closed 503 ``"unavailable"`` signal with the MCP evidence body.
+    """
+    if engine_domain and _is_engine_dispatch_client_error(parsed):
+        return JSONResponse({"status": "failed", "result": parsed}, status_code=400)
+    failed_status = failed_operation_http_status(parsed)
+    if failed_status is not None:
+        return JSONResponse(
+            {"status": "failed", "result": parsed}, status_code=failed_status
+        )
+    if (
+        tool_name == "graph_sessions"
+        and isinstance(parsed, dict)
+        and isinstance(parsed.get("evidence"), dict)
+        and parsed["evidence"].get("ready") is False
+    ):
+        return JSONResponse(
+            {"status": "unavailable", "result": parsed}, status_code=503
+        )
+    return JSONResponse({"status": "success", "result": parsed})
+
+
 def _make_tool_endpoint(tool_name: str):
     """Build a thin REST handler that dispatches a JSON body to an MCP tool.
 
@@ -468,30 +505,9 @@ def _make_tool_endpoint(tool_name: str):
             body = {}
         try:
             res = await _execute_tool(tool_name, **body)
-            parsed = safe_json_load(res)
-            # U-74 (GOC-83-W05): an `engine_<domain>` action-name or
-            # parameter mistake never raises (see `_is_engine_dispatch_
-            # client_error`'s docstring) — surface it as a deterministic 4xx
-            # instead of an HTTP 200 that hides a caller-caused failure behind
-            # `"status": "success"`. Scoped to `engine_*` tools only; every
-            # other tool's REST status-code contract is unchanged.
-            if is_engine_domain_tool and _is_engine_dispatch_client_error(parsed):
-                return JSONResponse(
-                    {"status": "failed", "result": parsed}, status_code=400
-                )
-            if (
-                tool_name == "graph_sessions"
-                and isinstance(parsed, dict)
-                and isinstance(parsed.get("evidence"), dict)
-                and parsed["evidence"].get("ready") is False
-            ):
-                # Fleet health/topology are supervisory evidence, not ordinary
-                # session CRUD. Preserve the shared fail-closed HTTP signal
-                # while returning the exact typed evidence body used by MCP.
-                return JSONResponse(
-                    {"status": "unavailable", "result": parsed}, status_code=503
-                )
-            return JSONResponse({"status": "success", "result": parsed})
+            return _tool_result_response(
+                tool_name, safe_json_load(res), engine_domain=is_engine_domain_tool
+            )
         except UnsupportedToolFieldError as e:
             # U-74: a caller-supplied field the tool doesn't accept is a
             # client-side schema mismatch, not a server fault — deterministic
