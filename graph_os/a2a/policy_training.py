@@ -20,7 +20,11 @@ from graph_os.control_plane.policy_evolution import (
     TrainingAdmissionRequest,
 )
 
-__all__ = ["compose_policy_training_path", "policy_records"]
+__all__ = [
+    "compose_policy_training_path",
+    "live_trainer_transport",
+    "policy_records",
+]
 
 
 def policy_records(graph_client: Any) -> Any:
@@ -52,3 +56,12 @@ def compose_policy_training_path(
         ) from exc
     trainer = LeasedTrainerDispatcher(admission, request, transport, hosts, clock_ms)
     return PolicyTrainingPath(policy_records(graph_client), trainer)
+
+
+def live_trainer_transport(
+    graph_client: Any, clock_ms: Callable[[], int]
+) -> TrainerTransport:
+    """The default A2A trainer transport over the tenant's EG server registry."""
+    from .trainer import A2ATrainerTransport, EgTrainerRegistry
+
+    return A2ATrainerTransport(EgTrainerRegistry(graph_client, clock_ms))
