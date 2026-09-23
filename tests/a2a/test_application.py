@@ -9,7 +9,12 @@ from fastapi.testclient import TestClient
 
 from graph_os.a2a.application import create_a2a_application
 from graph_os.a2a.authority import A2AIdempotencyConflict
-from graph_os.a2a.models import A2ARouteDecision, A2ATask, A2ATaskStatus
+from graph_os.a2a.models import (
+    A2ARouteDecision,
+    A2ATask,
+    A2ATaskState,
+    A2ATaskStatus,
+)
 from graph_os.a2a.service import A2AService
 
 
@@ -196,7 +201,7 @@ class ProgressAuthority(Authority):
 
     def __init__(self) -> None:
         super().__init__()
-        self.states = ["working", "working", "completed"]
+        self.states: list[A2ATaskState] = ["working", "working", "completed"]
 
     async def get(self, task_id: str) -> A2ATask | None:
         if task_id != self.task.id:

@@ -16,13 +16,15 @@ from datetime import UTC, datetime
 from typing import Any, Protocol, runtime_checkable
 
 from agent_utilities.api import (
-    AgentControlPlane,
     AgentTaskDispatchRequest,
+    AgentTaskDispatchResult,
     AgentWorkItemNotCancelable,
+    RunOutput,
     RunOutputRequest,
     WorkItemCancelRequest,
     WorkItemGetRequest,
     WorkItemListRequest,
+    WorkItemPage,
     WorkItemSnapshot,
 )
 from agent_utilities.security.persistence_privacy import persistence_reference
@@ -39,11 +41,38 @@ __all__ = [
     "A2AIdempotencyConflict",
     "A2ATaskAuthority",
     "A2ATaskNotCancelable",
+    "A2AControlPlanePort",
     "ControlPlaneFactory",
     "WorkItemA2AAuthority",
 ]
 
-ControlPlaneFactory = Callable[[Any], AgentControlPlane]
+
+class A2AControlPlanePort(Protocol):
+    """The five AU control-plane operations the A2A projection uses.
+
+    ``agent_utilities.api.AgentControlPlane`` satisfies it; the facade depends
+    on this port, not on that concrete class, so any conforming plane (a
+    hosted one, a test double) can back it.
+    """
+
+    async def submit_agent_task(
+        self, request: AgentTaskDispatchRequest
+    ) -> AgentTaskDispatchResult: ...
+
+    async def get_work_item(
+        self, request: WorkItemGetRequest
+    ) -> WorkItemSnapshot | None: ...
+
+    async def list_work_items(self, request: WorkItemListRequest) -> WorkItemPage: ...
+
+    async def get_run_output(self, request: RunOutputRequest) -> RunOutput | None: ...
+
+    async def cancel_work_item(
+        self, request: WorkItemCancelRequest
+    ) -> WorkItemSnapshot | None: ...
+
+
+ControlPlaneFactory = Callable[[Any], A2AControlPlanePort]
 
 _TASK_PREFIX = "a2a-"
 _WORK_ITEM_PREFIX = "workitem:orchestrator:"
@@ -185,7 +214,7 @@ class WorkItemA2AAuthority:
     def __init__(self, control_plane_for: ControlPlaneFactory) -> None:
         self._control_plane_for = control_plane_for
 
-    def _bound(self, scope: str) -> tuple[Any, AgentControlPlane, str]:
+    def _bound(self, scope: str) -> tuple[Any, A2AControlPlanePort, str]:
         session = _resolve(scope)
         return session, self._control_plane_for(session), _owner_ref(session)
 
@@ -246,7 +275,7 @@ class WorkItemA2AAuthority:
         return project(item)
 
     async def _owned_item(
-        self, control_plane: AgentControlPlane, task_id: str, owner_ref: str
+        self, control_plane: A2AControlPlanePort, task_id: str, owner_ref: str
     ) -> WorkItemSnapshot | None:
         item = await control_plane.get_work_item(
             WorkItemGetRequest(work_item_id=work_item_id_for(task_id))
