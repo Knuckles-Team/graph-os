@@ -7,9 +7,33 @@
 
 Every concept and component this repo's own registries and documentation nav declare, generated from the same cross-repo [skill graph](https://knuckles-team.github.io/pipelines/) corpus (RF-ADR-009 D1) that indexes all seven repos. This page is this repo's own slice of that corpus, not a duplicate authority -- the full machine corpus, with typed links, is published from `pipelines`.
 
+## Architecture
+
+- **Agent bus** — `architecture/agent-bus.md`
+- **Atlas source catalog** — `architecture/atlas-source-catalog.md`
+- **Engine sharding** — `architecture/engine-sharding.md`
+- **Fleet autonomy** — `architecture/fleet-autonomy.md`
+- **Fleet scale authority** — `architecture/fleet-scale-authority.md`
+- **Gateway daemon** — `architecture/gateway-daemon.md`
+- **Gateway scaling** — `architecture/gateway-scaling.md`
+- **Self-hosting cutover** — `architecture/graphos-self-hosting.md`
+- **Identity inheritance** — `architecture/identity-inheritance.md`
+- **MCP 2026-07-28 protocol surface** — `architecture/mcp-2026-protocol-surface.md`
+- **MCP fleet authentication** — `architecture/mcp-auth.md`
+- **Embedded fleet gateway** — `architecture/fleet-gateway.md`
+- **Multi-tenant streamable HTTP** — `architecture/multi-tenant-streamable-http.md`
+
 ## Capabilities
 
 - **Capabilities** — `capabilities.md`
+
+## Components
+
+- **MCP server** — `mcp-server.md`
+- **REST gateway** — `gateway.md`
+- **Fleet gateway** — `fleet.md`
+- **Unary A2A** — `a2a.md`
+- **Browser control** — `browser-control-service.md`
 
 ## Glossary
 
@@ -33,16 +57,12 @@ Every concept and component this repo's own registries and documentation nav dec
 - **Capability status** — `status.md`
 - **Quality gate terms** — `quality-gate-terms.md`
 
+## Reference
+
+- **Skill graph reference** — `reference/skill-graph.generated.md`
+
 ## Start Graph OS
 
 - **Start Graph OS** — `get-started.md`
-
-## Use Graph OS
-
-- **MCP server** — `mcp-server.md`
-- **REST gateway** — `gateway.md`
-- **Fleet gateway** — `fleet.md`
-- **Unary A2A** — `a2a.md`
-- **Browser control** — `browser-control-service.md`
 
 </div>
