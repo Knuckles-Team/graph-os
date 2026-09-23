@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Never
 
 import pytest
 
@@ -82,12 +82,17 @@ async def test_duplicate_connector_provider_fails_before_import(
         "graph_os.semantic_content.provision_connector_content", provision
     )
 
+    async def _not_reached(connector: str) -> Never:
+        raise AssertionError(
+            "must not be called: duplicate-connector validation should fail first"
+        )
+
     with pytest.raises(ValueError, match="unique connectors"):
         await provision_semantic_content(
             (provider, provider),
             sink=object(),
-            reproject_pack=lambda connector: None,  # type: ignore[arg-type]
-            attach_pack=lambda connector: None,  # type: ignore[arg-type]
+            reproject_pack=_not_reached,
+            attach_pack=_not_reached,
         )
     assert calls == 0
 

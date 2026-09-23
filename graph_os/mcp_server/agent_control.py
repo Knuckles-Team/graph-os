@@ -18,7 +18,7 @@ ClientForSession = Callable[[Any], Any]
 
 
 class ToolRegistrar(Protocol):
-    def tool(self, **kwargs: Any) -> Callable[[Any], Any]: ...
+    def tool(self, *, name: str, **kwargs: Any) -> Callable[[Any], Any]: ...
 
 
 def register_graph_rlm(

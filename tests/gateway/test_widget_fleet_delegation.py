@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any, cast
 
 import pytest
@@ -53,7 +54,7 @@ class _FakeFleet:
 
 
 @pytest.fixture(autouse=True)
-def _reset_served_fleet() -> None:
+def _reset_served_fleet() -> Iterator[None]:
     _reset_served_multiplexer_for_tests()
     yield
     _reset_served_multiplexer_for_tests()

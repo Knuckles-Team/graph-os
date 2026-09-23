@@ -50,7 +50,9 @@ def test_incomplete_mode_fails_closed_and_reports_missing(monkeypatch) -> None:
     monkeypatch.setenv("MCP_CLIENT_AUTH", "basic")
     status = cc.outbound_auth_configuration_status()
     assert status["ready"] is False
-    assert "MCP_BASIC_AUTH_PASSWORD_REF" in status["missing"]
+    missing = status["missing"]
+    assert isinstance(missing, tuple)
+    assert "MCP_BASIC_AUTH_PASSWORD_REF" in missing
     with pytest.raises(cc.ChildAuthConfigurationError):
         cc.child_auth({})
 
