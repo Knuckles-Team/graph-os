@@ -7,6 +7,13 @@ checks are the graph-os half of the design: a control must be enabled AND its
 named authorization scope must be one the verified caller holds; a promotion
 needs an accepted, safety-passed, non-regressing held-out evaluation of
 exactly the version being promoted, measured against the live version.
+
+``PolicyRecordView.record`` is the generated ``kind``-tagged union whose
+Python variants are ``PolicyEvolutionRecord<Kind>`` (renamed from
+``PolicyRecord<Kind>`` to avoid a collision with change-envelope's
+``PolicyRecord``). This module never names those classes: it reads only the
+wire tag ``record.kind`` and the body ``record.record``, which the rename did
+not change, so no generated-class name is part of graph-os's contract.
 """
 
 from __future__ import annotations
