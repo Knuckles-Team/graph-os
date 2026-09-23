@@ -40,4 +40,6 @@ nav:
       - Deployment and configuration: deployment.md
       - Capability status: status.md
       - Quality gate terms: quality-gate-terms.md
+  - Reference:
+      - Skill graph reference: reference/skill-graph.generated.md
   - Glossary: glossary.md
