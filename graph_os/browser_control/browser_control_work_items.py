@@ -23,6 +23,7 @@ __all__ = [
     "claim_work_item",
     "commit_work_item",
     "get_work_item",
+    "get_work_item_outcome",
     "submit_work_item",
 ]
 
@@ -62,6 +63,20 @@ def get_work_item(engine: Any, tenant: str, item_id: str) -> dict[str, Any] | No
     """The tenant's typed view of one WorkItem, or ``None`` when not visible."""
     view = _verb(engine, "get")(tenant=tenant, work_item_id=item_id)
     return view if isinstance(view, dict) else None
+
+
+def get_work_item_outcome(
+    engine: Any, tenant: str, item_id: str
+) -> dict[str, Any] | None:
+    """The OutcomeEvaluation receipt the item's terminal commit bound, if any.
+
+    EG resolves the receipt from the WorkItem row and refuses it unless its
+    stored bytes still hash to the committed digest; ``None`` when the item
+    is not visible or was committed without a provenance bundle.
+    """
+    value = _verb(engine, "get_outcome")(tenant=tenant, work_item_id=item_id)
+    outcome = value.get("outcome") if isinstance(value, dict) else None
+    return outcome if isinstance(outcome, dict) else None
 
 
 def submit_work_item(

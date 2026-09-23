@@ -80,34 +80,6 @@ class _Authority:
         self.claim_requests: list[Any] = []
         self.commit_outcomes: list[str] = []
 
-    def query_cypher(
-        self, _query: str, params: dict[str, Any] | None = None
-    ) -> list[dict[str, Any]]:
-        node = self.nodes.get(str((params or {}).get("id") or ""))
-        return [dict(node)] if node is not None else []
-
-    def create_node_if_absent(
-        self, node_id: str, *, properties: dict[str, Any]
-    ) -> bool:
-        if node_id in self.nodes:
-            return False
-        self.nodes[node_id] = {"id": node_id, **properties}
-        return True
-
-    def compare_and_set_node_fields(
-        self,
-        node_id: str,
-        conditions: dict[str, Any],
-        updates: dict[str, Any],
-    ) -> bool:
-        node = self.nodes.get(node_id)
-        if node is None or any(
-            node.get(key) != value for key, value in conditions.items()
-        ):
-            return False
-        node.update(updates)
-        return True
-
     def claim_work_item(self, request: Any) -> dict[str, Any]:
         node = self.nodes.get(str(request.work_item_id))
         if node is None or node.get("status") != "ready":
@@ -206,6 +178,19 @@ class _EgWorkItems:
             "updated_at_ms": 0,
         }
 
+    def get_outcome(self, *, tenant: str, work_item_id: str) -> dict[str, Any] | None:
+        view = self.get(tenant=tenant, work_item_id=work_item_id)
+        if view is None:
+            return None
+        node = self._authority.nodes[work_item_id]
+        return {
+            "work_item": view,
+            "trace_ref": node.get("trace_ref"),
+            "tool_call_refs": [],
+            "outcome_ref": node.get("outcome_ref"),
+            "outcome": node.get("outcome"),
+        }
+
     def claim(self, request: dict[str, Any], *, idempotency_key: str) -> dict[str, Any]:
         return self._authority.claim_work_item(SimpleNamespace(**request))
 
@@ -271,7 +256,13 @@ class _EgControlLeases:
         node = self._authority.nodes.get(lease_id)
         if node is None or node.get("tenant") != tenant:
             return {"outcome": "not_found", "lease": None}
-        if node["revision"] != expected_revision or node["status"] != "active":
+        legal = {
+            "active": {"consumed", "revoked", "expired"},
+            "consumed": {"revoked", "expired"},
+        }
+        if node["revision"] != expected_revision or to not in legal.get(
+            node["status"], set()
+        ):
             return {
                 "outcome": "conflict",
                 "lease": self.get(tenant=tenant, lease_id=lease_id),
@@ -310,11 +301,6 @@ class _Engine:
                     **mutation["properties"],
                 }
         return True
-
-    def query_cypher(
-        self, query: str, params: dict[str, Any] | None = None
-    ) -> list[dict[str, Any]]:
-        return self._work_item_engine.query_cypher(query, params)
 
 
 class _Policy:
@@ -826,15 +812,14 @@ async def test_disconnect_durably_retires_current_registration(
     registration = next(
         node
         for node in engine._work_item_engine.nodes.values()
-        if node.get("node_type") == "BrowserControlRegistration"
+        if node.get("kind") == "browser.registration"
     )
     arm = next(
         node
         for node in engine._work_item_engine.nodes.values()
-        if node.get("node_type") == "AttendedArmReceipt"
+        if node.get("kind") == "browser.attended_arm"
     )
-    assert registration["status"] == "retired"
-    assert registration["retired_by"] == "channel_disconnected"
+    assert registration["status"] == "revoked"
     assert arm["status"] == "revoked"
 
 
@@ -874,7 +859,7 @@ async def test_registration_recomputes_metadata_digest_before_authority(
                 )
             )
     assert not any(
-        node.get("node_type") == "BrowserControlRegistration"
+        node.get("kind") == "browser.registration"
         for node in engine._work_item_engine.nodes.values()
     )
 
@@ -1069,9 +1054,9 @@ async def test_stale_generation_and_identity_are_refused(session: GraphSession) 
         document = next(
             node
             for node in engine._work_item_engine.nodes.values()
-            if node.get("node_type") == "BrowserControlDocument"
+            if node.get("kind") == "browser.document"
         )
-        document["registration_generation"] = 2
+        document["grant"]["registration_generation"] = 2
         with pytest.raises(PermissionError, match="stale"):
             await service.execute_call(
                 BrowserCallRequest(
@@ -1199,9 +1184,9 @@ async def test_browser_event_revalidates_live_generation(session: GraphSession) 
         document = next(
             node
             for node in engine._work_item_engine.nodes.values()
-            if node.get("node_type") == "BrowserControlDocument"
+            if node.get("kind") == "browser.document"
         )
-        document["registration_generation"] = 2
+        document["grant"]["registration_generation"] = 2
         result = ControlResultMessage(
             call_id=sent[0].call_id,
             status="succeeded",
@@ -1209,7 +1194,7 @@ async def test_browser_event_revalidates_live_generation(session: GraphSession) 
         )
         with pytest.raises(PermissionError, match="stale"):
             await connection.receive(result)
-        document["registration_generation"] = 1
+        document["grant"]["registration_generation"] = 1
         await connection.receive(result)
         assert (await execution).status == "succeeded"
 
@@ -1778,35 +1763,68 @@ async def test_claimed_cancellation_commits_native_cancelled_outcome(
 
 
 @pytest.mark.asyncio
-async def test_durable_replay_recovers_terminal_result_digest(
+async def _complete_then_forget(
+    session: GraphSession, request_id: str
+) -> tuple[Any, Any, _Engine, Any, list[Any], BrowserCallRequest]:
+    service, connection, engine, sent, tool = await _setup(session)
+    lease = await _lease(service, _binding(session), tool)
+    request = BrowserCallRequest(
+        lease_id=lease.lease_id,
+        request_id=request_id,
+        tool_id=tool.tool_id,
+        schema_digest=tool.schema_digest,
+        arguments={"value": "safe"},
+    )
+    execution = asyncio.create_task(service.execute_call(request))
+    await _wait_for_messages(sent, 1)
+    await connection.receive(
+        ControlResultMessage(
+            call_id=sent[0].call_id, status="succeeded", result={"ok": True}
+        )
+    )
+    original = await execution
+    service._completed.clear()
+    service._completed_authority.clear()
+    return service, original, engine, connection, sent, request
+
+
+async def test_durable_replay_recovers_the_committed_outcome(
     session: GraphSession,
 ) -> None:
+    """Replay reads EG GetWorkItemOutcome, never a caller-named node."""
     with use_session(session):
-        service, connection, _engine, sent, tool = await _setup(session)
-        lease = await _lease(service, _binding(session), tool)
-        request = BrowserCallRequest(
-            lease_id=lease.lease_id,
-            request_id="durable-replay",
-            tool_id=tool.tool_id,
-            schema_digest=tool.schema_digest,
-            arguments={"value": "safe"},
+        service, original, engine, _c, sent, request = await _complete_then_forget(
+            session, "durable-replay"
         )
-        execution = asyncio.create_task(service.execute_call(request))
-        await _wait_for_messages(sent, 1)
-        await connection.receive(
-            ControlResultMessage(
-                call_id=sent[0].call_id,
-                status="succeeded",
-                result={"ok": True},
-            )
+        nodes = engine._work_item_engine.nodes
+        committed = next(
+            node
+            for node in nodes.values()
+            if node.get("node_type") == "OutcomeEvaluation"
+            and node.get("status") == "succeeded"
         )
-        original = await execution
-        service._completed.clear()
-        service._completed_authority.clear()
+        call_item = next(
+            node
+            for node in nodes.values()
+            if node.get("kind") == "browser.control.call"
+        )
+        call_item["outcome"] = dict(committed)
         replay = await service.execute_call(request)
     assert replay.status == "succeeded"
     assert replay.result is None
     assert replay.result_digest == original.result_digest
+    assert len(sent) == 1
+
+
+async def test_replay_without_a_committed_outcome_is_unknown_not_redispatched(
+    session: GraphSession,
+) -> None:
+    with use_session(session):
+        service, _original, _engine, _c, sent, request = await _complete_then_forget(
+            session, "durable-replay-unbound"
+        )
+        replay = await service.execute_call(request)
+    assert replay.status == "unknown"
     assert len(sent) == 1
 
 
@@ -1932,133 +1950,115 @@ async def test_unknown_call_is_reaped_after_durable_reconciliation_audit(
     )
 
 
-def test_new_registration_retires_prior_document_generation(
-    session: GraphSession,
-) -> None:
-    engine = _Engine()
+def _records(engine: _Engine, kind: str) -> list[dict[str, Any]]:
+    return [
+        node
+        for node in engine._work_item_engine.nodes.values()
+        if node.get("kind") == kind
+    ]
+
+
+def _two_generations(session: GraphSession, label: str) -> tuple[Any, Any, Any]:
     tool = _tool()
     first = _binding(session, _tool=tool)
     second = replace(
         first,
         registration_generation=2,
-        attended_arm_ref=_ref("attended", "second-arm"),
+        attended_arm_ref=_ref("attended", label),
     )
-    register_catalog(engine._work_item_engine, binding_references(first), (tool,))
-    register_catalog(engine._work_item_engine, binding_references(second), (tool,))
-    registrations = [
-        node
-        for node in engine._work_item_engine.nodes.values()
-        if node.get("node_type") == "BrowserControlRegistration"
-    ]
-    assert len(registrations) == 2
-    assert sorted(node["status"] for node in registrations) == ["published", "retired"]
+    return tool, first, second
+
+
+def test_new_registration_retires_prior_document_generation(
+    session: GraphSession,
+) -> None:
+    engine = _Engine()
+    tool, first, second = _two_generations(session, "second-arm")
+    now = time.time()
+    with use_session(session):
+        register_catalog(engine, binding_references(first), (tool,), now=now)
+        register_catalog(engine, binding_references(second), (tool,), now=now)
+    registrations = _records(engine, "browser.registration")
+    documents = _records(engine, "browser.document")
+    assert sorted(node["status"] for node in registrations) == ["active", "revoked"]
+    assert sorted(node["status"] for node in documents) == ["active", "revoked"]
 
 
 def test_registration_retry_completes_interrupted_retirement(
     session: GraphSession,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    authority = _Authority()
-    tool = _tool()
-    first = _binding(session, _tool=tool)
-    second = replace(
-        first,
-        registration_generation=2,
-        attended_arm_ref=_ref("attended", "retry-arm"),
-    )
-    register_catalog(authority, binding_references(first), (tool,))
-    original_compare = authority.compare_and_set_node_fields
-    retirement_failed = False
+    engine = _Engine()
+    leases = engine.graph_compute.client.control_leases
+    tool, first, second = _two_generations(session, "retry-arm")
+    now = time.time()
+    original = leases.transition
+    failed = False
 
-    def fail_first_retirement(
-        node_id: str,
-        conditions: dict[str, Any],
-        updates: dict[str, Any],
-    ) -> bool:
-        nonlocal retirement_failed
-        if updates.get("status") == "retired" and not retirement_failed:
-            retirement_failed = True
-            return False
-        return original_compare(node_id, conditions, updates)
+    def fail_first_registration_revoke(**request: Any) -> dict[str, Any]:
+        nonlocal failed
+        node = engine._work_item_engine.nodes.get(request["lease_id"], {})
+        if node.get("kind") == "browser.registration" and not failed:
+            failed = True
+            return {"outcome": "conflict", "lease": None}
+        return original(**request)
 
-    monkeypatch.setattr(authority, "compare_and_set_node_fields", fail_first_retirement)
-    with pytest.raises(RuntimeError, match="not retired"):
-        register_catalog(authority, binding_references(second), (tool,))
-    interrupted = [
-        node["status"]
-        for node in authority.nodes.values()
-        if node.get("node_type") == "BrowserControlRegistration"
-    ]
-    assert sorted(interrupted) == ["pending", "published"]
-    assert not active_registration_matches(
-        authority,
-        binding_references(first),
-        first.catalog_digest,
-        first.tool_scope_digest,
-    )
-    assert not active_registration_matches(
-        authority,
-        binding_references(second),
-        second.catalog_digest,
-        second.tool_scope_digest,
-    )
-    register_catalog(authority, binding_references(second), (tool,))
-    registrations = [
-        node
-        for node in authority.nodes.values()
-        if node.get("node_type") == "BrowserControlRegistration"
-    ]
-    assert sorted(node["status"] for node in registrations) == ["published", "retired"]
+    with use_session(session):
+        register_catalog(engine, binding_references(first), (tool,), now=now)
+        monkeypatch.setattr(leases, "transition", fail_first_registration_revoke)
+        with pytest.raises(RuntimeError, match="not retired"):
+            register_catalog(engine, binding_references(second), (tool,), now=now)
+        interrupted = _records(engine, "browser.registration")
+        assert sorted(node["status"] for node in interrupted) == ["active", "active"]
+        assert not active_registration_matches(
+            engine,
+            binding_references(first),
+            first.catalog_digest,
+            first.tool_scope_digest,
+        )
+        assert active_registration_matches(
+            engine,
+            binding_references(second),
+            second.catalog_digest,
+            second.tool_scope_digest,
+        )
+        register_catalog(engine, binding_references(second), (tool,), now=now)
+    registrations = _records(engine, "browser.registration")
+    assert sorted(node["status"] for node in registrations) == ["active", "revoked"]
 
 
-def test_failed_document_activation_leaves_new_registration_pending(
+def test_failed_document_issue_leaves_new_registration_unpointed(
     session: GraphSession,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    authority = _Authority()
-    tool = _tool()
-    first = _binding(session, _tool=tool)
-    second = replace(
-        first,
-        registration_generation=2,
-        attended_arm_ref=_ref("attended", "failed-activation-arm"),
-    )
-    register_catalog(authority, binding_references(first), (tool,))
-    original_compare = authority.compare_and_set_node_fields
+    engine = _Engine()
+    leases = engine.graph_compute.client.control_leases
+    tool, first, second = _two_generations(session, "failed-activation-arm")
+    now = time.time()
+    original = leases.issue
 
-    def fail_document_activation(
-        node_id: str,
-        conditions: dict[str, Any],
-        updates: dict[str, Any],
-    ) -> bool:
-        node = authority.nodes.get(node_id, {})
-        if node.get("node_type") == "BrowserControlDocument":
-            return False
-        return original_compare(node_id, conditions, updates)
+    def fail_document_issue(**request: Any) -> dict[str, Any]:
+        if request["kind"] == "browser.document":
+            raise RuntimeError("document record unavailable")
+        return original(**request)
 
-    monkeypatch.setattr(
-        authority, "compare_and_set_node_fields", fail_document_activation
-    )
-    with pytest.raises(RuntimeError, match="changed concurrently"):
-        register_catalog(authority, binding_references(second), (tool,))
-    registrations = [
-        node
-        for node in authority.nodes.values()
-        if node.get("node_type") == "BrowserControlRegistration"
-    ]
-    assert sorted(node["status"] for node in registrations) == ["pending", "published"]
-    assert active_registration_matches(
-        authority,
-        binding_references(first),
-        first.catalog_digest,
-        first.tool_scope_digest,
-    )
-    assert not active_registration_matches(
-        authority,
-        binding_references(second),
-        second.catalog_digest,
-        second.tool_scope_digest,
-    )
+    with use_session(session):
+        register_catalog(engine, binding_references(first), (tool,), now=now)
+        monkeypatch.setattr(leases, "issue", fail_document_issue)
+        with pytest.raises(RuntimeError, match="document record unavailable"):
+            register_catalog(engine, binding_references(second), (tool,), now=now)
+        assert active_registration_matches(
+            engine,
+            binding_references(first),
+            first.catalog_digest,
+            first.tool_scope_digest,
+        )
+        assert not active_registration_matches(
+            engine,
+            binding_references(second),
+            second.catalog_digest,
+            second.tool_scope_digest,
+        )
 
 
 @pytest.mark.asyncio
@@ -2086,15 +2086,15 @@ async def test_disconnect_retries_transient_registration_retirement(
     registrations = [
         node
         for node in engine._work_item_engine.nodes.values()
-        if node.get("node_type") == "BrowserControlRegistration"
+        if node.get("kind") == "browser.registration"
     ]
     arms = [
         node
         for node in engine._work_item_engine.nodes.values()
-        if node.get("node_type") == "AttendedArmReceipt"
+        if node.get("kind") == "browser.attended_arm"
     ]
     assert attempts == 2
-    assert registrations[0]["status"] == "retired"
+    assert registrations[0]["status"] == "revoked"
     assert arms[0]["status"] == "revoked"
 
 

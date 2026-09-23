@@ -11,12 +11,6 @@ from graph_os.browser_control.browser_control_api import BrowserChannelBinding
 from graph_os.browser_control.browser_control_common import content_sha256
 from graph_os.browser_control.browser_control_descriptor import BrowserToolDescriptor
 
-_CONTROL_CAPABILITIES = (
-    "query_cypher",
-    "create_node_if_absent",
-    "compare_and_set_node_fields",
-)
-
 
 @dataclass(frozen=True, slots=True)
 class BindingReferences:
@@ -47,19 +41,18 @@ BINDING_PROPERTY_NAMES = tuple(
 )
 
 
-def control_authority(engine: Any) -> Any | None:
-    """Return the complete native browser-control state authority."""
+def native_authorities_available(engine: Any) -> bool:
+    """Whether the engine exposes every typed authority browser control uses.
 
-    authority = getattr(engine, "_work_item_engine", None)
-    if authority is None or not all(
-        callable(getattr(authority, name, None)) for name in _CONTROL_CAPABILITIES
-    ):
-        return None
-    if not callable(getattr(engine, "batch_typed_mutations", None)) or not callable(
-        getattr(engine, "query_cypher", None)
-    ):
-        return None
-    return authority
+    WorkItem fences and ControlLease records come from the session-routed EG
+    client; the audit trail uses the engine's typed mutation batch.
+    """
+    client = getattr(getattr(engine, "graph_compute", None), "client", None)
+    return (
+        getattr(client, "work_items", None) is not None
+        and getattr(client, "control_leases", None) is not None
+        and callable(getattr(engine, "batch_typed_mutations", None))
+    )
 
 
 def binding_references(binding: BrowserChannelBinding) -> BindingReferences:
@@ -135,7 +128,7 @@ __all__ = [
     "BindingReferences",
     "binding_properties",
     "binding_references",
-    "control_authority",
     "descriptor_catalog_digest",
     "descriptor_tool_scope_digest",
+    "native_authorities_available",
 ]

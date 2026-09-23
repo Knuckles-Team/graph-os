@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Literal, cast
 
-from agent_utilities.observability.trace_ontology import outcome_id
 from agent_utilities.security.persistence_privacy import persistence_reference
 
 from graph_os.browser_control.browser_control_api import BrowserCallReceipt
@@ -18,36 +17,10 @@ from graph_os.browser_control.browser_control_state import (
     BrowserControlMixinState,
     _ActiveCall,
 )
-from graph_os.browser_control.trace_bundle import record_trace_bundle
-
-_BOUND_TRACE_NAMES = (
-    "actor_reference",
-    "attended_arm_reference",
-    "attended_arm_expires_at",
-    "attended_arm_issued_at",
-    "attended_auth_time",
-    "attended_acr",
-    "attended_issuer",
-    "access_token_expires_at",
-    "catalog_digest",
-    "tool_scope_digest",
-    "tenant_reference",
-    "login_session_reference",
-    "principal_reference",
-    "browser_session_reference",
-    "origin_reference",
-    "document_reference",
-    "route_reference",
-    "registration_generation",
-    "lease_reference",
-    "fence_reference",
-    "policy_reference",
-    "policy_version",
-    "confirmation_reference",
-    "schema_digest",
-    "source_reference",
-    "tool_id",
+from graph_os.browser_control.browser_control_work_items import (
+    get_work_item_outcome,
 )
+from graph_os.browser_control.trace_bundle import record_trace_bundle
 
 
 def _bound_trace_attributes(active: _ActiveCall) -> dict[str, Any]:
@@ -132,12 +105,6 @@ def _replay_values(
         evidence.get("browser_result_digest"),
         evidence.get("browser_error_code"),
     )
-
-
-def _read_durable_outcome(engine: Any, query: str, parameters: dict[str, str]) -> Any:
-    """Run the engine's blocking read inside the configured sync runner."""
-
-    return engine.query_cypher(query, parameters)
 
 
 class BrowserProvenanceMixin(BrowserControlMixinState):
@@ -226,27 +193,13 @@ class BrowserProvenanceMixin(BrowserControlMixinState):
     async def _durable_outcome(
         self, active: _ActiveCall, *, expected_status: str
     ) -> BrowserCallReceipt | None:
-        oid = outcome_id(active.run_id)
-        names = (
-            "status",
-            "browser_result_digest",
-            "browser_error_code",
-            "cancellation_effect",
-            "langfuse_status",
-            *_BOUND_TRACE_NAMES,
+        refs = active.channel.refs
+        row = await self._sync_runner(
+            lambda: get_work_item_outcome(self._engine, refs.tenant, active.item_id)
         )
-        returns = ", ".join(f"o.{name} AS {name}" for name in names)
-        query = f"MATCH (o:OutcomeEvaluation {{id: $id}}) RETURN {returns} LIMIT 2"
-        rows = await self._sync_runner(
-            lambda: _read_durable_outcome(self._engine, query, {"id": oid})
-        )
-        if (
-            not isinstance(rows, list)
-            or len(rows) != 1
-            or not isinstance(rows[0], dict)
-        ):
+        if row is None:
             return None
-        values = _validated_replay_values(rows[0], active, expected_status)
+        values = _validated_replay_values(row, active, expected_status)
         if values is None:
             return None
         effect, langfuse_status, result_digest, error_code = values

@@ -121,7 +121,7 @@ class BrowserLeaseMixin(BrowserControlMixinState):
     async def _verify_registration(self, channel: _ChannelState) -> None:
         matches = await self._sync_runner(
             lambda: active_registration_matches(
-                self._authority,
+                self._engine,
                 channel.refs,
                 channel.catalog_digest,
                 channel.tool_scope_digest,

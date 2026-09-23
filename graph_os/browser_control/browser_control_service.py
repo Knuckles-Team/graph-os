@@ -7,7 +7,7 @@ import inspect
 import time
 from collections import OrderedDict
 from collections.abc import Awaitable, Callable
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from agent_utilities.observability.langfuse_exporter import get_langfuse_exporter
 from agent_utilities.orchestration.action_policy import get_action_policy
@@ -17,7 +17,9 @@ from graph_os.browser_control.browser_control_api import (
     BrowserChannelBinding,
 )
 from graph_os.browser_control.browser_control_attendance import BrowserAttendanceMixin
-from graph_os.browser_control.browser_control_binding import control_authority
+from graph_os.browser_control.browser_control_binding import (
+    native_authorities_available,
+)
 from graph_os.browser_control.browser_control_cancellation import (
     BrowserCancellationMixin,
 )
@@ -67,10 +69,9 @@ class BrowserControlService(
             raise TypeError("sync_runner must be callable")
         if not callable(session_revalidator):
             raise TypeError("session_revalidator must be callable")
-        if control_authority(engine) is None:
+        if not native_authorities_available(engine):
             raise ValueError("engine lacks native browser-control authorities")
         self._engine = engine
-        self._authority = cast(Any, control_authority(engine))
         self._sync_runner = sync_runner
         self._session_revalidator = session_revalidator
         self._policy = action_policy or get_action_policy(engine)

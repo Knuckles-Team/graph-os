@@ -148,3 +148,29 @@ def test_no_production_module_imports_au_knowledge_graph_internals() -> None:
     ]
 
     assert offenders == []
+
+
+_CONTROL_AUTHORITY_CALLS = re.compile(
+    r"\b(?:_work_item_engine|create_node_if_absent|compare_and_set_node_fields)\b"
+)
+
+
+def test_no_production_module_uses_generic_control_authority_node_apis() -> None:
+    """Durable control state goes through typed EG WorkItem/ControlLease calls."""
+    offenders = [
+        name
+        for name, source in _production_sources().items()
+        if _CONTROL_AUTHORITY_CALLS.search(source)
+    ]
+
+    assert offenders == []
+
+
+def test_browser_control_issues_no_raw_graph_queries() -> None:
+    offenders = [
+        name
+        for name, source in _production_sources("browser_control").items()
+        if re.search(r"\bquery_cypher\b|\bMATCH \(", source)
+    ]
+
+    assert offenders == []

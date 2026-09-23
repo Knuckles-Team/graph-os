@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import math
 import secrets
 from dataclasses import dataclass
 from typing import Any, cast
@@ -15,6 +14,12 @@ from graph_os.browser_control.browser_control_binding import (
     binding_properties,
 )
 from graph_os.browser_control.browser_control_common import canonical_internal_json
+from graph_os.browser_control.browser_control_records import (
+    issue_record,
+    read_record,
+    session_tenant,
+    transition_record,
+)
 from graph_os.browser_control.browser_control_work_items import (
     commit_work_item,
     get_work_item,
@@ -37,26 +42,8 @@ def new_lease_id() -> str:
 
 
 _LEASE_KIND = "browser.control"
-
-
-def _control_leases(engine: Any) -> Any:
-    """The generated EG ``control_leases`` namespace of the session-routed client."""
-    compute = getattr(engine, "graph_compute", None)
-    namespace = getattr(getattr(compute, "client", None), "control_leases", None)
-    if namespace is None:
-        raise RuntimeError("EG ControlLease authority is unavailable")
-    return namespace
-
-
-def _ms(seconds: float) -> int:
-    """Floor to EG's integer milliseconds; never extends a lease."""
-    return math.floor(seconds * 1000)
-
-
-def _session_tenant() -> str:
-    from agent_utilities.api import resolve_session
-
-    return str(resolve_session().tenant)
+#: The agent identity every browser-call WorkItem and trace names.
+BROWSER_CONTROL_AGENT_ID = "graph-os-browser-control"
 
 
 def create_lease(
@@ -73,9 +60,10 @@ def create_lease(
     hard_expires_at: float,
 ) -> None:
     """Issue one immutable EG ``ControlLease`` carrying the browser grant."""
-    answer = _control_leases(engine).issue(
+    issued = issue_record(
+        engine,
         tenant=refs.tenant,
-        lease_id=lease_id,
+        record_id=lease_id,
         kind=_LEASE_KIND,
         grant={
             **binding_properties(refs),
@@ -84,53 +72,31 @@ def create_lease(
             "schema_digests": schema_digests,
             "policy_references": list(policy_references),
         },
-        issued_at_ms=_ms(issued_at),
-        expires_at_ms=_ms(expires_at),
-        hard_expires_at_ms=_ms(hard_expires_at),
+        issued_at=issued_at,
+        expires_at=expires_at,
+        hard_expires_at=hard_expires_at,
         idempotency_key=persistence_reference(
             "browser_lease_issue", lease_id, namespace=refs.tenant_reference
         ),
     )
-    if answer.get("outcome") != "issued":
+    if not issued:
         raise RuntimeError("lease identifier collision")
-
-
-def _lease_state(view: dict[str, Any]) -> dict[str, Any] | None:
-    if view.get("kind") != _LEASE_KIND or not isinstance(view.get("grant"), dict):
-        return None
-    return {
-        **view["grant"],
-        "status": view["status"],
-        "issued_at": view["issued_at_ms"] / 1000,
-        "expires_at": view["expires_at_ms"] / 1000,
-        "hard_expires_at": view["hard_expires_at_ms"] / 1000,
-        "revision": view["revision"],
-    }
 
 
 def read_lease(engine: Any, lease_id: str) -> dict[str, Any] | None:
     """The caller tenant's browser lease, or ``None`` when not visible."""
-    view = _control_leases(engine).get(tenant=_session_tenant(), lease_id=lease_id)
-    return _lease_state(view) if isinstance(view, dict) else None
+    return read_record(
+        engine, tenant=session_tenant(), record_id=lease_id, kind=_LEASE_KIND
+    )
 
 
 def transition_lease(
-    engine: Any,
-    lease_id: str,
-    *,
-    current: dict[str, Any],
-    to: str,
+    engine: Any, lease_id: str, *, current: dict[str, Any], to: str
 ) -> bool:
     """CAS ``active -> revoked|expired`` on the lease revision read in ``current``."""
-    revision = int(current["revision"])
-    answer = _control_leases(engine).transition(
-        tenant=_session_tenant(),
-        lease_id=lease_id,
-        expected_revision=revision,
-        to=to,
-        idempotency_key=f"{lease_id}:{revision}:{to}",
+    return transition_record(
+        engine, tenant=session_tenant(), record_id=lease_id, current=current, to=to
     )
-    return answer.get("outcome") == "applied"
 
 
 def commit_call_outcome(
@@ -311,6 +277,13 @@ def _fence_inputs(
         # failure from a concurrent replay of the same deterministic request.
         "admission_reference": admission_reference,
         "actor_reference": refs.actor_reference,
+        # Delegation bindings EG checks a terminal provenance bundle against.
+        "delegation_id": call_id,
+        "run_id": f"browser-control:{request_digest}",
+        "agent_id": BROWSER_CONTROL_AGENT_ID,
+        "capability_digest": hashlib.sha256(
+            f"{tool_id}\x00{schema_digest}".encode()
+        ).hexdigest(),
     }
     return payload_reference, idempotency_key, metadata
 
