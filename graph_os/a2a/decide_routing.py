@@ -89,7 +89,7 @@ async def _publish_agents(composition: Any, answer: Any) -> None:
         )
 
 
-async def _publish_routed(composition: Any, answer: Any) -> str | None:
+async def publish_routed(composition: Any, answer: Any) -> str | None:
     """Publish agents then the graph (evidence = the committed record)."""
     graph = (answer.result or {}).get("graph") or {}
     graph_id = str(graph.get("graph_id") or "")
@@ -181,7 +181,7 @@ class DecideA2ARouter:
                 str(tool.get("component_id")) for tool in agent.get("tools") or ()
             ),
             selection_mode="eg-decide-assembly",
-            agent_graph_ref=await _publish_routed(composition, answer),
+            agent_graph_ref=await publish_routed(composition, answer),
             decision_record_ref=str(_payload(answer.committed)["record_id"]),
             task_iri=typed_task_iri(message),
         )

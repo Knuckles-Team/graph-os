@@ -21,7 +21,7 @@ from .models import (
     A2ATaskStatusUpdateEvent,
     A2ATextPart,
 )
-from .routing import A2ARouter
+from .routing import A2ARouter, LeaseReleasingRouter
 
 __all__ = [
     "A2ACardMetadata",
@@ -100,11 +100,17 @@ class A2AService:
         decision = await self.router.route(
             parsed, context_budget_tokens=context_budget_tokens
         )
-        return await self.authority.dispatch(
-            message=parsed,
-            idempotency_key=idempotency_key,
-            decision=decision,
-        )
+        try:
+            return await self.authority.dispatch(
+                message=parsed,
+                idempotency_key=idempotency_key,
+                decision=decision,
+            )
+        except Exception:
+            # A routed plan's leases never outlive a dispatch that failed.
+            if isinstance(self.router, LeaseReleasingRouter):
+                await self.router.release(decision)
+            raise
 
     async def get_task(self, task_id: str) -> A2ATask | None:
         return await self.authority.get(task_id)

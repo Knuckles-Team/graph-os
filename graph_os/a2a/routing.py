@@ -20,6 +20,7 @@ __all__ = [
     "A2AAssemblyUnavailable",
     "A2ARouter",
     "ControlPlaneA2ARouter",
+    "LeaseReleasingRouter",
     "AGENT_NAME_METADATA_KEY",
     "TASK_IRIS_METADATA_KEY",
     "declared_task_iris",
@@ -36,6 +37,13 @@ class A2ARouter(Protocol):
     async def route(
         self, message: A2AMessage, *, context_budget_tokens: int | None
     ) -> A2ARouteDecision: ...
+
+
+@runtime_checkable
+class LeaseReleasingRouter(Protocol):
+    """A router whose routed decisions may hold capacity leases (ST-9)."""
+
+    async def release(self, decision: A2ARouteDecision) -> bool: ...
 
 
 class ControlPlaneA2ARouter:

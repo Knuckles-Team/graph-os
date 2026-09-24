@@ -15,6 +15,7 @@ from .authority import WorkItemA2AAuthority
 from .decide_routing import DecideA2ARouter
 from .routing import ControlPlaneA2ARouter
 from .service import A2ACardMetadata, A2AService
+from .topology_routing import TopologyA2ARouter, TopologyScope
 
 __all__ = [
     "A2AComposition",
@@ -55,16 +56,41 @@ def hosted_control_plane(graph_client_for: GraphClientFor) -> Callable[[Any], An
     return control_plane_for
 
 
+def _topology_templates() -> tuple[dict[str, Any], ...]:
+    composition = current_decide()
+    if composition is None or composition.topology is None:
+        return ()
+    return tuple(composition.topology.templates())
+
+
+def _topology_scope() -> TopologyScope:
+    composition = current_decide()
+    if composition is None or composition.topology is None:
+        return TopologyScope(cells=())
+    return composition.topology.scope
+
+
 def compose_a2a_service(
     *,
     control_plane_for: Callable[[Any], Any],
     card_metadata: A2ACardMetadata | None = None,
 ) -> A2AService:
-    """One A2A service over the control plane and EG assembly (via Decide)."""
+    """One A2A service over the control plane and EG assembly (via Decide).
+
+    A task declaring swarm task shapes is routed by the topology router (ST-9);
+    every other task by EG assembly first, then the control plane.
+    """
+    from graph_os.decide_topology import lease_book_for
+
+    assembly = DecideA2ARouter(ControlPlaneA2ARouter(control_plane_for), current_decide)
     return A2AService(
         authority=WorkItemA2AAuthority(control_plane_for),
-        router=DecideA2ARouter(
-            ControlPlaneA2ARouter(control_plane_for), current_decide
+        router=TopologyA2ARouter(
+            inner=assembly,
+            decide_for=current_decide,
+            templates=_topology_templates,
+            lease_book_for=lease_book_for,
+            scope_for=_topology_scope,
         ),
         card_metadata=card_metadata or A2ACardMetadata(),
     )
