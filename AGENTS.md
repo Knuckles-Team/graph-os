@@ -127,8 +127,8 @@ or global Git configuration.
 The development workflow lives in skills; load them before editing:
 
 - `graphos-ecosystem-development` — architecture boundaries, the lane protocol,
-  build hosts, gate caps, contract regeneration, landing (`eg-land-gate
-  --fanout` by default for the engine), and the decisions protocol. In a
+  build hosts, gate caps, contract regeneration, landing (the release-workflow gate
+  fanned out across hosts by default), and the decisions protocol. In a
   coordinated program, lanes run targeted checks and the full hook suite runs
   once on the merged tree at landing.
 - `graph-os-development` — this repository's package map, the sibling
