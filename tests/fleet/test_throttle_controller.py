@@ -22,6 +22,7 @@ import pytest
 from graph_os.fleet.child_resilience import ChildRuntime, MCPChildBusyError
 from graph_os.fleet.error_budget import prometheus_error_budget
 from graph_os.fleet.throttle_controller import (
+    DEFAULT_POLICY,
     EVOLVE_EVERY,
     ThrottleController,
     ThrottleControllerExtension,
@@ -39,7 +40,7 @@ POLICY = {
     "floor": 1,
     "cooldown_ms": 0,
 }
-DECLARED = {"capacity": 8, "policy": POLICY}
+DECLARED = {"capacity": 8, "policy": POLICY, "mode": "enforce"}
 
 
 # --- the limiter -----------------------------------------------------------
@@ -96,15 +97,23 @@ async def test_a_child_runtime_obeys_its_throttle_ceiling() -> None:
 # --- declarations ------------------------------------------------------------
 
 
-def test_only_valid_declarations_become_targets(caplog: Any) -> None:
+def test_every_child_is_observed_and_only_an_opt_in_is_enforced(caplog: Any) -> None:
     children = {
-        "plain": SimpleNamespace(cfg={}),
+        "plain": SimpleNamespace(cfg={}, max_concurrency=6),
         "github": SimpleNamespace(cfg={"error_budget": DECLARED}),
         "typo": SimpleNamespace(
-            cfg={"error_budget": {**DECLARED, "policy": {**POLICY, "floor": 0}}}
+            cfg={"error_budget": {**DECLARED, "policy": {**POLICY, "floor": 0}}},
+            max_concurrency=4,
         ),
     }
-    assert [t.child for t in declared_targets(children)] == ["github"]
+    targets = {t.child: t.declaration for t in declared_targets(children)}
+    assert {name: d.mode.value for name, d in targets.items()} == {
+        "github": "enforce",
+        "plain": "observe",
+        "typo": "observe",
+    }
+    assert targets["plain"].capacity == 6
+    assert targets["plain"].policy.model_dump() == DEFAULT_POLICY
     assert "typo declares an invalid error_budget" in caplog.text
 
 
@@ -227,7 +236,13 @@ async def test_an_error_burst_narrows_the_child_and_health_recovers_it() -> None
     controller = _controller(eg, windows, {"github": child})
     reports = await controller.step()
     assert reports == [
-        {"child": "github", "outcome": "narrowed", "reason": "test", "ceiling": 4}
+        {
+            "child": "github",
+            "mode": "enforce",
+            "outcome": "narrowed",
+            "reason": "test",
+            "ceiling": 4,
+        }
     ]
     assert eg.samples[0]["requests"] == 100 and eg.samples[0]["errors"] == 40
     cell = eg.capacity_leases.cells["fleet/child/github"]
@@ -299,6 +314,67 @@ async def test_bounded_children_get_a_guardrail_evolution_step() -> None:
         reports = await controller.step()
     assert evolved == ["fleet/child/bounded"]
     assert {"child": "bounded", "evolution": "held"} in reports
+
+
+# --- observe mode (operator ruling 2026-09-24) --------------------------------
+
+
+def _observed_runtime(name: str = "github") -> ChildRuntime:
+    return ChildRuntime(name, {"max_concurrency": 8, "queue_timeout": 0.05})
+
+
+def _gauge(child: str, mode: str) -> float | None:
+    from prometheus_client import REGISTRY
+
+    return REGISTRY.get_sample_value(
+        "agent_utilities_mcp_child_throttle_ceiling",
+        {"server": child, "mode": mode},
+    )
+
+
+async def test_observe_mode_computes_and_exports_but_never_touches_the_limiter() -> (
+    None
+):
+    eg, runtime = FakeEg(), _observed_runtime()
+    windows = {"github": (100, 60)}
+    controller = _controller(eg, windows, {"github": runtime})
+    for _ in range(3):
+        reports = await controller.step()
+    assert reports[0]["mode"] == "observe" and reports[0]["ceiling"] == 1
+    assert _gauge("github", "observe") == 1.0, "the would-be ceiling is exported"
+    limiter = runtime._semaphore
+    assert limiter is not None and limiter.limit == 8, "admission never narrowed"
+    assert runtime.throttle_ceiling is None
+    cell = eg.capacity_leases.cells["fleet/child/github"]
+    assert cell["capacity"] == 8, "default budget = the child's max_concurrency"
+
+
+async def test_switching_back_to_observe_lifts_an_enforced_ceiling() -> None:
+    eg, runtime = FakeEg(), _observed_runtime()
+    runtime.cfg["error_budget"] = DECLARED
+    controller = _controller(eg, {"github": (100, 40)}, {"github": runtime})
+    await controller.step()
+    assert runtime._semaphore is not None and runtime._semaphore.limit == 4
+    runtime.cfg["error_budget"] = {**DECLARED, "mode": "observe"}
+    await controller.step()
+    assert runtime._semaphore.limit == 8 and runtime.throttle_ceiling is None
+
+
+async def test_observed_children_get_no_evolution_step() -> None:
+    eg, runtime = FakeEg(), _observed_runtime()
+    evolved: list[str] = []
+
+    class Evolution:
+        async def evolve(self, cell_id: str, bounds: Any) -> Any:
+            evolved.append(cell_id)
+            return SimpleNamespace(outcome=SimpleNamespace(value="held"))
+
+    controller = _controller(
+        eg, {"github": (0, 0)}, {"github": runtime}, evolution=lambda c: Evolution()
+    )
+    for _ in range(EVOLVE_EVERY):
+        await controller.step()
+    assert evolved == []
 
 
 def test_without_a_prometheus_url_nothing_is_throttled(

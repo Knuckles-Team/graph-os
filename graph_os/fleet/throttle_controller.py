@@ -1,7 +1,8 @@
 """Error-budget throttling of fleet children on EG ``CapacityCell`` s (EH-406).
 
 Every :data:`~graph_os.fleet.error_budget.WINDOW_S` seconds, for each running
-child whose configuration declares an ``error_budget``:
+child (its declared ``error_budget``, or the observe-only
+:data:`DEFAULT_POLICY` budget when it declares none):
 
 1. the child's cell ``fleet/child/<name>`` is provisioned from the declaration
    (and redeclared when the operator changes it);
@@ -9,14 +10,18 @@ child whose configuration declares an ``error_budget``:
    ``ThrottleCapacityCell``, which narrows the cell's ceiling on an error burst
    and gives it back only on recovery evidence, never above the declared
    capacity, and records every step on the cell and in the graph audit chain;
-3. the ceiling EG returns bounds the child's admission
+3. the ceiling EG returns is exported as
+   ``agent_utilities_mcp_child_throttle_ceiling{server,mode}``. In ``observe``
+   mode (the default, operator ruling 2026-09-24) that is all: the child's
+   admission is never limited. Only a child that opts into ``enforce`` has its
+   admission bounded by the ceiling
    (:meth:`~graph_os.fleet.child_resilience.ChildRuntime.apply_throttle_ceiling`).
 
 Automatic actions only narrow: EG owns the AIMD arithmetic and the declared
 bound, and a failed step keeps the last ceiling rather than widening. Every
-:data:`EVOLVE_EVERY` windows, children whose declaration carries ``bounds``
-also get one guardrail-profile evolution step (EH-407): tighten within the
-ladder automatically, loosen only by human approval.
+:data:`EVOLVE_EVERY` windows, ENFORCED children whose declaration carries
+``bounds`` also get one guardrail-profile evolution step (EH-407): tighten
+within the ladder automatically, loosen only by human approval.
 
 The limiter state lives in EG, so a restart resumes at the persisted ceiling.
 The controller runs on the serving loop as a FastMCP server extension and
@@ -36,7 +41,11 @@ from collections.abc import AsyncIterator, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from agent_utilities.security.guardrail_profile import ErrorBudgetDeclaration
+from agent_utilities.observability.gateway_metrics import MCP_CHILD_THROTTLE_CEILING
+from agent_utilities.security.guardrail_profile import (
+    ErrorBudgetDeclaration,
+    ThrottleMode,
+)
 from fastmcp.server.extensions import ServerExtension
 from pydantic import ValidationError
 
@@ -47,12 +56,14 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "CELL_PREFIX",
     "DECLARATION_KEY",
+    "DEFAULT_POLICY",
     "EVOLVE_EVERY",
     "ThrottleController",
     "ThrottleControllerExtension",
     "ThrottleTarget",
     "attach_throttle_controller",
     "declared_targets",
+    "default_declaration",
 ]
 
 CELL_PREFIX = "fleet/child/"
@@ -60,6 +71,18 @@ CELL_PREFIX = "fleet/child/"
 DECLARATION_KEY = "error_budget"
 #: Windows between two guardrail-profile evolution steps (EH-407).
 EVOLVE_EVERY = 15
+#: The error budget every child gets when it declares none (operator ruling
+#: 2026-09-24): observe-only -- computed, logged and exported, never enforced.
+#: 5% errors narrow by half, <=1% recovers one slot per healthy minute.
+DEFAULT_POLICY: dict[str, int] = {
+    "error_budget_ppm": 50_000,
+    "recovery_ppm": 10_000,
+    "min_samples": 20,
+    "decrease_per_mille": 500,
+    "increase_step": 1,
+    "floor": 1,
+    "cooldown_ms": 60_000,
+}
 _APPLIED = frozenset({"accepted", "replayed"})
 
 Authority = Callable[[], contextlib.AbstractContextManager[Any]]
@@ -84,29 +107,38 @@ class ThrottleTarget:
         return "sha256:" + hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
-def declared_targets(children: Mapping[str, Any]) -> list[ThrottleTarget]:
-    """Every child whose configuration declares a valid error budget.
+def default_declaration(runtime: Any) -> ErrorBudgetDeclaration:
+    """The observe-only budget a child gets without a (valid) declaration."""
+    capacity = max(1, int(getattr(runtime, "max_concurrency", 1)))
+    return ErrorBudgetDeclaration.model_validate(
+        {"capacity": capacity, "policy": DEFAULT_POLICY, "mode": ThrottleMode.OBSERVE}
+    )
 
-    An invalid declaration is logged and the child left unthrottled -- a typo
-    must be visible, never silently read as some default policy.
-    """
-    targets: list[ThrottleTarget] = []
-    for name, runtime in sorted(children.items()):
-        raw = getattr(runtime, "cfg", {}).get(DECLARATION_KEY)
-        if raw is None:
-            continue
-        try:
-            declaration = ErrorBudgetDeclaration.model_validate(raw)
-        except ValidationError as exc:
-            logger.error(
-                "Child %s declares an invalid error_budget (%d problem(s)); "
-                "it is not throttled",
-                name,
-                exc.error_count(),
-            )
-            continue
-        targets.append(ThrottleTarget(name, runtime, declaration))
-    return targets
+
+def _declaration(name: str, runtime: Any) -> ErrorBudgetDeclaration:
+    raw = getattr(runtime, "cfg", {}).get(DECLARATION_KEY)
+    if raw is None:
+        return default_declaration(runtime)
+    try:
+        return ErrorBudgetDeclaration.model_validate(raw)
+    except ValidationError as exc:
+        # A typo must be visible and must never enforce anything: log it and
+        # fall back to the observe-only default.
+        logger.error(
+            "Child %s declares an invalid error_budget (%d problem(s)); "
+            "it is observed with the default budget, never enforced",
+            name,
+            exc.error_count(),
+        )
+        return default_declaration(runtime)
+
+
+def declared_targets(children: Mapping[str, Any]) -> list[ThrottleTarget]:
+    """Every running child, with its declared or default (observe) budget."""
+    return [
+        ThrottleTarget(name, runtime, _declaration(name, runtime))
+        for name, runtime in sorted(children.items())
+    ]
 
 
 def _clock_ms() -> int:
@@ -137,6 +169,27 @@ def _declared_cell(
             "history": list(prior.get("history", [])),
         },
     }
+
+
+def _apply(target: ThrottleTarget, ceiling: int) -> None:
+    """Enforce the ceiling only for an opted-in child; observe only logs it.
+
+    An observed child's limiter is never narrowed. If it was enforced before
+    (the operator switched it back to observe), its old ceiling is lifted.
+    """
+    runtime = target.runtime
+    if target.declaration.mode is ThrottleMode.ENFORCE:
+        runtime.apply_throttle_ceiling(ceiling)
+        return
+    if getattr(runtime, "throttle_ceiling", None) is not None:
+        runtime.apply_throttle_ceiling(None)
+    if ceiling < target.declaration.capacity:
+        logger.info(
+            "Child %s would be throttled to %d of %d (observe only)",
+            target.child,
+            ceiling,
+            target.declaration.capacity,
+        )
 
 
 class ThrottleController:
@@ -226,9 +279,14 @@ class ThrottleController:
         )
         cell, action = result.payload["cell"], result.payload["action"]
         ceiling = int(cell["throttle"]["ceiling"])
-        target.runtime.apply_throttle_ceiling(ceiling)
+        mode = target.declaration.mode
+        MCP_CHILD_THROTTLE_CEILING.labels(server=target.child, mode=mode.value).set(
+            ceiling
+        )
+        _apply(target, ceiling)
         return {
             "child": target.child,
+            "mode": mode.value,
             "outcome": action["action"],
             "reason": action["reason"],
             "ceiling": ceiling,
@@ -277,7 +335,7 @@ async def _evolve(
     reports: list[dict[str, Any]] = []
     for target in targets:
         bounds = target.declaration.bounds
-        if bounds is None:
+        if bounds is None or target.declaration.mode is not ThrottleMode.ENFORCE:
             continue
         try:
             result = await evolution.evolve(target.cell_id, bounds)
