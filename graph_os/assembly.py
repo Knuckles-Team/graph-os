@@ -135,6 +135,20 @@ def parse_assembly_result(payload: Any) -> AssemblyOutcome:
     return AssemblyOutcome(record_id=record_id, agent_id=agent_id, tool_ids=tools)
 
 
+def _decoded_payload(result: Any) -> Any:
+    """Normalize one generated EG send's result to plain JSON (EH-377a).
+
+    ``send_agent_assemble`` returns a typed ``AssemblyResult`` pydantic model
+    (some other generated sends wrap it in an ``OpaqueResult``-like object
+    exposing ``.payload``); :func:`parse_assembly_result` reads it as a
+    ``Mapping``, so decode once, at this one boundary, rather than at every
+    caller.
+    """
+    payload = getattr(result, "payload", result)
+    dump = getattr(payload, "model_dump", None)
+    return dump(mode="json") if callable(dump) else payload
+
+
 def _generated_sender() -> Callable[..., Any] | None:
     from epistemic_graph.generated import storage
 
@@ -161,4 +175,4 @@ class AgentAssembly:
         body = {"request": build_assembly_request(str(session.tenant), requirements)}
         with client.use_verified_context(session.engine_verified_context()):
             result = await sender(client, body, str(session.tenant))
-        return parse_assembly_result(getattr(result, "payload", result))
+        return parse_assembly_result(_decoded_payload(result))

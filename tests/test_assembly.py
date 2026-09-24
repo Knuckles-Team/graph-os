@@ -7,6 +7,17 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from epistemic_graph.generated.decision import (
+    AbstainReasonUnresolvedCapabilityIri,
+    AssemblyResult,
+    CandidateSourceRecordAgentLibrary,
+    DecisionOutcomeAbstained,
+    DecisionQuestion,
+    DecisionRecord,
+    DerivationClass,
+    EvidenceClass,
+    ResolutionKind,
+)
 
 from graph_os import assembly
 from graph_os.assembly import (
@@ -146,3 +157,60 @@ async def test_served_method_sends_the_tenant_bound_request(monkeypatch) -> None
     assert outcome.agent_id == "expert"
     assert sent[0][1] == "t1"
     assert sent[0][0]["request"]["tenant_id"] == "t1"
+
+
+# EH-377(a) consumer audit: ``send_agent_assemble`` returns a typed
+# ``AssemblyResult`` pydantic model, not a dict, but ``parse_assembly_result``
+# checked ``isinstance(payload, dict)`` -- always False for a model -- so every
+# call raised ``AssemblyUnavailable``. Fixed by decoding at the boundary
+# (``_decoded_payload``). This drives a REAL generated ``AssemblyResult``
+# instance (not the ``SimpleNamespace(payload={...})``/plain-dict fakes above,
+# which is why the bug was not caught by them) through the real ``assemble()``
+# call path.
+
+
+def _real_abstained_assembly_result() -> AssemblyResult:
+    record = DecisionRecord.model_construct(
+        caller_principal="agent:t",
+        candidate_source=CandidateSourceRecordAgentLibrary(
+            source="agent_library", kinds=[]
+        ),
+        created_at_ms=0,
+        derivation_class=DerivationClass.PROOF,
+        derivations=[],
+        eliminated=[],
+        evidence_class=EvidenceClass.CLAIM,
+        inputs_digest="sha256:" + "0" * 64,
+        outcome=DecisionOutcomeAbstained(
+            outcome="abstained",
+            reasons=[
+                AbstainReasonUnresolvedCapabilityIri(
+                    reason="unresolved_capability_iri", iri="eg:cap/x"
+                )
+            ],
+        ),
+        premises=[],
+        question=DecisionQuestion.ASSEMBLE,
+        record_digest="sha256:" + "1" * 64,
+        record_id="decision:real-1",
+        resolution_kind=ResolutionKind.ABSTENTION,
+        schema_version=1,
+        tenant_id="t1",
+        why_not=[],
+    )
+    return AssemblyResult.model_construct(record=record, schema_version=1)
+
+
+async def test_a_real_typed_assembly_result_is_decoded_not_rejected(
+    monkeypatch,
+) -> None:
+    async def sender(client: Any, body: Any, graph: str) -> Any:
+        return _real_abstained_assembly_result()
+
+    monkeypatch.setattr(assembly, "_generated_sender", lambda: sender)
+    with pytest.raises(AssemblyAbstained) as caught:
+        await AgentAssembly(lambda graph: _Client(True)).assemble(
+            _SESSION, _requirements()
+        )
+    assert caught.value.record_id == "decision:real-1"
+    assert caught.value.reasons == ("unresolved_capability_iri",)
