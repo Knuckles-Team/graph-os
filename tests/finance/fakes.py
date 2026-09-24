@@ -263,6 +263,18 @@ class Finance:
 
 
 @dataclass
+class Consensus:
+    """EG ``CheckAccess``: which principals may read the tenant graph now."""
+
+    readers: set[str] = field(default_factory=set)
+    checks: list[str] = field(default_factory=list)
+
+    async def check_access(self, agent_id: str, access: str = "read") -> bool:
+        self.checks.append(agent_id)
+        return access == "read" and agent_id in self.readers
+
+
+@dataclass
 class FinanceClient:
     caller: str | None = None
     bound: list[dict[str, Any]] = field(default_factory=list)
@@ -270,6 +282,7 @@ class FinanceClient:
     broker: Broker = field(default_factory=Broker)
     timeseries: Series = field(default_factory=Series)
     finance: Finance = field(default_factory=Finance)
+    consensus: Consensus = field(default_factory=Consensus)
     change_sets: dict[str, dict[str, Any]] = field(default_factory=dict)
     control_leases: Leases = field(init=False)
 
@@ -306,3 +319,15 @@ class FinanceClient:
         if existing != change_set:
             raise RuntimeError("IDEMPOTENCY_CONFLICT")
         return change_set
+
+
+@contextlib.contextmanager
+def serving(client: FinanceClient) -> Iterator[FinanceClient]:
+    """Compose ``client`` as graph-os's finance service executor for a test."""
+    from graph_os.finance.authority import FinanceService, install_finance_service
+
+    install_finance_service(FinanceService(lambda: contextlib.nullcontext(client)))
+    try:
+        yield client
+    finally:
+        install_finance_service(None)

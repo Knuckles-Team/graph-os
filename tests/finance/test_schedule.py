@@ -4,6 +4,7 @@ publishes each flip record once."""
 from __future__ import annotations
 
 import contextlib
+from types import SimpleNamespace
 from typing import Any
 
 from graph_os.finance import bars, delivery, scheduler, subscriptions
@@ -138,8 +139,9 @@ def _replay_flipping_on(record_id: str):
 async def test_a_tick_backfills_scans_publishes_and_delivers_each_flip_once() -> None:
     client = FinanceClient()
     client.finance.replay = _replay_flipping_on("r1")
-    await scheduler.track(client, BTC, 0)
-    await subscriptions.subscribe(client, "alice", FlipFilter(), 0)
+    await scheduler.track(client, BTC, "alice", "alice", 0)
+    client.consensus.readers.add("alice")
+    await subscriptions.subscribe(client, "alice", "alice", FlipFilter(), 0)
     source = _Source([[_bar(1, 10.0), _bar(2, 11.0)], [_bar(2, 11.0), _bar(3, 12.0)]])
 
     @contextlib.contextmanager
@@ -170,7 +172,7 @@ async def test_a_tick_backfills_scans_publishes_and_delivers_each_flip_once() ->
 async def test_the_tick_keeps_the_finance_v1_catalog_the_markets_app_reads() -> None:
     client = FinanceClient()
     client.finance.replay = _replay_flipping_on("r1")
-    await scheduler.track(client, BTC, 0)
+    await scheduler.track(client, BTC, "alice", "alice", 0)
 
     @contextlib.contextmanager
     def authority() -> Any:
@@ -215,8 +217,8 @@ async def test_a_failing_series_does_not_stop_the_others() -> None:
     client = FinanceClient()
     client.finance.replay = _replay_flipping_on("r1")
     broken = BTC.model_copy(update={"listing_id": "broken", "symbol": "BRK"})
-    await scheduler.track(client, broken, 0)
-    await scheduler.track(client, BTC, 0)
+    await scheduler.track(client, broken, "alice", "alice", 0)
+    await scheduler.track(client, BTC, "alice", "alice", 0)
 
     class _Flaky(_Source):
         async def crypto_quotes(self, symbols: list[str]) -> list[dict[str, Any]]:
@@ -248,15 +250,27 @@ async def test_a_failing_series_does_not_stop_the_others() -> None:
 
 async def test_untracked_series_leave_the_schedule() -> None:
     client = FinanceClient()
-    await scheduler.track(client, BTC, 0)
-    assert await scheduler.untrack(client, BTC)
+    await scheduler.track(client, BTC, "alice", "alice", 0)
+    await scheduler.track(client, BTC, "bob", "bob", 0)
+    assert not await scheduler.untrack(client, BTC, "mallory"), "not mallory's"
+    assert await scheduler.untrack(client, BTC, "alice")
+    assert [s.listing_id for s in await scheduler.tracked_series(client)] == [
+        BTC.listing_id
+    ], "bob still tracks it, once"
+    assert await scheduler.tracked_by(client, "alice") == []
+    assert await scheduler.untrack(client, BTC, "bob")
     assert await scheduler.tracked_series(client) == []
 
 
 def test_the_schedule_is_off_when_its_interval_is_zero() -> None:
-    assert (
-        scheduler.attach_finance_scheduler(
-            None, None, None, client_for=lambda tenant: None, interval_s=0
+    from graph_os.finance.authority import finance_service, install_finance_service
+
+    session = SimpleNamespace(tenant="tenant-a")
+    try:
+        attached = scheduler.attach_finance(
+            None, None, session, client_for=lambda tenant: None, interval_s=0
         )
-        is None
-    )
+        assert attached is None
+        assert finance_service() is not None, "the executor is composed regardless"
+    finally:
+        install_finance_service(None)

@@ -62,7 +62,10 @@ def _record(
 async def _subscribed(
     client: FinanceClient, owner: str, **match: Any
 ) -> dict[str, Any]:
-    return await subscriptions.subscribe(client, owner, FlipFilter(**match), NOW_MS)
+    client.consensus.readers.add(owner)
+    return await subscriptions.subscribe(
+        client, owner, owner, FlipFilter(**match), NOW_MS
+    )
 
 
 async def test_a_flip_is_published_once_and_delivered_once() -> None:

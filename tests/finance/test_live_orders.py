@@ -17,9 +17,10 @@ from graph_os.finance.orders import APPROVAL_KIND, APPROVE_SCOPE
 from graph_os.gateway.finance_orders import mount_finance_order_routes
 from graph_os.mcp_server import runtime
 from graph_os.mcp_server.finance import FinanceToolRequest, register_finance_tools
-from tests.finance.fakes import FinanceClient, principal_ref
+from tests.finance.fakes import FinanceClient, principal_ref, serving
 from tests.mcp_server.test_policy_release import _Mcp
 
+PROPOSE = "finance:propose-order"
 INTENT = {
     "symbol": "AAPL",
     "side": "buy",
@@ -47,7 +48,8 @@ def _session(principal: str, *scopes: str, delegation: tuple[str, ...] = ()) -> 
 @pytest.fixture
 def world(monkeypatch: pytest.MonkeyPatch) -> Any:
     client = FinanceClient()
-    state = {"session": _session("agent-7", "kg:write")}
+    client.consensus.readers.update({"agent-7", "agent-8"})
+    state = {"session": _session("agent-7", PROPOSE)}
 
     @contextlib.contextmanager
     def scope() -> Any:
@@ -72,16 +74,17 @@ def world(monkeypatch: pytest.MonkeyPatch) -> Any:
 
     app = Starlette()
     mount_finance_order_routes(app, prefix="/api")
-    yield SimpleNamespace(
-        tool=tool, client=client, state=state, console=TestClient(app)
-    )
+    with serving(client):
+        yield SimpleNamespace(
+            tool=tool, client=client, state=state, console=TestClient(app)
+        )
     runtime.REGISTERED_TOOLS.pop("graph_finance", None)
     if prior is not None:
         runtime.REGISTERED_TOOLS["graph_finance"] = prior
 
 
 async def _proposed(world: Any) -> dict[str, Any]:
-    world.state["session"] = _session("agent-7", "kg:write")
+    world.state["session"] = _session("agent-7", PROPOSE)
     return await world.tool(action="propose_order", intent=INTENT, reason="weekly flip")
 
 

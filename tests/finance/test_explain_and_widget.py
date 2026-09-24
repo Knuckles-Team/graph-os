@@ -12,9 +12,8 @@ from graph_os.finance import delivery, subscriptions, topic
 from graph_os.finance.models import FlipFilter, TrackedSeries
 from graph_os.gateway.models import ServiceConfig
 from graph_os.gateway.widgets import emerald_exchange
-from graph_os.mcp_server import runtime
 from graph_os.mcp_server.finance import FinanceToolRequest, handle_finance
-from tests.finance.fakes import FinanceClient, principal_ref
+from tests.finance.fakes import FinanceClient, principal_ref, serving
 from tests.finance.test_flip_alerts import BTC, _record
 
 EVIDENCE = {
@@ -26,7 +25,8 @@ EVIDENCE = {
 
 
 async def _inbox_with_flip(client: FinanceClient, owner: str) -> None:
-    await subscriptions.subscribe(client, owner, FlipFilter(), 0)
+    client.consensus.readers.add(owner)
+    await subscriptions.subscribe(client, owner, owner, FlipFilter(), 0)
     await topic.publish_flips(client.broker, BTC, [_record("r1")], 0)
     await delivery.drain_all(client, consumer="c", now_ms=0)
 
@@ -37,17 +37,21 @@ def _session(principal: str) -> Any:
         "principal": principal,
         "tenant": "tenant-a",
         "delegation": [],
-        "scopes": ["kg:read"],
+        "scopes": ["finance:alerts"],
     }
-    return SimpleNamespace(tenant="tenant-a", engine_verified_context=lambda: claims)
+    return SimpleNamespace(
+        tenant="tenant-a",
+        scopes=frozenset(claims["scopes"]),
+        engine_verified_context=lambda: claims,
+    )
 
 
 async def test_explain_flip_reads_the_callers_inbox_gathers_news_and_runs_the_au_explainer(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     client = FinanceClient()
+    client.consensus.readers.update({"alice", "mallory"})
     await _inbox_with_flip(client, principal_ref("alice"))
-    monkeypatch.setattr(runtime, "graph_client", lambda tenant: client)
     seen: dict[str, Any] = {}
 
     async def around(self: Any, alert: dict[str, Any]) -> list[dict[str, Any]]:
@@ -63,12 +67,13 @@ async def test_explain_flip_reads_the_callers_inbox_gathers_news_and_runs_the_au
     monkeypatch.setattr("graph_os.finance.sources.FleetNewsSource.around", around)
     monkeypatch.setattr("agent_utilities.api.finance.explain_flip", explain)
     request = FinanceToolRequest(action="explain_flip", record_id="r1")
-    answer = await handle_finance(_session("alice"), request)
-    assert answer["math"]["rule"] == "closed above"
-    assert seen["alert"]["record"]["record_id"] == "r1"
-    assert [item.url for item in seen["evidence"]] == [EVIDENCE["url"]]
-    with pytest.raises(LookupError):
-        await handle_finance(_session("mallory"), request)
+    with serving(client):
+        answer = await handle_finance(_session("alice"), request)
+        assert answer["math"]["rule"] == "closed above"
+        assert seen["alert"]["record"]["record_id"] == "r1"
+        assert [item.url for item in seen["evidence"]] == [EVIDENCE["url"]]
+        with pytest.raises(LookupError):
+            await handle_finance(_session("mallory"), request)
 
 
 class _Fleet:

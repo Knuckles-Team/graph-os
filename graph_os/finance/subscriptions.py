@@ -2,7 +2,10 @@
 
 A subscription is a durable EG broker queue bound to ``finance.flip`` with the
 owner's filter pattern, plus one ``FinanceFlipSubscription`` node naming its
-owner (EG's principal persistence id), filter and queue. The queue holds every
+owner (EG's principal persistence id, and the principal itself so delivery can
+re-check its current read authority), filter and queue. graph-os creates both
+on its service identity for a caller it has already checked
+(:mod:`.authority`); only the owner lists or cancels one. The queue holds every
 matching flip until the delivery drain moves it into the owner's inbox, so a
 flip published while GraphOS is down is delivered when it comes back.
 """
@@ -38,9 +41,9 @@ def _node_id(subscription_id: str) -> str:
 
 
 async def subscribe(
-    client: Any, owner: str, match: FlipFilter, now_ms: int
+    client: Any, owner: str, owner_agent: str, match: FlipFilter, now_ms: int
 ) -> dict[str, Any]:
-    """Create one durable subscription for ``owner``."""
+    """Create one durable subscription owned by the verified caller."""
     subscription_id = f"flipsub_{secrets.token_hex(8)}"
     queue = f"{FLIP_EXCHANGE}.sub.{subscription_id}"
     pattern = flip_pattern(match)
@@ -52,6 +55,7 @@ async def subscribe(
         "type": SUBSCRIPTION_LABEL,
         "subscription_id": subscription_id,
         "owner": owner,
+        "owner_agent": owner_agent,
         "filter": match.model_dump(mode="json"),
         "queue": queue,
         "pattern": pattern,

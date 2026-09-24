@@ -3,10 +3,11 @@
 A live order is never placed from GraphOS. GraphOS holds the two governance
 steps in front of it:
 
-* **Propose** (``graph_finance(action="propose_order")``, any verified caller,
-  agents included): issue a ``finance.order.approval`` ``ControlLease`` whose
+* **Propose** (``graph_finance(action="propose_order")``, a verified caller
+  holding ``finance:propose-order``, agents included): graph-os issues, on its
+  service identity, a ``finance.order.approval`` ``ControlLease`` whose
   immutable grant is the order intent, its digest and the proposer's EG
-  principal id. ``active`` means pending.
+  principal id. ``active`` means pending; only the proposer reads its status.
 * **Approve / deny** (the operator console only -- plain gateway routes, never
   a tool): a signed-in person holding the exact ``finance:approve-live-order``
   scope, not the proposer, echoes the intent digest they were shown. Approval
@@ -103,10 +104,16 @@ async def propose_order(
     }
 
 
-async def order_status(client: Any, tenant: str, approval_id: str) -> dict[str, Any]:
-    """A proposal's decision state, readable by any verified caller."""
+async def order_status(
+    client: Any, claims: dict[str, Any], approval_id: str
+) -> dict[str, Any]:
+    """The decision state of one of the caller's own proposals."""
+    tenant = str(claims["tenant"])
     lease = await client.control_leases.get(tenant=tenant, lease_id=approval_id)
+    proposer = principal_ref(str(claims["principal"]))
     if not lease or lease.get("kind") != APPROVAL_KIND:
+        raise OrderRefused("ORDER_NOT_FOUND")
+    if _grant(lease).get("proposer") != proposer:
         raise OrderRefused("ORDER_NOT_FOUND")
     states = {"active": "pending_approval", "consumed": "approved", "revoked": "denied"}
     return {

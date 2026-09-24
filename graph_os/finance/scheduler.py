@@ -30,6 +30,7 @@ import time
 from collections.abc import Awaitable, Callable
 from typing import Any, Protocol
 
+from graph_os.finance.authority import FinanceService, install_finance_service
 from graph_os.finance.bars import BAR_FIELDS, bar_versions, latest_versions
 from graph_os.finance.catalog import (
     STATE_LABEL,
@@ -50,11 +51,12 @@ __all__ = [
     "BarSource",
     "FinanceScheduler",
     "MarketSource",
-    "attach_finance_scheduler",
+    "attach_finance",
     "refresh_series",
     "scan_series",
     "signal_states",
     "track",
+    "tracked_by",
     "tracked_series",
     "untrack",
 ]
@@ -83,37 +85,61 @@ class MarketSource(BarSource, Protocol):
         ...
 
 
-def _series_node(series: TrackedSeries) -> str:
-    return f"finance_tracked_series:{series.series_key}"
+def _series_node(series: TrackedSeries, owner: str) -> str:
+    """One tracking record per (owner, series): each caller tracks its own."""
+    return f"finance_tracked_series:{owner.rsplit(':', 1)[-1][:32]}:{series.series_key}"
 
 
-async def tracked_series(client: Any) -> list[TrackedSeries]:
-    """Every series the schedule keeps current."""
+async def _active_records(client: Any) -> list[dict[str, Any]]:
     return [
-        TrackedSeries.model_validate(record["series"])
+        record
         async for record in labelled(client, SERIES_LABEL)
         if record.get("status") == "active"
     ]
 
 
-async def track(client: Any, series: TrackedSeries, now_ms: int) -> dict[str, Any]:
-    """Start (or restart) keeping ``series`` current; writes its catalog now."""
+async def tracked_series(client: Any) -> list[TrackedSeries]:
+    """Every series anyone tracks, once each: what the schedule keeps current."""
+    unique: dict[str, TrackedSeries] = {}
+    for record in await _active_records(client):
+        series = TrackedSeries.model_validate(record["series"])
+        unique.setdefault(series.series_key, series)
+    return list(unique.values())
+
+
+async def tracked_by(client: Any, owner: str) -> list[TrackedSeries]:
+    """The series ``owner`` tracks."""
+    return [
+        TrackedSeries.model_validate(record["series"])
+        for record in await _active_records(client)
+        if record.get("owner") == owner
+    ]
+
+
+async def track(
+    client: Any, series: TrackedSeries, owner: str, owner_agent: str, now_ms: int
+) -> dict[str, Any]:
+    """Start (or restart) tracking ``series`` for ``owner``; writes its catalog now."""
     record = {
         "type": SERIES_LABEL,
         "series": series.model_dump(mode="json"),
+        "owner": owner,
+        "owner_agent": owner_agent,
         "status": "active",
         "tracked_at_ms": now_ms,
     }
-    await client.nodes.add(_series_node(series), record)
+    await client.nodes.add(_series_node(series, owner), record)
     await put_catalog(client, series)
     return record
 
 
-async def untrack(client: Any, series: TrackedSeries) -> bool:
-    """Stop keeping ``series`` current; its catalog, bars and state remain."""
+async def untrack(client: Any, series: TrackedSeries, owner: str) -> bool:
+    """Stop ``owner``'s tracking of ``series``; another owner's is untouched."""
     return bool(
         await client.nodes.compare_and_set(
-            _series_node(series), {"status": "active"}, {"status": "stopped"}
+            _series_node(series, owner),
+            {"status": "active", "owner": owner},
+            {"status": "stopped"},
         )
     )
 
@@ -274,7 +300,7 @@ class FinanceSchedulerExtension(BackgroundLoopExtension):
         super().__init__(scheduler.run)
 
 
-def attach_finance_scheduler(
+def attach_finance(
     mcp: Any,
     multiplexer: Any,
     session: Any,
@@ -282,12 +308,19 @@ def attach_finance_scheduler(
     client_for: Callable[[str], Any],
     interval_s: float,
 ) -> FinanceScheduler | None:
-    """Compose the schedule under the process authority, or ``None`` when off."""
+    """Compose the finance executor and, unless off, the schedule.
+
+    Both run on the process authority: the executor serves ``graph_finance``
+    requests after their caller checks (:mod:`.authority`); the schedule
+    returns ``None`` when ``interval_s`` is not positive.
+    """
+    authority = process_authority(session, client_for)
+    install_finance_service(FinanceService(authority))
     if interval_s <= 0:
         logger.info("The finance schedule is off (interval %s)", interval_s)
         return None
     scheduler = FinanceScheduler(
-        authority=process_authority(session, client_for),
+        authority=authority,
         source=FleetMarketSource(multiplexer),
         consumer=f"graph-os:{session.tenant}",
         interval_s=interval_s,

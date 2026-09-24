@@ -7,6 +7,11 @@ inbox entry for ``(subscription, flip record)`` is created with EG's atomic
 is counted as a duplicate and acked. A failed write is rejected back to the
 queue (and dead-lettered after the queue's attempt limit), never dropped.
 
+Before every delivery the subscriber's CURRENT read authority over the tenant
+graph is re-checked with EG (``CheckAccess``): a subscriber whose grant was
+revoked receives nothing more -- the message is acknowledged as withheld, so no
+data the subscriber cannot read is ever delivered.
+
 An inbox entry is information. It names the flip and the notice; it holds no
 order, no approval and no authority.
 """
@@ -17,6 +22,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from graph_os.finance.authority import can_read
 from graph_os.finance.store import labelled
 from graph_os.finance.subscriptions import active_subscriptions
 from graph_os.finance.topic import decode_alert
@@ -36,11 +42,13 @@ class DrainReport:
     delivered: int = 0
     duplicates: int = 0
     failed: int = 0
+    withheld: int = 0
 
     def add(self, other: DrainReport) -> None:
         self.delivered += other.delivered
         self.duplicates += other.duplicates
         self.failed += other.failed
+        self.withheld += other.withheld
 
 
 def _alert_id(subscription_id: str, record_id: str) -> str:
@@ -63,8 +71,11 @@ def _entry(
 
 async def _deliver_one(
     client: Any, subscription: dict[str, Any], properties: dict[str, Any], now_ms: int
-) -> bool:
-    """Write the inbox entry; ``False`` when it was already delivered."""
+) -> bool | None:
+    """Write the inbox entry: ``False`` when already delivered, ``None`` when
+    the subscriber can no longer read the tenant graph (withheld)."""
+    if not await can_read(client, str(subscription.get("owner_agent", ""))):
+        return None
     alert = decode_alert(properties)
     entry_id = _alert_id(subscription["subscription_id"], alert["record"]["record_id"])
     return bool(
@@ -104,11 +115,17 @@ async def drain_subscription(
             report.failed += 1
             break
         await broker.ack(queue, node_id)
-        if fresh:
-            report.delivered += 1
-        else:
-            report.duplicates += 1
+        _count(report, fresh)
     return report
+
+
+def _count(report: DrainReport, fresh: bool | None) -> None:
+    if fresh is None:
+        report.withheld += 1
+    elif fresh:
+        report.delivered += 1
+    else:
+        report.duplicates += 1
 
 
 async def drain_all(client: Any, *, consumer: str, now_ms: int) -> DrainReport:

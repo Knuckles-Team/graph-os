@@ -1,7 +1,13 @@
 """``graph_finance``: flip alerts, the scan schedule and live-order proposals.
 
-The MCP tool and its action-routed REST twin ``POST /graph/finance`` run as
-the verified tool session on the tenant's session-routed EG client. There is
+The MCP tool and its action-routed REST twin ``POST /graph/finance`` are the
+confused-deputy-safe executor of the coordinator's domain-capability ruling:
+the caller's verified session must hold the action's exact finance DOMAIN
+scope, and EG must say the caller could read the tenant graph itself; only
+then does the work run on graph-os's service identity (which alone holds the
+``compute:finance``, ``timeseries:*`` and ``broker:*`` infrastructure scopes),
+with every record owned by the verified caller -- who alone lists or cancels
+it. See :mod:`graph_os.finance.authority`. There is
 deliberately no ``approve`` action: a live-order proposal is decided only at
 the operator console (``POST /finance/orders/{approve,deny}``,
 :mod:`graph_os.gateway.finance_orders`), never by a tool an agent can call.
@@ -30,6 +36,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from graph_os.finance import delivery, orders, scheduler, subscriptions
+from graph_os.finance.authority import (
+    finance_service,
+    require_domain_scope,
+    require_reader,
+)
 from graph_os.finance.models import (
     INFORMATIONAL_NOTICE,
     FlipFilter,
@@ -88,6 +99,10 @@ class _Call:
         return principal_ref(str(self.claims["principal"]))
 
     @property
+    def owner_agent(self) -> str:
+        return str(self.claims["agent_id"])
+
+    @property
     def now_ms(self) -> int:
         return self.now_ns // 1_000_000
 
@@ -100,7 +115,11 @@ class _Call:
 
 async def _subscribe(call: _Call) -> Any:
     return await subscriptions.subscribe(
-        call.client, call.owner, call.request.filter or FlipFilter(), call.now_ms
+        call.client,
+        call.owner,
+        call.owner_agent,
+        call.request.filter or FlipFilter(),
+        call.now_ms,
     )
 
 
@@ -119,16 +138,20 @@ async def _alerts(call: _Call) -> Any:
 
 
 async def _track(call: _Call) -> Any:
-    return await scheduler.track(call.client, call.required("series"), call.now_ms)
+    return await scheduler.track(
+        call.client, call.required("series"), call.owner, call.owner_agent, call.now_ms
+    )
 
 
 async def _untrack(call: _Call) -> Any:
-    return {"stopped": await scheduler.untrack(call.client, call.required("series"))}
+    stopped = await scheduler.untrack(call.client, call.required("series"), call.owner)
+    return {"stopped": stopped}
 
 
 async def _tracked(call: _Call) -> Any:
     return [
-        s.model_dump(mode="json") for s in await scheduler.tracked_series(call.client)
+        s.model_dump(mode="json")
+        for s in await scheduler.tracked_by(call.client, call.owner)
     ]
 
 
@@ -186,7 +209,7 @@ async def _propose_order(call: _Call) -> Any:
 
 async def _order_status(call: _Call) -> Any:
     return await orders.order_status(
-        call.client, str(call.claims["tenant"]), call.required("approval_id")
+        call.client, call.claims, call.required("approval_id")
     )
 
 
@@ -207,11 +230,12 @@ _HANDLERS: dict[str, Callable[[_Call], Awaitable[Any]]] = {
 
 
 async def handle_finance(session: Any, request: FinanceToolRequest) -> Any:
-    """Run one operation as the verified ``session``."""
-    client = runtime.graph_client(str(session.tenant))
+    """Check the verified ``session``, then run the action on the executor."""
+    require_domain_scope(frozenset(session.scopes), request.action)
     claims = session.engine_verified_context()
-    with client.use_verified_context(claims):
-        call = _Call(client, claims, request, time.time_ns())
+    with finance_service().client() as service:
+        await require_reader(service, str(claims["agent_id"]))
+        call = _Call(service, claims, request, time.time_ns())
         return await _HANDLERS[request.action](call)
 
 
@@ -221,7 +245,9 @@ _DESCRIPTION = (
     "(subscription_id), subscriptions, alerts (your flip inbox), track / "
     "untrack (series), tracked, backfill (series), scan (scan_filter), "
     "explain_flip (record_id: the math, then source-cited claims), "
-    "propose_order (intent, reason) and order_status (approval_id). A proposal "
+    "propose_order (intent, reason) and order_status (approval_id). Each action "
+    "needs its finance domain scope (finance:alerts, finance:track, "
+    "finance:backfill, finance:propose-order). A proposal "
     "places nothing: a different person approves or denies it at the operator "
     "console. Informational only; alerts and scans authorise no order."
 )
