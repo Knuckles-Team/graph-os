@@ -12,20 +12,33 @@ or an explanation never authorises an order.
 
 ## The `graph_finance` tool
 
-`graph_finance` (MCP) and its REST twin `POST /graph/finance` run as the
-verified caller on the tenant's EG client.
+`graph_finance` (MCP) and its REST twin `POST /graph/finance` check the
+verified caller, then do the work on GraphOS's own service identity:
 
-| Action | What it does |
-|---|---|
-| `subscribe` | Creates a durable subscription to trend flips. The optional `filter` takes `asset_class`, `timeframe`, `listing_id` and `direction`. |
-| `unsubscribe`, `subscriptions` | Cancels or lists the caller's own subscriptions. |
-| `alerts` | Returns the caller's inbox of delivered flips, newest first. |
-| `track`, `untrack`, `tracked` | Manages which listing and timeframe pairs the schedule keeps current. |
-| `backfill` | Runs a full `period` backfill and scan of one series now. |
-| `scan` | Returns the latest-state scanner over every scanned series (EG `FinanceMarket.signal_scan`). |
-| `explain_flip` | Explains one flip in the caller's inbox: the math first, then claims that each cite gathered news. |
-| `propose_order` | Records a live-order proposal for a person to decide. It places nothing. |
-| `order_status` | Reads a proposal's state: pending, approved, denied or expired. |
+1. The caller's session must hold the action's exact finance domain scope
+   (the Scope column below). Otherwise the call is refused with
+   `FINANCE_SCOPE_REQUIRED`.
+2. EG `CheckAccess` must say the caller's own read of the tenant graph would
+   be admitted. Otherwise the call is refused with
+   `FINANCE_READ_AUTHORITY_REQUIRED`.
+3. The action then runs on the GraphOS service client. Every subscription,
+   track and proposal it creates names the verified caller as its owner, and
+   only that caller can list or cancel it.
+
+Callers therefore never need the broker, time-series, compute or lease scopes
+themselves.
+
+| Action | Scope | What it does |
+|---|---|---|
+| `subscribe` | `finance:alerts` | Creates a durable subscription to trend flips. The optional `filter` takes `asset_class`, `timeframe`, `listing_id` and `direction`. |
+| `unsubscribe`, `subscriptions` | `finance:alerts` | Cancels or lists the caller's own subscriptions. |
+| `alerts` | `finance:alerts` | Returns the caller's inbox of delivered flips, newest first. |
+| `track`, `untrack`, `tracked` | `finance:track` | Manages the caller's own tracks: the listing and timeframe pairs the schedule keeps current. A series stays scheduled while anyone tracks it. |
+| `backfill` | `finance:backfill` | Runs a full `period` backfill and scan of one series now. |
+| `scan` | `finance:alerts` | Returns the latest-state scanner over every scanned series (EG `FinanceMarket.signal_scan`). |
+| `explain_flip` | `finance:alerts` | Explains one flip in the caller's inbox: the math first, then claims that each cite gathered news. |
+| `propose_order` | `finance:propose-order` | Records a live-order proposal for a person to decide. It places nothing. |
+| `order_status` | `finance:propose-order` | Reads the state of one of the caller's own proposals: pending, approved, denied or expired. |
 
 The tool has no approve action.
 
@@ -43,6 +56,10 @@ of one, or a retraction.
    atomic create-if-absent. A redelivered message is therefore acknowledged as
    a duplicate. A failed write is requeued, and dead-lettered after five
    attempts.
+4. Before each write, the pass asks EG `CheckAccess` whether the subscriber
+   can still read the tenant graph. If the subscriber's access was revoked,
+   the message is acknowledged as withheld and nothing is delivered. A later
+   re-grant does not replay withheld flips.
 
 ## The schedule
 
@@ -106,22 +123,33 @@ In paper mode, the default, no live order exists at all.
 
 ## Required identity
 
-The GraphOS service identity needs the following EG scopes for the schedule
-and delivery:
+People who use the markets features hold only the finance domain scopes:
+`finance:alerts`, `finance:track`, `finance:backfill` and
+`finance:propose-order`.
+
+The GraphOS service identity executes the work and needs these EG scopes:
 
 - `compute:finance`;
-- the time-series read and write scopes;
+- `timeseries:read` and `timeseries:write`;
 - `broker:admin`, `broker:publish`, `broker:consume` and `broker:ack`;
+- `security:check`, for the `CheckAccess` caller and subscriber checks;
+- `lease:read` and `lease:write`, to record proposals and read their state;
 - node read and write.
 
-People who decide orders need:
+The people who decide orders are the members of the Keycloak group
+`live-order-approvers`, which has the operator as its only member. The group
+grants:
 
 - `finance:approve-live-order`;
 - `connector:write-back`;
 - `lease:read` and `lease:write`.
 
-No service identity ever holds `finance:approve-live-order`. The
-`emerald-exchange` connector must also list those people in
-`EMERALD_LIVE_ORDER_APPROVERS`. It executes a change set only when the
-change set's actor is one of them, so an agent that could write EG records
+The realm declarations and the apply procedure are in `services/keycloak`,
+`realm/FINANCE.md`.
+
+No service identity ever holds `finance:approve-live-order` or
+`connector:write-back`. The `emerald-exchange` connector must also list the
+approvers in `EMERALD_LIVE_ORDER_APPROVERS`. When that list is unset, every
+live order is refused. It executes a change set only when the change set's
+actor is one of the approvers, so an agent that could write EG records
 directly still cannot authorise an order.
