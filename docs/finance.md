@@ -120,4 +120,8 @@ People who decide orders need:
 - `connector:write-back`;
 - `lease:read` and `lease:write`.
 
-No service identity ever holds `finance:approve-live-order`.
+No service identity ever holds `finance:approve-live-order`. The
+`emerald-exchange` connector must also list those people in
+`EMERALD_LIVE_ORDER_APPROVERS`. It executes a change set only when the
+change set's actor is one of them, so an agent that could write EG records
+directly still cannot authorise an order.
