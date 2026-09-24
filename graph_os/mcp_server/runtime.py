@@ -397,6 +397,7 @@ ACTION_TOOL_ROUTES: dict[str, str] = {
     "browser_control": "/browser/control",
     "graph_a2a": "/graph/a2a",
     "graph_elevation": "/graph/elevation",
+    "graph_finance": "/graph/finance",
     "graph_policy_release": "/graph/policy/release",
 }
 
@@ -668,11 +669,13 @@ def _build_server(bootstrap: bool = True):
     from graph_os.a2a.mcp import register_a2a_tools
     from graph_os.browser_control.mcp import register_browser_control_tools
     from graph_os.mcp_server.elevation import register_elevation_tools
+    from graph_os.mcp_server.finance import register_finance_tools
     from graph_os.mcp_server.policy_release import register_policy_release_tools
 
     register_browser_control_tools(mcp)
     register_a2a_tools(mcp)
     register_elevation_tools(mcp)
+    register_finance_tools(mcp)
     register_policy_release_tools(mcp)
 
     return args, mcp, middlewares

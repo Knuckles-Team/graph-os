@@ -285,6 +285,12 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     mount_elevation_routes(app, prefix=prefix)
 
+    # The operator console's live-order approval and denial (EH-423). Plain
+    # routes for the same reason: an agent can propose an order, never decide.
+    from graph_os.gateway.finance_orders import mount_finance_order_routes
+
+    mount_finance_order_routes(app, prefix=prefix)
+
     # Granular, typed, OpenAPI-visible ontology/object reads layered on top of
     # the collapsed action-routed twins (resource-style GET-by-id + history).
     from graph_os.gateway.ontology_api import register_ontology_routes
