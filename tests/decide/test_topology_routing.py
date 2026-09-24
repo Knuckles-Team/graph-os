@@ -21,7 +21,7 @@ from graph_os.a2a.topology_routing import (
 )
 from graph_os.decide_topology import TopologyCatalog, _scope_of
 
-from .fakes import composition, record
+from .fakes import composition, record, solved
 
 SHAPE = "http://knuckles.team/kg/swarm#IndependentSubtasks"
 PLAN = {
@@ -41,13 +41,10 @@ CURRENT = A2ARouteDecision(agent_name="current-agent", selection_mode="current")
 
 
 def _planned() -> dict[str, Any]:
-    solved = record("solved")
-    solved["outcome"]["topology"] = PLAN
-    return {
-        "record": solved,
-        "graph": {"graph_id": "graph-fan", "version": "1"},
-        "agents": [{"agent_id": "agent-lead", "version": "1", "tools": []}],
-    }
+    """A real generated ``AssemblyResult`` whose solved outcome carries a plan."""
+    result = solved("agent-lead", ())
+    result["record"]["outcome"]["topology"] = PLAN
+    return result
 
 
 class _Capacity:
