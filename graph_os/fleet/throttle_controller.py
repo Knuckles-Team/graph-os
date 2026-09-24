@@ -4,7 +4,7 @@ Every :data:`~graph_os.fleet.error_budget.WINDOW_S` seconds, for each running
 child whose configuration declares an ``error_budget``:
 
 1. the child's cell ``fleet/child/<name>`` is provisioned from the declaration
-   (and re-declared when the operator changes it);
+   (and redeclared when the operator changes it);
 2. the window's requests and errors (live Prometheus facts) go to EG
    ``ThrottleCapacityCell``, which narrows the cell's ceiling on an error burst
    and gives it back only on recovery evidence, never above the declared
@@ -116,7 +116,7 @@ def _clock_ms() -> int:
 def _declared_cell(
     target: ThrottleTarget, current: Mapping[str, Any] | None, now_ms: int
 ) -> dict[str, Any]:
-    """The cell the declaration describes; a re-declaration keeps the narrowing."""
+    """The cell the declaration describes; a redeclaration keeps the narrowing."""
     capacity = target.declaration.capacity
     prior = (current or {}).get("throttle") or {}
     ceiling = min(int(prior.get("ceiling", capacity)), capacity)
@@ -250,7 +250,7 @@ class ThrottleController:
         )
 
     async def _declare(self, client: Any, target: ThrottleTarget) -> None:
-        """Provision the cell, or re-declare it after the operator changed it."""
+        """Provision the cell, or redeclare it after the operator changed it."""
         digest = target.declaration_digest
         if self._declared.get(target.child) == digest:
             return
