@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .authority import A2ATaskAuthority
+from .elevation import ELEVATION_SKILL
 from .models import (
     A2AAgentCard,
     A2AArtifact,
@@ -210,6 +211,7 @@ class A2AService:
                     tags=["orchestration", "knowledge-graph", "streaming"],
                     input_modes=["text/plain"],
                     output_modes=["text/plain"],
-                )
+                ),
+                ELEVATION_SKILL,
             ],
         )

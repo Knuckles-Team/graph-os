@@ -6,11 +6,13 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any, Protocol, runtime_checkable
 
+from agent_utilities.security.elevation import ElevationRefused
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .authority import A2AIdempotencyConflict, A2ATaskNotCancelable
+from .elevation import ELEVATION_METHODS, ELEVATION_WRITE_METHODS, invoke_elevation
 from .models import A2AMessage, A2ATask, A2ATaskArtifactUpdateEvent
 from .routing import A2AAssemblyUnavailable
 from .service import A2AService, state_fence
@@ -118,12 +120,25 @@ async def _invoke_method(
     if method == "tasks/cancel":
         cancel_params = _TaskParams.model_validate(raw_params)
         return await service.cancel_task(cancel_params.id)
+    return await _extension_method(method, raw_params, request_id)
+
+
+async def _extension_method(
+    method: str, raw_params: dict[str, Any], request_id: Any
+) -> Any:
+    """GraphOS extension methods beyond core A2A (today: ``elevation/*``)."""
+    if method in ELEVATION_METHODS:
+        return await invoke_elevation(method, raw_params)
     return _error(request_id, -32601, "Method not found", 404)
 
 
 _STREAM_METHODS = frozenset({"message/stream", "tasks/resubscribe"})
-_WRITE_METHODS = frozenset({"message/send", "message/stream", "tasks/cancel"})
+_WRITE_METHODS = (
+    frozenset({"message/send", "message/stream", "tasks/cancel"})
+    | ELEVATION_WRITE_METHODS
+)
 _KNOWN_ERRORS = (
+    ElevationRefused,
     A2AIdempotencyConflict,
     A2AAssemblyUnavailable,
     A2ATaskNotCancelable,
@@ -189,6 +204,7 @@ def _error_code(error: Exception) -> tuple[int, int]:
         (A2AIdempotencyConflict, -32009, 409),
         (A2AAssemblyUnavailable, -32003, 503),
         (A2ATaskNotCancelable, -32002, 409),
+        (ElevationRefused, -32004, 403),
         (LookupError, -32001, 404),
     ):
         if isinstance(error, kind):

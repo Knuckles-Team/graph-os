@@ -279,6 +279,12 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     mount_fleet_routes(app, prefix=prefix)
 
+    # The operator console's just-in-time elevation approval (EH-405). A plain
+    # route, never an MCP tool: no agent can approve through a tool call.
+    from graph_os.gateway.elevation import mount_elevation_routes
+
+    mount_elevation_routes(app, prefix=prefix)
+
     # Granular, typed, OpenAPI-visible ontology/object reads layered on top of
     # the collapsed action-routed twins (resource-style GET-by-id + history).
     from graph_os.gateway.ontology_api import register_ontology_routes
