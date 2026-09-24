@@ -110,6 +110,7 @@ async def test_an_agent_requests_lists_and_revokes_as_its_verified_self(
 ) -> None:
     asked = await _requested(world)
     assert asked["status"] == "requested" and asked["grantee"] == "alice"
+    assert asked["own"], "the requester's console will not offer to approve it"
     listed = await world.tool(action="list")
     assert [row["elevation_id"] for row in listed] == [asked["elevation_id"]]
     revoked = await world.tool(action="revoke", elevation_id=asked["elevation_id"])

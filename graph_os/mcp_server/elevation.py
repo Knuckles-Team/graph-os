@@ -63,8 +63,10 @@ async def _dispatch(service: ElevationService, request: ElevationToolRequest) ->
 async def handle_elevation(session: Any, request: ElevationToolRequest) -> Any:
     """Run one operation as the verified ``session`` (shared with A2A)."""
     client = runtime.graph_client(str(session.tenant))
-    with client.use_verified_context(session.engine_verified_context()):
-        return await _dispatch(ElevationService(client), request)
+    claims = session.engine_verified_context()
+    with client.use_verified_context(claims):
+        service = ElevationService(client, caller=str(claims["agent_id"]))
+        return await _dispatch(service, request)
 
 
 def register_elevation_tools(mcp: Any) -> None:

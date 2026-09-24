@@ -60,7 +60,8 @@ async def _approve(approval: ElevationApproval) -> dict[str, Any]:
     claims = session.engine_verified_context()
     client = gateway_application().graph_client(session.tenant)
     with client.use_verified_context(claims):
-        view = await ElevationService(client).approve(
+        service = ElevationService(client, caller=str(claims["agent_id"]))
+        view = await service.approve(
             approval, surface=ElevationSurface.OPERATOR_CONSOLE, claims=claims
         )
     return view.model_dump()
