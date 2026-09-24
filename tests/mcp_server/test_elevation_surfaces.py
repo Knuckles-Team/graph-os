@@ -26,6 +26,7 @@ from graph_os.mcp_server.elevation import (
     register_elevation_tools,
 )
 from tests.mcp_server.elevation_fakes import ElevationClient
+from tests.mcp_server.test_policy_release import _Mcp
 
 HOUR_MS = 3_600_000
 ASK = {
@@ -48,18 +49,6 @@ def _session(agent: str, *scopes: str, delegation: tuple[str, ...] = ()) -> Any:
         scopes=frozenset(scopes),
         engine_verified_context=lambda: claims,
     )
-
-
-class _Mcp:
-    def __init__(self) -> None:
-        self.tools: dict[str, Any] = {}
-
-    def tool(self, *, name: str, **_kwargs: Any) -> Any:
-        def decorate(function: Any) -> Any:
-            self.tools[name] = function
-            return function
-
-        return decorate
 
 
 @pytest.fixture
