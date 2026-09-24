@@ -121,6 +121,49 @@ endpoints, principals, storage paths, credentials, or graph contents. Backup
 and restore validation are operational changes; run them through the normal
 change-control and recovery procedure for the target deployment.
 
+## EG control-lease kinds for the graph-os identity
+
+The graph-os service identity holds `lease:read` and `lease:write`. EG then
+narrows it, per principal, to the control-lease kinds graph-os writes under
+its own process identity (operator ruling 2026-09-24). Set this on the
+epistemic-graph deployment:
+
+```bash
+EPISTEMIC_GRAPH_CONTROL_LEASE_KIND_POLICY_JSON='{"<graph-os agent_id>": ["action.approval", "finance.order-proposal"]}'
+```
+
+Any other kind that graph-os tries to issue or transition under its own
+identity is refused with `ACCESS_DENIED`, including `rbac.elevation`.
+
+An EG write is signed by the task-local verified session. The MCP middleware
+(`graph_os/mcp_server/serving.py`) binds the caller's session for each
+request. The process session is ambient everywhere else: server bootstrap
+(`mcp_server/server.py`), the host daemon's autonomous loops
+(`gateway/daemon.py`, `mint_process_identity`), and the finance executor
+(`mcp_server/background.py`, `process_authority`).
+
+This table covers every control-lease kind that graph-os-hosted code writes:
+
+| Kind | Written by | Signing identity | Evidence |
+|---|---|---|---|
+| `finance.order-proposal` | `graph_os/finance/orders.py` `propose_order` (issue) | graph-os process | runs on `FinanceService`, which uses `process_authority`. The approve and deny transitions run under the approver's own claims (`gateway/finance_orders.py`). |
+| `action.approval` | agent-utilities `orchestration/action_policy.py` `queue_approval` (issue). Drains to `expired` in `orchestration/fleet_reconciler.py` and `knowledge_graph/research/change_publisher.py`. | graph-os process, and callers | queued by the autonomous loops (fleet reconciler, auto-merge, remediation playbooks, guardrail evolution, spec proposals) under the process session. A tool call queues under its caller, and a console decision (`orchestration/approval.py`) runs under the approver. |
+| `browser.control` | `graph_os/browser_control/browser_control_durability.py` | caller (the human) | the browser channel requires the ambient session to be the binding's verified human (`browser_control_service.py` `_validate_ambient_binding`). WebUI helpers run in the request's copied context. |
+| `browser.registration`, `browser.document` | `browser_control/browser_control_registration.py` | caller (the human) | same channel and session as `browser.control` |
+| `browser.attended_arm`, `browser.recent_auth` | `browser_control/browser_control_attended.py` | caller (the human) | same channel and session as `browser.control` |
+
+Two lease-shaped records are not EG control leases, so the policy does not
+apply to them:
+
+- `messaging_intake_lease` is a WorkItem claim
+  (agent-utilities `messaging/intake_lease.py`).
+- Capacity leases use `AcquireCapacity` under the `capacity:*` scopes.
+
+`graph_os/lease_kinds.py` records this classification.
+`tests/test_lease_kinds.py` scans graph-os and the agent-utilities code it
+hosts for control-lease issue sites. It fails when a kind is unclassified, and
+when the allowlist above differs from the process-identity kinds.
+
 ## Release model
 
 The release workflow builds the wheel after the quality and scanner jobs pass.

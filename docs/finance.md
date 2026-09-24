@@ -138,9 +138,10 @@ The GraphOS service identity executes the work and needs these EG scopes:
 
 EG narrows the graph-os lease scopes per principal. Its
 `EPISTEMIC_GRAPH_CONTROL_LEASE_KIND_POLICY_JSON` lets graph-os's `agent_id`
-issue and transition only `finance.order-proposal` leases. Any other kind is
-refused, including `rbac.elevation`. Capacity leases are a separate method
-family and are not affected.
+issue and transition only the kinds it writes under its own identity:
+`finance.order-proposal` and `action.approval`. Any other kind is refused,
+including `rbac.elevation`. The audit behind that list is in
+[Deployment](deployment.md#eg-control-lease-kinds-for-the-graph-os-identity).
 
 The people who decide orders are the members of the Keycloak group
 `live-order-approvers`, which has the operator as its only member. The group
