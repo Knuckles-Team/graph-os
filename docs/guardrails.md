@@ -92,7 +92,8 @@ it. Only moves inside the ladder are offered.
 
 - **Tighten** is applied at once, as a compare-and-swap on the cell epoch.
 - **Loosen** is never applied on a proposal. It is filed as an
-  `action.approval` (`guardrail.loosen`) in the fleet approval queue. It is
-  applied only once a person has granted an approval bound to the exact plan
-  and cell epoch, so an approval cannot be replayed later.
+  `action.approval` (`guardrail.loosen`) in the fleet approval queue. Only the
+  console grant route (`POST /fleet/approvals/grant`) may decide it; the agent
+  governance tool is refused. It is applied only once that approval is bound
+  to the exact plan and cell epoch, so it cannot be replayed later.
 - A cell whose policy was set by hand, off the ladder, is left alone.
