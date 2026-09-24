@@ -72,6 +72,7 @@ from agent_utilities.observability.gateway_metrics import (
 from agent_utilities.security.log_redaction import redact_for_log
 
 from graph_os.fleet.protocol_compat import mcp_protocol_error
+from graph_os.fleet.throttle_limiter import ResizableLimiter
 
 # MCP protocol error (e.g. a terminated streamable-http session). SDK v2
 # (>=2.0.0, the floor `fastmcp>=4.0.0b1` pulls in) renamed `McpError` ->
@@ -465,9 +466,12 @@ class ChildRuntime:
             ),
         )
 
-        self._semaphore: asyncio.Semaphore | None = asyncio.Semaphore(
+        # Resizable so an EG error-budget throttle ceiling (EH-406) can narrow
+        # and restore admission live; ``max_concurrency`` stays the hard cap.
+        self._semaphore: ResizableLimiter | None = ResizableLimiter(
             self.max_concurrency
         )
+        self.throttle_ceiling: int | None = None
         self._sessions: list[Any] = []
         # Monotonic per-runtime generation fencing for requests that must not
         # be replayed after a reconnect. The task multiplexer also binds its
@@ -842,6 +846,17 @@ class ChildRuntime:
         if self._semaphore is not None:
             self._semaphore.release()
 
+    def apply_throttle_ceiling(self, ceiling: int | None) -> None:
+        """Bound new admissions by an error-budget ceiling (``None`` lifts it).
+
+        The ceiling only ever narrows below ``max_concurrency``; calls already
+        in flight finish normally.
+        """
+        self.throttle_ceiling = ceiling
+        if self._semaphore is not None:
+            limit = self.max_concurrency if ceiling is None else ceiling
+            self._semaphore.resize(min(limit, self.max_concurrency))
+
     # ------------------------------------------------------------------
     # Call path
     # ------------------------------------------------------------------
@@ -1007,6 +1022,7 @@ class ChildRuntime:
             "breaker": self.breaker.state,
             "sessions": len(self._sessions),
             "max_concurrency": self.max_concurrency,
+            "throttle_ceiling": self.throttle_ceiling,
             "in_flight": self._in_flight,
             "queued": self._queued,
         }
