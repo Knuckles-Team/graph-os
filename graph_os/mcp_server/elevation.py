@@ -69,22 +69,23 @@ async def handle_elevation(session: Any, request: ElevationToolRequest) -> Any:
         return await _dispatch(service, request)
 
 
+_DESCRIPTION = (
+    "Request, list or revoke a time-boxed access elevation for the calling "
+    "identity. Actions: request (scopes: [{graph, action: read|write}], "
+    "span_ms, justification), list, revoke (elevation_id). A request grants "
+    "nothing until a different person approves it from the operator console; "
+    "it expires on its own."
+)
+
+
+async def graph_elevation(request: ElevationToolRequest) -> Any:
+    """The agent elevation tool: runs as the verified tool session."""
+    with runtime.verified_tool_session_scope() as session:
+        return await handle_elevation(session, request)
+
+
 def register_elevation_tools(mcp: Any) -> None:
     """Register the agent elevation tool and its REST twin."""
-
-    @mcp.tool(
-        name=TOOL_NAME,
-        description=(
-            "Request, list or revoke a time-boxed access elevation for the "
-            "calling identity. Actions: request (scopes: [{graph, action: "
-            "read|write}], span_ms, justification), list, revoke "
-            "(elevation_id). A request grants nothing until a different person "
-            "approves it from the operator console; it expires on its own."
-        ),
-        tags={"graph-os", "security", "elevation"},
-    )
-    async def graph_elevation(request: ElevationToolRequest) -> Any:
-        with runtime.verified_tool_session_scope() as session:
-            return await handle_elevation(session, request)
-
+    tags = {"graph-os", "security", "elevation"}
+    mcp.tool(name=TOOL_NAME, description=_DESCRIPTION, tags=tags)(graph_elevation)
     runtime.REGISTERED_TOOLS[TOOL_NAME] = graph_elevation
