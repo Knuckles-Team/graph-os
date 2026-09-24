@@ -268,7 +268,11 @@ class TopologyA2ARouter:
 
     async def release(self, decision: A2ARouteDecision) -> bool:
         """Release a routed plan's leases (dispatch failed, or the task stopped)."""
-        record_id = decision.decision_record_ref or ""
+        return await self.release_record(decision.decision_record_ref or "")
+
+    async def release_record(self, record_id: str) -> bool:
+        """Release the leases of the committed plan ``record_id`` (the run
+        stopped: AU's continuation port calls this; idempotent)."""
         leases = self._held.pop(record_id, None)
         composition = self.decide_for()
         if leases is None or composition is None:

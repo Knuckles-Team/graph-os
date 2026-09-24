@@ -80,18 +80,23 @@ def compose_a2a_service(
     A task declaring swarm task shapes is routed by the topology router (ST-9);
     every other task by EG assembly first, then the control plane.
     """
+    from agent_utilities.decide.consumers.continuation import install_release
+
     from graph_os.decide_topology import lease_book_for
 
     assembly = DecideA2ARouter(ControlPlaneA2ARouter(control_plane_for), current_decide)
+    router = TopologyA2ARouter(
+        inner=assembly,
+        decide_for=current_decide,
+        templates=_topology_templates,
+        lease_book_for=lease_book_for,
+        scope_for=_topology_scope,
+    )
+    # A running plan that stops (ST-11) returns its leases through this router.
+    install_release(router.release_record)
     return A2AService(
         authority=WorkItemA2AAuthority(control_plane_for),
-        router=TopologyA2ARouter(
-            inner=assembly,
-            decide_for=current_decide,
-            templates=_topology_templates,
-            lease_book_for=lease_book_for,
-            scope_for=_topology_scope,
-        ),
+        router=router,
         card_metadata=card_metadata or A2ACardMetadata(),
     )
 

@@ -243,3 +243,15 @@ def test_a_failed_catalog_refresh_keeps_the_last_snapshot(
     graphs = SimpleNamespace(client=SimpleNamespace(), graph="tenant-a")
     assert asyncio.run(catalog.refresh(graphs, "tenant-a")) is False
     assert catalog.templates() == () and catalog.scope.cells == ()
+
+
+def test_a_stopped_run_returns_its_plan_s_leases_through_the_router(
+    no_agent_publish: None,
+) -> None:
+    capacity = _Capacity(["accepted"])
+    router, _wired, _inner = _router(_planned(), capacity)
+    decision = asyncio.run(router.route(_message([SHAPE]), context_budget_tokens=None))
+    record_id = decision.decision_record_ref or ""
+    assert asyncio.run(router.release_record(record_id)) is True
+    assert asyncio.run(router.release_record(record_id)) is False, "idempotent"
+    assert len(capacity.released) == 1
