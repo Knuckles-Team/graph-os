@@ -122,6 +122,23 @@ or global Git configuration.
 
 ## Development rules
 
+### Developing here
+
+The development workflow lives in skills; load them before editing:
+
+- `graphos-ecosystem-development` — architecture boundaries, the lane protocol,
+  build hosts, gate caps, contract regeneration, landing (`eg-land-gate
+  --fanout` by default for the engine), and the decisions protocol. In a
+  coordinated program, lanes run targeted checks and the full hook suite runs
+  once on the merged tree at landing.
+- `graph-os-development` — this repository's package map, the sibling
+  development bindings, test commands, and repository traps.
+
+Durable semantics (ontology, SHACL, RDF, OWL) stay in epistemic-graph: do not
+add new `.ttl` files or shapes here.
+
+### Rules
+
 - Confirm that a change belongs to GraphOS and identify its public entrypoint.
 - Update the single owning implementation; do not add a parallel fallback.
 - Trace a real entrypoint through composition to its owning service. A test
@@ -132,7 +149,8 @@ or global Git configuration.
 - Preserve fail-closed authority checks, deterministic effects, and tenant
   isolation.
 - Update current public status without overstating availability.
-- Run focused tests first, then every applicable full gate.
+- Run focused tests first, then every applicable full gate (or, in a
+  coordinated program, leave the full gate to the landing train).
 - Stage only an explicit reviewed path allowlist and inspect the staged diff.
 - Push, tag, publish, and deploy only when explicitly requested.
 
