@@ -162,3 +162,14 @@ async def test_readiness_fails_closed_on_stale_attachment() -> None:
             schema_reader=list_schema,
             status_reader=status,
         )
+
+
+def test_agent_utilities_contributes_no_semantic_pack() -> None:
+    """EH-470: AU's shapes are EG core sources; only GraphOS ships a pack."""
+    from graph_os.semantic_content import (
+        default_content_providers,
+        required_content_connectors,
+    )
+
+    assert len(default_content_providers()) == 1
+    assert required_content_connectors() == ("graph-os",)

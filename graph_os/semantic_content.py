@@ -35,11 +35,14 @@ class SemanticProvisionReceipt[ReprojectReceiptT, AttachReceiptT]:
 
 
 def default_content_providers() -> tuple[ContentProvider, ...]:
-    """Return the independently owned providers in this deployment."""
+    """Return the independently owned providers in this deployment.
 
-    from agent_utilities.content import agent_utilities_content
+    Agent Utilities contributes no semantic content (operator ruling
+    2026-09-24, EH-470): its former governance and specialist shapes are
+    epistemic-graph core sources, so GraphOS provisions only its own pack.
+    """
 
-    return (connector_content, agent_utilities_content)
+    return (connector_content,)
 
 
 def required_content_connectors() -> tuple[str, ...]:
