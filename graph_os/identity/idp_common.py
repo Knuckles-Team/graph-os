@@ -71,7 +71,15 @@ _MAX_CLAIM_VALUE_CHARS = 256
 
 
 class IdentityRefused(RuntimeError):
-    """The engine refused an identity op or answered an unexpected reply."""
+    """The engine refused an identity op or answered an unexpected reply.
+
+    A port raises it with the engine refusal's snake_case code as the first
+    argument (``collision``, ``not_found``, ``not_authorized``, ...).
+    """
+
+    @property
+    def code(self) -> str:
+        return str(self.args[0]) if self.args else "refused"
 
 
 class IdentityPort(Protocol):
