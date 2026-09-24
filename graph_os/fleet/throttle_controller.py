@@ -25,8 +25,10 @@ within the ladder automatically, loosen only by human approval.
 
 The limiter state lives in EG, so a restart resumes at the persisted ceiling.
 The controller runs on the serving loop as a FastMCP server extension and
-acts with GraphOS's own process identity (``capacity:throttle`` for steps,
-``capacity:admin`` to declare cells and apply evolved profiles).
+acts with GraphOS's own process identity, which holds exactly
+``capacity:throttle`` (steps), ``capacity:admin`` (declare cells, apply evolved
+profiles), ``capacity:lease`` and ``capacity:read`` (status) -- never
+``kg:admin``.
 """
 
 from __future__ import annotations

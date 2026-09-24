@@ -89,8 +89,19 @@ above the declared capacity or below the floor. Every step is recorded on the
 cell and in the graph audit chain.
 
 A failed step keeps the last ceiling and never widens it. With no Prometheus
-URL configured, nothing is observed or throttled. The process identity needs
-`capacity:throttle` to send windows and `capacity:admin` to declare cells.
+URL configured, nothing is observed or throttled.
+
+The process identity holds exactly four capacity scopes:
+
+- `capacity:throttle` to send windows;
+- `capacity:admin` to declare cells and apply tightened profiles;
+- `capacity:lease` for training and swarm-topology leases;
+- `capacity:read` for status reads.
+
+It does not hold `kg:admin` for any of this. The scopes are exact: none
+implies another, and `kg:admin` implies none of them. The Keycloak roles and
+their mapping are declared in the identity service's
+`realm/GRAPH-OS-CAPACITY.md`.
 
 ## Guardrail-profile evolution
 
