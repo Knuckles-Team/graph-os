@@ -133,18 +133,22 @@ async def _tracked(call: _Call) -> Any:
 
 
 async def _backfill(call: _Call) -> Any:
-    from graph_os.finance.sources import ServedBarSource
+    from graph_os.finance.catalog import put_catalog
+    from graph_os.finance.sources import ServedMarketSource
 
     series = call.required("series")
+    await put_catalog(call.client, series)
     records = await scheduler.refresh_series(
-        call.client, ServedBarSource(), series, call.now_ns, backfill=True
+        call.client, ServedMarketSource(), series, call.now_ns, backfill=True
     )
     report = await scheduler.scan_series(call.client, series, records, call.now_ns)
     return {"bars": len(records), **report}
 
 
 async def _scan(call: _Call) -> Any:
-    states = [record["state"] for record in await scheduler.signal_states(call.client)]
+    states = [
+        record["checkpoint"] for record in await scheduler.signal_states(call.client)
+    ]
     page = await call.client.finance.market(
         "signal_scan",
         request={

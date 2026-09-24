@@ -20,7 +20,12 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from graph_os.finance.models import INFORMATIONAL_NOTICE, FlipFilter, TrackedSeries
+from graph_os.finance.models import (
+    INFORMATIONAL_NOTICE,
+    FlipFilter,
+    TrackedSeries,
+    timeframe_label,
+)
 
 __all__ = [
     "FLIP_EXCHANGE",
@@ -29,20 +34,10 @@ __all__ = [
     "flip_pattern",
     "flip_routing_key",
     "publish_flips",
-    "timeframe_label",
 ]
 
 FLIP_EXCHANGE = "finance.flip"
 _UNSAFE = re.compile(r"[^A-Za-z0-9_:/-]")
-_LABELS = {"day": "1D", "week": "1W", "month": "1M"}
-
-
-def timeframe_label(timeframe: dict[str, Any]) -> str:
-    """EG's compact label (``15m``, ``4h``, ``1D``, ``1W``, ``1M``)."""
-    unit = str(timeframe["unit"])
-    if unit in _LABELS:
-        return _LABELS[unit]
-    return f"{timeframe['n']}{unit[0]}"
 
 
 def _segment(value: str) -> str:

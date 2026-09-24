@@ -15,10 +15,25 @@ BTC = TrackedSeries(
     listing_id="binance:BTC/USDT:spot",
     symbol="BTC/USDT",
     asset_class="crypto",
+    base="BTC",
+    quote="USDT",
+    venue="binance",
+    name="Bitcoin",
     interval="1d",
     price_decimals=2,
     volume_decimals=3,
 )
+FOMC: list[dict[str, Any]] = [
+    {
+        "decision_date": "2026-03-18",
+        "outcome": "hold",
+        "bps_change": 0,
+        "target_range_low_pct": 4.25,
+        "target_range_high_pct": 4.5,
+        "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260318a.htm",
+    },
+    {"decision_date": "2026-01-28", "outcome": "unknown", "source_url": "x"},
+]
 
 
 def _bar(day: int, close: float) -> dict[str, Any]:
@@ -71,10 +86,25 @@ class _Source:
     def __init__(self, pages: list[list[dict[str, Any]]]) -> None:
         self.pages = pages
         self.periods: list[str] = []
+        self.quoted: list[list[str]] = []
 
     async def history(self, series: TrackedSeries, period: str) -> list[dict[str, Any]]:
         self.periods.append(period)
         return self.pages.pop(0)
+
+    async def fomc_decisions(self) -> list[dict[str, Any]]:
+        return FOMC
+
+    async def crypto_quotes(self, symbols: list[str]) -> list[dict[str, Any]]:
+        self.quoted.append(symbols)
+        return [
+            {
+                "symbol": "BTC",
+                "market_cap_usd": 1.3e12,
+                "cmc_rank": 1,
+                "last_updated": "t",
+            }
+        ]
 
 
 def _replay_flipping_on(record_id: str):
@@ -132,7 +162,53 @@ async def test_a_tick_backfills_scans_publishes_and_delivers_each_flip_once() ->
     assert (second["series"][0]["duplicates"], second["delivered"]) == (1, 0)
     assert len(await delivery.inbox(client, "alice")) == 1
     [state] = await scheduler.signal_states(client)
-    assert state["listing_id"] == BTC.listing_id and state["state"]["records"] == 3
+    assert state["signalOf"] == BTC.series_node and state["checkpoint"]["records"] == 3
+    assert (first["macro_events"], first["market_caps"]) == (1, 1)
+    assert source.quoted == [["BTC"], ["BTC"]]
+
+
+async def test_the_tick_keeps_the_finance_v1_catalog_the_markets_app_reads() -> None:
+    client = FinanceClient()
+    client.finance.replay = _replay_flipping_on("r1")
+    await scheduler.track(client, BTC, 0)
+
+    @contextlib.contextmanager
+    def authority() -> Any:
+        yield client
+
+    schedule = scheduler.FinanceScheduler(
+        authority=authority,
+        source=_Source([[_bar(1, 10.0)]]),
+        consumer="c",
+        interval_s=60,
+        clock_ns=lambda: _open(4),
+    )
+    await schedule.tick()
+    rows = client.nodes.rows
+    assert rows[BTC.listing_id] == {
+        "type": "Listing",
+        "listedInstrument": "finance:instrument:BTC",
+        "quoteInstrument": "finance:instrument:USDT",
+        "listedOn": "finance:venue:binance",
+        "listingType": "spot",
+        "venueSymbol": "BTC/USDT",
+    }
+    series = rows[BTC.series_node]
+    assert (series["barSeriesOf"], series["barTimeframe"]) == (BTC.listing_id, "1D")
+    assert (series["tickSize"], series["volumeStep"]) == ("0.01", "0.001")
+    assert series["tsdbSeriesId"] in client.timeseries.points
+    base = rows["finance:instrument:BTC"]
+    assert (base["assetClass"], base["name"], base["marketCap"]) == (
+        "crypto",
+        "Bitcoin",
+        1.3e12,
+    )
+    [event] = [r for r in rows.values() if r.get("type") == "MacroEvent"]
+    assert (event["policyAction"], event["announcedAt"]) == (
+        "hold",
+        "2026-03-18T00:00:00Z",
+    )
+    assert event["sourceUrl"].startswith("https://www.federalreserve.gov/")
 
 
 async def test_a_failing_series_does_not_stop_the_others() -> None:
@@ -143,6 +219,9 @@ async def test_a_failing_series_does_not_stop_the_others() -> None:
     await scheduler.track(client, BTC, 0)
 
     class _Flaky(_Source):
+        async def crypto_quotes(self, symbols: list[str]) -> list[dict[str, Any]]:
+            raise ConnectionError("no CoinMarketCap key")
+
         async def history(
             self, series: TrackedSeries, period: str
         ) -> list[dict[str, Any]]:
@@ -164,6 +243,7 @@ async def test_a_failing_series_does_not_stop_the_others() -> None:
     report = await schedule.tick()
     outcomes = {row["listing_id"]: row.get("outcome", "ok") for row in report["series"]}
     assert outcomes == {"broken": "failed", BTC.listing_id: "ok"}
+    assert (report["macro_events"], report["market_caps"]) == (1, "failed")
 
 
 async def test_untracked_series_leave_the_schedule() -> None:

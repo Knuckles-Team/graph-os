@@ -17,6 +17,9 @@ BTC = TrackedSeries(
     listing_id="binance:BTC/USDT:spot",
     symbol="BTC/USDT",
     asset_class="crypto",
+    base="BTC",
+    quote="USDT",
+    venue="binance",
     interval="1d",
     price_decimals=2,
 )
@@ -24,6 +27,9 @@ SPY = TrackedSeries(
     listing_id="nyse:SPY",
     symbol="SPY",
     asset_class="etf",
+    base="SPY",
+    quote="USD",
+    venue="nyse",
     interval="1d",
     price_decimals=2,
 )

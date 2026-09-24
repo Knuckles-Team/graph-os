@@ -11,14 +11,20 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 __all__ = [
     "INFORMATIONAL_NOTICE",
     "AssetClass",
+    "ListingType",
     "FlipFilter",
     "OrderIntent",
     "TrackedSeries",
     "canonical_digest",
     "principal_ref",
+    "timeframe_label",
 ]
 
-AssetClass = Literal["crypto", "equity", "etf", "commodity", "forex", "index"]
+#: finance-v1 ``assetClass`` (the closed vocabulary its shape enforces).
+AssetClass = Literal[
+    "crypto", "stock", "etf", "fund", "commodity", "forex", "index", "bond"
+]
+ListingType = Literal["spot", "perpetual", "future", "option", "index"]
 
 #: Carried by every alert, scan and explanation: the product is informational.
 INFORMATIONAL_NOTICE = (
@@ -28,6 +34,21 @@ INFORMATIONAL_NOTICE = (
 
 _INTERVAL_UNITS = {"m": "minutes", "h": "hours"}
 _CALENDAR_UNITS = {"1d": "day", "1w": "week", "1M": "month"}
+
+
+_LABELS = {"day": "1D", "week": "1W", "month": "1M"}
+
+
+def timeframe_label(timeframe: dict[str, Any]) -> str:
+    """EG's compact label (``15m``, ``4h``, ``1D``, ``1W``, ``1M``)."""
+    unit = str(timeframe["unit"])
+    if unit in _LABELS:
+        return _LABELS[unit]
+    return f"{timeframe['n']}{unit[0]}"
+
+
+def _decimal_step(decimals: int) -> str:
+    return "1" if decimals == 0 else "0." + "0" * (decimals - 1) + "1"
 
 
 class _Frozen(BaseModel):
@@ -48,9 +69,17 @@ def principal_ref(principal: str) -> str:
 class TrackedSeries(_Frozen):
     """One listing x timeframe the schedule keeps current."""
 
+    #: The finance-v1 ``Listing`` node id (e.g. ``binance:BTC/USDT:spot``).
     listing_id: str = Field(min_length=1, max_length=256)
+    #: The venue's own symbol, as the emerald-exchange connector takes it.
     symbol: str = Field(min_length=1, max_length=64)
     asset_class: AssetClass
+    #: The listed and quote instruments and the venue, by symbol / name.
+    base: str = Field(min_length=1, max_length=32)
+    quote: str = Field(min_length=1, max_length=32)
+    venue: str = Field(min_length=1, max_length=64)
+    listing_type: ListingType = "spot"
+    name: str = Field(default="", max_length=128)
     interval: str = Field(pattern=r"^([1-9][0-9]{0,3}[mh]|1d|1w|1M)$")
     period: str = Field(default="1y", pattern=r"^([1-9][0-9]{0,3}(d|w|mo|y)|max)$")
     price_decimals: int = Field(ge=0, le=12)
@@ -60,6 +89,34 @@ class TrackedSeries(_Frozen):
     atr_period: int = Field(default=10, ge=1, le=500)
     multiplier_milli: int = Field(default=3_000, ge=1, le=100_000)
     basis: Literal["raw", "heikin_ashi"] = "raw"
+
+    @property
+    def instrument_node(self) -> str:
+        return f"finance:instrument:{self.base}"
+
+    @property
+    def quote_node(self) -> str:
+        return f"finance:instrument:{self.quote}"
+
+    @property
+    def venue_node(self) -> str:
+        return f"finance:venue:{self.venue}"
+
+    @property
+    def series_node(self) -> str:
+        """The finance-v1 ``BarSeries`` node id."""
+        return f"finance:bars:{self.series_key}"
+
+    @property
+    def tsdb_series_id(self) -> str:
+        return f"finance.bars.{self.series_key}"
+
+    def tick_size(self) -> str:
+        """The price tick as a decimal string (ticks are ``price * 10**d``)."""
+        return _decimal_step(self.price_decimals)
+
+    def volume_step(self) -> str:
+        return _decimal_step(self.volume_decimals)
 
     @property
     def series_key(self) -> str:

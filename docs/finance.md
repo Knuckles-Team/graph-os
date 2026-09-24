@@ -57,8 +57,25 @@ every tick does the following for each tracked series:
    publishes the flip records, and stores the latest signal state for the
    scanner.
 
-The tick then runs one delivery pass. A failure on one series does not stop
-the others. Set the interval to `0` to turn the schedule off.
+Each tick also keeps the finance-v1 catalog that the Markets app reads:
+
+- `FinancialInstrument`, `Venue`, `Listing` and `BarSeries` nodes for every
+  tracked series (`BarSeries` names its `tsdbSeriesId`, `tickSize` and
+  `volumeStep`);
+- one `SignalState` node per series (`signalOf`, `trendDirection`,
+  `dataStatus`, and the engine's full state as `checkpoint`), so a scanner
+  reads the latest state instead of replaying every series;
+- `MacroEvent` nodes for the sourced FOMC decisions from `market-data-mcp`;
+- CoinMarketCap `marketCap`, `marketCapRank` and `marketCapAsOf` on the crypto
+  instruments.
+
+The tick then runs one delivery pass. A failure on one series or feed does not
+stop the rest. Set the interval to `0` to turn the schedule off.
+
+A tracked series names its listing (`listing_id`, `symbol`, `base`, `quote`,
+`venue`, `listing_type`, `asset_class`), its `interval` and backfill `period`,
+the `price_decimals` and `volume_decimals` its integer ticks use, and the
+trailing-trend parameters (`atr_period`, `multiplier_milli`, `basis`).
 
 ## Live orders
 
