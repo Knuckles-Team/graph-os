@@ -100,7 +100,7 @@ A live order has one path, and a person decides it:
 
 1. **Propose.** Any verified caller, agents included, calls
    `graph_finance(action="propose_order", intent=...)`. This issues a
-   `finance.order.approval` lease that holds the order and the proposer's
+   `finance.order-proposal` lease that holds the order and the proposer's
    identity.
 2. **Decide.** A signed-in person calls `POST /finance/orders/approve` or
    `POST /finance/orders/deny` from the operator console. These are plain

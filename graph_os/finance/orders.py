@@ -5,7 +5,7 @@ steps in front of it:
 
 * **Propose** (``graph_finance(action="propose_order")``, a verified caller
   holding ``finance:propose-order``, agents included): graph-os issues, on its
-  service identity, a ``finance.order.approval`` ``ControlLease`` whose
+  service identity, a ``finance.order-proposal`` ``ControlLease`` whose
   immutable grant is the order intent, its digest and the proposer's EG
   principal id. ``active`` means pending; only the proposer reads its status.
 * **Approve / deny** (the operator console only -- plain gateway routes, never
@@ -41,7 +41,7 @@ __all__ = [
     "propose_order",
 ]
 
-APPROVAL_KIND = "finance.order.approval"
+APPROVAL_KIND = "finance.order-proposal"
 APPROVE_SCOPE = "finance:approve-live-order"
 CONNECTOR_ID = "emerald-exchange"
 #: A proposal must be approved, and the order executed, within this window.

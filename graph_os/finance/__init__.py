@@ -11,7 +11,7 @@ GraphOS composes; it owns no finance math and no signal state machine.
   emerald-exchange connector into the EG time-series store, the EG
   ``FinanceMarket`` signal replay, flips onto the topic, latest signal states
   for the scanner (EH-419).
-* :mod:`.orders` -- live-order proposals as ``finance.order.approval`` leases;
+* :mod:`.orders` -- live-order proposals as ``finance.order-proposal`` leases;
   only the operator console route approves one and records the D18 change set
   under the approver's own verified identity (EH-423).
 """
