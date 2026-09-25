@@ -67,6 +67,8 @@ class AdmittedTool:
     effect_override: str | None
     required_scopes: frozenset[str]
     credential_mode: str
+    executor_scopes: frozenset[str] = frozenset()
+    subject_id: str | None = None
 
 
 ToolFor = Callable[[str, str, Any], Awaitable[AdmittedTool]]
@@ -95,11 +97,22 @@ def tool_for_multiplexer_ops(ops: Any) -> ToolFor:
         mode = getattr(item, "credential_mode", None)
         if not isinstance(scopes, frozenset) or mode not in {"delegated", "service"}:
             raise RuntimeError("fleet tool authority metadata is incomplete")
+        executor_scopes = getattr(item, "executor_scopes", frozenset())
+        subject_id = getattr(item, "subject_id", None)
+        if mode == "service" and (
+            not isinstance(executor_scopes, frozenset)
+            or not executor_scopes
+            or not isinstance(subject_id, str)
+            or not subject_id
+        ):
+            raise RuntimeError("service child authority metadata is incomplete")
         return AdmittedTool(
             annotations=getattr(item, "annotations", None),
             effect_override=getattr(item, "effect_override", None),
             required_scopes=scopes,
             credential_mode=mode,
+            executor_scopes=executor_scopes,
+            subject_id=subject_id,
         )
 
     return tool_for
@@ -200,6 +213,8 @@ class FleetGateway:
         self, _op: Any, params: Mapping[str, Any], caller: Any
     ) -> tuple[Effect, Confirm, PrincipalRule]:
         descriptor = await self._admitted_tool(caller, params["server"], params["tool"])
+        if descriptor.credential_mode == "service":
+            raise PermissionError("service-credential child needs SERVICE binding")
         return annotation_effect(
             descriptor.annotations, override=descriptor.effect_override
         )
@@ -212,8 +227,6 @@ class FleetGateway:
         descriptor = await self._tool_for(server, tool, caller)
         if not descriptor.required_scopes.issubset(caller.effective_scopes):
             raise PermissionError("child scopes are required")
-        if descriptor.credential_mode != "delegated":
-            raise PermissionError("service-credential child needs SERVICE binding")
         if await self._policy_check(server, tool, caller) is not True:
             raise PermissionError("fleet call denied by policy")
         return descriptor
@@ -228,6 +241,8 @@ class FleetGateway:
         expected_effect: Effect,
     ) -> Any:
         descriptor = await self._admitted_tool(caller, server, tool)
+        if descriptor.credential_mode != "delegated":
+            raise PermissionError("service-credential child needs SERVICE binding")
         current_effect, _, _ = annotation_effect(
             descriptor.annotations, override=descriptor.effect_override
         )
