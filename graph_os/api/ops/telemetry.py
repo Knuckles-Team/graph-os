@@ -12,8 +12,25 @@ from graph_os.api.registry import (
 
 
 def specs() -> tuple[OpSpec, ...]:
-    """Expose the CEP read path without granting subscription mutation."""
+    """Expose tenant-scoped derivation and CEP polling through EG."""
     return (
+        OpSpec(
+            id="telemetry.derive.run",
+            verb=Verb.ACT,
+            summary="Derive ontology-bound telemetry, anomaly and conformance facts.",
+            examples=("Derive health facts for this time window",),
+            params=EgSchemaRef(
+                path="contract/schemas/method.request.json#/methods/TelemetryDerive"
+            ),
+            result=EgSchemaRef(
+                path="contract/schemas/result.ingestion.json#/methods/TelemetryDerive"
+            ),
+            binding=EgMethod(service="TelemetryDerive", op="TelemetryDerive"),
+            scopes=frozenset({"telemetry:derive"}),
+            effect=Effect.WRITE,
+            idempotency=Idempotency.KEY_REQUIRED,
+            audit=AuditClass.EVENT,
+        ),
         OpSpec(
             id="telemetry.cep.poll",
             verb=Verb.ASK,
