@@ -31,6 +31,10 @@ class Params(BaseModel):
     subject: str
 
 
+class TenantParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
 class Result(BaseModel):
     ok: bool
 
@@ -65,6 +69,7 @@ class FakeRuntime:
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
+        self.checked_subjects: list[str] = []
         self.readable = True
 
     @asynccontextmanager
@@ -76,6 +81,7 @@ class FakeRuntime:
         yield {"identity": "svc:graph-os", "tenant": tenant}
 
     async def check_subject_access(self, caller: VerifiedCaller, subject: str) -> bool:
+        self.checked_subjects.append(subject)
         return self.readable and caller.tenant == "t1" and subject == "item:1"
 
     async def dispatch(
@@ -238,6 +244,33 @@ async def test_service_executor_requires_caller_read_before_service_identity() -
     )
     assert allowed.value == {"ok": True}
     assert engine.calls == [("svc:graph-os", "user:1")]
+
+
+@pytest.mark.asyncio
+async def test_tenant_subject_comes_from_verified_caller_only() -> None:
+    tenant_op = op(
+        params=TenantParams,
+        executor=Executor.SERVICE,
+        executor_scopes=frozenset({"node:write"}),
+        subject=SubjectRef(path="$caller.tenant"),
+        effect=Effect.READ,
+        audit=AuditClass.NONE,
+    )
+    app, engine, _ = services(tenant_op)
+
+    async def tenant_read(caller: VerifiedCaller, subject: str) -> bool:
+        engine.checked_subjects.append(subject)
+        return subject == caller.tenant
+
+    engine.check_subject_access = tenant_read
+    allowed = await invoke("items.change", {}, caller(), Surface.HTTP, services=app)
+    assert allowed.value == {"ok": True}
+    assert engine.checked_subjects == ["t1"]
+    forged = await invoke(
+        "items.change", {"subject": "item:1"}, caller(), Surface.HTTP, services=app
+    )
+    assert forged.code == "INVALID_ARGUMENT"
+    assert engine.checked_subjects == ["t1"]
 
 
 @pytest.mark.asyncio
