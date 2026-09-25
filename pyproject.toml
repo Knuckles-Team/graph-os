@@ -27,6 +27,8 @@ dependencies = [
     # authenticated epistemic-graph client through the SDK's public injection
     # seam and never imports connector implementations.
     "agent-connector-sdk>=0.1.0,<1.0.0",
+    # Skill certification issues short-lived OIDC tokens and local TLS certificates.
+    "cryptography>=50.0.1",
     # The fleet gateway imports the MCP protocol/client and FastMCP middleware
     # directly; keep these first-party runtime requirements explicit rather
     # than relying on AU's optional extra to expose them transitively.
