@@ -23,6 +23,8 @@ PROCESS_IDENTITY_LEASE_KINDS: frozenset[str] = frozenset(
     {
         # graph_os.finance.orders.propose_order on the FinanceService client.
         "finance.order-proposal",
+        # graph_os.finance.paper_orders.submit durable at-most-once admission.
+        "finance.paper-order",
         # agent_utilities.orchestration.action_policy queue_approval from the
         # autonomous loops (fleet reconciler, auto-merge, remediation
         # playbooks, guardrail evolution, spec proposals), and their drains.

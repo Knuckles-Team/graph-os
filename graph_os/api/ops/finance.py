@@ -48,6 +48,11 @@ class DecisionParams(BaseModel):
     intent_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
+class PaperOrderParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    intent: OrderIntent
+
+
 class FinanceResult(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -139,6 +144,24 @@ def specs() -> tuple[OpSpec, ...]:
                 subject=SubjectRef(source=SubjectSource.CALLER_TENANT),
             )
         )
+    items.append(
+        OpSpec(
+            id="finance.paper.submit",
+            verb=Verb.ACT,
+            summary="Submit one paper order under a durable request fence",
+            examples=("Submit a paper buy order",),
+            params=PaperOrderParams,
+            result=FinanceResult,
+            binding=Composite(handler="graph_os.api.ops.finance.paper_submit"),
+            executor=Executor.SERVICE,
+            scopes=frozenset({"finance:paper-trade"}),
+            executor_scopes=frozenset({"broker:write", "lease:read", "lease:write"}),
+            subject=SubjectRef(source=SubjectSource.CALLER_TENANT),
+            effect=Effect.WRITE,
+            idempotency=Idempotency.KEY_REQUIRED,
+            audit=AuditClass.EVENT,
+        )
+    )
     return tuple(items)
 
 
@@ -217,3 +240,11 @@ async def positions(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
         "account": snapshot[key],
         "informational_only": True,
     }
+
+
+async def paper_submit(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
+    from graph_os.finance.paper_orders import submit
+
+    if op.id != "finance.paper.submit":
+        raise ValueError("unknown paper order operation")
+    return await submit(context, params)
