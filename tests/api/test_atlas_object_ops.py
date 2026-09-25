@@ -86,3 +86,9 @@ def test_object_search_rejects_inconsistent_rows() -> None:
         object_sets.SearchResult.model_validate(
             {"ids": ["n1"], "rows": [{"id": "n2"}], "count": 1}
         )
+
+
+def test_object_search_preserves_legacy_limit_ceiling() -> None:
+    assert object_sets.SearchParams.model_validate({"limit": 256}).limit == 256
+    with pytest.raises(ValidationError):
+        object_sets.SearchParams.model_validate({"limit": 257})
