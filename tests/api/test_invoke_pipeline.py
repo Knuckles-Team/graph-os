@@ -18,6 +18,7 @@ from graph_os.api.registry import (
     PrincipalRule,
     Registry,
     SubjectRef,
+    SubjectSource,
     Surface,
     Verb,
 )
@@ -267,7 +268,7 @@ async def test_tenant_subject_comes_from_verified_caller_only() -> None:
         params=TenantParams,
         executor=Executor.SERVICE,
         executor_scopes=frozenset({"node:write"}),
-        subject=SubjectRef(path="$caller.tenant"),
+        subject=SubjectRef(source=SubjectSource.CALLER_TENANT),
         effect=Effect.READ,
         audit=AuditClass.NONE,
     )

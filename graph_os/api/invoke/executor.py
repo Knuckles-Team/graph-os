@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from importlib import import_module
 from typing import Any, Protocol
 
-from graph_os.api.registry import Executor
+from graph_os.api.registry import Executor, SubjectSource
 
 from graph_os.api.invoke.steps import (
     FORBIDDEN_OWNER,
@@ -49,24 +49,26 @@ class ExecutionContext:
     idempotency_key: str | None = None
 
 
-CALLER_TENANT_SUBJECT = "$caller.tenant"
-
-
 def subject_value(
     op: Any, params: Mapping[str, Any], caller: VerifiedCaller
 ) -> str | None:
     """Resolve a declared subject from params or verified caller authority."""
 
     subject = getattr(op, "subject", None)
+    if subject is None:
+        return None
+    if subject.source == SubjectSource.CALLER_TENANT:
+        return caller.tenant
+    if subject.source != SubjectSource.PARAM:
+        return None
     path = getattr(subject, "path", None)
     if not path:
         return None
-    if path == CALLER_TENANT_SUBJECT:
-        return caller.tenant
-    if path.startswith("$caller."):
-        return None
     value: Any = params
-    for segment in path.split("."):
+    segments = path.split(".")
+    if segments[0] == "params":
+        segments = segments[1:]
+    for segment in segments:
         if not isinstance(value, Mapping):
             return None
         value = value.get(segment)
