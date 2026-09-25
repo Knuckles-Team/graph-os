@@ -1,10 +1,10 @@
 #!/usr/bin/python
-"""GraphOS MCP server runtime: tool registry, dispatch and host routes.
+"""GraphOS MCP server runtime and the shared operation projection.
 
 The server is built by the agent-connector-sdk factory with GraphOS host
 policy (:mod:`graph_os.mcp_server.serving`). Every registered action tool is
 dispatched through :func:`_execute_tool` under the verified caller session,
-and each has exactly one REST twin in :data:`ACTION_TOOL_ROUTES`.
+and every public operation passes through the shared invoke pipeline.
 
 Usage::
 
@@ -21,7 +21,6 @@ import logging
 import re
 import threading
 import uuid
-from types import MappingProxyType
 from typing import Any, cast
 
 from agent_utilities.core.config import setting
@@ -29,6 +28,67 @@ from agent_utilities.core.config import setting
 from graph_os._version import __version__
 
 logger = logging.getLogger(__name__)
+
+_API_PROJECTION: Any = None
+_API_VISIBILITY: Any = None
+_FLEET_OPS_FACTORY: Any = None
+
+
+def configure_served_api(
+    projection: Any, visibility: Any, fleet_ops_factory: Any
+) -> None:
+    """Bind verified API dependencies before MCP or HTTP starts serving.
+
+    The composition owner supplies one registry and one invoke service bundle.
+    No transport constructs a permissive fallback when either is absent.
+    """
+    from graph_os.api.mcp.verbs import MCPProjection
+
+    if not isinstance(projection, MCPProjection):
+        raise TypeError("a GraphOS MCPProjection is required")
+    if projection.services.registry is not projection.registry:
+        raise ValueError("MCP and invoke registries must be identical")
+    if not callable(visibility):
+        raise TypeError("HTTP visibility authority must be callable")
+    if not callable(fleet_ops_factory):
+        raise TypeError("governed fleet operation factory must be callable")
+    global _API_PROJECTION, _API_VISIBILITY, _FLEET_OPS_FACTORY
+    _API_PROJECTION = projection
+    _API_VISIBILITY = visibility
+    _FLEET_OPS_FACTORY = fleet_ops_factory
+
+
+def served_api() -> tuple[Any, Any]:
+    """Return the bound API or refuse to serve an incomplete control plane."""
+    if _API_PROJECTION is None or _API_VISIBILITY is None or _FLEET_OPS_FACTORY is None:
+        raise RuntimeError("GraphOS operation registry and policy are not bound")
+    return _API_PROJECTION, _API_VISIBILITY
+
+
+def fleet_ops_factory() -> Any:
+    """Require the governed multiplexer factory before attaching fleet tools."""
+    served_api()
+    return _FLEET_OPS_FACTORY
+
+
+def verify_resident_tools(mcp: Any) -> None:
+    """Refuse to boot with a missing or accidentally extra resident tool."""
+    import asyncio
+
+    from graph_os.api.mcp.verbs import VERBS
+
+    expected = set(VERBS) | {
+        "find_tools",
+        "load_tools",
+        "unload_tools",
+        "multiplexer_status",
+    }
+    actual = {tool.name for tool in asyncio.run(mcp.list_tools())}
+    if actual != expected:
+        raise RuntimeError(
+            "GraphOS resident MCP surface differs from the ten-tool contract: "
+            f"missing={sorted(expected - actual)}, extra={sorted(actual - expected)}"
+        )
 
 
 REGISTERED_TOOLS: dict[str, Any] = {}
@@ -360,7 +420,6 @@ def safe_json_load(s: Any) -> Any:
 
 
 from agent_utilities.security.error_surface import (
-    failed_operation_http_status,
     public_error_payload,
 )
 from starlette.requests import Request
@@ -389,28 +448,6 @@ def _external_error_response(
     return JSONResponse(
         _external_failure_payload(exc, code=code), status_code=status_code
     )
-
-
-# ── Canonical tool ⇄ REST parity map ────────────────────────────────────────
-# Single source of truth: every action-routed MCP tool in ``REGISTERED_TOOLS``
-# has exactly one collapsed action-routed REST twin (POST, JSON body carries the
-# ``action`` and its args). Granular CRUD sub-routes (``/graph/write/node`` etc.)
-# are layered on top for fine-grained HTTP clients, but this map guarantees that
-# anything callable over MCP is also callable over REST and vice versa. The
-# parity contract test (tests/unit/test_gateway_mcp_parity.py) asserts this map
-# stays in lockstep with REGISTERED_TOOLS so the two surfaces never drift.
-ACTION_TOOL_ROUTES: dict[str, str] = {
-    "browser_control": "/browser/control",
-    "graph_a2a": "/graph/a2a",
-    "graph_elevation": "/graph/elevation",
-    "graph_finance": "/graph/finance",
-    "graph_policy_release": "/graph/policy/release",
-}
-
-# Immutable seed used by deterministic catalog generators. Runtime registrars
-# extend ``ACTION_TOOL_ROUTES`` with their own twins, but a generator must never
-# inherit routes left behind by an earlier server build in the same process.
-BASE_ACTION_TOOL_ROUTES = MappingProxyType(dict(ACTION_TOOL_ROUTES))
 
 
 def _is_engine_dispatch_client_error(parsed: Any) -> bool:
@@ -471,6 +508,8 @@ def _tool_result_response(
     * Fleet health/topology evidence that is not ready keeps the supervisory
       fail-closed 503 ``"unavailable"`` signal with the MCP evidence body.
     """
+    from agent_utilities.security.error_surface import failed_operation_http_status
+
     if engine_domain and _is_engine_dispatch_client_error(parsed):
         return JSONResponse({"status": "failed", "result": parsed}, status_code=400)
     failed_status = failed_operation_http_status(parsed)
@@ -488,41 +527,6 @@ def _tool_result_response(
             {"status": "unavailable", "result": parsed}, status_code=503
         )
     return JSONResponse({"status": "success", "result": parsed})
-
-
-def _make_tool_endpoint(tool_name: str):
-    """Build a thin REST handler that dispatches a JSON body to an MCP tool.
-
-    Both the MCP tool surface and the REST surface funnel through
-    :func:`_execute_tool` against the shared in-process engine, so a handler is
-    just: parse body → execute tool → wrap result. This factory is the canonical
-    adapter; per-tool endpoints below that need bespoke parsing keep their own
-    definitions, but every tool in :data:`ACTION_TOOL_ROUTES` without one is
-    served by this.
-    """
-
-    is_engine_domain_tool = tool_name.startswith("engine_")
-
-    async def _handler(request: Request) -> JSONResponse:
-        try:
-            body = await request.json()
-        except Exception:
-            body = {}
-        try:
-            res = await _execute_tool(tool_name, **body)
-            return _tool_result_response(
-                tool_name, safe_json_load(res), engine_domain=is_engine_domain_tool
-            )
-        except UnsupportedToolFieldError as e:
-            # U-74: a caller-supplied field the tool doesn't accept is a
-            # client-side schema mismatch, not a server fault — deterministic
-            # 4xx instead of the generic 500 every other exception maps to.
-            return _external_error_response(e, status_code=400, code="invalid_request")
-        except Exception as e:
-            return _external_error_response(e)
-
-    _handler.__name__ = f"{tool_name}_endpoint"
-    return _handler
 
 
 # Default agent identity for provenance tracking
@@ -565,18 +569,16 @@ for _bootstrap_name in _bootstrap.BOOTSTRAP_EXPORTS:
 
 
 def _build_server(bootstrap: bool = True):
-    """Build the KG MCP server with all tools registered.
+    """Build the six-intent MCP server from the bound operation registry.
 
     Args:
         bootstrap: Whether this is a directly served process. The caller starts
             background engine bootstrap only after process identity is minted.
-            The API gateway calls this with ``bootstrap=False`` (via
-            :func:`ensure_tools_registered`) because it owns the engine/daemon
-            lifecycle itself and only needs ``REGISTERED_TOOLS`` populated so the
-            centralized REST handlers can dispatch.
     """
     from agent_connector_sdk.mcp.server import create_mcp_server
 
+    from graph_os.api.mcp.resources import register_resources
+    from graph_os.api.mcp.verbs import VERBS, make_verb, mcp_instructions
     from graph_os.mcp_server.serving import (
         VerifiedSessionMiddleware,
         register_metrics_route,
@@ -586,40 +588,11 @@ def _build_server(bootstrap: bool = True):
     # REGISTERED_TOOLS) do NOT parse the host process's argv — pass an empty
     # command line so the factory uses defaults instead of choking on unrelated
     # flags (pytest/uvicorn args) with SystemExit.
+    projection, _visibility = served_api()
     args, mcp, _sdk_middleware = create_mcp_server(
         "graph-os",
         version=__version__,
-        instructions=(
-            "Knowledge Graph MCP Server for agent-utilities. "
-            "Provides access to the shared unified Knowledge Graph that powers "
-            "the 5-pillar agent architecture (ORCH, KG, AHE, ECO, OS). "
-            "Use kg_query for Cypher queries, kg_search for semantic search, "
-            "kg_analyze for LLM-powered cross-reference analysis, "
-            "and kg_ingest_* for adding data.\n\n"
-            "graph-os is ALSO the MCP fleet gateway: its own KG/engine tools are "
-            "always on, and it can load ANY other MCP server (declared in "
-            "epistemic-graph fleet catalog) ON DEMAND. Hundreds more tools across dozens of "
-            "servers exist but are NOT loaded yet — so when you need a capability "
-            "you don't see, do NOT assume it's unavailable; use the fleet meta-tools:\n"
-            "  • find_tools(query) — semantic search for the right tool by intent\n"
-            "  • list_catalog() — browse every mountable server and its tools\n"
-            "  • load_tools(tools=[...] or servers=[...]) — mount them; they become "
-            "directly callable immediately (the tool list updates live)\n"
-            "  • unload_tools(...) — retract tools to reclaim context\n"
-            "  • multiplexer_status — health of mounted children\n"
-            "Always discover (find_tools/list_catalog) before concluding a tool "
-            "doesn't exist.\n\n"
-            "EXCEPTION — the always-load set (MCP_ALWAYS_LOAD / "
-            "MCP_ALWAYS_LOAD_TOOLS): a short operator-chosen list of core servers "
-            "and individual tools is mounted EAGERLY on your first request, so it "
-            "is already in your tool list and needs no find_tools/load_tools hop. "
-            "Its absence is therefore meaningful — if an always-load tool is NOT "
-            "listed, that server is genuinely degraded (eager mounting fails soft), "
-            "not merely undiscovered; multiplexer_status says which and why. "
-            "Everything OUTSIDE that set still follows the discover-first rule "
-            "above. Inspect or change the set with "
-            "graph_config(action='get'/'describe'/'set', key='MCP_ALWAYS_LOAD')."
-        ),
+        instructions=mcp_instructions(projection),
         command_args=None if bootstrap else [],
         transport_choices=("stdio", "streamable-http"),
     )
@@ -692,31 +665,18 @@ def _build_server(bootstrap: bool = True):
         )
         return JSONResponse(result)
 
-    from graph_os.a2a.mcp import register_a2a_tools
-    from graph_os.browser_control.mcp import register_browser_control_tools
-    from graph_os.mcp_server.elevation import register_elevation_tools
-    from graph_os.mcp_server.finance import register_finance_tools
-    from graph_os.mcp_server.policy_release import register_policy_release_tools
-
-    register_browser_control_tools(mcp)
-    register_a2a_tools(mcp)
-    register_elevation_tools(mcp)
-    register_finance_tools(mcp)
-    register_policy_release_tools(mcp)
+    for name in VERBS:
+        mcp.add_tool(make_verb(name, projection))
+    register_resources(
+        mcp,
+        projection.registry,
+        projection.caller_for_request,
+        projection.policy_gate,
+    )
 
     return args, mcp, middlewares
 
 
 def ensure_tools_registered() -> None:
-    """Idempotently register all ``graph_*`` tools into ``REGISTERED_TOOLS``.
-
-    The centralized REST handlers (and the API gateway that mounts them via
-    :func:`_mount_rest_routes`) dispatch through ``REGISTERED_TOOLS`` using
-    :func:`_execute_tool`. Building the MCP server populates that dict as a side
-    effect; we discard the throwaway FastMCP instance and skip the engine
-    bootstrap (``bootstrap=False``) because the gateway owns the engine/daemon
-    lifecycle and the handlers resolve the engine lazily via ``_get_engine()``.
-    """
-    if REGISTERED_TOOLS:
-        return
-    _build_server(bootstrap=False)
+    """Check that the common operation API is bound before gateway mounting."""
+    served_api()
