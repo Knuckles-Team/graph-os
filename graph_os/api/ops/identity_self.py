@@ -44,8 +44,8 @@ def specs() -> tuple[Any, ...]:
             executor=Executor.CALLER,
             scopes=frozenset({"identity:self"}),
             effect=Effect.WRITE,
-            principals=PrincipalRule.HUMAN,
-            confirm=Confirm.NONE,
+            principals=PrincipalRule.HUMAN_UNDELEGATED,
+            confirm=Confirm.CONSOLE,
             surfaces=frozenset(
                 {Surface.MCP, Surface.HTTP, Surface.A2A, Surface.CONSOLE}
             ),
