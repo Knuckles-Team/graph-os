@@ -23,7 +23,6 @@
     "HTTP operation endpoint and /api/v1/registry through admitted identity",
     "A2A graphos.op/invoke and filtered card through admitted identity",
     "GET /api/v1/fleet/catalog and fleet.catalog.search parity",
-    "all generated EG operations after pinned EG scope contract regeneration",
-    "EG errors.json exhaustive mapping"
+    "all generated operations through admitted MCP, HTTP and A2A transports"
   ]
 }

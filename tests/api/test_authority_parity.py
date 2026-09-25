@@ -192,3 +192,43 @@ def test_fixture_names_only_live_declared_operations_and_explicit_pending_binder
     for cases in MATRIX["ops"].values():
         assert set(cases) == set(MATRIX["principals"])
     assert MATRIX["pending_live_binders"]
+
+
+async def test_pinned_eg_contract_composes_every_declared_op_without_scope_injection() -> (
+    None
+):
+    """All current operations must be discoverable through one authority index."""
+    from graph_os.api.mcp.discovery import visible_ops
+    from graph_os.api.ops import get_registry
+    from graph_os.api.policy import op_resource
+
+    registry = get_registry()
+    assert len(registry) >= 460
+    for principal in MATRIX["principals"]:
+        caller = _caller(principal)
+        gate = _gate()
+        operations = tuple(registry)
+        decisions = await gate.visible([op_resource(op) for op in operations], caller)
+        allowed = {
+            op.id
+            for op, decision in zip(operations, decisions, strict=True)
+            if decision
+        }
+        for surface in (Surface.MCP, Surface.HTTP, Surface.A2A):
+            projected = {
+                op.id
+                for op in registry.find(
+                    caller,
+                    surface=surface,
+                    policy=lambda op, _, ids=allowed: op.id in ids,
+                )
+            }
+            expected = {
+                op.id
+                for op in operations
+                if op.id in allowed and surface in op.surfaces
+            }
+            assert projected == expected
+            if surface is Surface.MCP:
+                actual_mcp = {op.id for op in await visible_ops(registry, caller, gate)}
+                assert actual_mcp == expected
