@@ -481,6 +481,7 @@ async def fleet_verify_action(request: Request) -> JSONResponse:
     import json
 
     from graph_os.gateway.ports import gateway_application
+    from graph_os.mcp_server.runtime import _tool_result_response, safe_json_load
 
     try:
         body = await request.json()
@@ -502,7 +503,9 @@ async def fleet_verify_action(request: Request) -> JSONResponse:
             reason=str(body.get("reason") or ""),
             actor_id=str(body.get("actor_id") or ""),
         )
-        return JSONResponse({"status": "success", "result": res})
+        return _tool_result_response(
+            "graph_governance", safe_json_load(res), engine_domain=False
+        )
     except Exception as exc:  # noqa: BLE001 — canonical safe error surface
         return JSONResponse(public_error_payload(exc, logger=logger), status_code=500)
 
