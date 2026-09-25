@@ -6,6 +6,7 @@ the process that serves those agents, including the deployment profile.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 PROFILES = ("tiny", "single-node-prod", "enterprise")
@@ -16,6 +17,23 @@ class HostingProfileError(ValueError):
     """A stable, credential-free hosting configuration failure."""
 
     code: str
+
+
+def app_profile(value: object) -> str:
+    """Normalize the hosting posture without consulting agent settings."""
+    return str(value or "dev").strip().casefold()
+
+
+def configured_profiles() -> tuple[str, str]:
+    """Read the projected XDG hosting values after process composition."""
+    return os.environ.get("DEPLOYMENT_PROFILE", ""), app_profile(
+        os.environ.get("APP_PROFILE")
+    )
+
+
+def is_production_posture(profile: str) -> bool:
+    """Whether the GraphOS host is running in a production posture."""
+    return app_profile(profile) in {"prod", "production"}
 
 
 def resolve_deployment_profile(profile: str | None, app_profile: str) -> str:

@@ -33,6 +33,8 @@ from typing import Any
 from graph_os.deployment.config import (
     PROFILES,
     HostingProfileError,
+    app_profile,
+    configured_profiles,
     resolve_deployment_profile,
 )
 
@@ -789,13 +791,13 @@ def _config_doctor_load_from_path(
             "checks": [{"check": "schema", "ok": False}],
         }
     prof = profile or raw.get("DEPLOYMENT_PROFILE")
-    app_profile = str(raw.get("APP_PROFILE") or cfg.app_profile).strip().casefold()
+    posture = app_profile(raw.get("APP_PROFILE"))
     profile_source = (
         "argument"
         if profile
         else ("configuration" if raw.get("DEPLOYMENT_PROFILE") else "default")
     )
-    return _DoctorConfigContext(cfg, prof, app_profile, profile_source)
+    return _DoctorConfigContext(cfg, prof, posture, profile_source)
 
 
 def _config_doctor_load_live(
@@ -813,17 +815,14 @@ def _config_doctor_load_live(
             "error_class": type(exc).__name__,
             "checks": [{"check": "schema", "ok": False}],
         }
-    from agent_utilities.core.config import setting
-
-    configured_profile = setting("DEPLOYMENT_PROFILE", "")
+    configured_profile, posture = configured_profiles()
     prof = profile or configured_profile
-    app_profile = str(setting("APP_PROFILE", cfg.app_profile) or "").strip().casefold()
     profile_source = (
         "argument"
         if profile
         else ("configuration" if configured_profile else "default")
     )
-    return _DoctorConfigContext(cfg, prof, app_profile, profile_source)
+    return _DoctorConfigContext(cfg, prof, posture, profile_source)
 
 
 def _config_doctor_profile_check(

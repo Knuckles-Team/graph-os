@@ -29,6 +29,7 @@ from . import doctor_coverage as _doctor_coverage
 from . import doctor_lakehouse as _doctor_lakehouse
 from . import doctor_observability as _doctor_observability
 from . import doctor_support as _doctor_support
+from .config import configured_profiles, is_production_posture
 
 _RANK = _doctor_support._RANK
 _prescription = _doctor_support._prescription
@@ -642,13 +643,12 @@ def _check_permission_governance() -> dict[str, Any]:
     }
     try:
         from agent_utilities.core.config import AgentConfig
-        from agent_utilities.core.profile_guard import is_production_profile
 
         cfg = AgentConfig()
         data["signing_reference_configured"] = bool(cfg.permissions_signing_key_ref)
         data["custom_policy_configured"] = bool(cfg.agent_policies_path)
         if not cfg.permissions_signing_key_ref:
-            production = is_production_profile(cfg.app_profile)
+            production = is_production_posture(configured_profiles()[1])
             return _result(
                 "permission_governance",
                 "fail" if production else "warn",
