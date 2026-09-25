@@ -162,3 +162,6 @@ def operations() -> tuple[OpSpec, ...]:
             for action in ("run", "benchmark", "evolve_prompt")
         ),
     )
+
+
+specs = operations

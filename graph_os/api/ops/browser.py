@@ -71,3 +71,6 @@ def operations() -> tuple[OpSpec, ...]:
             "revoke_lease",
         )
     )
+
+
+specs = operations
