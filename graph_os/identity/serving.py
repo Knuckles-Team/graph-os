@@ -39,17 +39,20 @@ _NONE_MODE_WARNING = (
 )
 
 
-def served_identity_runtime() -> IdentityRuntime:
-    """The broker over the process engine and the configured secrets backend."""
+def served_identity_runtime(client_for: Callable[[str], Any]) -> IdentityRuntime:
+    """The broker over the process engine and the configured secrets backend.
+
+    ``client_for`` is the process engine's session-routed client of one graph
+    (the serving host's ``graph_client``); the identity package never imports
+    the serving host itself.
+    """
     from agent_utilities.core.config import config
     from agent_utilities.security.secrets_client import create_secrets_client
-
-    from graph_os.mcp_server.bootstrap import graph_client
 
     return build_identity_runtime(
         IdentityDeployment.from_settings(config),
         secrets=create_secrets_client(),
-        client_for=graph_client,
+        client_for=client_for,
     )
 
 

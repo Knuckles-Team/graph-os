@@ -235,7 +235,9 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     async def prepare_identity(identity: object, bind_hosts: list[str]) -> None:
         calls["identity_prepared"] = (identity, bind_hosts)
 
-    monkeypatch.setattr(serving, "served_identity_runtime", lambda: "identity-runtime")
+    monkeypatch.setattr(
+        serving, "served_identity_runtime", lambda client_for: "identity-runtime"
+    )
     monkeypatch.setattr(
         serving, "webui_session_boundary", lambda identity: ("boundary", identity)
     )
