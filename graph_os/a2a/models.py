@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
+from agent_utilities.api import TaskIri
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 
 __all__ = [
     "A2AAgentCard",
+    "A2AArtifact",
     "A2AAgentCapabilities",
     "A2AContextBudget",
     "A2AListResult",
@@ -18,6 +20,8 @@ __all__ = [
     "A2ATask",
     "A2ATaskState",
     "A2ATaskStatus",
+    "A2ATaskArtifactUpdateEvent",
+    "A2ATaskStatusUpdateEvent",
     "A2ATextPart",
 ]
 
@@ -32,7 +36,7 @@ class _WireModel(BaseModel):
 
 class A2ATextPart(_WireModel):
     kind: Literal["text"] = "text"
-    text: str = Field(min_length=1, max_length=65_536)
+    text: str = Field(min_length=1, max_length=100_000)
 
 
 class A2AMessage(_WireModel):
@@ -71,6 +75,9 @@ class A2ARouteDecision(_WireModel):
     agent_graph_ref: str | None = Field(default=None, max_length=512)
     run_spec_ref: str | None = Field(default=None, max_length=512)
     decision_record_ref: str | None = Field(default=None, max_length=512)
+    #: One of AU's typed task terms (``agent_utilities.api.TaskIri``); the
+    #: dispatch request accepts nothing else.
+    task_iri: TaskIri | None = None
 
     @field_validator("selected_tools")
     @classmethod
@@ -101,13 +108,40 @@ class A2ATask(_WireModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class A2ATaskStatusUpdateEvent(_WireModel):
+    """One streamed task state transition; ``final`` closes the stream."""
+
+    task_id: str = Field(pattern=r"^a2a-[0-9a-f]{64}$")
+    context_id: str
+    kind: Literal["status-update"] = "status-update"
+    status: A2ATaskStatus
+    final: bool
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class A2AArtifact(_WireModel):
+    artifact_id: str = Field(min_length=1, max_length=128)
+    name: str = "answer"
+    parts: list[A2ATextPart] = Field(min_length=1, max_length=1)
+
+
+class A2ATaskArtifactUpdateEvent(_WireModel):
+    """The completed task's answer, streamed before its final status."""
+
+    task_id: str = Field(pattern=r"^a2a-[0-9a-f]{64}$")
+    context_id: str
+    kind: Literal["artifact-update"] = "artifact-update"
+    artifact: A2AArtifact
+    last_chunk: bool = True
+
+
 class A2AListResult(_WireModel):
     tasks: list[A2ATask]
     next_cursor: str | None = None
 
 
 class A2AAgentCapabilities(_WireModel):
-    streaming: Literal[False] = False
+    streaming: Literal[True] = True
     push_notifications: Literal[False] = False
     state_transition_history: Literal[False] = False
 

@@ -7,19 +7,26 @@ import secrets
 from dataclasses import dataclass
 from typing import Any, cast
 
-from agent_utilities.knowledge_graph.core.work_durability import (
-    commit_result,
-    get_work_item,
-    submit_work_item_atomic,
-)
 from agent_utilities.security.persistence_privacy import persistence_reference
 
 from graph_os.browser_control.browser_control_binding import (
-    BINDING_PROPERTY_NAMES,
     BindingReferences,
     binding_properties,
 )
 from graph_os.browser_control.browser_control_common import canonical_internal_json
+from graph_os.browser_control.browser_control_records import (
+    issue_record,
+    read_record,
+    session_tenant,
+    transition_record,
+)
+from graph_os.browser_control.browser_control_work_items import (
+    commit_work_item,
+    get_work_item,
+    submit_work_item,
+)
+
+_CALL_KIND = "browser.control.call"
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,8 +41,13 @@ def new_lease_id() -> str:
     return f"browserlease_{secrets.token_hex(16)}"
 
 
+_LEASE_KIND = "browser.control"
+#: The agent identity every browser-call WorkItem and trace names.
+BROWSER_CONTROL_AGENT_ID = "graph-os-browser-control"
+
+
 def create_lease(
-    authority: Any,
+    engine: Any,
     *,
     lease_id: str,
     refs: BindingReferences,
@@ -47,54 +59,44 @@ def create_lease(
     expires_at: float,
     hard_expires_at: float,
 ) -> None:
-    properties = {
-        "id": lease_id,
-        "node_type": "BrowserControlLease",
-        **binding_properties(refs),
-        "catalog_digest": catalog_digest,
-        "tool_ids": list(tool_ids),
-        "schema_digests": schema_digests,
-        "policy_references": list(policy_references),
-        "issued_at": issued_at,
-        "expires_at": expires_at,
-        "hard_expires_at": hard_expires_at,
-        "status": "active",
-    }
-    if not authority.create_node_if_absent(lease_id, properties=properties):
+    """Issue one immutable EG ``ControlLease`` carrying the browser grant."""
+    issued = issue_record(
+        engine,
+        tenant=refs.tenant,
+        record_id=lease_id,
+        kind=_LEASE_KIND,
+        grant={
+            **binding_properties(refs),
+            "catalog_digest": catalog_digest,
+            "tool_ids": list(tool_ids),
+            "schema_digests": schema_digests,
+            "policy_references": list(policy_references),
+        },
+        issued_at=issued_at,
+        expires_at=expires_at,
+        hard_expires_at=hard_expires_at,
+        idempotency_key=persistence_reference(
+            "browser_lease_issue", lease_id, namespace=refs.tenant_reference
+        ),
+    )
+    if not issued:
         raise RuntimeError("lease identifier collision")
 
 
-def read_lease(authority: Any, lease_id: str) -> dict[str, Any] | None:
-    names = (
-        *BINDING_PROPERTY_NAMES,
-        "tool_ids",
-        "schema_digests",
-        "policy_references",
-        "issued_at",
-        "expires_at",
-        "hard_expires_at",
-        "status",
+def read_lease(engine: Any, lease_id: str) -> dict[str, Any] | None:
+    """The caller tenant's browser lease, or ``None`` when not visible."""
+    return read_record(
+        engine, tenant=session_tenant(), record_id=lease_id, kind=_LEASE_KIND
     )
-    returns = ", ".join(f"l.{name} AS {name}" for name in names)
-    rows = authority.query_cypher(
-        f"MATCH (l:BrowserControlLease {{id: $id}}) RETURN {returns} LIMIT 2",
-        {"id": lease_id},
-    )
-    if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict):
-        return None
-    return rows[0]
 
 
 def transition_lease(
-    authority: Any,
-    lease_id: str,
-    *,
-    current: dict[str, Any],
-    updates: dict[str, Any],
+    engine: Any, lease_id: str, *, current: dict[str, Any], to: str
 ) -> bool:
-    """CAS one lease transition against its complete previously-read state."""
-
-    return bool(authority.compare_and_set_node_fields(lease_id, current, updates))
+    """CAS ``active -> revoked|expired`` on the lease revision read in ``current``."""
+    return transition_record(
+        engine, tenant=session_tenant(), record_id=lease_id, current=current, to=to
+    )
 
 
 def commit_call_outcome(
@@ -126,16 +128,13 @@ def commit_call_outcome(
         if status != "succeeded"
         else None
     )
-    return str(
-        commit_result(
-            engine,
-            item_id,
-            claim,
-            outcome=native_outcome,
-            result_ref=result_ref,
-            error_ref=error_ref,
-            retryable=False,
-        )
+    return commit_work_item(
+        engine,
+        item_id,
+        claim,
+        outcome=native_outcome,
+        result_ref=result_ref,
+        error_ref=error_ref,
     )
 
 
@@ -215,28 +214,20 @@ def submit_call_fence(
         confirmation_digest=confirmation_digest,
         admission_reference=admission_reference,
     )
-    _, created = submit_work_item_atomic(
+    created = submit_work_item(
         engine,
-        kind="browser.control.call",
-        queue="browser_control",
-        payload_ref=payload_reference,
-        tenant=refs.tenant,
-        resource_class="network_io",
-        fairness_group=refs.actor_reference,
-        max_attempts=1,
-        idempotency_key=idempotency_key,
-        description="Governed browser-local WebMCP call",
-        created_by=refs.actor_reference,
-        metadata=metadata,
         work_item_id=item_id,
+        idempotency_key=idempotency_key,
+        kind=_CALL_KIND,
+        input_ref=payload_reference,
+        metadata=metadata,
+        attempt_fields=("admission_reference",),
     )
-    row = get_work_item(engine, item_id)
+    row = get_work_item(engine, refs.tenant, item_id)
     _validate_fence_row(
         row,
-        refs=refs,
         item_id=item_id,
         payload_reference=payload_reference,
-        idempotency_key=idempotency_key,
         metadata=metadata,
     )
     assert row is not None
@@ -285,6 +276,14 @@ def _fence_inputs(
         # A server-only nonce distinguishes an ambiguous create-then-read
         # failure from a concurrent replay of the same deterministic request.
         "admission_reference": admission_reference,
+        "actor_reference": refs.actor_reference,
+        # Delegation bindings EG checks a terminal provenance bundle against.
+        "delegation_id": call_id,
+        "run_id": f"browser-control:{request_digest}",
+        "agent_id": BROWSER_CONTROL_AGENT_ID,
+        "capability_digest": hashlib.sha256(
+            f"{tool_id}\x00{schema_digest}".encode()
+        ).hexdigest(),
     }
     return payload_reference, idempotency_key, metadata
 
@@ -292,26 +291,22 @@ def _fence_inputs(
 def _validate_fence_row(
     row: dict[str, Any] | None,
     *,
-    refs: BindingReferences,
     item_id: str,
     payload_reference: str,
-    idempotency_key: str,
     metadata: dict[str, Any],
 ) -> None:
+    """The durable fence must be exactly this call's WorkItem.
+
+    The tenant is enforced by the engine's typed read; the envelope and the
+    admitted metadata (actor, digests, lease) are compared here.
+    """
     if row is None:
         raise RuntimeError("browser call fence was not durably readable")
     stored = row.get("metadata")
     envelope = {
-        "id": item_id,
-        "kind": "browser.control.call",
-        "queue": "browser_control",
-        "tenant": refs.tenant,
-        "payload_ref": payload_reference,
-        "idempotency_key": idempotency_key,
-        "resource_class": "network_io",
-        "fairness_group": refs.actor_reference,
-        "max_attempts": 1,
-        "created_by": refs.actor_reference,
+        "work_item_id": item_id,
+        "kind": _CALL_KIND,
+        "input_ref": payload_reference,
     }
     if (
         not isinstance(stored, dict)

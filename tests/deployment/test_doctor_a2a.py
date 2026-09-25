@@ -1,21 +1,32 @@
-"""Doctor coverage for graph-os-owned A2A authority."""
+"""Doctor coverage for the A2A facade's hosted control-plane dependency."""
 
 from __future__ import annotations
 
-import sys
+import agent_utilities.api as au_api
 
 from graph_os.deployment import doctor
 
 
-def test_a2a_doctor_uses_graph_os_authority_without_au_protocol_module(
+def test_a2a_doctor_fails_until_au_publishes_the_hosted_control_plane(
     monkeypatch,
 ) -> None:
-    monkeypatch.setitem(sys.modules, "agent_utilities.protocols.a2a_epistemic", None)
+    monkeypatch.delattr(au_api, "compose_hosted_agent_control_plane", raising=False)
+
     result = doctor._check_a2a_persistence()
+
+    assert result["status"] == "fail"
+    assert result["data"] == {"ready": False, "redacted": True}
+
+
+def test_a2a_doctor_passes_with_the_hosted_control_plane(monkeypatch) -> None:
+    monkeypatch.setattr(
+        au_api,
+        "compose_hosted_agent_control_plane",
+        lambda client, session: None,
+        raising=False,
+    )
+
+    result = doctor._check_a2a_persistence()
+
     assert result["status"] == "ok"
-    assert result["data"] == {
-        "canonical_work_item_authority": True,
-        "canonical_dispatch_authority": True,
-        "adapter_count": 2,
-        "redacted": True,
-    }
+    assert result["data"] == {"hosted_control_plane": True, "redacted": True}

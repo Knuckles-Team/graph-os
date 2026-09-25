@@ -46,7 +46,7 @@ class BrowserAttendanceMixin(BrowserControlMixinState):
             raise PermissionError("attended arm issue time is outside the grant")
         refs = binding_references(binding)
         await self._sync_runner(
-            lambda: _finalize_attended_arm(self._authority, grant, refs, now=now)
+            lambda: _finalize_attended_arm(self._engine, grant, refs, now=now)
         )
         return AttendedArmReceipt(
             attended_arm_ref=refs.attended_arm_reference,
@@ -76,7 +76,7 @@ class BrowserAttendanceMixin(BrowserControlMixinState):
                 raise PermissionError("attended channel changed before revocation")
             await self._disconnect(state, "attended_arm_revoked")
         status = await self._sync_runner(
-            lambda: _revoke_attended_arm(self._authority, refs)
+            lambda: _revoke_attended_arm(self._engine, refs)
         )
         return AttendedArmReceipt(
             attended_arm_ref=refs.attended_arm_reference,

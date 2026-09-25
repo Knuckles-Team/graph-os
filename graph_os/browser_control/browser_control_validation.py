@@ -113,9 +113,7 @@ async def verify_attended_arm(service: Any, state: Any) -> None:
     from graph_os.browser_control.browser_control_attended import attended_arm_matches
 
     matches = await service._sync_runner(
-        lambda: attended_arm_matches(
-            service._authority, state.refs, now=service._clock()
-        )
+        lambda: attended_arm_matches(service._engine, state.refs, now=service._clock())
     )
     if not matches:
         await service._disconnect(state, "attended_arm_invalid")

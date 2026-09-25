@@ -27,3 +27,31 @@ def test_native_floor_check_uses_graphos_distribution() -> None:
     assert outcome["ok"] is True
     assert "fastmcp=" in outcome["detail"]
     assert "mcp=" in outcome["detail"]
+
+
+def test_installed_fastmcp_slim_matches_the_fastmcp_pin() -> None:
+    assert protocol_compat._fastmcp_code_problems() == []
+
+
+def test_fastmcp_metadata_over_older_slim_code_is_reported(monkeypatch) -> None:
+    """EH-221: fastmcp 4.0.5 metadata over fastmcp-slim 4.0.0b2 code must fail."""
+    real_version = protocol_compat.importlib.metadata.version
+
+    def _skewed(name: str) -> str:
+        return "4.0.0b2" if name == "fastmcp-slim" else real_version(name)
+
+    monkeypatch.setattr(protocol_compat.importlib.metadata, "version", _skewed)
+    monkeypatch.setattr(
+        protocol_compat,
+        "_declared_runtime_floor",
+        lambda distribution, package: (
+            protocol_compat._parse_requirement("fastmcp-slim[client,server]==4.0.5")
+            if (distribution, package) == ("fastmcp", "fastmcp-slim")
+            else protocol_compat._parse_requirement("fastmcp>=4.0.0b1")
+        ),
+    )
+
+    outcome = protocol_compat.check_mcp_sdk_floor()
+
+    assert outcome["ok"] is False
+    assert "fastmcp-slim 4.0.0b2 does not satisfy" in outcome["detail"]

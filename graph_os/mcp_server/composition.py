@@ -7,7 +7,7 @@ import dataclasses
 import logging
 import threading
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from typing import Any
 
 from graph_os.gateway.ports import configure_gateway_application
@@ -157,18 +157,14 @@ class NativeGatewayApplication:
     def engine(self) -> Any:
         return runtime._get_engine()
 
+    def graph_client(self, graph: str) -> Any:
+        return runtime.graph_client(graph)
+
     def ensure_tools_registered(self) -> None:
         runtime.ensure_tools_registered()
 
     def mount_rest_routes(self, app: Any, *, prefix: str) -> None:
         mount_rest_routes(app, prefix=prefix)
-
-    def remote_oauth_grant_bindings(self, actor: Any) -> Sequence[Any]:
-        from graph_os.fleet.multiplexer import (
-            current_remote_oauth_grant_bindings,
-        )
-
-        return current_remote_oauth_grant_bindings(actor)
 
 
 def install_gateway_application() -> NativeGatewayApplication:

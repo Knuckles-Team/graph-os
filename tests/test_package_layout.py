@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import re
 from pathlib import Path
 
 import pytest
@@ -112,3 +113,64 @@ def test_bootstrap_has_no_retired_legacy_query_runtime() -> None:
         Path(__file__).parents[1] / "graph_os" / "mcp_server" / "runtime.py"
     ).read_text(encoding="utf-8")
     assert "get_existing_disabled_batch" not in runtime
+
+
+def _production_sources(*areas: str) -> dict[str, str]:
+    package_root = Path(__file__).parents[1] / "graph_os"
+    roots = [package_root / area for area in areas] if areas else [package_root]
+    return {
+        path.relative_to(package_root).as_posix(): path.read_text(encoding="utf-8")
+        for root in roots
+        for path in root.rglob("*.py")
+    }
+
+
+def _imports(source: str, module: str) -> bool:
+    pattern = rf"^\s*(?:from|import) {re.escape(module)}(?:\.|\s)"
+    return re.search(pattern, source, flags=re.MULTILINE) is not None
+
+
+def test_no_production_module_imports_au_private_mcp_internals() -> None:
+    offenders = [
+        name
+        for name, source in _production_sources().items()
+        if _imports(source, "agent_utilities.mcp")
+    ]
+
+    assert offenders == []
+
+
+def test_no_production_module_imports_au_knowledge_graph_internals() -> None:
+    offenders = [
+        name
+        for name, source in _production_sources().items()
+        if _imports(source, "agent_utilities.knowledge_graph")
+    ]
+
+    assert offenders == []
+
+
+_CONTROL_AUTHORITY_CALLS = re.compile(
+    r"\b(?:_work_item_engine|create_node_if_absent|compare_and_set_node_fields)\b"
+)
+
+
+def test_no_production_module_uses_generic_control_authority_node_apis() -> None:
+    """Durable control state goes through typed EG WorkItem/ControlLease calls."""
+    offenders = [
+        name
+        for name, source in _production_sources().items()
+        if _CONTROL_AUTHORITY_CALLS.search(source)
+    ]
+
+    assert offenders == []
+
+
+def test_browser_control_issues_no_raw_graph_queries() -> None:
+    offenders = [
+        name
+        for name, source in _production_sources("browser_control").items()
+        if re.search(r"\bquery_cypher\b|\bMATCH \(", source)
+    ]
+
+    assert offenders == []

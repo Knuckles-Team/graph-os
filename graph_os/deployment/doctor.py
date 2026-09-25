@@ -1562,7 +1562,7 @@ def _check_auth() -> dict[str, Any]:
 def _check_outbound_auth() -> dict[str, Any]:
     """Validate outbound MCP auth metadata without resolving credential material."""
     try:
-        from agent_utilities.mcp.client_credentials import (
+        from graph_os.fleet.child_credentials import (
             outbound_auth_configuration_status,
         )
 
@@ -2148,60 +2148,30 @@ def _check_warm_fork() -> dict[str, Any]:
 
 
 def _check_a2a_persistence() -> dict[str, Any]:
-    """Validate the unary facade's canonical WorkItem/dispatch dependencies."""
+    """Validate that A2A reaches AU's hosted control plane, not a local store."""
 
     try:
-        from agent_utilities.knowledge_graph.core.work_durability import (
-            cancel_work_item,
-            get_work_item,
-            submit_work_item_atomic,
-        )
-        from agent_utilities.orchestration.agent_dispatch import enqueue_agent_turn
+        from agent_utilities.api import compose_hosted_agent_control_plane
 
-        from graph_os.a2a import OrchestratorA2ARouter, WorkItemA2AAuthority
-    except Exception as exc:  # noqa: BLE001 - doctor reports no configuration values
+    except ImportError as exc:
         return _result(
             "a2a_persistence",
             "fail",
-            f"canonical A2A authority is unavailable ({type(exc).__name__})",
+            f"hosted agent control plane is unavailable ({type(exc).__name__})",
             remediation=(
-                "Install compatible graph-os and agent-utilities artifacts with "
-                "WorkItem durability and signed agent dispatch."
+                "Install an agent-utilities release that publishes "
+                "compose_hosted_agent_control_plane; GraphOS keeps no A2A task store."
             ),
             data={"ready": False, "redacted": True},
         )
-
-    callables = (
-        submit_work_item_atomic,
-        get_work_item,
-        cancel_work_item,
-        enqueue_agent_turn,
-    )
     data = {
-        "canonical_work_item_authority": all(
-            callable(value) for value in callables[:3]
-        ),
-        "canonical_dispatch_authority": callable(enqueue_agent_turn),
-        "adapter_count": 2
-        if WorkItemA2AAuthority is not None and OrchestratorA2ARouter is not None
-        else 0,
+        "hosted_control_plane": callable(compose_hosted_agent_control_plane),
         "redacted": True,
     }
-    if not all(data.values()):
-        return _result(
-            "a2a_persistence",
-            "fail",
-            "canonical A2A authority contract is incomplete",
-            remediation=(
-                "Install compatible WorkItem durability and signed agent dispatch "
-                "artifacts; do not configure a second A2A task store."
-            ),
-            data=data,
-        )
     return _result(
         "a2a_persistence",
         "ok",
-        "A2A reuses canonical WorkItem durability and signed agent dispatch",
+        "A2A reuses AU's hosted control plane over EG WorkItems",
         data=data,
     )
 

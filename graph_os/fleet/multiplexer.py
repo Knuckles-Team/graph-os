@@ -22,7 +22,6 @@ import asyncio
 import collections.abc as _collections_abc
 import concurrent.futures
 import contextlib
-import contextvars
 import hashlib
 import hmac
 import importlib.metadata
@@ -127,101 +126,6 @@ _MAX_DISCOVERED_TOOLS = 2_048
 # contains hundreds of independently bounded JSON Schemas, so it gets its own
 # aggregate structural allowance while retaining the same byte/depth limits.
 _MAX_CATALOG_NODES = 131_072
-# Skills-over-MCP (CONCEPT:AU-ECO.mcp.skills-over-mcp-provider): a probed
-# server's Resources may include ``skill://{name}/SKILL.md`` entries. Bounded
-# the same way as the tool catalog so a hostile/misbehaving child cannot force
-# an unbounded resource listing into the KG.
-_MAX_DISCOVERED_SKILLS = 2_048
-_SKILL_RESOURCE_RE = re.compile(r"^skill://(?P<name>[^/]+)/SKILL\.md$")
-# CONCEPT:AU-ECO.mcp.cross-process-skill-harvest — a probed child's skill
-# *bodies* are read back over the SAME already-open probe session, so a fleet
-# skill becomes runnable in graph-os without co-installing the child's package
-# (AGENTS.md "Dependency discipline"). Bounded per body and in aggregate: the
-# harvest reads attacker-influenced content, so it can never be allowed to
-# dominate the probe's latency or memory budget.
-_MAX_SKILL_BODY_BYTES = 512 * 1024
-_MAX_HARVEST_TOTAL_BYTES = 8 * 1024 * 1024
-_SKILL_HARVEST_BUDGET_SEC = 120.0
-# A child enforces its OWN request rate limit, and a body harvest is the most
-# request-dense thing we ever do to one: probing a fleet child that serves the
-# whole shared skill corpus tripped "Rate limit exceeded for client: global"
-# after ~50 reads. That is the child correctly defending itself, so the harvest
-# BACKS OFF and retries rather than treating a rate-limited read as a permanent
-# failure (which would silently strand most of the corpus as un-runnable).
-_SKILL_HARVEST_MAX_ATTEMPTS = 5
-_SKILL_HARVEST_BACKOFF_SEC = 0.5
-# Prompts-over-MCP (CONCEPT:AU-ECO.mcp.cross-process-prompt-harvest — the
-# ``prompt://`` sibling of the skill harvest above): a probed server's
-# Resources may include ``prompt://{provider}/{name}`` entries served by
-# ``server_factory._register_prompt_providers``. Same bounding rationale and
-# same budget SHAPE as skills, kept as separate constants/counters so a
-# pathological prompt corpus on one child cannot eat a skill harvest's
-# budget on the same probe, or vice versa.
-_MAX_DISCOVERED_PROMPTS = 2_048
-_PROMPT_RESOURCE_RE = re.compile(r"^prompt://(?P<provider>[^/]+)/(?P<name>[^/]+)$")
-_MAX_PROMPT_BODY_BYTES = 512 * 1024
-_MAX_PROMPT_HARVEST_TOTAL_BYTES = 8 * 1024 * 1024
-_PROMPT_HARVEST_BUDGET_SEC = 120.0
-
-
-class _ResourceHarvestSpec(_typing.NamedTuple):
-    """Per-resource result and safety policy for the shared body harvester."""
-
-    kind: str
-    body_field: str
-    max_body_bytes: int
-    max_total_bytes: int
-    budget_sec: float
-
-
-_SKILL_HARVEST_SPEC = _ResourceHarvestSpec(
-    "skill",
-    "instructions",
-    _MAX_SKILL_BODY_BYTES,
-    _MAX_HARVEST_TOTAL_BYTES,
-    _SKILL_HARVEST_BUDGET_SEC,
-)
-_PROMPT_HARVEST_SPEC = _ResourceHarvestSpec(
-    "prompt",
-    "body",
-    _MAX_PROMPT_BODY_BYTES,
-    _MAX_PROMPT_HARVEST_TOTAL_BYTES,
-    _PROMPT_HARVEST_BUDGET_SEC,
-)
-# Share of the ENCLOSING probe's remaining time an OPTIONAL body harvest may
-# consume (BUG-PE-054). ``_SKILL_HARVEST_BUDGET_SEC``/``_PROMPT_HARVEST_BUDGET_SEC``
-# above are 120s, but every harvest runs INSIDE ``probe_server``'s own
-# ``asyncio.wait_for(_probe(), timeout=probe_to)`` — and ``probe_to`` is the
-# per-server EG component ``timeout``, in practice 10-15s. An inner
-# best-effort budget 8-12x larger than the outer deadline it lives in is not a
-# bound at all: measured live 2026-08-25 against the homelab fleet,
-# ``fan-manager-mcp``'s prompt harvest spent 16.3s retrying two unservable
-# ``prompt://`` bodies (5 attempts each with backoff), blowing the 15s probe
-# deadline and DISCARDING the 14 tools ``list_tools`` had already returned
-# 16 seconds earlier. Six servers failed that way on every single sweep, and
-# because ``write_fleet_catalog`` only writes a discovery row for a probe that
-# bound an authority, they showed up in agent-webui as "0 tools" rather than as
-# unreachable. Half of what is left, taken fresh at each harvest, keeps the
-# tools/skills already in hand: skills can never spend more than half the
-# remaining probe, and prompts never more than half of what skills left.
-_HARVEST_DEADLINE_SHARE = 0.5
-
-
-def _harvest_deadline(probe_deadline: float | None, budget_sec: float) -> float:
-    """Monotonic deadline for one optional body harvest.
-
-    ``probe_deadline`` is the enclosing :meth:`MCPMultiplexer.probe_server`
-    deadline (``None`` for a caller with no probe deadline of its own, which
-    keeps the standalone ``budget_sec`` behaviour). The harvest gets whichever
-    is SOONER: its own budget, or its share of the probe time still left.
-    """
-    own = time.monotonic() + budget_sec
-    if probe_deadline is None:
-        return own
-    share = time.monotonic() + max(
-        0.0, (probe_deadline - time.monotonic()) * _HARVEST_DEADLINE_SHARE
-    )
-    return min(own, share)
 
 
 _SERVER_DISCOVERY_STOPWORDS = frozenset({"api", "mcp", "manager", "server", "service"})
@@ -384,7 +288,6 @@ _CHILD_ENV_ALLOWLIST = frozenset(
         "XDG_STATE_HOME",
     }
 )
-_TASK_DELEGATION_CHANNEL_ENV = "AGENT_UTILITIES_MCP_TASK_CHANNEL_SECRET"
 _PROVIDER_CHILD_ENV_KEYS = frozenset({"AGENT_PROVIDER_PROFILE", "PROVIDER_CONFIGS"})
 _PROVIDER_RESOLUTION_EXECUTOR = concurrent.futures.ThreadPoolExecutor(
     max_workers=4,
@@ -789,15 +692,6 @@ def _tool_catalog_digest(tools: list[MCPTool]) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
-def _assert_bounded_resource_list(raw_resources: _typing.Any) -> None:
-    """Reject a child ``resources/list`` payload that is not a bounded sequence."""
-
-    if not isinstance(raw_resources, list | tuple):
-        raise RuntimeError("MCP child resource catalog is invalid")
-    if len(raw_resources) > _MAX_DISCOVERED_TOOLS:
-        raise RuntimeError("MCP child resource catalog exceeded its boundary")
-
-
 def _bounded_descriptor_catalog(
     values: _typing.Any, *, key: str, family: str
 ) -> list[dict[str, _typing.Any]]:
@@ -834,127 +728,6 @@ def _descriptor_mapping(value: _typing.Any, key: str) -> dict[str, _typing.Any]:
         if isinstance(field_value, str) and field_value:
             entry[field] = field_value
     return entry
-
-
-def _bounded_skill_entry(resource: _typing.Any) -> dict[str, _typing.Any] | None:
-    """Project ONE ``skill://`` resource, or ``None`` when it is not a skill."""
-
-    uri = getattr(resource, "uri", None)
-    uri_text = str(uri) if uri is not None else ""
-    match = _SKILL_RESOURCE_RE.match(uri_text)
-    if not match:
-        return None
-    name = match.group("name")
-    description = getattr(resource, "description", "") or ""
-    if not _bounded_catalog_name(name) or not isinstance(description, str):
-        raise RuntimeError("MCP child resource catalog is invalid")
-    return {"name": name, "uri": uri_text, "description": description}
-
-
-def _bounded_prompt_entry(resource: _typing.Any) -> dict[str, _typing.Any] | None:
-    """Project ONE ``prompt://`` resource, or ``None`` when it is not a prompt."""
-
-    uri = getattr(resource, "uri", None)
-    uri_text = str(uri) if uri is not None else ""
-    match = _PROMPT_RESOURCE_RE.match(uri_text)
-    if not match:
-        return None
-    provider = match.group("provider")
-    name = match.group("name")
-    description = getattr(resource, "description", "") or ""
-    if (
-        not _bounded_catalog_name(name)
-        or not _bounded_catalog_name(provider)
-        or not isinstance(description, str)
-    ):
-        raise RuntimeError("MCP child resource catalog is invalid")
-    return {
-        "name": name,
-        "provider": provider,
-        "uri": uri_text,
-        "description": description,
-    }
-
-
-def _bounded_skill_catalog(raw_resources: _typing.Any) -> list[dict[str, _typing.Any]]:
-    """Project a probed child's Resources into its Skills-over-MCP subset.
-
-    A fastmcp-4 ``SkillProvider``/``ClaudeSkillsProvider`` exposes each skill
-    as ``skill://{name}/SKILL.md`` (+ a sibling ``_manifest`` resource this
-    projection ignores — the manifest is fetched on demand, not during probe).
-    Non-skill resources are silently dropped: this function answers "which
-    skills does this server serve", not "list every resource". Bounded and
-    validated exactly like :func:`_bounded_tool_catalog` so a hostile/
-    misbehaving child cannot force an unbounded catalog into the KG.
-    """
-    _assert_bounded_resource_list(raw_resources)
-
-    skills: list[dict[str, _typing.Any]] = []
-    for resource in raw_resources:
-        entry = _bounded_skill_entry(resource)
-        if entry is None:
-            continue
-        skills.append(entry)
-        if len(skills) > _MAX_DISCOVERED_SKILLS:
-            raise RuntimeError("MCP child skill catalog exceeded its boundary")
-    try:
-        _assert_bounded_json_value(skills, max_nodes=_MAX_CATALOG_NODES)
-    except _fastmcp_exceptions.ToolError:
-        raise RuntimeError("MCP child skill catalog exceeded its boundary") from None
-    return skills
-
-
-def _bounded_prompt_catalog(raw_resources: _typing.Any) -> list[dict[str, _typing.Any]]:
-    """Project a probed child's Resources into its Prompts-over-MCP subset.
-
-    CONCEPT:AU-ECO.mcp.cross-process-prompt-harvest — the ``prompt://``
-    sibling of :func:`_bounded_skill_catalog`.
-    ``server_factory._register_prompt_providers`` exposes each of a server's
-    own ``prompts/*.json`` files as ``prompt://{provider}/{name}``.
-    Non-prompt resources (including ``skill://`` ones) are silently dropped:
-    this function answers "which prompts does this server serve", not "list
-    every resource". Bounded and validated exactly like
-    :func:`_bounded_skill_catalog` so a hostile/misbehaving child cannot
-    force an unbounded catalog into the KG.
-    """
-    _assert_bounded_resource_list(raw_resources)
-
-    prompts: list[dict[str, _typing.Any]] = []
-    for resource in raw_resources:
-        entry = _bounded_prompt_entry(resource)
-        if entry is None:
-            continue
-        prompts.append(entry)
-        if len(prompts) > _MAX_DISCOVERED_PROMPTS:
-            raise RuntimeError("MCP child prompt catalog exceeded its boundary")
-    try:
-        _assert_bounded_json_value(prompts, max_nodes=_MAX_CATALOG_NODES)
-    except _fastmcp_exceptions.ToolError:
-        raise RuntimeError("MCP child prompt catalog exceeded its boundary") from None
-    return prompts
-
-
-def _resource_body_text(result: _typing.Any) -> str:
-    """Extract the text payload of one ``resources/read`` result.
-
-    CONCEPT:AU-ECO.mcp.cross-process-skill-harvest — a fastmcp-4
-    ``SkillProvider`` serves ``skill://{name}/SKILL.md`` as ``text/markdown``,
-    so the body arrives as a ``TextResourceContents``. A binary/blob payload is
-    NOT a skill instruction body and is rejected rather than coerced, so a
-    child cannot smuggle an unusable resource into the runnable set.
-    """
-    contents = getattr(result, "contents", None)
-    if not isinstance(contents, list | tuple) or not contents:
-        raise RuntimeError("skill resource returned no contents")
-    parts: list[str] = []
-    for item in contents:
-        text = getattr(item, "text", None)
-        if text is None:
-            raise RuntimeError("skill resource body is not text")
-        if not isinstance(text, str):
-            raise RuntimeError("skill resource body is not text")
-        parts.append(text)
-    return "\n".join(parts)
 
 
 def _validate_externalized_child_secrets(cfg: dict[str, _typing.Any]) -> None:
@@ -1282,10 +1055,8 @@ def _probe_timeout_seconds(cfg: dict, timeout: float | None) -> float:
         return 0.0
 
 
-async def _run_bounded_probe(
-    probe: _typing.Any, probe_to: float
-) -> tuple[dict, _typing.Any]:
-    """Run one probe coroutine under its deadline into ``(info, binding)``.
+async def _run_bounded_probe(probe: _typing.Any, probe_to: float) -> dict:
+    """Run one probe coroutine under its deadline into one probe ``info``.
 
     Every failure mode becomes an honest ``error`` entry rather than an
     exception: a probe of an unreachable server must not fail the sweep.
@@ -1297,52 +1068,32 @@ async def _run_bounded_probe(
             resources,
             resource_templates,
             native_prompts,
-            skills,
-            prompts,
             family_errors,
-            binding,
         ) = await asyncio.wait_for(probe(), timeout=probe_to)
     except TimeoutError:
-        return (
-            {
-                "tools": [],
-                "resources": [],
-                "resource_templates": [],
-                "native_prompts": [],
-                "catalog_family_errors": {},
-                "skills": [],
-                "prompts": [],
-                "error": f"timeout after {probe_to:g}s",
-            },
-            None,
-        )
+        return _failed_probe_info(f"timeout after {probe_to:g}s")
     except Exception as e:
-        return (
-            {
-                "tools": [],
-                "resources": [],
-                "resource_templates": [],
-                "native_prompts": [],
-                "catalog_family_errors": {},
-                "skills": [],
-                "prompts": [],
-                "error": _format_probe_error(e),
-            },
-            None,
-        )
-    return (
-        {
-            "tools": tools,
-            "resources": resources,
-            "resource_templates": resource_templates,
-            "native_prompts": native_prompts,
-            "catalog_family_errors": family_errors,
-            "skills": skills,
-            "prompts": prompts,
-            "error": None,
-        },
-        binding,
-    )
+        return _failed_probe_info(_format_probe_error(e))
+    return {
+        "tools": tools,
+        "resources": resources,
+        "resource_templates": resource_templates,
+        "native_prompts": native_prompts,
+        "catalog_family_errors": family_errors,
+        "error": None,
+    }
+
+
+def _failed_probe_info(error: str) -> dict:
+    """The honest empty catalog recorded for one failed probe."""
+    return {
+        "tools": [],
+        "resources": [],
+        "resource_templates": [],
+        "native_prompts": [],
+        "catalog_family_errors": {},
+        "error": error,
+    }
 
 
 def _request_capabilities() -> frozenset[str] | None:
@@ -1729,7 +1480,7 @@ def _swap_local_provider_components(
 #
 # A catalog entry opts into per-user delegated authorization by declaring an
 # admin-configured ``oauth_provider`` block (the exact shape
-# ``agent_utilities.mcp.remote_oauth_broker.ProviderDescriptor`` accepts) on
+# ``graph_os.fleet.remote_oauth_broker.ProviderDescriptor`` accepts) on
 # its config -- the SAME "administrator-populated, never caller-supplied"
 # catalog these config dicts already are (headers/env/tls_profile/
 # allowed_private_hosts all come from here today). Such a server is
@@ -1750,9 +1501,6 @@ def _swap_local_provider_components(
 # ---------------------------------------------------------------------------
 _REMOTE_OAUTH_BROKERS: dict[str, _typing.Any] = {}
 _REMOTE_OAUTH_BROKERS_LOCK = threading.Lock()
-_CURRENT_DISCOVERY_BINDING: contextvars.ContextVar[_typing.Any | None] = (
-    contextvars.ContextVar("current_discovery_binding", default=None)
-)
 
 
 def _oauth_gated(cfg: _collections_abc.Mapping[str, _typing.Any]) -> bool:
@@ -1766,31 +1514,6 @@ def _oauth_gated(cfg: _collections_abc.Mapping[str, _typing.Any]) -> bool:
     return isinstance(provider_cfg, dict) and bool(provider_cfg)
 
 
-def _tenant_local_discovery_binding() -> _typing.Any | None:
-    """Mint the non-OAuth discovery visibility contract from verified state.
-
-    Local/stdio children have no provider grant to resolve.  Their discovery
-    is still not caller-authorized: the process-owned multiplexer may expose a
-    tenant-local snapshot only while a verified graph session is ambient.  Do
-    not derive an OAuth-like digest from roles/scopes or accept catalog fields.
-    """
-    try:
-        from agent_utilities.api.session import current_session
-        from agent_utilities.knowledge_graph.core.fleet_catalog_tables import (
-            TenantLocalDiscoveryBinding,
-        )
-
-        session = current_session()
-        if session is None or not getattr(session.actor, "authenticated", False):
-            return None
-        tenant = str(session.tenant or "").strip()
-        if not tenant:
-            return None
-        return TenantLocalDiscoveryBinding(tenant_id=tenant)
-    except (ImportError, PermissionError, TypeError, ValueError):
-        return None
-
-
 def _remote_oauth_broker_for(
     provider_cfg: _collections_abc.Mapping[str, _typing.Any],
 ) -> tuple[_typing.Any, _typing.Any]:
@@ -1798,7 +1521,7 @@ def _remote_oauth_broker_for(
     provider block, reusing ONE broker instance per ``provider_id`` so its
     encrypted token store and DCR registration cache persist across calls
     instead of being rebuilt (and, for DCR, re-registered) on every request."""
-    from agent_utilities.mcp.remote_oauth_broker import (
+    from graph_os.fleet.remote_oauth_broker import (
         ProviderDescriptor,
         ProviderRegistry,
         RemoteOAuthBroker,
@@ -1832,7 +1555,7 @@ def _resolve_remote_oauth_bearer(
     server-minted identity every other authorization decision in this gateway
     uses, never a caller-supplied string) and mints a bearer bound to the
     EXACT registered resource endpoint via
-    :meth:`~agent_utilities.mcp.remote_oauth_broker.RemoteOAuthBroker.bearer_headers_for`.
+    :meth:`~graph_os.fleet.remote_oauth_broker.RemoteOAuthBroker.bearer_headers_for`.
     A missing, expired, or revoked grant raises -- fail closed, no fallback to
     any shared/service credential (U-44/U-45).
 
@@ -1848,316 +1571,6 @@ def _resolve_remote_oauth_bearer(
     return broker.bearer_headers_for(
         actor=actor, provider_id=descriptor.provider_id, resource_url=url
     )
-
-
-def _resolve_remote_oauth_grant(
-    cfg: _collections_abc.Mapping[str, _typing.Any], url: str
-) -> tuple[dict[str, str], _typing.Any] | None:
-    """Resolve one bearer plus the broker-owned, non-secret grant binding."""
-
-    if not _oauth_gated(cfg):
-        return None
-    from agent_utilities.security.brain_context import current_actor
-
-    actor = current_actor()
-    broker, descriptor = _remote_oauth_broker_for(cfg["oauth_provider"])
-    return broker.bearer_headers_and_grant_binding(
-        actor=actor, provider_id=descriptor.provider_id, resource_url=url
-    )
-
-
-def current_remote_oauth_grant_bindings(actor: _typing.Any) -> tuple[_typing.Any, ...]:
-    """Return current broker-resolved grants for a verified actor.
-
-    The registry uses this process-owned broker inventory for its SQL predicate;
-    it never accepts provider/resource/audience/grant identity from a request.
-    Missing, expired, revoked, or legacy token records are omitted so reads fail
-    closed when no exact grant remains.
-    """
-
-    from agent_utilities.knowledge_graph.core.discovery_authority import (
-        OAuthGrantBinding,
-    )
-    from agent_utilities.mcp.remote_oauth_broker import (
-        OAuthProviderError,
-        OAuthScopeError,
-        OAuthTokenAbsentError,
-        OAuthTokenStore,
-    )
-
-    OAuthTokenStore._require_verified(actor)
-    with _REMOTE_OAUTH_BROKERS_LOCK:
-        brokers = tuple(_REMOTE_OAUTH_BROKERS.values())
-    bindings: list[OAuthGrantBinding] = []
-    for broker in brokers:
-        for provider in broker.registry.enabled_providers():
-            try:
-                binding = broker.grant_binding_for(
-                    actor=actor,
-                    provider_id=provider.provider_id,
-                    resource_url=provider.resource_url,
-                )
-            except (
-                OAuthTokenAbsentError,
-                OAuthProviderError,
-                OAuthScopeError,
-                PermissionError,
-            ):
-                continue
-            if isinstance(binding, OAuthGrantBinding):
-                bindings.append(binding)
-    return tuple(sorted(bindings, key=lambda binding: binding.fingerprint))
-
-
-#: The three native Tasks methods this gateway will route at all, and the
-#: subset that MUTATES a child's task store (fenced harder, never retried).
-_TASKS_METHODS = frozenset({"tasks/get", "tasks/update", "tasks/cancel"})
-_TASKS_MUTATIONS = frozenset({"tasks/update", "tasks/cancel"})
-
-
-class _TaskRoute(_typing.TypedDict):
-    """The verified, immutable facts one native-Tasks request is routed on.
-
-    Frozen at admission time so ``before_send`` can prove that the catalog
-    generation, the child's connection generation, and (for stdio) its channel
-    secret are all still the ones the route was authorized under.
-    """
-
-    method: str
-    server: str
-    mutation: bool
-    is_remote: bool
-    identity: dict[str, _typing.Any]
-    params_type: _typing.Any
-    result_type: _typing.Any
-    admission_epoch: int
-    runtime_generation: int | None
-    admission_secret: str | None
-    base_meta: dict[str, _typing.Any]
-
-
-def _tasks_route_data(
-    params: _collections_abc.Mapping[str, _typing.Any],
-    route: _collections_abc.Mapping[str, _typing.Any] | None,
-    extension_id: str,
-) -> dict[str, _typing.Any]:
-    """One Tasks request's owning-server route.
-
-    An explicit ``route`` wins; otherwise it is read from the request's own
-    ``_meta`` extension block.
-    """
-    route_data = dict(route or {})
-    if route_data:
-        return route_data
-    raw_meta = params.get("_meta")
-    raw_extension = (
-        raw_meta.get(extension_id)
-        if isinstance(raw_meta, _collections_abc.Mapping)
-        else None
-    )
-    return (
-        dict(raw_extension)
-        if isinstance(raw_extension, _collections_abc.Mapping)
-        else {}
-    )
-
-
-def _tasks_route_server(
-    route_data: _collections_abc.Mapping[str, _typing.Any], revision: str
-) -> str:
-    """The validated owning-server name carried by one Tasks route."""
-    server_name = route_data.get("server")
-    if not isinstance(server_name, str) or not server_name.strip():
-        raise _fastmcp_exceptions.ToolError("Tasks request has no owning-server route")
-    if route_data.get("revision") != revision:
-        raise _fastmcp_exceptions.ToolError(
-            "Tasks owning-server route revision is unsupported"
-        )
-    return server_name.strip()
-
-
-def _tasks_request_models(method: str) -> tuple[_typing.Any, _typing.Any]:
-    """The ``(params, result)`` models for one Tasks method."""
-    from agent_utilities.mcp.tasks_extension import (
-        _AckResult,
-        _CancelTaskParams,
-        _GetTaskParams,
-        _GetTaskResult,
-        _UpdateTaskParams,
-    )
-
-    return {
-        "tasks/get": (_GetTaskParams, _GetTaskResult),
-        "tasks/update": (_UpdateTaskParams, _AckResult),
-        "tasks/cancel": (_CancelTaskParams, _AckResult),
-    }[method]
-
-
-def _assert_tasks_caller_present(
-    caller: _collections_abc.Mapping[str, _typing.Any] | None,
-    route_data: _collections_abc.Mapping[str, _typing.Any],
-) -> None:
-    """A task delegation is only ever minted for a VERIFIED caller."""
-    if isinstance(
-        route_data.get("caller"), _collections_abc.Mapping
-    ) and not isinstance(caller, _collections_abc.Mapping):
-        raise _fastmcp_exceptions.ToolError("Tasks route caller is not verified")
-    if not isinstance(caller, _collections_abc.Mapping):
-        raise _fastmcp_exceptions.ToolError(
-            "Authenticated task delegation is unavailable; use portable rm_jobs tools"
-        )
-
-
-def _assert_tasks_signing_secret(server_name: str) -> None:
-    """Fail closed unless the shared task-delegation signing secret is present."""
-    try:
-        from agent_utilities.core.config import setting
-
-        if not str(setting("AGENT_UTILITIES_TOKEN_SECRET", "") or "").strip():
-            raise RuntimeError("shared task-delegation signing secret is unavailable")
-    except Exception as exc:
-        logger.warning(
-            "Tasks route delegation proof unavailable for child %s (%s)",
-            server_name,
-            type(exc).__name__,
-        )
-        raise _fastmcp_exceptions.ToolError(
-            "Authenticated task delegation is unavailable; use portable rm_jobs tools"
-        ) from None
-
-
-def _tasks_caller_identity(
-    caller: _collections_abc.Mapping[str, _typing.Any],
-) -> dict[str, _typing.Any]:
-    """The verified tenant/owner/scopes a Tasks delegation is minted for."""
-    identity = {
-        "tenant": str(caller.get("tenant") or ""),
-        "owner": str(caller.get("owner") or ""),
-        "scopes": sorted(str(scope) for scope in caller.get("scopes", ())),
-    }
-    if not identity["tenant"] or not identity["owner"]:
-        raise _fastmcp_exceptions.ToolError("Tasks route caller is not verified")
-    return identity
-
-
-def _build_task_request(
-    route: _TaskRoute,
-    params: _collections_abc.Mapping[str, _typing.Any],
-    current_secret: str | None,
-) -> _typing.Any:
-    """One outgoing Tasks request: envelope, delegation proof, and channel proof."""
-    from agent_utilities.mcp.tasks_extension import (
-        TASKS_EXTENSION_ID,
-        TASKS_EXTENSION_REVISION,
-        _channel_proof,
-        _mint_delegation_token,
-    )
-
-    server_name = route["server"]
-    try:
-        delegation_token = _mint_delegation_token(
-            route["method"],
-            params,
-            server=server_name,
-            revision=TASKS_EXTENSION_REVISION,
-            caller=route["identity"],
-        )
-    except Exception as exc:
-        logger.warning(
-            "Tasks route delegation proof unavailable for child %s (%s)",
-            server_name,
-            type(exc).__name__,
-        )
-        raise _fastmcp_exceptions.ToolError(
-            "Authenticated task delegation is unavailable; use portable rm_jobs tools"
-        ) from None
-    envelope: dict[str, _typing.Any] = {
-        "server": server_name,
-        "revision": TASKS_EXTENSION_REVISION,
-        "caller": route["identity"],
-        "delegation": {
-            "issuer": "mcp-multiplexer",
-            "token": delegation_token,
-        },
-    }
-    if not route["is_remote"]:
-        generation_secret = str(current_secret or "").strip()
-        if not 32 <= len(generation_secret) <= 512:
-            raise _fastmcp_exceptions.ToolError(
-                "Authenticated stdio task channel is unavailable; "
-                "use portable rm_jobs tools"
-            )
-        envelope["delegation"]["channel"] = _channel_proof(
-            generation_secret, delegation_token
-        )
-    outgoing = dict(params)
-    outgoing_meta = dict(route["base_meta"])
-    outgoing_meta[TASKS_EXTENSION_ID] = envelope
-    outgoing["_meta"] = outgoing_meta
-    parsed = route["params_type"].model_validate(outgoing)
-    request_type = mcp_types.Request[route["params_type"], str]
-    return request_type(method=route["method"], params=parsed)
-
-
-def _assert_task_mutation_fence(
-    route: _TaskRoute, current_generation: int, current_secret: str | None
-) -> None:
-    """The generation/channel fencing only a Tasks MUTATION must satisfy."""
-    runtime_generation = route["runtime_generation"]
-    if runtime_generation is not None and current_generation != runtime_generation:
-        raise _fastmcp_exceptions.ToolError(
-            "Tasks mutation connection generation changed before send"
-        )
-    if not route["is_remote"] and current_secret != route["admission_secret"]:
-        raise _fastmcp_exceptions.ToolError(
-            "Tasks mutation connection generation changed before send"
-        )
-
-
-def _task_route_retired(
-    mux: MCPMultiplexer, route: _TaskRoute, runtime: _typing.Any
-) -> bool:
-    """True when the child pool this route was admitted against is gone.
-
-    ``live is None`` is checked explicitly rather than relying on the identity
-    test alone: if the child had been REMOVED, ``children.get`` returns None,
-    and a ``runtime`` that is also None would have compared equal and let a
-    retired route through. Checking the looked-up value rather than the
-    caller's reference is also what proves it non-None for the capability
-    check.
-    """
-    server_name = route["server"]
-    live = mux.children.get(server_name)
-    return (
-        mux._catalog_epoch != route["admission_epoch"]
-        or live is None
-        or live is not runtime
-        or not mux._tasks_runtime_capable(server_name, live)
-    )
-
-
-def _assert_task_route_current(
-    mux: MCPMultiplexer,
-    route: _TaskRoute,
-    runtime: _typing.Any,
-    current_generation: int,
-    current_secret: str | None,
-) -> None:
-    """Revalidate one Tasks route immediately before its request is sent."""
-    mutation = route["mutation"]
-    if _task_route_retired(mux, route, runtime):
-        raise _fastmcp_exceptions.ToolError(
-            "Tasks mutation route was retired before the request was sent"
-            if mutation
-            else "Tasks read route was retired before the request was sent"
-        )
-    if not route["is_remote"] and not 32 <= len(str(current_secret or "")) <= 512:
-        raise _fastmcp_exceptions.ToolError(
-            "Authenticated stdio task channel is unavailable; "
-            "use portable rm_jobs tools"
-        )
-    if mutation:
-        _assert_task_mutation_fence(route, current_generation, current_secret)
 
 
 class _DiscoveryRanking(_typing.TypedDict):
@@ -2279,23 +1692,6 @@ class MCPMultiplexer:
         # it) so a caller can compute truthful staleness instead of a fleet-wide
         # figure silently being served as if it were live (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog).
         self._probe_cache: dict[str, dict] = {}
-        # Process-owned discovery authority is deliberately kept out of the
-        # public probe payload.  The catalog is caller-visible JSON metadata,
-        # while an OAuth grant or tenant-local binding must only reach the
-        # internal relational writer after this exact probe completes.  The
-        # identity tuple prevents a caller-shaped/copy of an info dict from
-        # manufacturing a binding; the bounded map also prevents abandoned
-        # probes from retaining authority indefinitely.
-        self._discovery_binding_sidechannel: dict[
-            int, tuple[str, dict[str, _typing.Any], _typing.Any]
-        ] = {}
-        # Successful local probes retain their exact verified tenant provenance
-        # alongside the cache object.  The one-shot side channel is consumed by
-        # source sync; this private record lets a later cache read re-establish
-        # authority without relabelling an uninitialized probe.
-        self._local_discovery_cache_authority: dict[
-            int, tuple[str, dict[str, _typing.Any], _typing.Any]
-        ] = {}
         # A server probe that hasn't finished when an interactive caller's
         # budget expires is NEVER cancelled — cancelling it would also cancel
         # the ``self._probe_cache`` write at the end of :meth:`probe_server`,
@@ -2324,6 +1720,7 @@ class MCPMultiplexer:
         # called off-thread); per-tool embeddings are cached by ``server::tool`` so only
         # the query is embedded per call. Absent ⇒ token-overlap ranking only.
         self._embed_fn: _typing.Any = None
+        # Budgeted tool-subset selection (EG AgentAssemble); None fails closed.
         self._tool_embeddings: dict[str, list[float]] = {}
         # Server names never mountable as a child of this multiplexer (self +
         # retired aliases) — set post-construction by the graph-os fleet loader
@@ -2556,7 +1953,7 @@ class MCPMultiplexer:
         anything keyed only by server name. A caller without a valid grant for
         this provider gets a fail-closed error before any tool call is
         attempted (the connect step inside :meth:`_open_one_session` raises,
-        because :meth:`~agent_utilities.mcp.remote_oauth_broker.RemoteOAuthBroker.bearer_headers_for`
+        because :meth:`~graph_os.fleet.remote_oauth_broker.RemoteOAuthBroker.bearer_headers_for`
         does).
 
         Fleet-global discoverability (this call reachable through
@@ -2643,202 +2040,6 @@ class MCPMultiplexer:
         finally:
             if runtime_policy is not None:
                 _close_runtime_child_policy(runtime_policy)
-
-    @staticmethod
-    def _tasks_child_capable(initialization: _typing.Any) -> bool:
-        """Return whether one initialize result advertises this Tasks revision."""
-
-        from agent_utilities.mcp.tasks_extension import (
-            TASKS_EXTENSION_ID,
-            TASKS_EXTENSION_REVISION,
-        )
-
-        capabilities = getattr(initialization, "capabilities", None)
-        extensions = getattr(capabilities, "extensions", None)
-        if not isinstance(extensions, _collections_abc.Mapping):
-            return False
-        settings = extensions.get(TASKS_EXTENSION_ID)
-        return isinstance(settings, _collections_abc.Mapping) and (
-            settings.get("revision") == TASKS_EXTENSION_REVISION
-        )
-
-    def _tasks_runtime_capable(
-        self, server_name: str, runtime: _child_resilience.ChildRuntime
-    ) -> bool:
-        """Require every selectable session in one child pool to qualify."""
-
-        sessions = getattr(runtime, "_sessions", None)
-        if not isinstance(sessions, list) or not sessions:
-            return False
-        # The live pool is the sole capability authority. Every selectable
-        # session is interrogated directly so a rolling/mixed replica cannot
-        # inherit one last-writer handshake or a retired generation's record.
-        return all(
-            self._tasks_child_capable(getattr(session, "initialize_result", None))
-            for session in sessions
-        )
-
-    async def forward_task_method(
-        self,
-        method: str,
-        params: _collections_abc.Mapping[str, _typing.Any],
-        *,
-        caller: _collections_abc.Mapping[str, _typing.Any] | None = None,
-        route: _collections_abc.Mapping[str, _typing.Any] | None = None,
-    ) -> _typing.Any:
-        """Forward one native Tasks request to its owning child server.
-
-        This is a request router, not a task store.  The child WorkItem
-        authority answers the request and the existing ``_child_resilience.ChildRuntime``
-        supplies bounded queueing, restart/retry, and replica-session
-        selection. Capability negotiation is checked against the child's
-        latest initialize result before any task ID crosses the route.
-        """
-
-        from agent_utilities.mcp.tasks_extension import (
-            TASKS_EXTENSION_ID,
-            TASKS_EXTENSION_REVISION,
-        )
-
-        if method not in _TASKS_METHODS:
-            raise _fastmcp_exceptions.ToolError("Unsupported Tasks method")
-        if not isinstance(params, _collections_abc.Mapping):
-            raise _fastmcp_exceptions.ToolError("Tasks request parameters are invalid")
-        route_data = _tasks_route_data(params, route, TASKS_EXTENSION_ID)
-        server_name = _tasks_route_server(route_data, TASKS_EXTENSION_REVISION)
-        catalog = self.load_catalog()
-        if server_name not in catalog:
-            raise _fastmcp_exceptions.ToolError(
-                "Tasks owning server is not in the active catalog"
-            )
-        # Apply the same fleet/delegation authorization used by tool
-        # forwarding before a task poll can lazily spawn a child.
-        _require_fleet_capability("delegate")
-        _require_fleet_capability(
-            "delegate", _child_required_scopes(catalog[server_name])
-        )
-
-        runtime = await self._admit_tasks_owner(server_name)
-        _assert_tasks_caller_present(caller, route_data)
-        task_route = self._build_task_route(
-            method,
-            params,
-            _typing.cast("_collections_abc.Mapping[str, _typing.Any]", caller),
-            server_name,
-            runtime,
-        )
-        return await self._send_task_request(params, task_route, runtime)
-
-    async def _admit_tasks_owner(self, server_name: str) -> _typing.Any:
-        """Mount (once) and verify the child that owns this task.
-
-        Lazy task polling is allowed to mount the owner exactly once, just as
-        lazy tool loading does. No process-local task state is created.
-        """
-        if server_name not in self.children:
-            await self.mount_child(server_name)
-        runtime = self.children.get(server_name)
-        if runtime is None:
-            raise _fastmcp_exceptions.ToolError("Tasks owning server is unavailable")
-        if not self._tasks_runtime_capable(server_name, runtime):
-            raise _fastmcp_exceptions.ToolError(
-                "Tasks owning server did not advertise native Tasks"
-            )
-        return runtime
-
-    def _build_task_route(
-        self,
-        method: str,
-        params: _collections_abc.Mapping[str, _typing.Any],
-        caller: _collections_abc.Mapping[str, _typing.Any],
-        server_name: str,
-        runtime: _typing.Any,
-    ) -> _TaskRoute:
-        """Freeze the verified, immutable facts this Tasks request is routed on.
-
-        Capability negotiation is already checked by the caller; this captures
-        the exact catalog generation, connection generation, and channel secret
-        the route was admitted under, so :func:`_assert_task_route_current` can
-        later prove none of them moved before the request was actually sent.
-        """
-        runtime_generation = getattr(runtime, "generation", None)
-        if not isinstance(runtime_generation, int):
-            runtime_generation = None
-        params_type, result_type = _tasks_request_models(method)
-        raw_meta = params.get("_meta")
-        child_cfg = self.load_catalog()[server_name]
-        explicit_transport = str(child_cfg.get("transport", "")).lower()
-        is_remote = bool(child_cfg.get("url")) or explicit_transport in {
-            "streamable-http",
-            "sse",
-        }
-        _assert_tasks_signing_secret(server_name)
-        return {
-            "method": method,
-            "server": server_name,
-            "mutation": method in _TASKS_MUTATIONS,
-            "is_remote": is_remote,
-            "identity": _tasks_caller_identity(caller),
-            "params_type": params_type,
-            "result_type": result_type,
-            "admission_epoch": self._catalog_epoch,
-            "runtime_generation": runtime_generation,
-            "admission_secret": getattr(runtime, "_task_generation_secret", None),
-            "base_meta": dict(raw_meta)
-            if isinstance(raw_meta, _collections_abc.Mapping)
-            else {},
-        }
-
-    async def _send_task_request(
-        self,
-        params: _collections_abc.Mapping[str, _typing.Any],
-        route: _TaskRoute,
-        runtime: _typing.Any,
-    ) -> _typing.Any:
-        """Send one admitted Tasks request through the child's bounded runtime.
-
-        Reads may retry once, but each attempt still revalidates the owning
-        catalog/runtime and exact Tasks revision through ``before_send``.
-        Mutations add generation fencing and disable retry.
-        """
-        parsed_input = route["params_type"].model_validate(dict(params))
-
-        call_request = getattr(runtime, "call_request", None)
-        if not callable(call_request):
-            raise _fastmcp_exceptions.ToolError(
-                "Tasks owning server has no bounded request runtime"
-            )
-        mutation = route["mutation"]
-
-        def _factory(
-            _current_generation: int, current_secret: str | None
-        ) -> _typing.Any:
-            return _build_task_request(route, params, current_secret)
-
-        def _before_send(current_generation: int, current_secret: str | None) -> None:
-            _assert_task_route_current(
-                self, route, runtime, current_generation, current_secret
-            )
-
-        result = await call_request(
-            _factory(route["runtime_generation"] or 0, route["admission_secret"])
-            if mutation
-            else None,
-            route["result_type"],
-            retry_on_transient=not mutation,
-            generation_marker=route["runtime_generation"] if mutation else None,
-            request_factory=None if mutation else _factory,
-            before_send=_before_send,
-        )
-        if not isinstance(result, route["result_type"]):
-            result = route["result_type"].model_validate(result)
-        task_id = getattr(parsed_input, "task_id", None)
-        returned_id = getattr(result, "task_id", None)
-        if task_id and returned_id and returned_id != task_id:
-            raise _fastmcp_exceptions.ToolError(
-                "Tasks owning server returned a mismatched task ID"
-            )
-        return result
 
     def _admit_runtime_policy_tools(
         self,
@@ -3132,13 +2333,11 @@ class MCPMultiplexer:
         # (missing/expired/revoked grant) rather than falling back to any
         # shared/service credential; the caller sees that failure as this
         # session never opening, exactly like any other connect failure.
-        oauth_grant = await asyncio.to_thread(_resolve_remote_oauth_grant, cfg, url)
-        if oauth_grant is not None:
-            oauth_bearer_headers, discovery_binding = oauth_grant
-            _CURRENT_DISCOVERY_BINDING.set(discovery_binding)
+        oauth_bearer_headers = await asyncio.to_thread(
+            _resolve_remote_oauth_bearer, cfg, url
+        )
+        if oauth_bearer_headers is not None:
             headers = {**(headers or {}), **oauth_bearer_headers}
-        else:
-            oauth_bearer_headers = None
         return headers, oauth_bearer_headers
 
     @staticmethod
@@ -3208,24 +2407,18 @@ class MCPMultiplexer:
         if oauth_bearer_headers is not None:
             _svc_auth = None
         else:
-            from agent_utilities.mcp.client_credentials import child_auth
+            from graph_os.fleet.child_credentials import child_auth
 
             _svc_auth = child_auth(headers)
         use_sse = explicit_transport == "sse" or url.rstrip("/").endswith("/sse")
         if use_sse:
-            # D-MTT-1: `_svc_auth` is a local `httpx.Auth` (see
-            # `child_auth`'s docstring); `sse_client`'s `auth` param is
-            # typed `httpx2.Auth | None` (fastmcp's vendored SDK v2 HTTP
-            # client, a distinct package from this repo's own `httpx` —
-            # see `agent_utilities/mcp/httpx_boundary.py`). Coerce at
-            # this boundary rather than passing the foreign-typed object
-            # straight through.
-            from agent_utilities.mcp.httpx_boundary import coerce_httpx2_auth
-
+            # Every child auth is both an httpx.Auth and an httpx2.Auth
+            # (graph_os.fleet.child_credentials), so the SDK v2 SSE client
+            # accepts it without coercion.
             transport = sse_client(
                 url,
                 headers=headers,
-                auth=coerce_httpx2_auth(_svc_auth),
+                auth=_svc_auth,
                 httpx_client_factory=_secure_httpx_factory,
             )
         else:
@@ -3319,11 +2512,7 @@ class MCPMultiplexer:
         materialized: set[str],
     ) -> None:
         key = str(raw_key)
-        if key.upper() in (
-            _PROVIDER_CHILD_ENV_KEYS
-            | provider_controlled_keys
-            | {_TASK_DELEGATION_CHANNEL_ENV}
-        ):
+        if key.upper() in (_PROVIDER_CHILD_ENV_KEYS | provider_controlled_keys):
             raise RuntimeError("MCP child provider environment is parent-controlled")
         value = _resolve_runtime_value(
             raw_value,
@@ -3339,20 +2528,10 @@ class MCPMultiplexer:
         merged_env[key] = value
 
     @staticmethod
-    def _apply_generation_secret(
-        merged_env: dict[str, str], generation_secret: str | None
-    ) -> None:
-        if generation_secret is not None:
-            if not 32 <= len(generation_secret) <= 512:
-                raise RuntimeError("Local MCP task channel secret is invalid")
-            merged_env[_TASK_DELEGATION_CHANNEL_ENV] = generation_secret
-
-    @staticmethod
     def _build_local_child_environment(
         cfg: dict,
         provider_environment: dict[str, str],
         configured_env: dict,
-        generation_secret: str | None,
     ) -> dict[str, str]:
         # A child receives only execution/runtime trust variables plus the
         # variables explicitly delegated in its own catalog entry. Copying
@@ -3374,7 +2553,6 @@ class MCPMultiplexer:
             MCPMultiplexer._apply_one_configured_env_var(
                 merged_env, raw_key, raw_value, provider_controlled_keys, materialized
             )
-        MCPMultiplexer._apply_generation_secret(merged_env, generation_secret)
         return merged_env
 
     @staticmethod
@@ -3410,14 +2588,13 @@ class MCPMultiplexer:
         command: str,
         provider_environment: dict[str, str],
         runtime_policy: _typing.Any,
-        generation_secret: str | None,
         stack: contextlib.AsyncExitStack,
     ) -> tuple[_typing.Any, _typing.Any]:
         command, args, configured_env = self._validate_local_child_command_and_args(
             command, cfg
         )
         merged_env = self._build_local_child_environment(
-            cfg, provider_environment, configured_env, generation_secret
+            cfg, provider_environment, configured_env
         )
         server_params = StdioServerParameters(
             command=command, args=args, env=merged_env
@@ -3430,7 +2607,6 @@ class MCPMultiplexer:
         server_name: str,
         cfg: dict,
         stack: contextlib.AsyncExitStack,
-        generation_secret: str | None = None,
     ) -> ClientSession:
         """Open + initialize ONE ``ClientSession`` for a child (stdio or remote),
         entering its transports on ``stack``. Raises on failure. Shared by
@@ -3458,7 +2634,6 @@ class MCPMultiplexer:
                 command,
                 provider_environment,
                 runtime_policy,
-                generation_secret,
                 stack,
             )
 
@@ -3519,23 +2694,15 @@ class MCPMultiplexer:
             "Starting MCP child (transport=%s)", "remote" if is_remote else "stdio"
         )
 
-        async def _connect_one(
-            stack: contextlib.AsyncExitStack, generation_secret: str | None
-        ):
-            return await self._open_one_session(
-                server_name, cfg, stack, generation_secret
-            )
-
         async def _connect(stack: contextlib.AsyncExitStack):
             """One connection generation: full session pool + tool list.
 
             The stack is owned by the runtime's supervisor task (entered and
             exited there), so each crash/restart cleanly tears down and
             rebuilds every transport of the generation."""
-            generation_secret = secrets.token_urlsafe(48) if not is_remote else None
-            runtime._task_generation_secret = generation_secret
             sessions = [
-                await _connect_one(stack, generation_secret) for _ in range(pool_size)
+                await self._open_one_session(server_name, cfg, stack)
+                for _ in range(pool_size)
             ]
             tools_result = await sessions[0].list_tools()
             _bounded_tool_catalog(tools_result.tools)
@@ -3554,7 +2721,7 @@ class MCPMultiplexer:
         # and then wedges on expiry); derive that lifetime from the token TTL.
         session_max_age: float | None = None
         if is_remote:
-            from agent_utilities.mcp.client_credentials import service_session_max_age
+            from graph_os.fleet.child_credentials import service_session_max_age
 
             session_max_age = service_session_max_age(cfg.get("headers"))
         runtime: _child_resilience.ChildRuntime
@@ -3964,7 +3131,6 @@ class MCPMultiplexer:
     def _drop_stale_child_caches(self, server_name: str) -> None:
         """Invalidate every derived cache keyed on one server's old catalog."""
         self._probe_cache.pop(server_name, None)
-        self._drop_discovery_bindings_for_server(server_name)
         embedding_prefix = f"{server_name}::"
         for key in [
             key for key in self._tool_embeddings if key.startswith(embedding_prefix)
@@ -4089,37 +3255,6 @@ class MCPMultiplexer:
         registered, _changed = self._replace_child_tools(server_name, tools, cfg)
         return registered
 
-    async def _live_skills_for_server(self, server_name: str) -> list[dict]:
-        """Live ``skill://`` resource listing for an already-mounted child
-        (CONCEPT:AU-ECO.mcp.skills-over-mcp-provider).
-
-        Unlike tools, a mounted child's Skills-over-MCP resources are never
-        cached into an aggregation map at mount time (:meth:`_register_child_result`
-        only indexes ``tools``) — so the cold-probe path's ``_probe_skills`` call
-        was the ONLY place a server's skills were ever discovered, leaving an
-        already-mounted server's skills invisible to ``find``/``find_tools``
-        until it happened to be probed cold at least once (D-2.2-2.3-1). Reuses
-        the mounted child's live primary session (no reconnect) and the same
-        best-effort degrade-to-``[]`` semantics as the cold-probe path.
-        """
-        session = self.sessions.get(server_name)
-        if session is None:
-            return []
-        return await self._probe_skills(server_name, session)
-
-    async def _live_prompts_for_server(self, server_name: str) -> list[dict]:
-        """Live ``prompt://`` resource listing for an already-mounted child
-        (CONCEPT:AU-ECO.mcp.cross-process-prompt-harvest — the ``prompt://``
-        sibling of :meth:`_live_skills_for_server`, same D-2.2-2.3-1 rationale:
-        a mounted child's prompt resources are never cached at mount time, so
-        this is the only place an already-mounted server's prompts are
-        discovered without waiting for a cold probe).
-        """
-        session = self.sessions.get(server_name)
-        if session is None:
-            return []
-        return await self._probe_prompts(server_name, session)
-
     @staticmethod
     def _mark_future_exception_retrieved(future: asyncio.Future[_typing.Any]) -> None:
         """Call ``future.exception()`` so asyncio never logs "exception was
@@ -4132,21 +3267,6 @@ class MCPMultiplexer:
         exposing anything, it only marks the future's exception as observed.
         """
         future.exception()
-
-    @staticmethod
-    def _harvest_error_reason(exc: BaseException) -> str:
-        """The reason string recorded on a skill/prompt harvest entry.
-
-        ``exc.args[0]`` (not ``str(exc)``/``repr(exc)``) so a caller-useful
-        detail (e.g. "Rate limit exceeded for client: global" -- see
-        ``test_an_unreadable_body_records_a_named_reason_and_no_body``/
-        ``..._no_instructions``, which assert on it) still reaches the
-        ``harvest_error`` field returned to the probe caller, while the
-        served-boundary exception-surface gate stays satisfied: it flags
-        ``str()``/``repr()`` calls and a bare exception name passed to a log
-        call, never attribute/subscript access on the exception object.
-        """
-        return str(exc.args[0]) if exc.args else type(exc).__name__
 
     def _release_mount_ownership(
         self, server_name: str, leader_future: asyncio.Future
@@ -4457,142 +3577,12 @@ class MCPMultiplexer:
         ``info`` so the immediate caller (:meth:`probe_server`) can report a
         normal, honest result for THIS call; it is simply never reused for a
         later, possibly different, caller."""
-        # A fresh probe replaces any prior private authority for this server,
-        # including a failed OAuth probe.  A stale grant must never be reused
-        # for a later catalog snapshot.
-        self._drop_discovery_bindings_for_server(server_name)
         info["probed_at"] = time.time()
         cfg = self.load_catalog().get(server_name)
         if cfg is not None and _oauth_gated(cfg):
             return info
         self._probe_cache[server_name] = info
         return info
-
-    def _record_discovery_binding(
-        self, server_name: str, info: dict[str, _typing.Any], binding: _typing.Any
-    ) -> None:
-        """Retain one typed binding for one exact probe result object.
-
-        This is an internal hand-off only.  It intentionally accepts neither
-        catalog metadata nor a caller-provided authority value; callers can
-        only obtain a binding by completing a verified probe path above.
-        Keeping the original object alongside its id makes id reuse harmless.
-        """
-        from agent_utilities.knowledge_graph.core.discovery_authority import (
-            OAuthGrantBinding,
-        )
-        from agent_utilities.knowledge_graph.core.fleet_catalog_tables import (
-            TenantLocalDiscoveryBinding,
-        )
-
-        if not isinstance(info, dict) or not isinstance(
-            binding, (OAuthGrantBinding, TenantLocalDiscoveryBinding)
-        ):
-            return
-        self._drop_discovery_bindings_for_server(server_name)
-        self._discovery_binding_sidechannel[id(info)] = (server_name, info, binding)
-        if isinstance(binding, TenantLocalDiscoveryBinding):
-            self._local_discovery_cache_authority[id(info)] = (
-                server_name,
-                info,
-                binding,
-            )
-        while len(self._discovery_binding_sidechannel) > 256:
-            oldest = next(iter(self._discovery_binding_sidechannel))
-            self._discovery_binding_sidechannel.pop(oldest, None)
-
-    def _drop_discovery_bindings_for_server(self, server_name: str) -> None:
-        """Forget private authority for a replaced/invalidated server probe."""
-        for key, (recorded_server, _info, _binding) in tuple(
-            self._discovery_binding_sidechannel.items()
-        ):
-            if recorded_server == server_name:
-                self._discovery_binding_sidechannel.pop(key, None)
-        for key, (recorded_server, _info, _binding) in tuple(
-            self._local_discovery_cache_authority.items()
-        ):
-            if recorded_server == server_name:
-                self._local_discovery_cache_authority.pop(key, None)
-
-    def _rebound_cache_discovery_binding(
-        self, server_name: _typing.Any, info: _typing.Any
-    ) -> _typing.Any | None:
-        """Re-mint local authority for an exact process-owned cached probe object.
-
-        Non-OAuth results may be served from the process-owned cache after
-        their prior side-channel record was consumed. Re-mint only for the
-        exact cached object and a successful local probe that previously
-        recorded verified provenance; copied/caller-shaped dictionaries never
-        match.
-        """
-        cached_authority = self._local_discovery_cache_authority.get(id(info))
-        if (
-            cached_authority is None
-            or cached_authority[0] != str(server_name)
-            or cached_authority[1] is not info
-        ):
-            return None
-        binding = _tenant_local_discovery_binding()
-        if binding is None or binding.tenant_id != cached_authority[2].tenant_id:
-            return None
-        return binding
-
-    def _take_discovery_bindings(
-        self, catalog: _collections_abc.Mapping[str, _typing.Any]
-    ) -> dict[str, _typing.Any]:
-        """Consume private bindings for exact probe objects in ``catalog``.
-
-        ``catalog`` is used only to identify which completed probe results the
-        internal caller is syncing.  A copied or caller-shaped dictionary does
-        not match the retained object identity, and any ``_discovery_binding``
-        key in public metadata is ignored completely.
-        """
-        if not isinstance(catalog, _collections_abc.Mapping):
-            return {}
-        bindings: dict[str, _typing.Any] = {}
-        for server_name, info in catalog.items():
-            record = self._discovery_binding_sidechannel.get(id(info))
-            if record is None:
-                rebound = self._rebound_cache_discovery_binding(server_name, info)
-                if rebound is not None:
-                    bindings[str(server_name)] = rebound
-                continue
-            recorded_server, recorded_info, binding = record
-            if recorded_server != str(server_name) or recorded_info is not info:
-                continue
-            bindings[str(server_name)] = binding
-            self._discovery_binding_sidechannel.pop(id(info), None)
-        return bindings
-
-    def _bind_local_discovery_bindings(
-        self, catalog: _collections_abc.Mapping[str, _typing.Any]
-    ) -> None:
-        """Bind exact local probe objects from the caller's verified context.
-
-        ``source_sync`` may run the async multiplexer in a worker thread when
-        its caller already owns an event loop; context variables do not cross
-        that thread.  This explicit hand-off mints local authority back on the
-        verified caller thread, but only for successful objects that are still
-        the exact process-owned cache value.  It cannot authorize a copied or
-        failed catalog result.
-        """
-        if not isinstance(catalog, _collections_abc.Mapping):
-            return
-        for server_name, info in catalog.items():
-            if self._discovery_binding_sidechannel.get(id(info)) is not None:
-                continue
-            cached = self._probe_cache.get(str(server_name))
-            cfg = self.load_catalog().get(str(server_name))
-            if (
-                cached is info
-                and isinstance(cfg, _collections_abc.Mapping)
-                and not _oauth_gated(cfg)
-                and isinstance(info, dict)
-                and info.get("error") is None
-            ):
-                binding = _tenant_local_discovery_binding()
-                if binding is not None:
-                    self._record_discovery_binding(str(server_name), info, binding)
 
     @staticmethod
     def _probe_ttl() -> float:
@@ -4655,25 +3645,17 @@ class MCPMultiplexer:
             resources,
             templates,
             native_prompts,
-            skills,
-            prompts,
             family_errors,
-        ) = await self._probe_protocol_families(server_name, session)
+        ) = await self._probe_protocol_families(session)
         info: dict[str, _typing.Any] = {
             "tools": self._live_tools_for_server(server_name),
             "resources": resources,
             "resource_templates": templates,
             "native_prompts": native_prompts,
             "catalog_family_errors": family_errors,
-            "skills": skills,
-            "prompts": prompts,
             "error": None,
         }
-        result = self._cache_probe(server_name, info)
-        self._record_discovery_binding(
-            server_name, result, _tenant_local_discovery_binding()
-        )
-        return result
+        return self._cache_probe(server_name, info)
 
     def _live_primary_session(self, server_name: str) -> _typing.Any:
         session = self.sessions.get(server_name)
@@ -4714,21 +3696,12 @@ class MCPMultiplexer:
             info = {"tools": [], "error": "invalid probe timeout"}
             return self._cache_probe(server_name, info)
 
-        # The deadline ``asyncio.wait_for`` below will enforce. The OPTIONAL
-        # skill/prompt body harvests are clamped to a share of what is left of
-        # it (:func:`_harvest_deadline`, BUG-PE-054) so neither can spend the
-        # tool probe's own deadline and discard tools already in hand.
-        probe_deadline = time.monotonic() + probe_to
-
         async def _probe() -> tuple[
             list[dict],
             list[dict],
             list[dict],
             list[dict],
-            list[dict],
-            list[dict],
             dict[str, str],
-            _typing.Any | None,
         ]:
             # Enter AND exit the transports within this single coroutine so the
             # anyio cancel scopes are not crossed between tasks. ``wait_for``
@@ -4737,7 +3710,6 @@ class MCPMultiplexer:
             # only the connect in wait_for would exit the scope in a different
             # task — "Attempted to exit cancel scope in a different task".)
             runtime_cfg, runtime_policy = _prepare_runtime_child_policy(cfg)
-            binding_token = _CURRENT_DISCOVERY_BINDING.set(None)
             try:
                 async with contextlib.AsyncExitStack() as stack:
                     session = await self._open_one_session(
@@ -4756,38 +3728,22 @@ class MCPMultiplexer:
                         resources,
                         templates,
                         native_prompts,
-                        skills,
-                        prompts,
                         family_errors,
-                    ) = await self._probe_protocol_families(
-                        server_name,
-                        session,
-                        probe_deadline=probe_deadline,
-                    )
-                    discovery_binding = _CURRENT_DISCOVERY_BINDING.get()
-                    if discovery_binding is None:
-                        discovery_binding = _tenant_local_discovery_binding()
+                    ) = await self._probe_protocol_families(session)
                     return (
                         _bounded_tool_catalog(tools),
                         resources,
                         templates,
                         native_prompts,
-                        skills,
-                        prompts,
                         family_errors,
-                        discovery_binding,
                     )
             finally:
-                _CURRENT_DISCOVERY_BINDING.reset(binding_token)
                 if runtime_policy is not None:
                     _close_runtime_child_policy(runtime_policy)
                     self._child_policy_admitted_tools.pop(server_name, None)
 
-        info, discovery_binding = await _run_bounded_probe(_probe, probe_to)
-        result = self._cache_probe(server_name, info)
-        if discovery_binding is not None and info.get("error") is None:
-            self._record_discovery_binding(server_name, result, discovery_binding)
-        return result
+        info = await _run_bounded_probe(_probe, probe_to)
+        return self._cache_probe(server_name, info)
 
     @staticmethod
     def _optional_method_missing(exc: Exception) -> bool:
@@ -4799,13 +3755,8 @@ class MCPMultiplexer:
 
     async def _probe_protocol_families(
         self,
-        server_name: str,
         session: _typing.Any,
-        *,
-        probe_deadline: float | None = None,
     ) -> tuple[
-        list[dict],
-        list[dict],
         list[dict],
         list[dict],
         list[dict],
@@ -4824,11 +3775,9 @@ class MCPMultiplexer:
             resources = _bounded_descriptor_catalog(
                 raw_resources, key="uri", family="resource"
             )
-            skills = _bounded_skill_catalog(raw_resources)
-            prompt_resources = _bounded_prompt_catalog(raw_resources)
         except RuntimeError as exc:
             errors["resources"] = type(exc).__name__
-            resources, skills, prompt_resources = [], [], []
+            resources = []
 
         try:
             template_result = await session.list_resource_templates()
@@ -4852,224 +3801,7 @@ class MCPMultiplexer:
                 errors["prompts"] = type(exc).__name__
             native_prompts = []
 
-        await self._harvest_resource_bodies(
-            server_name,
-            session,
-            skills,
-            _SKILL_HARVEST_SPEC,
-            self._read_skill_body,
-            probe_deadline=probe_deadline,
-        )
-        await self._harvest_resource_bodies(
-            server_name,
-            session,
-            prompt_resources,
-            _PROMPT_HARVEST_SPEC,
-            self._read_prompt_body,
-            probe_deadline=probe_deadline,
-        )
-        return resources, templates, native_prompts, skills, prompt_resources, errors
-
-    async def _probe_skills(
-        self,
-        server_name: str,
-        session: _typing.Any,
-        *,
-        probe_deadline: float | None = None,
-    ) -> list[dict]:
-        """Best-effort ``skill://`` resource enumeration for one probed session
-        (CONCEPT:AU-ECO.mcp.skills-over-mcp-provider).
-
-        Skills-over-MCP is only a fastmcp-4 server capability (draft MCP
-        SEP-2640) — a fastmcp-3 or pre-skills server has no ``skill://``
-        resources, and some MCP servers do not implement ``resources/list`` at
-        all. Either case degrades to an empty list rather than failing the
-        tool probe that already succeeded above.
-        """
-        try:
-            result = await session.list_resources()
-        except Exception as exc:  # noqa: BLE001 - resources/list is an OPTIONAL
-            # MCP method; a server that doesn't implement it must still
-            # contribute the tools its probe already returned. The cause IS
-            # logged so a real transport failure stays diagnosable.
-            logger.debug(
-                "Server %s does not support skill resource discovery: %s: %s",
-                server_name,
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return []
-        try:
-            skills = _bounded_skill_catalog(result.resources)
-        except Exception as exc:  # noqa: BLE001 - a malformed skill catalog from
-            # one server must not fail the tool probe that already succeeded.
-            # The cause IS logged.
-            logger.warning(
-                "Server %s returned an invalid skill resource catalog: %s: %s",
-                server_name,
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return []
-        await self._harvest_resource_bodies(
-            server_name,
-            session,
-            skills,
-            _SKILL_HARVEST_SPEC,
-            self._read_skill_body,
-            probe_deadline=probe_deadline,
-        )
-        return skills
-
-    async def _harvest_resource_bodies(
-        self,
-        server_name: str,
-        session: _typing.Any,
-        entries: list[dict],
-        spec: _ResourceHarvestSpec,
-        reader: _typing.Any,
-        *,
-        probe_deadline: float | None = None,
-    ) -> None:
-        """Read one bounded family of resource bodies over an open session.
-
-        Skills and prompts have distinct result fields, byte budgets, retry
-        readers, and user-visible error wording, but their safety and failure
-        semantics are the same. Keeping the accounting loop here makes those
-        two resource families evolve together without allowing one family's
-        budget or result model to leak into the other.
-        """
-        harvested_bytes = 0
-        deadline = _harvest_deadline(probe_deadline, spec.budget_sec)
-        for entry in entries:
-            uri = entry.get("uri") or ""
-            if time.monotonic() >= deadline:
-                entry["harvest_error"] = (
-                    f"{spec.kind} body harvest budget exceeded (bounded by the "
-                    f"smaller of {spec.budget_sec:g}s and this probe's own "
-                    "remaining deadline)"
-                )
-                continue
-            if harvested_bytes >= spec.max_total_bytes:
-                entry["harvest_error"] = (
-                    f"{spec.kind} body harvest exceeded its total budget"
-                )
-                continue
-            try:
-                body = await reader(session, uri, deadline)
-            except Exception as exc:  # noqa: BLE001 - one unreadable body
-                # One unreadable resource must not fail the tool probe that
-                # already succeeded. The named reason is recorded ON THE
-                # ENTRY (so promotion can name it and a caller sees why) and
-                # logged — never a raw traceback (served-boundary policy).
-                entry["harvest_error"] = self._harvest_error_reason(exc)
-                logger.warning(
-                    "Server %s could not serve %s body %s (%s)",
-                    server_name,
-                    spec.kind,
-                    entry.get("name", "?"),
-                    type(exc).__name__,
-                )
-                continue
-            encoded = len(body.encode("utf-8"))
-            if not body.strip():
-                entry["harvest_error"] = f"server served an empty {spec.kind} body"
-                continue
-            if encoded > spec.max_body_bytes:
-                entry["harvest_error"] = f"{spec.kind} body exceeded its size boundary"
-                continue
-            harvested_bytes += encoded
-            entry[spec.body_field] = body
-
-    @staticmethod
-    async def _read_resource_body(
-        session: _typing.Any, uri: str, deadline: float, resource_kind: str
-    ) -> str:
-        """Read one body with bounded retries, deadline, and original errors."""
-        delay = _SKILL_HARVEST_BACKOFF_SEC
-        last: Exception | None = None
-        for attempt in range(_SKILL_HARVEST_MAX_ATTEMPTS):
-            try:
-                return _resource_body_text(await session.read_resource(uri))
-            except Exception as exc:  # noqa: BLE001 — retried below, then re-raised
-                last = exc
-                if attempt == _SKILL_HARVEST_MAX_ATTEMPTS - 1:
-                    break
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    break
-                await asyncio.sleep(min(delay, remaining))
-                delay *= 2
-        if last is None:  # pragma: no cover — the loop only exits via a failure
-            raise RuntimeError(
-                f"{resource_kind} body read failed without a recorded cause"
-            )
-        raise last
-
-    @staticmethod
-    async def _read_skill_body(session: _typing.Any, uri: str, deadline: float) -> str:
-        """Read one skill body with the shared bounded retry provider."""
-        return await MCPMultiplexer._read_resource_body(session, uri, deadline, "skill")
-
-    async def _probe_prompts(
-        self,
-        server_name: str,
-        session: _typing.Any,
-        *,
-        probe_deadline: float | None = None,
-    ) -> list[dict]:
-        """Best-effort ``prompt://`` resource enumeration for one probed
-        session (CONCEPT:AU-ECO.mcp.cross-process-prompt-harvest).
-
-        Prompts-over-MCP is served by every server built through
-        ``server_factory.build_server`` (``_register_prompt_providers``), but
-        a raw MCP child outside that factory — or one with no
-        ``prompts/`` directory — has no ``prompt://`` resources; either case
-        degrades to an empty list rather than failing the tool probe that
-        already succeeded. A server that also doesn't implement
-        ``resources/list`` at all degrades the same way.
-        """
-        try:
-            result = await session.list_resources()
-        except Exception as exc:  # noqa: BLE001 - resources/list is an OPTIONAL
-            # MCP method; a server that doesn't implement it must still
-            # contribute the tools/skills its probe already returned. The
-            # cause IS logged so a real transport failure stays diagnosable.
-            logger.debug(
-                "Server %s does not support prompt resource discovery: %s: %s",
-                server_name,
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return []
-        try:
-            prompts = _bounded_prompt_catalog(result.resources)
-        except Exception as exc:  # noqa: BLE001 - a malformed prompt catalog
-            # from one server must not fail the tool probe that already
-            # succeeded. The cause IS logged.
-            logger.warning(
-                "Server %s returned an invalid prompt resource catalog: %s: %s",
-                server_name,
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return []
-        await self._harvest_resource_bodies(
-            server_name,
-            session,
-            prompts,
-            _PROMPT_HARVEST_SPEC,
-            self._read_prompt_body,
-            probe_deadline=probe_deadline,
-        )
-        return prompts
-
-    @staticmethod
-    async def _read_prompt_body(session: _typing.Any, uri: str, deadline: float) -> str:
-        """Read one prompt body with the shared bounded retry provider."""
-        return await MCPMultiplexer._read_resource_body(
-            session, uri, deadline, "prompt"
-        )
+        return resources, templates, native_prompts, errors
 
     @classmethod
     async def probe_declaration(
@@ -5396,45 +4128,28 @@ class MCPMultiplexer:
         ranked.sort(reverse=True)
         return [server for _coverage, _overlap, server in ranked]
 
-    def _collect_kind_embedding_targets(
-        self, server: str, kind: str, entries: _typing.Any, out: _EmbeddingTargets
-    ) -> None:
-        """Accumulate one server's tools OR skills into the embedding batch.
-
-        Each entry is namespaced by KIND as well as server: a skill and a tool
-        may legitimately share a name on the same server, and they must not
-        share one cached embedding.
-        """
-        for entry in entries or []:
-            name = entry.get("name")
-            if not name:
-                continue
-            key = f"{server}::{kind}::{name}"
-            out["names"].append((name, key))
-            if key in self._tool_embeddings:
-                continue
-            out["pending_text"].append(f"{name}. {entry.get('description', '')}"[:512])
-            out["pending_key"].append(key)
-
     def _collect_embedding_targets(self, probe: dict) -> _EmbeddingTargets:
-        """Every probed capability to embed — tools AND skills, in ONE pass.
+        """Every probed fleet tool to embed, in ONE pass.
 
-        Skills were previously skipped entirely, so `semantic.get(skill, ...)`
-        in discover_tools always returned 0.0 and skills were ranked on token
-        overlap alone while tools additionally got a cosine term. That is not
-        one capability space: whenever the embedder is warm — the production
-        condition this whole feature exists for — skills were structurally
-        under-ranked against tools for any query where intent similarity
-        matters more than literal token overlap.
+        Each entry is namespaced by server, so two servers exposing a
+        same-named tool never share one cached embedding.
         """
         out: _EmbeddingTargets = {"names": [], "pending_text": [], "pending_key": []}
         for server, info in probe.items():
             if info.get("error"):
                 continue
-            for kind in ("tools", "skills"):
-                self._collect_kind_embedding_targets(
-                    server, kind, info.get(kind, []), out
+            for entry in info.get("tools", []) or []:
+                name = entry.get("name")
+                if not name:
+                    continue
+                key = f"{server}::{name}"
+                out["names"].append((name, key))
+                if key in self._tool_embeddings:
+                    continue
+                out["pending_text"].append(
+                    f"{name}. {entry.get('description', '')}"[:512]
                 )
+                out["pending_key"].append(key)
         return out
 
     async def _embed_query_and_batch(
@@ -5590,49 +4305,6 @@ class MCPMultiplexer:
             "stale": is_stale,
         }
 
-    def _ranked_skill_entry(
-        self,
-        server: str,
-        entry: dict,
-        rank: _DiscoveryRanking,
-        probe_age: float | None,
-        is_stale: bool,
-    ) -> dict | None:
-        """One ranked fleet-served ``skill://`` row, or ``None`` when it does not
-        qualify. Scored with the SAME backbone as a tool row, so tools and
-        skills share one ranked capability space."""
-        skill = entry.get("name")
-        if not skill:
-            return None
-        desc = entry.get("description", "")
-        score = rank["semantic"].get(skill, 0.0) + self._relevance(
-            rank["query"], f"{skill} {desc}"
-        )
-        if score <= 0:
-            return None
-        capability = Capability(
-            kind="skill",
-            id=f"skill_{server}_{skill}",
-            name=skill,
-            description=desc,
-            score=score,
-            server=server,
-            source="fleet_probe",
-        )
-        return {
-            "kind": "skill",
-            "server": server,
-            "skill": skill,
-            "uri": entry.get("uri", ""),
-            "description": desc,
-            "score": round(score, 4),
-            "mountable": server in rank["catalog"],
-            "mounted": False,
-            "bind": capability.to_binding(),
-            "age_s": probe_age,
-            "stale": is_stale,
-        }
-
     def _ranked_server_entries(
         self,
         server: str,
@@ -5641,9 +4313,9 @@ class MCPMultiplexer:
         now: float,
         ttl: float,
     ) -> list[dict]:
-        """Every qualifying tool AND skill row for one probed server.
+        """Every qualifying tool row for one probed server.
 
-        Truthful freshness for every surfaced tool/skill (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog):
+        Truthful freshness for every surfaced tool (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog):
         a result served from a probe that ran seconds/minutes ago is still
         labelled with its real age, not presented as if it were just measured
         live. ``is_stale`` is computed from that age against the TTL
@@ -5655,10 +4327,6 @@ class MCPMultiplexer:
         rows: list[dict] = []
         for entry in info.get("tools", []):
             row = self._ranked_tool_entry(server, entry, rank, probe_age, is_stale)
-            if row is not None:
-                rows.append(row)
-        for entry in info.get("skills", []) or []:
-            row = self._ranked_skill_entry(server, entry, rank, probe_age, is_stale)
             if row is not None:
                 rows.append(row)
         return rows
@@ -5706,11 +4374,11 @@ class MCPMultiplexer:
         }
 
         # One ranked capability space (CONCEPT:AU-KG.retrieval.unified-capability-contract):
-        # fleet tools AND fleet-served skill:// resources are scored with the
-        # SAME token-overlap+semantic backbone and merged into one ``ranked``
-        # list, each item carrying a ``bind`` dict — the exact kwargs
-        # `graph_orchestrate` needs to run it — so a caller never has to know
-        # in advance whether the winning candidate is a tool or a skill.
+        # fleet tools are scored with the token-overlap+semantic backbone into
+        # one ``ranked`` list, each item carrying a ``bind`` dict — the exact
+        # kwargs `graph_orchestrate` needs to run it. Skills and prompts are
+        # not gateway capabilities: they reach the platform only as governed
+        # EG AgentComponents imported from connector packs (RF-ADR-009 §2.1).
         ranked: list[dict] = []
         unavailable: dict[str, str] = {}
         now = time.time()
@@ -6044,14 +4712,13 @@ class MCPMultiplexer:
         CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog — checks truthiness
         (non-empty), not merely ``self._catalog is not None``: calling
         :meth:`tool_dispatchable` on ANY instance — including a
-        freshly-constructed, never-served one (what ``source_sync``/a fleet
-        harvest builds standalone, D-SH-6, ``reports/deferred/
-        lane-skill-harvest.md``) — reaches :meth:`_server_for_prefixed`,
+        freshly-constructed, never-served one (what ``source_sync`` builds
+        standalone, D-SH-6) — reaches :meth:`_server_for_prefixed`,
         which lazily calls :meth:`load_catalog` as a side effect via
         :meth:`_build_prefix_map`. That side effect turns ``self._catalog``
         from ``None`` into (at least) ``{}``, so an ``is not None`` check
         would already read ``True`` by the time this runs — it is the
-        catalog being genuinely EMPTY (verified live in-pod: a harvest's
+        catalog being genuinely EMPTY (verified live in-pod: a
         throwaway instance resolved zero servers for both real probed tool
         names and an invented one) that distinguishes a non-serving instance,
         not whether ``load_catalog`` merely ran.
@@ -6235,8 +4902,6 @@ class MCPMultiplexer:
             await asyncio.gather(*inflight, return_exceptions=True)
         self._probe_inflight.clear()
         self._probe_tasks.clear()
-        self._discovery_binding_sidechannel.clear()
-        self._local_discovery_cache_authority.clear()
         # D-CDX-44: no lifecycle action needed on the mount-singleflight
         # futures themselves — each runs inside its OWN caller's task (never
         # a task this multiplexer spawned), so that caller's own cancellation
@@ -7219,7 +5884,12 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
     lifecycle, CONCEPT:AU-ECO.mcp.intent-surface-tool-lifecycle — notifying the client each time), plus
     the status tool."""
 
-    async def _find_tools(query: str, top_k: int = 0) -> _fastmcp_tools.ToolResult:
+    async def _find_tools(
+        query: str,
+        top_k: int = 0,
+        context_budget_tokens: int = 0,
+        capability_iris: list[str] | None = None,
+    ) -> _fastmcp_tools.ToolResult:
         _require_fleet_capability("discover")
         if not isinstance(query, str) or not 1 <= len(query) <= 4_096:
             raise _fastmcp_exceptions.ToolError(
@@ -7238,6 +5908,12 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
             "results": results,
             "unavailable": discovery["unavailable"],
         }
+        if context_budget_tokens:
+            from graph_os.fleet.decide_tools import assembled_tool_subset
+
+            payload["assembled"] = await assembled_tool_subset(
+                results, capability_iris or [], context_budget_tokens
+            )
         return _fastmcp_tools.ToolResult(
             content=[
                 mcp_types.TextContent(type="text", text=json.dumps(payload, indent=2))
@@ -7331,6 +6007,26 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
                         "type": "integer",
                         "description": "Max candidates to return (0 = server default).",
                         "default": 0,
+                    },
+                    "context_budget_tokens": {
+                        "type": "integer",
+                        "description": (
+                            "Optional context budget (256..1000000). When set, "
+                            "EG AgentAssemble proves the smallest tool subset "
+                            "covering capability_iris within it (evaluate-only; "
+                            "nothing is loaded). On abstention the ranked tools "
+                            "answer, with the reason. 0 = ranked discovery only."
+                        ),
+                        "default": 0,
+                    },
+                    "capability_iris": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "Native capability IRIs the task needs; the "
+                            "budgeted subset must cover them."
+                        ),
+                        "default": [],
                     },
                 },
                 "required": ["query"],
@@ -7616,23 +6312,6 @@ def attach_fleet_loader(
     # reader intentionally leaves this empty until the async composition root
     # calls refresh_engine_catalog(); it never consults the static file.
     mux.load_catalog()
-    # Reuse the host's one native WorkItem Tasks extension for owning-server
-    # follow-ups.  FastMCP 4 stores extensions by identifier; adding a second
-    # ``io.modelcontextprotocol/tasks`` extension would overwrite handlers and
-    # create an accidental parallel authority.  The private mapping is stable
-    # in the exact locked FastMCP 4.0.0b1 API and is guarded for older/degraded
-    # images where the extension was intentionally not mounted.
-    tasks_extension = getattr(mcp, "_extensions", {}).get(
-        "io.modelcontextprotocol/tasks"
-    )
-    if tasks_extension is not None:
-        setter = getattr(tasks_extension, "set_task_router", None)
-        if callable(setter):
-            setter(mux)
-        else:
-            logger.warning(
-                "native Tasks extension does not expose multiplexer route binding"
-            )
     # CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog — the always-load declaration is READ here
     # (synchronously, no I/O) but ACTED ON in the serving loop, on a session's
     # first request, by ``SessionVisibilityMiddleware``. Nothing is spawned at

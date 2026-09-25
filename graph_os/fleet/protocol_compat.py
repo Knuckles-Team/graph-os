@@ -423,6 +423,27 @@ def _source_floor_reconciliation(
     return shadow_requirement, divergence
 
 
+def _fastmcp_code_problems() -> list[str]:
+    """Verify the installed ``fastmcp-slim`` is the one ``fastmcp`` pins.
+
+    CONCEPT:AU-ECO.mcp.protocol-compat-bridge — EH-221. Since FastMCP 4 the
+    ``fastmcp`` distribution is a metadata shell: the importable ``fastmcp``
+    package ships in ``fastmcp-slim``, which ``fastmcp`` pins exactly. A
+    resolver override that replaces that pin (uv ``override-dependencies``)
+    can install ``fastmcp`` 4.0.5 metadata over ``fastmcp-slim`` 4.0.0b2 code,
+    and a check that reads only ``fastmcp``'s version reports the wrong
+    runtime as green. Returns ``[]`` when ``fastmcp`` declares no such pin.
+    """
+    requirement = _declared_runtime_floor("fastmcp", "fastmcp-slim")
+    if requirement is None:
+        return []
+    try:
+        installed: str | None = importlib.metadata.version("fastmcp-slim")
+    except importlib.metadata.PackageNotFoundError:
+        installed = None
+    return _requirement_problems("fastmcp-slim", installed, requirement)
+
+
 def check_mcp_sdk_floor(distribution: str = "graph-os") -> dict[str, Any]:
     """Compare installed MCP packages against GraphOS runtime requirements.
 
@@ -472,6 +493,7 @@ def check_mcp_sdk_floor(distribution: str = "graph-os") -> dict[str, Any]:
         installed_mcp = None
     mcp_requirement = _mcp_requirement()
     problems.extend(_requirement_problems("mcp", installed_mcp, mcp_requirement))
+    problems.extend(_fastmcp_code_problems())
 
     summary = (
         f"fastmcp={installed_fastmcp} (floor {fastmcp_requirement.specifier}), "

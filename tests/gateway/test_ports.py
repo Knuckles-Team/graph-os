@@ -25,14 +25,14 @@ class _Application:
     def engine(self) -> object:
         return self
 
+    def graph_client(self, graph: str) -> object:
+        return self
+
     def ensure_tools_registered(self) -> None:
         return None
 
     def mount_rest_routes(self, app: Any, *, prefix: str) -> None:
         app.append(prefix)
-
-    def remote_oauth_grant_bindings(self, actor: Any) -> tuple[Any, ...]:
-        return ()
 
     def toggle_states_batch(
         self, engine: Any, items: Sequence[tuple[str, str]]

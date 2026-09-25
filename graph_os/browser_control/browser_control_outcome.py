@@ -5,12 +5,6 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Literal
 
-from agent_utilities.knowledge_graph.core.work_durability import (
-    TERMINAL_WORK_ITEM_STATUSES,
-    cancel_work_item,
-    commit_result,
-    get_work_item,
-)
 from agent_utilities.security.persistence_privacy import persistence_reference
 
 from graph_os.browser_control.browser_control_api import BrowserCallReceipt
@@ -22,6 +16,12 @@ from graph_os.browser_control.browser_control_durability import commit_call_outc
 from graph_os.browser_control.browser_control_state import (
     BrowserControlMixinState,
     _ActiveCall,
+)
+from graph_os.browser_control.browser_control_work_items import (
+    TERMINAL_WORK_ITEM_STATUSES,
+    cancel_work_item,
+    commit_work_item,
+    get_work_item,
 )
 
 _COMPLETED_CACHE_SIZE = 256
@@ -157,8 +157,9 @@ class BrowserOutcomeMixin(BrowserControlMixinState):
             cancelled = await self._sync_runner(
                 lambda: cancel_work_item(
                     self._engine,
+                    active.channel.refs.tenant,
                     active.item_id,
-                    reason=persistence_reference(
+                    reason_ref=persistence_reference(
                         "browser_cancel",
                         error_code or "browser_call_cancelled",
                         namespace=active.request_digest,
@@ -274,27 +275,29 @@ class BrowserOutcomeMixin(BrowserControlMixinState):
         )
         if active.claim is not None:
             status = await self._sync_runner(
-                lambda: commit_result(
+                lambda: commit_work_item(
                     self._engine,
                     active.item_id,
                     active.claim or {},
                     outcome="failed",
                     error_ref=error_ref,
-                    retryable=False,
                 )
             )
             return status in {"committed", "noop"}
         cancelled = await self._sync_runner(
             lambda: cancel_work_item(
                 self._engine,
+                active.channel.refs.tenant,
                 active.item_id,
-                reason=error_ref,
+                reason_ref=error_ref,
             )
         )
         if cancelled:
             return True
         row = await self._sync_runner(
-            lambda: get_work_item(self._engine, active.item_id)
+            lambda: get_work_item(
+                self._engine, active.channel.refs.tenant, active.item_id
+            )
         )
         return bool(row and row.get("status") in TERMINAL_WORK_ITEM_STATUSES)
 

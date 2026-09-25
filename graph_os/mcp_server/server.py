@@ -284,15 +284,22 @@ def mcp_server() -> None:
 
             from graph_os.mcp_server.agent_control import register_graph_rlm
 
-            graph_compute = runtime._get_engine().graph_compute
-
             def client_for_session(session: Any) -> Any:
                 claims = session.engine_verified_context()
-                return graph_compute.for_graph(str(claims["tenant"])).async_client
+                return runtime.graph_client(str(claims["tenant"]))
 
             register_graph_rlm(
                 mcp,
                 client_for_session=client_for_session,
+            )
+
+            # Decide consumers (decide-consumers contract): install AU's
+            # runner and assembler for the process tenant now that a verified
+            # engine session exists. Unpublished points keep their fallback.
+            from graph_os.decide import install_decide_at_boot
+
+            install_decide_at_boot(
+                runtime.graph_client, bootstrap_session, runtime._get_engine()
             )
 
             # Self-composing co-services, phase 2: messaging now that a real engine
@@ -324,6 +331,7 @@ def mcp_server() -> None:
     finally:
         if co_service_supervisor is not None:
             co_service_supervisor.stop_all()
+        runtime._drain_engine_transport()
         runtime._PROCESS_SESSION = None
         runtime.set_process_session(None)
         runtime._stop_process_authority_supervisor()

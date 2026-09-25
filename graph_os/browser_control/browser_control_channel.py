@@ -69,11 +69,11 @@ async def _retire_channel_authority(service: Any, state: _ChannelState) -> None:
             if state.catalog_digest:
                 await service._sync_runner(
                     lambda: retire_catalog(
-                        service._authority, state.refs, state.catalog_digest
+                        service._engine, state.refs, state.catalog_digest
                     )
                 )
             await service._sync_runner(
-                lambda: _revoke_attended_arm(service._authority, state.refs)
+                lambda: _revoke_attended_arm(service._engine, state.refs)
             )
             return
         except asyncio.CancelledError:
@@ -136,7 +136,7 @@ class BrowserChannelMixin(BrowserControlMixinState):
             if existing is not None and not existing.closed:
                 raise RuntimeError("browser document already has an active channel")
             await self._sync_runner(
-                lambda: consume_attended_arm(self._authority, refs, now=self._clock())
+                lambda: consume_attended_arm(self._engine, refs, now=self._clock())
             )
             self._channels[binding.document_ref] = state
         return _Connection(self, state)
@@ -215,7 +215,9 @@ class BrowserChannelMixin(BrowserControlMixinState):
             state.tool_scope_digest = tool_scope_digest
             registration_task = asyncio.ensure_future(
                 self._sync_runner(
-                    lambda: register_catalog(self._authority, state.refs, message.tools)
+                    lambda: register_catalog(
+                        self._engine, state.refs, message.tools, now=self._clock()
+                    )
                 )
             )
             try:
@@ -223,7 +225,7 @@ class BrowserChannelMixin(BrowserControlMixinState):
             except asyncio.CancelledError:
                 await registration_task
                 await self._sync_runner(
-                    lambda: retire_catalog(self._authority, state.refs, catalog_digest)
+                    lambda: retire_catalog(self._engine, state.refs, catalog_digest)
                 )
                 raise
             state.catalog = {tool.tool_id: tool for tool in message.tools}

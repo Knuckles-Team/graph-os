@@ -5,10 +5,6 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Literal, cast
 
-from agent_utilities.knowledge_graph.core.work_durability import (
-    claim_specific,
-)
-
 from graph_os.browser_control.browser_control_api import (
     BrowserCallReceipt,
     BrowserCallRequest,
@@ -25,6 +21,7 @@ from graph_os.browser_control.browser_control_state import (
     _ActiveCall,
 )
 from graph_os.browser_control.browser_control_validation import verify_attended_arm
+from graph_os.browser_control.browser_control_work_items import claim_work_item
 
 _CANCEL_ACK_SECONDS = 2.0
 
@@ -135,10 +132,11 @@ class BrowserDispatchMixin(BrowserControlMixinState):
         if remaining < 0.001:
             raise PermissionError("browser call authority expires before dispatch")
         claim = await self._sync_runner(
-            lambda: claim_specific(
+            lambda: claim_work_item(
                 self._engine,
+                active.channel.refs.tenant,
                 active.item_id,
-                token=f"browser-control:{active.request_digest[:32]}",
+                worker_ref=f"browser-control:{active.request_digest[:32]}",
                 now=claim_now,
                 lease_ttl_s=min(
                     active.request.timeout_seconds + _CANCEL_ACK_SECONDS,

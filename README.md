@@ -54,7 +54,7 @@ the durable database, a connector implementation, or the browser UI.
 ## Key Capabilities
 
 - Serve local MCP over `stdio` and authenticated MCP over streamable HTTP.
-- Project the same governed operations through REST and unary A2A.
+- Project the same governed operations through REST and streaming A2A.
 - Discover, admit, supervise, and route the MCP connector fleet.
 - Apply identity, tenant, action-policy, idempotency, and provenance controls.
 - Host Agent Web UI and coordinate terminal, desktop, messaging, and attended

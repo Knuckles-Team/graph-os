@@ -1,4 +1,4 @@
-"""Unary A2A transport contracts."""
+"""A2A JSON-RPC transport contracts: unary methods and SSE streaming."""
 
 from __future__ import annotations
 
@@ -9,7 +9,12 @@ from fastapi.testclient import TestClient
 
 from graph_os.a2a.application import create_a2a_application
 from graph_os.a2a.authority import A2AIdempotencyConflict
-from graph_os.a2a.models import A2ARouteDecision, A2ATask, A2ATaskStatus
+from graph_os.a2a.models import (
+    A2ARouteDecision,
+    A2ATask,
+    A2ATaskState,
+    A2ATaskStatus,
+)
 from graph_os.a2a.service import A2AService
 
 
@@ -53,6 +58,9 @@ class Authority:
     async def cancel(self, task_id: str) -> A2ATask:
         return self.task.model_copy(update={"status": A2ATaskStatus(state="canceled")})
 
+    async def output(self, task_id: str) -> str | None:
+        return "the answer" if task_id == self.task.id else None
+
 
 def _app() -> tuple[Any, Authenticator, Authority]:
     auth = Authenticator()
@@ -76,7 +84,7 @@ def test_agent_card_is_authenticated_truthful_and_has_one_path() -> None:
     card = response.json()
     assert card["url"] == "http://testserver/a2a"
     assert card["capabilities"] == {
-        "streaming": False,
+        "streaming": True,
         "pushNotifications": False,
         "stateTransitionHistory": False,
     }
@@ -186,3 +194,143 @@ def test_json_rpc_preserves_service_error_translation() -> None:
         "code": -32009,
         "message": "idempotency conflict",
     }
+
+
+class ProgressAuthority(Authority):
+    """Walks submitted -> working -> completed across successive reads."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.states: list[A2ATaskState] = ["working", "working", "completed"]
+
+    async def get(self, task_id: str) -> A2ATask | None:
+        if task_id != self.task.id:
+            return None
+        if self.states:
+            state = self.states.pop(0)
+            self.task = self.task.model_copy(
+                update={"status": A2ATaskStatus(state=state, timestamp=state)}
+            )
+        return self.task
+
+
+async def _no_sleep(_seconds: float) -> None:
+    return None
+
+
+def _stream_app(authority: Authority) -> TestClient:
+    from graph_os.a2a.service import StreamPolicy
+
+    service = A2AService(
+        authority=authority,
+        router=Router(),
+        stream_policy=StreamPolicy(sleep=_no_sleep),
+    )
+    return TestClient(
+        create_a2a_application(service=service, authenticator=Authenticator())
+    )
+
+
+def _frames(body: str) -> list[dict[str, Any]]:
+    import json
+
+    frames = []
+    for block in body.strip().split("\n\n"):
+        fields = dict(line.split(": ", 1) for line in block.splitlines())
+        frame = json.loads(fields["data"])
+        frame["_id"] = fields.get("id")
+        frames.append(frame)
+    return frames
+
+
+_STREAM_MESSAGE = {
+    "role": "user",
+    "parts": [{"kind": "text", "text": "do work"}],
+    "messageId": "message-1",
+}
+
+
+def test_message_stream_follows_the_task_to_its_final_state() -> None:
+    client = _stream_app(ProgressAuthority())
+
+    response = client.post(
+        "/a2a",
+        headers={"Authorization": "Bearer verified", "Idempotency-Key": "send-key"},
+        json={
+            "jsonrpc": "2.0",
+            "id": "s",
+            "method": "message/stream",
+            "params": {"message": _STREAM_MESSAGE},
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    frames = _frames(response.text)
+    kinds = [frame["result"]["kind"] for frame in frames]
+    assert kinds == ["task", "status-update", "artifact-update", "status-update"]
+    answer = frames[2]["result"]["artifact"]["parts"][0]["text"]
+    assert answer == "the answer"
+    states = [
+        frame["result"]["status"]["state"]
+        for frame in frames
+        if frame["result"]["kind"] != "artifact-update"
+    ]
+    assert states == ["submitted", "working", "completed"]
+    assert [frame["result"].get("final") for frame in frames[-2:]] == [None, True]
+    assert all(frame["_id"] for frame in frames)
+
+
+def test_stream_requires_authentication_and_idempotency() -> None:
+    client = _stream_app(ProgressAuthority())
+    body = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "message/stream",
+        "params": {"message": _STREAM_MESSAGE},
+    }
+
+    assert client.post("/a2a", json=body).status_code == 401
+    missing_key = client.post(
+        "/a2a", headers={"Authorization": "Bearer verified"}, json=body
+    )
+    assert missing_key.status_code == 400
+
+
+def test_resubscribe_skips_the_state_the_client_already_saw() -> None:
+    authority = ProgressAuthority()
+    authority.states = ["completed"]
+    client = _stream_app(authority)
+    headers = {"Authorization": "Bearer verified"}
+    body = {
+        "jsonrpc": "2.0",
+        "id": "r",
+        "method": "tasks/resubscribe",
+        "params": {"id": authority.task.id},
+    }
+
+    first = _frames(client.post("/a2a", headers=headers, json=body).text)
+    assert [frame["result"]["kind"] for frame in first] == [
+        "artifact-update",
+        "status-update",
+    ]
+    assert first[-1]["result"]["final"] is True
+    seen = first[-1]["_id"]
+    again = client.post("/a2a", headers={**headers, "Last-Event-ID": seen}, json=body)
+    assert again.text == ""
+
+
+def test_resubscribe_to_an_unknown_task_reports_not_found() -> None:
+    client = _stream_app(ProgressAuthority())
+    response = client.post(
+        "/a2a",
+        headers={"Authorization": "Bearer verified"},
+        json={
+            "jsonrpc": "2.0",
+            "id": "x",
+            "method": "tasks/resubscribe",
+            "params": {"id": "a2a-" + "9" * 64},
+        },
+    )
+    frames = _frames(response.text)
+    assert frames[0]["error"]["code"] == -32001

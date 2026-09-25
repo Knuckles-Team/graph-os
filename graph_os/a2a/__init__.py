@@ -12,7 +12,7 @@ from .authority import (
     A2ATaskNotCancelable,
     WorkItemA2AAuthority,
 )
-from .composition import A2AComposition, compose_a2a
+from .composition import A2AComposition, compose_a2a, compose_a2a_service
 from .models import (
     A2AAgentCard,
     A2AListResult,
@@ -20,7 +20,16 @@ from .models import (
     A2ARouteDecision,
     A2ATask,
 )
-from .routing import A2AAssemblyUnavailable, A2ARouter, OrchestratorA2ARouter
+from .policy_training import (
+    compose_policy_training_path,
+    live_trainer_transport,
+    policy_records,
+)
+from .routing import (
+    A2AAssemblyUnavailable,
+    A2ARouter,
+    ControlPlaneA2ARouter,
+)
 from .service import A2ACardMetadata, A2AService
 
 __all__ = [
@@ -39,9 +48,13 @@ __all__ = [
     "A2ATaskAuthority",
     "A2ATaskNotCancelable",
     "AmbientA2AAuthenticator",
-    "OrchestratorA2ARouter",
+    "ControlPlaneA2ARouter",
     "WorkItemA2AAuthority",
     "compose_a2a",
+    "compose_a2a_service",
     "create_a2a_application",
     "create_a2a_handlers",
+    "compose_policy_training_path",
+    "live_trainer_transport",
+    "policy_records",
 ]

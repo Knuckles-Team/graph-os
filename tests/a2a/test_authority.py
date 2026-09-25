@@ -1,4 +1,4 @@
-"""Canonical WorkItem authority and fail-closed routing tests."""
+"""A2A projection over AU's typed control plane, and fail-closed routing."""
 
 from __future__ import annotations
 
@@ -6,139 +6,277 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from agent_utilities.api import (
+    AgentTaskDispatchResult,
+    CapabilityResolution,
+    WorkItemPage,
+    WorkItemSnapshot,
+    WorkItemSubmissionResult,
+)
+from agent_utilities.api.agent_control_contracts import AgentWorkItemNotCancelable
 
-from graph_os.a2a.authority import A2AIdempotencyConflict, WorkItemA2AAuthority
+from graph_os.a2a import authority as authority_module
+from graph_os.a2a.authority import (
+    A2AIdempotencyConflict,
+    A2ATaskNotCancelable,
+    WorkItemA2AAuthority,
+)
 from graph_os.a2a.models import A2AMessage, A2ARouteDecision, A2ATextPart
-from graph_os.a2a.routing import A2AAssemblyUnavailable, OrchestratorA2ARouter
+from graph_os.a2a.routing import A2AAssemblyUnavailable, ControlPlaneA2ARouter
+
+_SESSION = SimpleNamespace(tenant="tenant-a", actor=SimpleNamespace(actor_id="actor-a"))
+_OTHER = SimpleNamespace(tenant="tenant-a", actor=SimpleNamespace(actor_id="actor-b"))
 
 
 def _message(text: str = "do work") -> A2AMessage:
-    return A2AMessage(
-        role="user",
-        parts=[A2ATextPart(text=text)],
-        message_id="message-1",
-    )
+    return A2AMessage(role="user", parts=[A2ATextPart(text=text)], message_id="m-1")
 
 
-@pytest.mark.asyncio
-async def test_work_item_authority_reuses_one_store_for_lifecycle(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from agent_utilities.knowledge_graph.core import work_durability as work
+class _ControlPlane:
+    """An in-memory stand-in for AU's WorkItem-backed control plane."""
 
-    rows: dict[str, dict[str, Any]] = {}
-    enqueued: list[str] = []
-    session = SimpleNamespace(
-        tenant="tenant-a", actor=SimpleNamespace(actor_id="actor-a")
-    )
+    def __init__(self) -> None:
+        self.items: dict[str, WorkItemSnapshot] = {}
+        self.dispatched: list[str] = []
+        self.cancel_refused = False
+        self.dispatch_requests: list[Any] = []
+        self.outputs: dict[str, Any] = {}
 
-    class Engine:
-        _work_item_engine: Any
+    async def get_run_output(self, request: Any) -> Any:
+        return self.outputs.get(request.run_id)
 
-        def __init__(self) -> None:
-            self._work_item_engine = self
-
-        def query_cypher(self, _query: str, params: dict[str, Any]) -> list[Any]:
-            return [
-                value for key, value in sorted(rows.items()) if key > params["after"]
-            ][: params["limit"]]
-
-    engine = Engine()
-    authority = WorkItemA2AAuthority(lambda: engine)
-    monkeypatch.setattr(authority, "_session", lambda scope: session)
-    monkeypatch.setattr(authority, "_prepare_task", lambda _engine, text: text)
-    monkeypatch.setattr(
-        "graph_os.a2a.authority.persistence_reference",
-        lambda kind, value, **kwargs: f"{kind}-ref:{value}",
-    )
-
-    def submit(_engine: Any, **kwargs: Any) -> tuple[str, bool]:
-        item_id = work.orchestrator_work_item_id(kwargs["task_id"])
-        if item_id in rows:
-            return item_id, False
-        rows[item_id] = {
-            "id": item_id,
-            "kind": "orchestrator_task",
-            "tenant": kwargs["session"].tenant,
-            "created_by": kwargs["owner_ref"],
-            "status": "ready",
-            "updated_at": 1.0,
-            "metadata": kwargs["metadata"],
-        }
-        return item_id, True
-
-    monkeypatch.setattr(authority, "_submit", submit)
-    monkeypatch.setattr(
-        authority,
-        "_enqueue",
-        lambda _engine, **kwargs: enqueued.append(kwargs["task_id"]),
-    )
-    monkeypatch.setattr(
-        work, "get_work_item", lambda _engine, item_id: rows.get(item_id)
-    )
-
-    def cancel(_engine: Any, item_id: str, **kwargs: Any) -> bool:
-        rows[item_id]["status"] = "cancelled"
-        rows[item_id]["updated_at"] = 2.0
-        return True
-
-    monkeypatch.setattr(work, "cancel_work_item", cancel)
-    decision = A2ARouteDecision(agent_name="expert", selection_mode="test")
-    first = await authority.dispatch(
-        message=_message(), idempotency_key="same", decision=decision
-    )
-    replay = await authority.dispatch(
-        message=_message(), idempotency_key="same", decision=decision
-    )
-    assert replay.id == first.id
-    assert first.status.timestamp == "1970-01-01T00:00:01+00:00"
-    assert enqueued == [first.id, first.id]
-
-    loaded = await authority.get(first.id)
-    listed, cursor = await authority.list(cursor=None, limit=10)
-    cancelled = await authority.cancel(first.id)
-    assert loaded == first
-    assert listed == [first]
-    assert cursor is None
-    assert cancelled.status.state == "canceled"
-
-    with pytest.raises(A2AIdempotencyConflict):
-        await authority.dispatch(
-            message=_message("different"),
-            idempotency_key="same",
-            decision=decision,
-        )
-
-    second = await authority.dispatch(
-        message=_message("other"), idempotency_key="other", decision=decision
-    )
-    first_page, next_cursor = await authority.list(cursor=None, limit=1)
-    second_page, final_cursor = await authority.list(cursor=next_cursor, limit=1)
-    listed_ids = [first_page[0].id, second_page[0].id]
-    assert sorted(listed_ids) == sorted([first.id, second.id])
-    assert next_cursor is not None
-    assert final_cursor is None
-
-
-@pytest.mark.asyncio
-async def test_selected_tool_subset_is_refused_before_durable_admission() -> None:
-    authority = WorkItemA2AAuthority(lambda: pytest.fail("engine was accessed"))
-    with pytest.raises(A2AAssemblyUnavailable, match="cannot yet enforce"):
-        await authority.dispatch(
-            message=_message(),
-            idempotency_key="key",
-            decision=A2ARouteDecision(
-                agent_name="expert",
-                selected_tools=("graph_query",),
-                selection_mode="agent-assemble",
+    async def submit_agent_task(self, request: Any) -> AgentTaskDispatchResult:
+        self.dispatch_requests.append(request)
+        existing = self.items.get(request.work_item_id)
+        if existing is None:
+            existing = WorkItemSnapshot(
+                work_item_id=request.work_item_id,
+                kind="orchestrator_task",
+                status="ready",
+                metadata=dict(request.metadata),
+                version=1,
+                updated_at_ms=1_000,
+            )
+            self.items[request.work_item_id] = existing
+        self.dispatched.append(request.job_id)
+        created = len(self.dispatched) == 1
+        return AgentTaskDispatchResult(
+            capability=CapabilityResolution(
+                kind="agent",
+                name=request.agent_name,
+                score=1.0,
+                source="caller",
+                alternatives=(),
+            ),
+            admission=WorkItemSubmissionResult(
+                item=existing, created=created, replayed=not created
             ),
         )
 
+    async def get_work_item(self, request: Any) -> WorkItemSnapshot | None:
+        return self.items.get(request.work_item_id)
 
-@pytest.mark.asyncio
-async def test_context_budget_fails_closed_while_agent_assemble_is_unavailable() -> (
-    None
-):
-    router = OrchestratorA2ARouter(lambda: pytest.fail("engine was accessed"))
-    with pytest.raises(A2AAssemblyUnavailable, match="AgentAssemble"):
+    async def list_work_items(self, request: Any) -> WorkItemPage:
+        ordered = sorted(self.items)
+        start = int(request.cursor or 0)
+        page = ordered[start : start + request.limit]
+        more = start + request.limit < len(ordered)
+        return WorkItemPage(
+            items=tuple(self.items[key] for key in page),
+            next_cursor=str(start + request.limit) if more else None,
+        )
+
+    async def cancel_work_item(self, request: Any) -> WorkItemSnapshot | None:
+        if self.cancel_refused:
+            raise AgentWorkItemNotCancelable("in flight")
+        item = self.items[request.work_item_id].model_copy(
+            update={"status": "cancelled", "version": 2}
+        )
+        self.items[request.work_item_id] = item
+        return item
+
+
+@pytest.fixture
+def bound(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
+    current = [_SESSION]
+    monkeypatch.setattr(authority_module, "_resolve", lambda scope: current[0])
+    monkeypatch.setattr(
+        authority_module,
+        "persistence_reference",
+        lambda kind, value, **kwargs: f"{kind}:{kwargs.get('namespace')}:{value}",
+    )
+    return current
+
+
+async def test_lifecycle_uses_one_control_plane_store(bound) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+    decision = A2ARouteDecision(agent_name="expert", selection_mode="router")
+
+    task = await authority.dispatch(
+        message=_message(), idempotency_key="k1", decision=decision
+    )
+    replay = await authority.dispatch(
+        message=_message(), idempotency_key="k1", decision=decision
+    )
+
+    assert replay.id == task.id
+    assert len(plane.items) == 1
+    assert task.status.state == "submitted"
+    assert await authority.get(task.id) == task
+    tasks, cursor = await authority.list(cursor=None, limit=10)
+    assert [listed.id for listed in tasks] == [task.id] and cursor is None
+    cancelled = await authority.cancel(task.id)
+    assert cancelled.status.state == "canceled"
+
+
+async def test_reused_key_with_a_different_request_conflicts(bound) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+    decision = A2ARouteDecision(agent_name="expert", selection_mode="router")
+    await authority.dispatch(
+        message=_message("a"), idempotency_key="k", decision=decision
+    )
+
+    with pytest.raises(A2AIdempotencyConflict):
+        await authority.dispatch(
+            message=_message("b"), idempotency_key="k", decision=decision
+        )
+
+
+async def test_another_owner_cannot_read_list_or_cancel(bound) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+    task = await authority.dispatch(
+        message=_message(),
+        idempotency_key="k",
+        decision=A2ARouteDecision(agent_name="expert", selection_mode="router"),
+    )
+    bound[0] = _OTHER
+
+    assert await authority.get(task.id) is None
+    assert (await authority.list(cursor=None, limit=10))[0] == []
+    with pytest.raises(A2ATaskNotCancelable):
+        await authority.cancel(task.id)
+
+
+async def test_cursor_is_bound_to_its_owner(bound) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+    decision = A2ARouteDecision(agent_name="expert", selection_mode="router")
+    for key in ("k1", "k2"):
+        await authority.dispatch(
+            message=_message(), idempotency_key=key, decision=decision
+        )
+
+    first, cursor = await authority.list(cursor=None, limit=1)
+    assert len(first) == 1 and cursor is not None
+    second, final = await authority.list(cursor=cursor, limit=1)
+    assert len(second) == 1 and final is None
+    bound[0] = _OTHER
+    with pytest.raises(ValueError, match="cursor"):
+        await authority.list(cursor=cursor, limit=1)
+
+
+async def test_in_flight_cancel_is_not_cancelable(bound) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+    task = await authority.dispatch(
+        message=_message(),
+        idempotency_key="k",
+        decision=A2ARouteDecision(agent_name="expert", selection_mode="router"),
+    )
+    plane.cancel_refused = True
+
+    with pytest.raises(A2ATaskNotCancelable):
+        await authority.cancel(task.id)
+
+
+async def test_assembled_tool_subset_and_task_travel_with_the_dispatch(
+    bound,
+) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+
+    await authority.dispatch(
+        message=_message(),
+        idempotency_key="key",
+        decision=A2ARouteDecision(
+            agent_name="expert",
+            selected_tools=("graph_query",),
+            selection_mode="eg-agent-assemble",
+            task_iri="eg:task/research",
+        ),
+    )
+
+    request = plane.dispatch_requests[0]
+    assert request.allowed_tools == ("graph_query",)
+    assert request.task_iri == "eg:task/research"
+
+
+async def test_output_reads_only_an_owned_succeeded_run(bound) -> None:
+    from agent_utilities.api import RunOutput
+
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+    task = await authority.dispatch(
+        message=_message(),
+        idempotency_key="k",
+        decision=A2ARouteDecision(agent_name="expert", selection_mode="router"),
+    )
+    plane.outputs[task.id] = RunOutput(run_id=task.id, status="succeeded", output="42")
+
+    assert await authority.output(task.id) == "42"
+    plane.outputs[task.id] = RunOutput(run_id=task.id, status="running")
+    assert await authority.output(task.id) is None
+    bound[0] = _OTHER
+    assert await authority.output(task.id) is None
+
+
+@pytest.fixture
+def session_bound(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("agent_utilities.api.resolve_session", lambda *a, **k: _SESSION)
+
+
+async def test_a_budget_never_reaches_capability_search(session_bound) -> None:
+    router = ControlPlaneA2ARouter(
+        lambda session: pytest.fail("control plane accessed")
+    )
+    with pytest.raises(A2AAssemblyUnavailable, match="budgeted routing"):
         await router.route(_message(), context_budget_tokens=4096)
+
+
+async def test_unbudgeted_route_resolves_an_authorized_agent(session_bound) -> None:
+    class Plane:
+        async def resolve_capability(self, request: Any) -> CapabilityResolution:
+            assert request.task_iri == "eg:task/review"
+            return CapabilityResolution(
+                kind="agent",
+                name="expert",
+                component_id="agent:expert",
+                score=0.9,
+                source="eg_search",
+                alternatives=(),
+            )
+
+    router = ControlPlaneA2ARouter(lambda session: Plane())
+    message = A2AMessage(
+        role="user",
+        parts=[A2ATextPart(text="do work")],
+        message_id="m",
+        metadata={"graphOsTaskIris": ["eg:task/review"]},
+    )
+
+    decision = await router.route(message, context_budget_tokens=None)
+
+    assert decision.agent_name == "expert"
+    assert decision.task_iri == "eg:task/review"
+    assert decision.selected_tools == ()
+
+
+async def test_untyped_free_text_is_refused_before_any_search(session_bound) -> None:
+    router = ControlPlaneA2ARouter(
+        lambda session: pytest.fail("control plane accessed")
+    )
+    with pytest.raises(A2AAssemblyUnavailable, match="typed task"):
+        await router.route(_message(), context_budget_tokens=None)

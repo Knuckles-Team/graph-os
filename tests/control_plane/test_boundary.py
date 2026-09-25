@@ -37,6 +37,7 @@ def test_every_extracted_module_is_live_importable(module_name: str) -> None:
         "foundation",
         "migrations",
         "policy",
+        "policy_evolution",
         "projection",
         "retrieval",
         "runs",

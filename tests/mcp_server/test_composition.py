@@ -23,6 +23,7 @@ def test_native_action_route_contract_excludes_legacy_au_surface() -> None:
     assert runtime.ACTION_TOOL_ROUTES == {
         "browser_control": "/browser/control",
         "graph_a2a": "/graph/a2a",
+        "graph_policy_release": "/graph/policy/release",
     }
 
 
@@ -35,7 +36,6 @@ def test_bootstrap_exports_bind_runtime_host_state() -> None:
         ]
         is runtime._AUTHORITY_KEEPALIVE_ACTIVE
     )
-    assert runtime._get_engine.__globals__["_ENGINE_LOCK"] is runtime._ENGINE_LOCK
 
 
 @pytest.mark.asyncio
@@ -87,19 +87,6 @@ def test_gateway_adapter_satisfies_runtime_protocol() -> None:
     from graph_os.gateway.ports import GatewayApplicationPort
 
     assert isinstance(NativeGatewayApplication(), GatewayApplicationPort)
-
-
-def test_gateway_adapter_uses_native_oauth_binding_source(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    actor = object()
-    expected = (object(),)
-    monkeypatch.setattr(
-        "graph_os.fleet.multiplexer.current_remote_oauth_grant_bindings",
-        lambda value: expected if value is actor else (),
-    )
-
-    assert NativeGatewayApplication().remote_oauth_grant_bindings(actor) is expected
 
 
 def test_console_script_targets_native_serving_entrypoint() -> None:

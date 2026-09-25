@@ -1,10 +1,8 @@
 """Gateway callback + authorize routes for the remote browser-OAuth broker.
 
-CONCEPT:AU-ECO.mcp.remote-oauth-broker — Deliverable 2 of NE-008 (GOC-85
-follow-through, closing U-11/U-41/U-43/U-44/U-45's gateway gap): before this
-module, :mod:`agent_utilities.mcp.remote_oauth_broker` shipped a complete,
-tested broker CORE with no HTTP surface reachable from a browser — no route
-could ever call ``begin()``/``callback()``. This module is that surface.
+This module is the browser-reachable HTTP surface of
+:mod:`graph_os.fleet.remote_oauth_broker`: it is the only way a browser can
+reach ``begin()``/``callback()``/``revoke()``.
 
 Mirrors :mod:`graph_os.gateway.research_api` /
 :mod:`graph_os.gateway.ontology_api`: a plain ``fastapi.APIRouter``
@@ -84,7 +82,7 @@ def _default_provider_registry() -> Any:
     configuration disables the registry with a bounded diagnostic — never a
     silently-accepted malformed provider.
     """
-    from agent_utilities.mcp.remote_oauth_broker import (
+    from graph_os.fleet.remote_oauth_broker import (
         ProviderDescriptor,
         ProviderRegistry,
     )
@@ -117,7 +115,7 @@ def _default_provider_registry() -> Any:
 
 
 def _build_default_broker() -> Any:
-    from agent_utilities.mcp.remote_oauth_broker import RemoteOAuthBroker
+    from graph_os.fleet.remote_oauth_broker import RemoteOAuthBroker
 
     return RemoteOAuthBroker(registry=_default_provider_registry())
 
@@ -215,7 +213,7 @@ def _oauth_error_response(
     still server-logged for correlation. None of this module's own exception
     messages ever interpolate ``code``/``state``/a token value in the first
     place (checked against every raise site in
-    :mod:`agent_utilities.mcp.remote_oauth_broker`), so this is defense in
+    :mod:`graph_os.fleet.remote_oauth_broker`), so this is defense in
     depth, not the only thing standing between a secret and a response body.
     """
     from agent_utilities.security.error_surface import public_error_payload
@@ -247,7 +245,7 @@ async def authorize(provider_id: str, body: AuthorizeRequest) -> AuthorizeRespon
     authorization URL to send their browser to."""
     import asyncio
 
-    from agent_utilities.mcp.remote_oauth_broker import (
+    from graph_os.fleet.remote_oauth_broker import (
         OAuthBindingError,
         OAuthDiscoveryError,
         OAuthProviderError,
@@ -288,14 +286,15 @@ async def oauth_callback(code: str, state: str, browser_session_id: str) -> Any:
     """
     import asyncio
 
-    from agent_utilities.mcp.remote_oauth_broker import (
+    from starlette.responses import JSONResponse, RedirectResponse
+
+    from graph_os.fleet.remote_oauth_broker import (
         OAuthBindingError,
         OAuthDiscoveryError,
         OAuthRevokedError,
         OAuthScopeError,
         OAuthStateError,
     )
-    from starlette.responses import JSONResponse, RedirectResponse
 
     actor = _resolve_verified_actor()
     broker = _get_broker()
@@ -329,8 +328,9 @@ async def _revoke(provider_id: str) -> Any:
     """Revoke the verified caller's grant for one enabled provider."""
     import asyncio
 
-    from agent_utilities.mcp.remote_oauth_broker import OAuthProviderError
     from starlette.responses import Response
+
+    from graph_os.fleet.remote_oauth_broker import OAuthProviderError
 
     actor = _resolve_verified_actor()
     broker = _get_broker()

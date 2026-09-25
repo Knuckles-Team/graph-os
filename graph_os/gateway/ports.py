@@ -8,7 +8,6 @@ implementations by transport modules.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any, Protocol, runtime_checkable
 
 __all__ = [
@@ -28,14 +27,14 @@ class GatewayApplicationPort(Protocol):
     def engine(self) -> Any:
         """Return the process-scoped engine adapter used by host-only routes."""
 
+    def graph_client(self, graph: str) -> Any:
+        """Return the session-routed epistemic-graph client for one named graph."""
+
     def ensure_tools_registered(self) -> None:
         """Make the canonical action catalog available before routes are mounted."""
 
     def mount_rest_routes(self, app: Any, *, prefix: str) -> None:
         """Mount the canonical action-routed REST surface."""
-
-    def remote_oauth_grant_bindings(self, actor: Any) -> Sequence[Any]:
-        """Return current fleet OAuth bindings from the fleet authority."""
 
 
 _application: GatewayApplicationPort | None = None

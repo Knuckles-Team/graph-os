@@ -1669,6 +1669,23 @@ async def test_find_tools_meta_returns_structured(tmp_path):
     assert "unavailable" in payload
 
 
+async def test_find_tools_budget_names_why_it_fell_back(tmp_path, monkeypatch):
+    from fastmcp import FastMCP
+
+    monkeypatch.setattr("graph_os.decide.current_decide", lambda: None)
+    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
+    _seed_probe(mux, {CNT: [(CNT_TOOL, "manage docker containers")]})
+    mcp = FastMCP("test-mux")
+    _register_meta_tools(mcp, mux)
+    find = await mcp.get_tool("find_tools")
+
+    result = await find.fn(query="docker containers", context_budget_tokens=4096)
+
+    assembled = result.structured_content["assembled"]
+    assert assembled["decided"] is False and assembled["reason"] == "no_runner"
+    assert assembled["tool_ids"] == [CNT_PREFIXED]
+
+
 def test_prefix_sanity():
     # Guards the (server -> prefix) assumption the rest of the suite relies on.
     assert get_server_prefix(CNT) == "cm"

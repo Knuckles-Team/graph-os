@@ -1,12 +1,11 @@
-"""MCP/REST and native HTTP registration for the unary A2A facade."""
+"""MCP/REST and native HTTP registration for the A2A facade."""
 
 from __future__ import annotations
 
 from typing import Any, Literal
 
 from .application import AmbientA2AAuthenticator, create_a2a_handlers
-from .authority import WorkItemA2AAuthority
-from .routing import OrchestratorA2ARouter
+from .composition import compose_a2a_service, hosted_control_plane
 from .service import A2AService
 
 _SERVICE: A2AService | None = None
@@ -17,10 +16,8 @@ def _service() -> A2AService:
     if _SERVICE is None:
         from graph_os.mcp_server import runtime
 
-        provider = runtime._get_engine
-        _SERVICE = A2AService(
-            authority=WorkItemA2AAuthority(provider),
-            router=OrchestratorA2ARouter(provider),
+        _SERVICE = compose_a2a_service(
+            control_plane_for=hosted_control_plane(runtime.graph_client),
         )
     return _SERVICE
 
@@ -31,8 +28,9 @@ def register_a2a_tools(mcp: Any) -> None:
     @mcp.tool(
         name="graph_a2a",
         description=(
-            "Discover or manage governed unary A2A tasks. Actions: card, send, "
-            "get, list, cancel. Streaming and push are not supported."
+            "Discover or manage governed A2A tasks. Actions: card, send, get, "
+            "list, cancel. Streaming (message/stream, tasks/resubscribe) is "
+            "served on the native /a2a route; push notifications are not."
         ),
         tags={"graph-os", "a2a", "orchestration"},
     )
