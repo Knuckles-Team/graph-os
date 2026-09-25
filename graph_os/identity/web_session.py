@@ -74,7 +74,9 @@ def _sign_in_answer(opened: OpenedSession) -> Response:
 
 
 class _SessionRoutes:
-    def __init__(self, admission: AdmissionService, setup: SetupGate, role_of: RoleOf) -> None:
+    def __init__(
+        self, admission: AdmissionService, setup: SetupGate, role_of: RoleOf
+    ) -> None:
         self._admission = admission
         self._broker = admission.broker
         self._setup = setup
@@ -96,7 +98,9 @@ class _SessionRoutes:
         mode = await self._admission.mode()
         if mode is None:
             self._setup.announce()
-            return JSONResponse({"authenticated": False, "mode": None, "setup_required": True})
+            return JSONResponse(
+                {"authenticated": False, "mode": None, "setup_required": True}
+            )
         base = {"mode": mode, "banner": mode_banner(mode), "setup_required": False}
         view = await self._signed_in_view(request)
         if view is None and mode == "none":
@@ -109,8 +113,12 @@ class _SessionRoutes:
     async def _bootstrap_status(self, base: dict[str, Any]) -> Response:
         admitted = await self._admission.bootstrap()
         view = _principal_view(admitted.resolution, self._role_of)
-        body = {**base, **view, "authenticated": True,
-                "csrf_token": csrf_token_for(admitted.session_token)}
+        body = {
+            **base,
+            **view,
+            "authenticated": True,
+            "csrf_token": csrf_token_for(admitted.session_token),
+        }
         response = JSONResponse(body)
         name, value = session_cookie_header(admitted.session_token, _SESSION_MAX_AGE)
         response.headers.append(name.decode(), value.decode("latin-1"))
@@ -157,7 +165,9 @@ class _SessionRoutes:
             "password": string_field(body, "password", required=False),
             "must_change": True,
         }
-        request_body = {key: value for key, value in created.items() if value is not None}
+        request_body = {
+            key: value for key, value in created.items() if value is not None
+        }
         reply = await self._broker.engine.as_caller(
             caller_graph_session(self._admission, caller),
             IdentityCall("user", "create", request_body),
@@ -178,7 +188,9 @@ class _SessionRoutes:
         if purpose not in _RESET_PURPOSES:
             raise RouteError(400, "purpose_invalid")
         await self._broker.redeem_reset(
-            purpose, string_field(body, "token") or "", string_field(body, "new_password") or ""
+            purpose,
+            string_field(body, "token") or "",
+            string_field(body, "new_password") or "",
         )
         return JSONResponse({"reset": True})
 
@@ -193,7 +205,9 @@ class _SessionRoutes:
         return JSONResponse({"changed": True})
 
 
-def session_routes(admission: AdmissionService, setup: SetupGate, role_of: RoleOf) -> list[Route]:
+def session_routes(
+    admission: AdmissionService, setup: SetupGate, role_of: RoleOf
+) -> list[Route]:
     routes = _SessionRoutes(admission, setup, role_of)
     table = (
         ("/auth/session", routes.status, "GET"),
@@ -205,4 +219,7 @@ def session_routes(admission: AdmissionService, setup: SetupGate, role_of: RoleO
         ("/auth/password/reset", routes.reset, "POST"),
         ("/auth/password/change", routes.change_password, "POST"),
     )
-    return [Route(path, guarded(handler), methods=[method]) for path, handler, method in table]
+    return [
+        Route(path, guarded(handler), methods=[method])
+        for path, handler, method in table
+    ]

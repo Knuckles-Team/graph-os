@@ -29,7 +29,11 @@ from .engine import EngineIdentityPort, IdentityEngine, Resolution
 from .exchange import UpstreamVerifier, exchange_routes
 from .gate import IdentityGate
 from .issuer import IssuerSettings, LocalIssuer, SecretStore
-from .modes import NoneModeRequestGuard, default_mode_for_profile, refuse_unsafe_none_mode
+from .modes import (
+    NoneModeRequestGuard,
+    default_mode_for_profile,
+    refuse_unsafe_none_mode,
+)
 from .principal_session import session_for
 from .setup_gate import SetupGate
 from .web_factors import factor_routes, issuer_routes
@@ -87,7 +91,8 @@ class IdentityDeployment:
         )
         return cls(
             profile=profile,
-            seed_mode=_setting("GRAPHOS_AUTH_MODE") or default_mode_for_profile(profile),
+            seed_mode=_setting("GRAPHOS_AUTH_MODE")
+            or default_mode_for_profile(profile),
             none_ack=_setting("GRAPHOS_AUTH_NONE_EXPOSE"),
             none_hostname=_setting("GRAPHOS_AUTH_NONE_HOSTNAME"),
             setup_code=_setting("GRAPHOS_SETUP_CODE"),
@@ -126,10 +131,14 @@ class IdentityRuntime:
 
     def install(self, app: Any, role_of: Callable[[Iterable[str]], str | None]) -> None:
         """Install the identity gate as ``app``'s outermost identity layer."""
-        app.add_middleware(IdentityGate, admission=self.admission, routes=self.routes(role_of))
+        app.add_middleware(
+            IdentityGate, admission=self.admission, routes=self.routes(role_of)
+        )
 
 
-def self_minted_broker_session(broker_ref: Callable[[], IdentityBroker]) -> Callable[[], Any]:
+def self_minted_broker_session(
+    broker_ref: Callable[[], IdentityBroker],
+) -> Callable[[], Any]:
     """GraphOS's broker authority minted by its own issuer (tiny profile).
 
     With no external identity provider the local issuer IS the authority, so
@@ -169,4 +178,6 @@ def build_identity_runtime(
     broker = IdentityBroker(engine, issuer)
     holder.append(broker)
     admission = AdmissionService(broker, NoneModeRequestGuard(deployment.none_hostname))
-    return IdentityRuntime(deployment, broker, admission, SetupGate(deployment.setup_code))
+    return IdentityRuntime(
+        deployment, broker, admission, SetupGate(deployment.setup_code)
+    )

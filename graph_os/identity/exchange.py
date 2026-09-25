@@ -85,7 +85,9 @@ async def exchange_upstream(
         request["username_hint"] = assertion.username_hint
     if ip_prefix:
         request["ip_prefix"] = ip_prefix
-    reply = await broker.engine.broker(IdentityCall("credential", "external_login", request))
+    reply = await broker.engine.broker(
+        IdentityCall("credential", "external_login", request)
+    )
     if SignIn.parse(reply.expect("authenticate")).outcome != "ok":
         return None
     resolution = await broker.resolve_session(session)
@@ -96,7 +98,9 @@ async def exchange_upstream(
 
 
 def _invalid(reason: str = "invalid_grant") -> Response:
-    return JSONResponse({"error": reason}, status_code=400, headers={"cache-control": "no-store"})
+    return JSONResponse(
+        {"error": reason}, status_code=400, headers={"cache-control": "no-store"}
+    )
 
 
 class _Exchange:
@@ -112,14 +116,18 @@ class _Exchange:
             return None
         return self._broker.access_token(resolution, ("api_key",))
 
-    async def _upstream_token(self, subject_token: str, ip_prefix: str | None) -> str | None:
+    async def _upstream_token(
+        self, subject_token: str, ip_prefix: str | None
+    ) -> str | None:
         for verifier in self._upstream.values():
             assertion = await verifier.verify(subject_token)
             if assertion is not None:
                 return await exchange_upstream(self._broker, assertion, ip_prefix)
         return None
 
-    async def _issue(self, request: Request, token_type: str, subject_token: str) -> str | None:
+    async def _issue(
+        self, request: Request, token_type: str, subject_token: str
+    ) -> str | None:
         if token_type == API_KEY_TOKEN_TYPE:
             return await self._api_key_token(subject_token)
         if token_type in _UPSTREAM_TOKEN_TYPES:

@@ -149,4 +149,3 @@ class NoneModeRequestGuard:
 def mode_banner(mode: str) -> str | None:
     """The banner text for ``mode`` (only ``none`` has one)."""
     return NONE_MODE_BANNER if mode == "none" else None
-

@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from joserfc import jwt
-from joserfc.jwk import KeySet, RSAKey
+from joserfc.jwk import KeySet, KeySetSerialization, RSAKey
 
 from .engine import Resolution
 
@@ -104,7 +104,12 @@ def _new_key() -> dict[str, Any]:
 
 def _public(jwk: Mapping[str, Any]) -> dict[str, Any]:
     key = RSAKey.import_key(dict(jwk))
-    return {**key.as_dict(private=False), "kid": jwk["kid"], "use": "sig", "alg": "RS256"}
+    return {
+        **key.as_dict(private=False),
+        "kid": jwk["kid"],
+        "use": "sig",
+        "alg": "RS256",
+    }
 
 
 @dataclass(frozen=True)
@@ -196,7 +201,7 @@ class LocalIssuer:
                 return ring.kid
         raise RuntimeError("issuer key rotation lost every compare-and-set race")
 
-    def jwks(self) -> dict[str, Any]:
+    def jwks(self) -> KeySetSerialization:
         return {"keys": [dict(key) for key in self.ring().published(self._clock())]}
 
     def discovery(self) -> dict[str, Any]:
@@ -253,6 +258,7 @@ class LocalIssuer:
         key_set = KeySet.import_key_set(self.jwks())
         decoded = jwt.decode(token, key_set, algorithms=["RS256"])
         registry = jwt.JWTClaimsRegistry(
+            now=lambda: int(self._clock()),
             leeway=5,
             iss={"essential": True, "value": self._settings.issuer},
             aud={"essential": True, "value": self._settings.audience},
