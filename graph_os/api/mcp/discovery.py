@@ -81,7 +81,13 @@ async def find_visible(
         )
         entries.extend(_fleet_descriptor(item) for item in fleet)
     if intent and op is None:
-        ranked = resolver.rank("find", intent, entries, scope_ref=scope_ref, top_k=20)
+        routing = [
+            {**item, "op": item["id"]}
+            if item["kind"] == "fleet" and item.get("id")
+            else item
+            for item in entries
+        ]
+        ranked = resolver.rank("find", intent, routing, scope_ref=scope_ref, top_k=20)
         by_id = {str(item.get("id") or item["op"]): item for item in entries}
         entries = [
             by_id[item.descriptor.id] for item in ranked if item.descriptor.id in by_id
