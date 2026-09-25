@@ -1,7 +1,18 @@
 """MCPI-20 authority and engine contract checks."""
 
+from types import SimpleNamespace
+
+import pytest
+
 from graph_os.api.ops import graph, memory, ops, security, telemetry, usage
-from graph_os.api.registry import Confirm, Effect, EgMethod, PrincipalRule, Verb
+from graph_os.api.registry import (
+    Composite,
+    Confirm,
+    Effect,
+    EgMethod,
+    PrincipalRule,
+    Verb,
+)
 
 MODULES = (telemetry, security, ops, usage, memory, graph)
 
@@ -14,6 +25,8 @@ def test_domain_ops_bind_named_engine_contract_methods() -> None:
     all_ops = _specs()
     assert len(all_ops) == sum(len(module.specs()) for module in MODULES)
     for op in all_ops.values():
+        if isinstance(op.binding, Composite):
+            continue
         assert isinstance(op.binding, EgMethod)
         assert op.binding.service == op.binding.op
         for schema in (op.params, op.result):
@@ -56,3 +69,31 @@ def test_graph_reads_and_usage_bind_engine_without_local_store() -> None:
     assert derive.scopes == frozenset({"telemetry:derive"})
     assert derive.verb is Verb.ACT
     assert derive.effect is Effect.WRITE
+
+
+@pytest.mark.asyncio
+async def test_telemetry_fact_pages_fix_label_and_bound_limit() -> None:
+    calls = []
+
+    class Nodes:
+        async def list_by_label(self, label, limit, *, after):
+            calls.append((label, limit, after))
+            return [("fact:1", {"type": label})]
+
+    context = SimpleNamespace(client=SimpleNamespace(nodes=Nodes()))
+    all_ops = _specs()
+    result = await telemetry.facts_page_handler(
+        context, {"limit": 1, "cursor": "fact:0"}, all_ops["telemetry.anomalies"]
+    )
+    assert calls == [("HealthAnomaly", 1, "fact:0")]
+    assert result == {
+        "items": [{"id": "fact:1", "properties": {"type": "HealthAnomaly"}}],
+        "next_cursor": "fact:1",
+    }
+    await telemetry.facts_page_handler(context, {}, all_ops["telemetry.conformance"])
+    assert calls[-1] == ("ConformanceViolation", 50, None)
+    with pytest.raises(ValueError):
+        await telemetry.facts_page_handler(
+            context, {"limit": 0}, all_ops["telemetry.anomalies"]
+        )
+    assert len(calls) == 2
