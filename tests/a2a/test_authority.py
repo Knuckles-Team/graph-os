@@ -147,6 +147,7 @@ async def test_live_pending_plan_projects_input_required_without_raw_params(boun
         "op": "fleet.call",
         "params_digest": "b" * 64,
         "expires_at_ms": int(time.time() * 1000) + 600_000,
+        "principal": "actor-a",
         "preview": {"effect": "write", "summary": "Restart worker", "secret": "hide"},
         "params": {"host": "private"},
     }
@@ -192,6 +193,17 @@ async def test_live_pending_plan_projects_input_required_without_raw_params(boun
     )
     expired = await authority.get(task.id)
     assert expired is not None and expired.status.state == "working"
+    plane.items[item_id] = plane.items[item_id].model_copy(
+        update={
+            "metadata": plane.items[item_id].metadata
+            | {
+                "pending_input_request": marker
+                | {"principal": "actor-b"}
+            }
+        }
+    )
+    mismatched = await authority.get(task.id)
+    assert mismatched is not None and mismatched.status.state == "working"
 
 
 async def test_reused_key_with_a_different_request_conflicts(bound) -> None:

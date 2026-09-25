@@ -186,7 +186,7 @@ def _owned(item: WorkItemSnapshot | None, owner_ref: str) -> bool:
     )
 
 
-def project(item: WorkItemSnapshot) -> A2ATask:
+def project(item: WorkItemSnapshot, *, principal: str | None = None) -> A2ATask:
     """Project one owned WorkItem snapshot onto the public A2A task shape."""
     state = _STATE_MAP.get(item.status)
     if state is None:
@@ -197,7 +197,7 @@ def project(item: WorkItemSnapshot) -> A2ATask:
     from agent_utilities.observability.trace_ontology import trace_id
 
     timestamp = datetime.fromtimestamp(item.updated_at_ms / 1000, tz=UTC)
-    input_message = _pending_plan_message(item)
+    input_message = _pending_plan_message(item, principal=principal)
     if input_message is not None:
         state = "input-required"
     return A2ATask(
@@ -217,13 +217,20 @@ def project(item: WorkItemSnapshot) -> A2ATask:
     )
 
 
-def _pending_plan_message(item: WorkItemSnapshot) -> A2AInputMessage | None:
+def _pending_plan_message(
+    item: WorkItemSnapshot, *, principal: str | None
+) -> A2AInputMessage | None:
     """Expose only a live, well-formed approval marker from a running WorkItem."""
 
     if item.status not in {"leased", "running"}:
         return None
     marker = item.metadata.get("pending_input_request")
-    if not isinstance(marker, dict) or marker.get("kind") != "graphos.plan":
+    if (
+        not isinstance(marker, dict)
+        or marker.get("kind") != "graphos.plan"
+        or not principal
+        or marker.get("principal") != principal
+    ):
         return None
     plan_ref = marker.get("plan_ref")
     op = marker.get("op")
@@ -332,7 +339,7 @@ class WorkItemA2AAuthority:
             raise A2AIdempotencyConflict(
                 "A2A idempotency key was reused with a different request"
             )
-        return project(item)
+        return project(item, principal=str(session.actor.actor_id))
 
     async def _owned_item(
         self, control_plane: A2AControlPlanePort, task_id: str, owner_ref: str
@@ -343,9 +350,11 @@ class WorkItemA2AAuthority:
         return item if _owned(item, owner_ref) else None
 
     async def get(self, task_id: str) -> A2ATask | None:
-        _session, control_plane, owner_ref = self._bound("kg:read")
+        session, control_plane, owner_ref = self._bound("kg:read")
         item = await self._owned_item(control_plane, task_id, owner_ref)
-        return None if item is None else project(item)
+        return None if item is None else project(
+            item, principal=str(session.actor.actor_id)
+        )
 
     async def list(
         self, *, cursor: str | None, limit: int
@@ -360,7 +369,11 @@ class WorkItemA2AAuthority:
                 kind=_WORK_ITEM_KIND,
             )
         )
-        tasks = [project(item) for item in page.items if _owned(item, owner_ref)]
+        tasks = [
+            project(item, principal=str(session.actor.actor_id))
+            for item in page.items
+            if _owned(item, owner_ref)
+        ]
         return tasks, _encode_cursor(page.next_cursor, session.tenant, owner_ref)
 
     async def output(self, task_id: str) -> str | None:
