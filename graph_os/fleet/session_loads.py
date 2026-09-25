@@ -51,6 +51,15 @@ class SessionLoads:
     def loaded(self, key: str) -> frozenset[str]:
         return frozenset(self._session(key).items)
 
+    def active_keys(self) -> tuple[str, ...]:
+        """Keys whose bounded session state has not passed its idle deadline."""
+        now = self._clock()
+        return tuple(
+            key
+            for key, session in self._sessions.items()
+            if now - session.last_access < self.idle_ttl_seconds
+        )
+
     def load(
         self,
         key: str,
