@@ -108,7 +108,7 @@ include = ["graph_os*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-graph_os = ["ontology/**/*.ttl"]
+graph_os = ["ontology/**/*.ttl", "deployment/skill_graphs/**/*.md", "deployment/skill_graphs/**/*.py"]
 
 [tool.ruff]
 line-length = 88
