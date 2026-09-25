@@ -29,12 +29,6 @@
 
 [global]
 min_similarity          = 0.9      # ON (KISS's own duplicate-code check).
-orphan_module_enabled    = true    # ON — this IS graph-os's Python
-                                    # orphan-module wiring gate: an isolated
-                                    # module (no production fan-in/fan-out,
-                                    # no test-only import edge, not a
-                                    # recognized entry point) fails here. See
-                                    # AGENTS.md "Orphan-module wiring gate".
 duplication_enabled      = true
 comment_removal_enabled  = false
 docs_allowed             = ["./"]  # Every package docstring in this repo
@@ -42,6 +36,14 @@ docs_allowed             = ["./"]  # Every package docstring in this repo
                                     # `doc == 0` (default [] fires on every
                                     # docstring in the tree).
 orphan_allowed           = []
+# kiss 0.4.11 moved orphan detection from [global] orphan_module_enabled
+# (now an UNKNOWN key: kiss 0.4.12 silently drops the whole [global] table,
+# reverting docs_allowed to []) to [test] orphan_detection, enforced only by
+# the coverage-linked `kiss test`. `kiss check` -- and so kiss-census -- no
+# longer reports orphan modules.
+
+[test]
+orphan_detection         = true    # was [global] orphan_module_enabled = true
 
 [python]
 statements_per_function      = 119

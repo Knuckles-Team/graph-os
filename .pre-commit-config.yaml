@@ -98,8 +98,8 @@ repos:
     stages: [pre-commit, manual]
   - id: complexity-census
     stages: [pre-push, manual]
-  # also graph-os's Python orphan-module wiring gate (.kiss/kiss.toml
-  # orphan_module_enabled = true): one whole-package pass, enforced
+  # every KISS finding over the package (kiss 0.4.12 no longer reports
+  # orphan modules from `kiss check`; see .kiss/kiss.toml [test])
   - id: kiss-census
     stages: [pre-push, manual]
   - id: jscpd-differential
