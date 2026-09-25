@@ -19,6 +19,7 @@ from .engine import (
     IdentityUnavailable,
 )
 from .idp_common import dry_run
+from .issuer import Retirement
 
 __all__ = [
     "AdminAction",
@@ -223,13 +224,15 @@ async def execute_identity_op(context: Any, params: Mapping[str, Any], op: Any) 
     """Composite handler used by the shared API invoke chokepoint.
 
     The execution context supplies the caller's verified graph session and
-    tenant-bound EG client. Only mode transition uses the identity broker,
-    because it must rotate issuer keys before sending the EG transition.
+    tenant-bound EG client. Mode transitions and explicit issuer rotations use
+    the identity broker to rotate signing keys before recording the EG change.
     """
-    if op.id == "identity.mode.transition":
+    if op.id in {"identity.mode.transition", "identity.issuer.rotate"}:
         broker = context.services.get("identity")
         if broker is None:
             raise IdentityUnavailable("identity broker is unavailable")
+        if op.id == "identity.issuer.rotate":
+            return await _rotate_issuer(broker, context.caller.session)
         return await broker.transition(
             context.caller.session,
             params["to"],
@@ -243,6 +246,29 @@ async def execute_identity_op(context: Any, params: Mapping[str, Any], op: Any) 
             context.caller.session, params["idp_id"], params["claims"]
         )
     return await service.execute(op.id, context.caller.session, params)
+
+
+async def _rotate_issuer(broker: Any, caller_session: Any) -> Any:
+    """Rotate the signing ring and record its new kid under caller authority.
+
+    Rotation keeps the old public key published for one access-token lifetime.
+    If the EG write refuses, the operator may retry; the previous key remains
+    valid during the overlap window. There is no cross-store rollback primitive.
+    """
+    config = await broker.config(fresh=True)
+    kid = broker.issuer.rotate(Retirement.OVERLAP)
+    try:
+        reply = await broker.engine.as_caller(
+            caller_session,
+            IdentityCall(
+                "config",
+                "rotate_issuer",
+                {"expected_epoch": config["epoch"], "issuer_kid": kid},
+            ),
+        )
+    finally:
+        broker.forget_config()
+    return reply.expect("config")
 
 
 def _next_cursor(

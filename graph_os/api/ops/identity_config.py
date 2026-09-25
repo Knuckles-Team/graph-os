@@ -76,6 +76,7 @@ def specs() -> tuple[Any, ...]:
         ("identity.policy.set", PolicySet, ConfigValue, False),
         ("identity.mode.status", Empty, ConfigValue, True),
         ("identity.mode.transition", ModeTransition, ConfigValue, False),
+        ("identity.issuer.rotate", Empty, ConfigValue, False),
         ("identity.audit.list", AuditPage, Collection, True),
         ("identity.audit.export", AuditPage, Collection, True),
         ("identity.audit.verify", Empty, AuditVerification, True),
