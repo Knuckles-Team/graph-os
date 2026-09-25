@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager, contextmanager
 from typing import Any
 
@@ -414,3 +415,26 @@ async def test_service_client_binds_verified_service_claims() -> None:
         )
         async with bad.as_service("t1"):
             pass
+
+
+@pytest.mark.asyncio
+async def test_cancelled_mutation_audit_is_indeterminate() -> None:
+    class CancelRuntime(FakeRuntime):
+        async def dispatch(
+            self, op: OpSpec, params: dict[str, Any], context: Any
+        ) -> Any:
+            raise asyncio.CancelledError
+
+    app, _, events = services(
+        op(effect=Effect.WRITE, confirm=Confirm.NONE, idempotency=Idempotency.NATURAL),
+        runtime=CancelRuntime(),
+    )
+    with pytest.raises(asyncio.CancelledError):
+        await invoke(
+            "items.change",
+            {"subject": "item:1"},
+            caller(),
+            Surface.MCP,
+            services=app,
+        )
+    assert events[0]["result_status"] == "INDETERMINATE"

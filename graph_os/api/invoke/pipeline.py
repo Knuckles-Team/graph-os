@@ -290,8 +290,11 @@ async def invoke(
         )
         return OpResult(value=value)
     except TimeoutError:
-        status = "TIMEOUT"
-        return OpError(status)
+        status = "INDETERMINATE"
+        return OpError("TIMEOUT")
+    except asyncio.CancelledError:
+        status = "INDETERMINATE"
+        raise
     except Exception:
         status = "INTERNAL"
         return OpError(status)
