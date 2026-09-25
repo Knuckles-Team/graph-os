@@ -211,7 +211,9 @@ def _method_op(
         else PrincipalRule.ANY,
         idempotency=idempotency,
         stability=Stability(stability),
-        audit=AuditClass.EVENT if policy.get("audited") is True else AuditClass.NONE,
+        audit=AuditClass.EVENT
+        if effect is not Effect.READ or policy.get("audited") is True
+        else AuditClass.NONE,
     )
 
 
