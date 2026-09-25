@@ -98,3 +98,28 @@ def test_compat_detects_stable_breaks_but_allows_additive_changes() -> None:
     changes = gen_api._breaking_changes(before, after)
     assert any("new required params" in row for row in changes)
     assert any("removed result fields" in row for row in changes)
+
+
+def test_openapi_embeds_eg_schema_and_rewrites_local_refs(tmp_path: Path) -> None:
+    schemas = tmp_path / "schemas"
+    schemas.mkdir()
+    (schemas / "method.request.json").write_text(
+        json.dumps(
+            {
+                "$defs": {"Payload": {"type": "object"}},
+                "methods": {"Create": {"$ref": "#/$defs/Payload"}},
+            }
+        )
+    )
+    registry = _registry()
+    registry["ops"][0]["params"] = {
+        "eg_schema": "contract/schemas/method.request.json#/methods/Create"
+    }
+    result = gen_api._openapi(registry, tmp_path)
+    request = result["paths"]["/api/v1/ops/query.uql"]["post"]["requestBody"]
+    assert request["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/EgMethodRequest/methods/Create"
+    }
+    assert result["components"]["schemas"]["EgMethodRequest"]["methods"]["Create"] == {
+        "$ref": "#/components/schemas/EgMethodRequest/$defs/Payload"
+    }

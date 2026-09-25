@@ -104,16 +104,55 @@ def _descriptors(registry: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _schema(value: dict[str, Any]) -> dict[str, Any]:
+def _schema(
+    value: dict[str, Any], components: dict[str, Any], contract_root: Path | None
+) -> dict[str, Any]:
     if "schema" in value:
         return value["schema"]
     if "eg_schema" in value:
-        return {"$ref": f"/api/v1/eg-schemas/{value['eg_schema']}"}
+        reference = value["eg_schema"]
+        filename, separator, pointer = reference.partition("#")
+        if not separator or not filename.startswith("contract/schemas/"):
+            raise ValueError(f"invalid EG schema reference: {reference!r}")
+        relative = Path(filename.removeprefix("contract/"))
+        if ".." in relative.parts or contract_root is None:
+            raise ValueError(f"EG schema unavailable: {reference!r}")
+        name = "Eg" + "".join(part.title() for part in relative.stem.split("."))
+        if name not in components:
+            document = json.loads((contract_root / relative).read_bytes())
+            components[name] = _rewrite_schema_refs(document, name)
+        return {"$ref": f"#/components/schemas/{name}{pointer}"}
     raise ValueError(f"unknown schema reference: {value!r}")
 
 
-def _openapi(registry: dict[str, Any]) -> dict[str, Any]:
+def _rewrite_schema_refs(value: Any, name: str) -> Any:
+    if isinstance(value, list):
+        return [_rewrite_schema_refs(item, name) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: (
+                f"#/components/schemas/{name}{item[1:]}"
+                if key == "$ref" and isinstance(item, str) and item.startswith("#/")
+                else _rewrite_schema_refs(item, name)
+            )
+            for key, item in value.items()
+        }
+    return value
+
+
+def _openapi(
+    registry: dict[str, Any], contract_root: Path | None = None
+) -> dict[str, Any]:
     paths: dict[str, Any] = {}
+    components: dict[str, Any] = {}
+    if contract_root is None and any(
+        "eg_schema" in op[field]
+        for op in registry["ops"]
+        for field in ("params", "result")
+    ):
+        contract_root = Path(
+            str(importlib.resources.files("epistemic_graph") / "contract")
+        )
     for op in registry["ops"]:
         http = op.get("http") or {"method": "POST", "path": f"/api/v1/ops/{op['id']}"}
         path = http["path"]
@@ -126,12 +165,20 @@ def _openapi(registry: dict[str, Any]) -> dict[str, Any]:
             "tags": [op["id"].split(".", 1)[0]],
             "requestBody": {
                 "required": True,
-                "content": {"application/json": {"schema": _schema(op["params"])}},
+                "content": {
+                    "application/json": {
+                        "schema": _schema(op["params"], components, contract_root)
+                    }
+                },
             },
             "responses": {
                 "200": {
                     "description": "Operation result",
-                    "content": {"application/json": {"schema": _schema(op["result"])}},
+                    "content": {
+                        "application/json": {
+                            "schema": _schema(op["result"], components, contract_root)
+                        }
+                    },
                 },
                 "default": {"description": "GraphOS error envelope"},
             },
@@ -141,6 +188,7 @@ def _openapi(registry: dict[str, Any]) -> dict[str, Any]:
         "info": {"title": "GraphOS API", "version": str(registry["api_version"])},
         "x-registry-digest": registry["registry_digest"],
         "paths": paths,
+        "components": {"schemas": components},
     }
 
 
