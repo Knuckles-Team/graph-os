@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from graph_os.api.policy import PolicyGate, PolicyUnavailable
 from graph_os.api.registry import Surface, Verb
 from pydantic import BaseModel
 
@@ -31,7 +32,7 @@ class Caller:
     principal_kind: str = "human"
     delegated: bool = False
     authenticated: bool = True
-    effective_scopes: frozenset[str] = frozenset({"read", "write"})
+    effective_scopes: frozenset[str] = frozenset({"mcp:discover", "read", "write"})
     policy_revision: str = "rev-one"
     request_id: str = "request-one"
 
@@ -104,9 +105,11 @@ class Resolver:
 
 
 def _projection(
-    registry: Registry, *, policy: Any = lambda _op, _caller: True, fleet: Any = None
+    registry: Registry, *, policy_gate: Any = None, fleet: Any = None
 ) -> MCPProjection:
-    return MCPProjection(registry, object(), Resolver(), Caller, policy, fleet)
+    return MCPProjection(
+        registry, object(), Resolver(), Caller, policy_gate or PolicyGate("none"), fleet
+    )
 
 
 def test_find_merges_only_authorized_registry_and_filtered_fleet_entries() -> None:
@@ -121,7 +124,7 @@ def test_find_merges_only_authorized_registry_and_filtered_fleet_entries() -> No
         find_visible(
             registry=registry,
             caller=Caller(),
-            policy=lambda _op, _caller: True,
+            policy_gate=PolicyGate("none"),
             resolver=Resolver(),
             fleet_search=fleet,
             intent="things",
@@ -148,7 +151,7 @@ def test_real_resolver_keeps_distinct_fleet_items_when_merging_find() -> None:
         find_visible(
             registry=Registry(),
             caller=Caller(),
-            policy=lambda _op, _caller: True,
+            policy_gate=PolicyGate("none"),
             resolver=IntentResolver(),
             fleet_search=fleet,
             intent="search",
@@ -216,16 +219,33 @@ def test_resources_filter_operation_schemas_by_caller_authority() -> None:
     )
     registry = Registry(permitted, hidden)
 
-    def policy(_op: Any, _caller: Any) -> bool:
-        return True
-
-    assert registry_index(registry, Caller(), policy)["ops"] == ["things.read"]
+    gate = PolicyGate("none")
+    assert asyncio.run(registry_index(registry, Caller(), gate))["ops"] == [
+        "things.read"
+    ]
     assert (
-        operation_spec(registry, "things.read", Caller(), policy)["spec"]["id"]
+        asyncio.run(operation_spec(registry, "things.read", Caller(), gate))["spec"][
+            "id"
+        ]
         == "things.read"
     )
     with pytest.raises(ValueError, match="Unknown GraphOS operation"):
-        operation_spec(registry, "things.secret", Caller(), policy)
+        asyncio.run(operation_spec(registry, "things.secret", Caller(), gate))
+
+
+def test_unavailable_policy_refuses_discovery_and_nl_resolution() -> None:
+    class UnavailableGate:
+        async def visible(self, _items: Any, _caller: Any) -> Any:
+            raise PolicyUnavailable("PDP unavailable")
+
+    registry = Registry(_op("things.read", Verb.ASK, "read"))
+    projection = _projection(registry, policy_gate=UnavailableGate())
+    found = asyncio.run(dispatch_verb("find", projection, intent="things"))
+    asked = asyncio.run(dispatch_verb("ask", projection, intent="read things"))
+    assert found["error"]["code"] == "POLICY_UNAVAILABLE"
+    assert asked["error"]["code"] == "POLICY_UNAVAILABLE"
+    with pytest.raises(PolicyUnavailable):
+        asyncio.run(registry_index(registry, Caller(), UnavailableGate()))
 
 
 def test_six_tools_share_one_schema_and_digest_in_instructions() -> None:
