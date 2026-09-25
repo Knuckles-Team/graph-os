@@ -202,7 +202,16 @@ jobs:
           # cccc 1.6.0 is not published to crates.io (cccc-cli stops at 1.0.0);
           # install the upstream v1.6.0 tag by its immutable commit.
           cargo install --locked --git https://github.com/moznion/cccc --rev d728759323be5d9977b7390a27133e8eaf481f26 --root "$scanner_root/cccc" cccc-cli
-          cargo install --locked --version 0.4.10 --root "$scanner_root/kiss" kiss-ai
+          # kiss: upstream 0.4.12 + the inline-module fix, from the fork build
+          # (dsweet99/kiss#48). It prints the same `kiss 0.4.12` as crates.io, so
+          # prove the build: upstream aborts on `mod helper;` inside `mod tests {}`.
+          cargo install --locked --git https://github.com/Knucklessg1/kiss --rev 7f1c6785697d3fe9a41ceb8b8e5d0f615fb1f3d9 --root "$scanner_root/kiss" kiss-ai
+          probe="$RUNNER_TEMP/kiss-fork-probe"; mkdir -p "$probe/src/a/tests"
+          printf '[package]\nname = "probe"\nversion = "0.1.0"\nedition = "2024"\n' > "$probe/Cargo.toml"
+          printf 'pub mod a;\n' > "$probe/src/lib.rs"
+          printf 'pub fn a() {}\n#[cfg(test)]\nmod tests {\n    mod helper;\n}\n' > "$probe/src/a.rs"
+          printf '#[test]\nfn h() {}\n' > "$probe/src/a/tests/helper.rs"
+          (cd "$probe" && "$scanner_root/kiss/bin/kiss" check --lang rust .)
           cargo install --locked --version 0.1.2 --root "$scanner_root/dupehound" dupehound
           npm install --prefix "$scanner_root/npm" --no-package-lock --ignore-scripts --no-save --no-audit --no-fund \
             "jscpd@5.0.16"

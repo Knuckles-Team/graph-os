@@ -51,11 +51,13 @@ Recalibrate a threshold only from a reviewed measurement that explains why the
 metric misrepresents a class of code. Record the methodology beside the value;
 never tune a threshold merely to make the current tree pass.
 
-### Orphan-module rule — enforced
+### Orphan-module rule — not a `kiss check` rule since kiss 0.4.11
 
-`kiss-census` enforces every KISS finding over the package, and with
-`orphan_module_enabled = true` it also runs one whole-package orphan-module
-pass — see AGENTS.md "Orphan-module wiring gate (Python)".
+`kiss-census` enforces every KISS finding over the package. kiss 0.4.11 moved
+orphan detection from `[global] orphan_module_enabled` to `[test]
+orphan_detection`, enforced only by the coverage-linked `kiss test`, so the
+census no longer reports orphan modules. `.config/kiss.toml` keeps
+`orphan_detection = true` for `kiss test` runs.
 
 ## Running the scanners
 
@@ -63,7 +65,7 @@ pass — see AGENTS.md "Orphan-module wiring gate (Python)".
 pre-commit run -c .config/pre-commit.yaml complexity-staged                        # cccc, on the staged diff
 pre-commit run -c .config/pre-commit.yaml kiss-staged                              # KISS, on the staged diff
 pre-commit run -c .config/pre-commit.yaml complexity-census --hook-stage manual --all-files
-pre-commit run -c .config/pre-commit.yaml kiss-census --hook-stage manual --all-files    # whole package + orphan_module
+pre-commit run -c .config/pre-commit.yaml kiss-census --hook-stage manual --all-files    # whole package
 pre-commit run -c .config/pre-commit.yaml dupehound-changed
 pre-commit run -c .config/pre-commit.yaml jscpd-differential --hook-stage manual --all-files
 pre-commit run -c .config/pre-commit.yaml jscpd-census --hook-stage manual --all-files
