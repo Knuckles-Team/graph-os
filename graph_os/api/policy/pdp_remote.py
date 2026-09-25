@@ -6,7 +6,7 @@ import AU's MCP internals). It depends only on the ``eunomia-core`` schemas.
 * **Embedded**: one schema-validated, bounded policy file, evaluated in
   process with Eunomia's precedence: explicit deny, then explicit allow, then
   deny.
-* **Remote**: the PDP's ``check/bulk`` endpoint through AU's bounded,
+* **Remote**: the PDP's ``check/bulk`` endpoint through SDK's bounded,
   DNS-pinned HTTP boundary and the runtime ``eunomia`` TLS profile. Any
   transport, status or shape failure answers every check in the batch with a
   denial whose reason is :data:`UNAVAILABLE_REASON`, so an unreachable PDP
