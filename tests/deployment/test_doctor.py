@@ -765,7 +765,6 @@ def _skill_certification_config(
     )
 
 
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_skill_certification_doctor_skips_only_when_wholly_unconfigured(
     monkeypatch,
 ):
@@ -796,7 +795,6 @@ def test_skill_certification_doctor_skips_only_when_wholly_unconfigured(
     }
 
 
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_skill_certification_doctor_rejects_partial_configuration(
     tmp_path, monkeypatch
 ):
@@ -813,13 +811,13 @@ def test_skill_certification_doctor_rejects_partial_configuration(
     assert str(tmp_path) not in json.dumps(result, sort_keys=True)
 
 
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_skill_certification_doctor_proves_regular_material_and_commands(
     tmp_path, monkeypatch
 ):
     from agent_utilities.core import config as config_module
     from agent_utilities.core import paths
-    from agent_utilities.deployment import skill_validation_assets as assets
+
+    from graph_os.deployment import skill_validation_assets as assets
 
     cfg = _skill_certification_config(tmp_path)
     monkeypatch.setattr(config_module, "AgentConfig", lambda: cfg)
@@ -849,7 +847,6 @@ def test_skill_certification_doctor_proves_regular_material_and_commands(
     assert str(tmp_path) not in json.dumps(result, sort_keys=True)
 
 
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_skill_certification_doctor_fails_closed_without_exposing_material(
     tmp_path, monkeypatch
 ):
@@ -1074,8 +1071,8 @@ def test_production_certification_doctor_proves_complete_redacted_authority(
     verifier.assert_called_once()
 
 
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 @pytest.mark.parametrize("release_state", ("invalid", "unsigned", "wrong-matrix"))
+@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_production_certification_doctor_rejects_untrusted_release_redacted(
     tmp_path, monkeypatch, release_state
 ):

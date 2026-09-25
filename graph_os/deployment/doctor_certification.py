@@ -21,9 +21,7 @@ def _validate_skill_certification_regular_inputs(
     """
     from pathlib import Path
 
-    # Skill certification remains AU-owned product tooling.  The host doctor
-    # reports its readiness, but graph-os does not duplicate that implementation.
-    from agent_utilities.deployment.skill_validation_assets import _read_regular
+    from graph_os.deployment.skill_validation_assets import _read_regular
 
     if any(value is None for value in path_values):
         raise RuntimeError("skill_certification_path_missing")
@@ -57,9 +55,7 @@ def _validate_skill_certification_profile(
     """Bind the runtime profile to the *active* configuration; raise otherwise."""
     from agent_utilities.core.paths import config_dir
 
-    # Skill certification remains AU-owned product tooling; graph-os only
-    # consumes its validation helpers while reporting host readiness.
-    from agent_utilities.deployment.skill_validation_assets import (
+    from graph_os.deployment.skill_validation_assets import (
         _configuration_proof,
         _identity_authority_configuration,
         _json_without_duplicates,
@@ -360,14 +356,12 @@ def _cert_verify_release_manifest(cfg: Any) -> None:
     from pathlib import Path
 
     import yaml
+    from scripts.release import check_compatibility as compatibility
 
-    # Production release/certification assets remain AU-owned.  This host
-    # check intentionally consumes, rather than extracts, their validators.
-    from agent_utilities.deployment.skill_validation_assets import (
+    from graph_os.deployment.skill_validation_assets import (
         _json_without_duplicates,
         _read_regular,
     )
-    from scripts.release import check_compatibility as compatibility
 
     release_path = Path(str(cfg.cert_release_manifest))
     release = _json_without_duplicates(
