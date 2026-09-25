@@ -154,6 +154,8 @@ class IdentityRuntime:
 
 def self_minted_broker_session(
     broker_ref: Callable[[], IdentityBroker],
+    *,
+    process_key: bool = False,
 ) -> Callable[[], Any]:
     """GraphOS's broker authority minted by its own issuer (tiny profile).
 
@@ -170,7 +172,10 @@ def self_minted_broker_session(
     )
 
     def session() -> Any:
-        return session_for(broker_ref(), service, ("service",))
+        return session_for(
+            broker_ref(), service, ("process" if process_key else "service",),
+            process_key=process_key,
+        )
 
     return session
 
@@ -204,12 +209,16 @@ def build_identity_runtime(
     broker_session: Callable[[], Any] | None = None,
 ) -> IdentityRuntime:
     """Assemble the runtime; with no ``broker_session`` GraphOS self-mints it."""
-    issuer = LocalIssuer(secrets, deployment.issuer)
+    issuer = LocalIssuer(
+        secrets, deployment.issuer, process_key_enabled=deployment.profile == "tiny"
+    )
     holder: list[IdentityBroker] = []
     if engine is None:
         if client_for is None:
             raise ValueError("an identity engine or a graph client factory is required")
-        session_source = broker_session or self_minted_broker_session(lambda: holder[0])
+        session_source = broker_session or self_minted_broker_session(
+            lambda: holder[0], process_key=deployment.profile == "tiny"
+        )
         engine = EngineIdentityPort(client_for, session_source)
     broker = IdentityBroker(engine, issuer)
     holder.append(broker)
