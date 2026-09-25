@@ -65,19 +65,42 @@ DEFAULT_WEB_UI_HOST = "127.0.0.1"
 ACCESS_LOG_POLICY_ENV = "AGENT_WEBUI_ACCESS_LOG_POLICY"
 
 
-def compose_web_application(app: Any) -> None:
+def compose_web_application(
+    app: Any,
+    *,
+    api_services: Any = None,
+    api_visibility: Any = None,
+    console_origin: str | None = None,
+) -> None:
     """Mount GraphOS-owned REST routes into an Agent WebUI application.
 
     Agent WebUI owns browser/session presentation while GraphOS owns the
     gateway routes it exposes. The WebUI factory invokes this composer before
     installing its SPA catch-all and security middleware, so GraphOS does not
     import or modify WebUI internals and WebUI has no reverse dependency on
-    GraphOS.
+    GraphOS. The operation API is mounted only when invoke services and a
+    visibility policy are supplied by the serving composition.
     """
 
     from graph_os.gateway.graph_api import register_graph_routes
 
     register_graph_routes(app)
+    if (api_services is None) != (api_visibility is None):
+        raise RuntimeError("operation API requires services and visibility together")
+    if api_services is not None:
+        from graph_os.api.http import create_api_application
+        from graph_os.api.http.auth import AmbientHTTPAuthenticator
+
+        if not hasattr(app, "include_router"):
+            raise RuntimeError("operation API requires a FastAPI application")
+        api = create_api_application(
+            services=api_services,
+            visibility=api_visibility,
+            authenticator=AmbientHTTPAuthenticator(console_origin=console_origin),
+        )
+        # The projection owns full /api/v1 paths. Include its router before
+        # WebUI's SPA catch-all without mounting a second /api/v1 prefix.
+        app.include_router(api.router)
 
 
 async def _serve_until_stopped(
@@ -116,6 +139,8 @@ def run_web_ui(
     engine_factory: Callable[[], Any],
     host: str | None = None,
     port: int | None = None,
+    api_services: Any = None,
+    api_visibility: Any = None,
 ) -> None:
     """Serve the WebUI dashboard until ``stop_event`` is set.
 
@@ -223,11 +248,20 @@ def run_web_ui(
     # The identity broker owns every browser credential: /auth/*, sessions,
     # API keys and the none-mode bootstrap principal (graph_os.identity).
     identity = identity_factory(graph_client)
+
+    def compose(app: Any) -> None:
+        compose_web_application(
+            app,
+            api_services=api_services,
+            api_visibility=api_visibility,
+            console_origin=identity.console_origin(),
+        )
+
     app = create_agent_web_app(
         agent,
         workspace_helpers=helpers,
         listener_host=bind_host,
-        application_composer=compose_web_application,
+        application_composer=compose,
         session_boundary=identity.webui_session_boundary(),
         **contact_kwargs,
         **browser_control_kwargs,

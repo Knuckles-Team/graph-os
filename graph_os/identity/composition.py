@@ -15,6 +15,9 @@ gate. The deployment inputs are read once from the shared settings model:
 ``GRAPHOS_IDENTITY_ISSUER`` / ``GRAPHOS_IDENTITY_TENANT``
     The issuer URL the engine and clients trust, and the engine tenant tokens
     carry. Both are required outside the tiny profile.
+``GRAPHOS_CONSOLE_ORIGIN``
+    Exact HTTPS browser origin (or loopback HTTP origin) allowed to request
+    attended console operations. Without it, console mutations fail closed.
 """
 
 from __future__ import annotations
@@ -22,6 +25,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlsplit
 
 from .admission import AdmissionService
 from .broker import IdentityBroker
@@ -76,10 +80,28 @@ class IdentityDeployment:
     none_hostname: str | None
     setup_code: str | None
     issuer: IssuerSettings
+    console_origin: str | None = None
 
     @classmethod
     def from_settings(cls, config: Any) -> IdentityDeployment:
         profile = str(getattr(config, "deployment_profile", None) or "tiny")
+        console_origin = _setting("GRAPHOS_CONSOLE_ORIGIN")
+        if console_origin is not None:
+            parsed = urlsplit(console_origin)
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or console_origin != f"{parsed.scheme}://{parsed.netloc}"
+                or parsed.username is not None
+                or parsed.password is not None
+                or (
+                    parsed.scheme == "http"
+                    and parsed.hostname not in {"localhost", "127.0.0.1", "::1"}
+                )
+            ):
+                raise ValueError(
+                    "GRAPHOS_CONSOLE_ORIGIN must be an HTTPS origin or loopback HTTP origin"
+                )
         return cls(
             profile=profile,
             seed_mode=_setting("GRAPHOS_AUTH_MODE")
@@ -88,6 +110,7 @@ class IdentityDeployment:
             none_hostname=_setting("GRAPHOS_AUTH_NONE_HOSTNAME"),
             setup_code=_setting("GRAPHOS_SETUP_CODE"),
             issuer=_issuer_settings(profile, config),
+            console_origin=console_origin,
         )
 
 
@@ -173,7 +196,9 @@ def self_minted_broker_session(
 
     def session() -> Any:
         return session_for(
-            broker_ref(), service, ("process" if process_key else "service",),
+            broker_ref(),
+            service,
+            ("process" if process_key else "service",),
             process_key=process_key,
         )
 

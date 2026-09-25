@@ -11,5 +11,7 @@ class ServedIdentityPort(Protocol):
 
     def webui_session_boundary(self) -> Callable[[Any], None]: ...
 
+    def console_origin(self) -> str | None: ...
+
 
 ServedIdentityFactory = Callable[[Callable[[str], Any]], ServedIdentityPort]

@@ -73,6 +73,9 @@ class _WebUIIdentity:
     def webui_session_boundary(self) -> Callable[[Any], None]:
         return webui_session_boundary(self.runtime)
 
+    def console_origin(self) -> str | None:
+        return self.runtime.deployment.console_origin
+
 
 def served_webui_identity(client_for: Callable[[str], Any]) -> ServedIdentityPort:
     """Adapt the concrete broker once at the serving composition root."""
