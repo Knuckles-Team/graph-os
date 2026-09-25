@@ -400,9 +400,15 @@ async def test_public_eg_adapters_use_only_validated_wheel_contract(
             seen.append((method, kwargs))
             return {"subject": params["subject"]}
 
+    session = SimpleNamespace(
+        tenant="t1",
+        graph="tenant-a/research",
+        actor=SimpleNamespace(actor_id="user:1"),
+        ensure_authority_current=lambda: None,
+    )
     context = SimpleNamespace(
         client=PublicClient(),
-        caller=SimpleNamespace(tenant="t1"),
+        caller=SimpleNamespace(tenant="t1", principal="user:1", session=session),
         idempotency_key="request:1",
     )
     result = await serving.dispatch_public_eg_method(
@@ -411,5 +417,47 @@ async def test_public_eg_adapters_use_only_validated_wheel_contract(
     assert result == {"subject": "item:1"}
     assert seen == [
         ("GetItem", {"subject": "item:1"}),
-        ("GetItem", {"graph": "t1", "idempotency_key": "request:1"}),
+        (
+            "GetItem",
+            {"graph": "tenant-a/research", "idempotency_key": "request:1"},
+        ),
     ]
+
+
+@pytest.mark.asyncio
+async def test_public_eg_dispatch_uses_verified_graph_and_preserves_engine_denial() -> (
+    None
+):
+    class GrantCheckingClient:
+        async def invoke_method(self, method: str, params: Any, **kwargs: Any) -> Any:
+            if kwargs["graph"] not in {None, "tenant-a/allowed"}:
+                raise PermissionError("graph grant denied")
+            return kwargs["graph"]
+
+    session = SimpleNamespace(
+        tenant="tenant-a",
+        graph="tenant-a/allowed",
+        actor=SimpleNamespace(actor_id="user:1"),
+        ensure_authority_current=lambda: None,
+    )
+    caller = SimpleNamespace(tenant="tenant-a", principal="user:1", session=session)
+    context = SimpleNamespace(
+        client=GrantCheckingClient(), caller=caller, idempotency_key=None
+    )
+    binding = EgMethod(service="Items", op="GetItem")
+    assert (
+        await serving.dispatch_public_eg_method(binding, {}, context)
+        == "tenant-a/allowed"
+    )
+    session.graph = "tenant-a/denied"
+    with pytest.raises(PermissionError, match="graph grant denied"):
+        await serving.dispatch_public_eg_method(binding, {}, context)
+    session.graph = ""
+    assert await serving.dispatch_public_eg_method(binding, {}, context) is None
+    caller.session = None
+    with pytest.raises(PermissionError, match="verified graph session"):
+        await serving.dispatch_public_eg_method(binding, {}, context)
+    caller.session = session
+    caller.tenant = "other-tenant"
+    with pytest.raises(PermissionError, match="authority differ"):
+        await serving.dispatch_public_eg_method(binding, {}, context)

@@ -119,17 +119,34 @@ def validate_public_eg_params(
 async def dispatch_public_eg_method(
     binding: EgMethod, params: Mapping[str, Any], context: Any
 ) -> Any:
-    """Call the EG wheel's allowlisted public invoker under verified context."""
+    """Call EG under the verified session's graph, not its auth tenant.
+
+    An empty session graph selects the client's configured default. The EG
+    server checks the caller's graph grant for either target; a request param
+    cannot retarget the transport independently of the verified session.
+    """
 
     if not isinstance(binding, EgMethod):
         raise ValueError("EG method binding required")
+    caller = context.caller
+    session = caller.session
+    if session is None:
+        raise PermissionError("verified graph session required")
+    session.ensure_authority_current()
+    graph = session.graph
+    if (
+        not isinstance(graph, str)
+        or session.tenant != caller.tenant
+        or session.actor.actor_id != caller.principal
+    ):
+        raise PermissionError("graph target and verified caller authority differ")
     method = getattr(context.client, "invoke_method", None)
     if not callable(method):
         raise RuntimeError("public EG method invoker is unavailable")
     return await method(
         binding.op,
         dict(params),
-        graph=context.caller.tenant,
+        graph=graph or None,
         idempotency_key=context.idempotency_key,
     )
 
