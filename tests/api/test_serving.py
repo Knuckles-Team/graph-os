@@ -89,17 +89,30 @@ def ports(calls: list[tuple[str, str]]) -> serving.ServingPorts:
     async def audit(event: Any, audit_class: Any) -> None:
         calls.append(("audit", str(audit_class)))
 
+    async def audit_preflight(event: Any, audit_class: Any) -> str:
+        calls.append(("audit_preflight", str(audit_class)))
+        return "audit:durable:1"
+
+    def service_claims(tenant: str) -> dict[str, Any]:
+        return {
+            "principal": "svc:graph-os",
+            "tenant": tenant,
+            "scopes": ["items:service"],
+        }
+
     async def fleet_effect(operation: Any, params: Any, caller: Any) -> Any:
         raise AssertionError("not a fleet call")
 
     return serving.ServingPorts(
         caller_client=client,
         service_client=client,
+        service_claims=service_claims,
         check_access=check_access,
         eg_dispatch=dispatch,
         service_scopes=frozenset({"items:service"}),
         plan_client=PlanClient(),
         policy_gate=PolicyGate("none"),
+        audit_preflight=audit_preflight,
         audit_write=audit,
         schema_validate=lambda ref, params: params,
         fleet_effect=fleet_effect,
@@ -113,7 +126,10 @@ async def test_serving_factory_dispatches_under_verified_caller(
 ) -> None:
     monkeypatch.setattr(serving, "get_registry", lambda: Registry([op()]))
     calls: list[tuple[str, str]] = []
-    services = serving.build_invoke_services(ports(calls))
+    bound_ports = ports(calls)
+    services = serving.build_invoke_services(bound_ports)
+    assert services.audit_preflight is bound_ports.audit_preflight
+    assert services.runtime._service_claims is bound_ports.service_claims
     caller = VerifiedCaller(
         principal="user:1",
         tenant="t1",
@@ -143,6 +159,10 @@ def test_missing_ports_and_service_grants_fail_before_serving(
         serving.build_invoke_services(replace(basic, policy_gate=None))
     with pytest.raises(ValueError, match="eg_dispatch"):
         serving.build_invoke_services(replace(basic, eg_dispatch=None))
+    with pytest.raises(ValueError, match="service_claims"):
+        serving.build_invoke_services(replace(basic, service_claims=None))
+    with pytest.raises(ValueError, match="audit_preflight"):
+        serving.build_invoke_services(replace(basic, audit_preflight=None))
 
     service_op = op(
         executor=Executor.SERVICE,
