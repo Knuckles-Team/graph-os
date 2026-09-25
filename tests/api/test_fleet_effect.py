@@ -13,6 +13,7 @@ from graph_os.fleet.gateway_ops import (
     AdmittedTool,
     FleetGateway,
     annotation_effect,
+    compose_fleet_gateway,
     fleet_effect_for,
     oauth_delegated_call_for_mux,
     tool_for_multiplexer_ops,
@@ -264,3 +265,8 @@ async def test_admitted_tool_adapter_rejects_target_or_metadata_drift() -> None:
     ops.item.credential_mode = "unknown"
     with pytest.raises(RuntimeError, match="metadata is incomplete"):
         await tool_for("s", "t", caller)
+
+
+def test_gateway_composition_requires_all_authorities() -> None:
+    with pytest.raises(ValueError, match="authorities are required"):
+        compose_fleet_gateway(ops=None, mux=object(), policy_check=lambda *_: True)

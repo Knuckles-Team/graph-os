@@ -236,6 +236,25 @@ class FleetGateway:
         return await self._delegated_call(server, tool, arguments, caller)
 
 
+def compose_fleet_gateway(
+    *, ops: Any, mux: Any, policy_check: PolicyCheck
+) -> FleetGateway:
+    """Assemble the only supported caller-credential fleet boundary.
+
+    The served root must supply the same verified multiplexer operation service
+    used by the resident tools and an enabled call-policy check. Absent pieces
+    cannot be substituted with permissive defaults.
+    """
+    if ops is None or mux is None or policy_check is None:
+        raise ValueError("fleet gateway authorities are required")
+    return FleetGateway(
+        tool_for=tool_for_multiplexer_ops(ops),
+        policy_check=policy_check,
+        delegated_call=oauth_delegated_call_for_mux(mux),
+        catalog_ops=ops,
+    )
+
+
 def fleet_effect_for(
     descriptor_for: DescriptorFor,
 ) -> Callable[
