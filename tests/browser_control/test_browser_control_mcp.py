@@ -49,7 +49,9 @@ async def test_browser_control_registers_one_mcp_rest_workflow_dispatch(
     try:
         browser_control_mcp.register_browser_control_tools(mcp)
         assert runtime.REGISTERED_TOOLS["browser_control"] is tools["browser_control"]
-        assert runtime.ACTION_TOOL_ROUTES["browser_control"] == "/browser/control"
+        from graph_os.api.ops.browser import operations
+
+        assert "browser.issue_lease" in {op.id for op in operations()}
         raw = await tools["browser_control"](
             action="issue_lease",
             payload={

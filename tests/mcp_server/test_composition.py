@@ -19,14 +19,15 @@ from graph_os.mcp_server.composition import (
 from graph_os.mcp_server.server import _register_semantic_content
 
 
-def test_native_action_route_contract_excludes_legacy_au_surface() -> None:
-    assert runtime.ACTION_TOOL_ROUTES == {
-        "browser_control": "/browser/control",
-        "graph_a2a": "/graph/a2a",
-        "graph_elevation": "/graph/elevation",
-        "graph_finance": "/graph/finance",
-        "graph_policy_release": "/graph/policy/release",
-    }
+def test_action_route_twins_are_retired_in_favor_of_operation_api() -> None:
+    assert not hasattr(runtime, "ACTION_TOOL_ROUTES")
+    assert not hasattr(runtime, "_make_tool_endpoint")
+    from graph_os.api.http.protocol_routes import PROTOCOL_ROUTES
+
+    paths = {route.path for route in PROTOCOL_ROUTES}
+    assert "/fleet/events" in paths
+    assert "/mcp" in paths
+    assert "/api/sparql" not in paths
 
 
 def test_bootstrap_exports_bind_runtime_host_state() -> None:
