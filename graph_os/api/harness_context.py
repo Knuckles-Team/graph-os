@@ -32,6 +32,24 @@ class ContextCapabilityProof:
     operations: frozenset[str]
 
 
+def context_endpoint_payload(
+    endpoint: McpEndpoint, proof: ContextCapabilityProof
+) -> dict[str, object]:
+    """Stable reference-only JSON projection for the served API operation."""
+
+    if endpoint.url != proof.endpoint_url:
+        raise ContextEndpointUnavailable("EG MCP proof does not match endpoint")
+    return {
+        "endpoint": endpoint.model_dump(mode="json"),
+        "proof": {
+            "endpoint_url": proof.endpoint_url,
+            "registry_digest": proof.registry_digest,
+            "tools": sorted(proof.tools),
+            "operations": sorted(proof.operations),
+        },
+    }
+
+
 BearerResolver = Callable[[str], Awaitable[str]]
 
 
