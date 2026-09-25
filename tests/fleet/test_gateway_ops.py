@@ -233,3 +233,50 @@ async def test_combined_source_admits_only_registered_eg_server() -> None:
     assert [item.id for item in items] == ["connector:p/sync", "fleet:tool:good/read"]
     assert items[1].description == "EG description"
     assert items[1].schema == {"type": "object"}
+
+
+@pytest.mark.asyncio
+async def test_composition_binds_verified_reader_without_starting_probe() -> None:
+    from graph_os.fleet.catalog_composition import compose_multiplexer_ops
+
+    class Reader:
+        async def read(self):
+            return SimpleNamespace(servers=())
+
+    class Mux:
+        _probe_cache = {"unregistered": {"tools": [{"name": "leak"}]}}
+
+        def status_snapshot(self):
+            return {"children": {"s": {"healthy": True}}}
+
+    async def sdk():
+        return ()
+
+    async def visible(_item, _caller):
+        return True
+
+    async def mount(_item, _forwarder):
+        return None
+
+    async def notify(_session):
+        return True
+
+    async def invoke(*_args):
+        return None
+
+    ops = compose_multiplexer_ops(
+        reader=Reader(),
+        mux=Mux(),
+        sdk_entries=sdk,
+        visible=visible,
+        loadable=visible,
+        mount=mount,
+        notify=notify,
+        invoke=invoke,
+    )
+    caller = SimpleNamespace(effective_scopes=frozenset({"mcp:discover"}))
+    assert await ops.find_tools(caller, browse=True) == {
+        "items": [],
+        "next_cursor": None,
+    }
+    assert ops.multiplexer_status("session")["children"]["s"]["healthy"] is True
