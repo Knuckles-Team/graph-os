@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "name": "authority-parity",
+  "default_effect": "deny",
+  "rules": [
+    {
+      "name": "deny-backup-for-non-admin",
+      "effect": "deny",
+      "principal_conditions": [{"path": "attributes.is_admin", "operator": "equals", "value": false}],
+      "resource_conditions": [{"path": "attributes.op_id", "operator": "equals", "value": "ops.backup"}],
+      "actions": ["discover", "load", "call"]
+    },
+    {
+      "name": "deny-private-fleet-to-non-admin",
+      "effect": "deny",
+      "principal_conditions": [{"path": "attributes.is_admin", "operator": "equals", "value": false}],
+      "resource_conditions": [{"path": "uri", "operator": "equals", "value": "fleet:tool:sample/private"}],
+      "actions": ["discover", "load", "call"]
+    },
+    {
+      "name": "allow-exact-authority",
+      "effect": "allow",
+      "principal_conditions": [],
+      "resource_conditions": [],
+      "actions": ["discover", "load", "call"]
+    }
+  ]
+}

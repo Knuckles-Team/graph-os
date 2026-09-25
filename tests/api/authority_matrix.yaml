@@ -1,0 +1,29 @@
+{
+  "principals": {
+    "reader": {"kind": "human", "scopes": ["mcp:discover", "graph:read"]},
+    "operator": {"kind": "human", "scopes": ["mcp:discover", "service:control", "admin:backup"]},
+    "admin": {"kind": "human", "scopes": ["mcp:discover", "mcp:admin", "admin:backup", "graph:read"]},
+    "delegated_admin": {"kind": "human", "delegated": true, "scopes": ["mcp:discover", "mcp:admin", "admin:backup"]},
+    "service": {"kind": "service", "scopes": ["mcp:discover", "admin:cluster-read"]}
+  },
+  "ops": {
+    "ops.graphs.list": {"reader": "OK", "operator": "SCOPE_REQUIRED", "admin": "OK", "delegated_admin": "SCOPE_REQUIRED", "service": "SCOPE_REQUIRED"},
+    "ops.health": {"reader": "SCOPE_REQUIRED", "operator": "OK", "admin": "SCOPE_REQUIRED", "delegated_admin": "SCOPE_REQUIRED", "service": "SCOPE_REQUIRED"},
+    "ops.shards.plan": {"reader": "PRINCIPAL_NOT_ALLOWED", "operator": "PRINCIPAL_NOT_ALLOWED", "admin": "PRINCIPAL_NOT_ALLOWED", "delegated_admin": "PRINCIPAL_NOT_ALLOWED", "service": "OK"},
+    "ops.backup": {"reader": "SCOPE_REQUIRED", "operator": "POLICY_DENIED", "admin": "OK", "delegated_admin": "PRINCIPAL_NOT_ALLOWED", "service": "PRINCIPAL_NOT_ALLOWED"}
+  },
+  "surface_projections": ["mcp", "http", "a2a"],
+  "fleet_items": {
+    "fleet:tool:sample/public": {"scopes": ["graph:read"], "allow": ["reader", "admin"]},
+    "fleet:tool:sample/private": {"scopes": ["graph:read"], "allow": ["admin"]}
+  },
+  "pending_live_binders": [
+    "MCP verb and resident multiplexer execution through the composed server",
+    "loaded native forwarder and policy-revision invalidation",
+    "HTTP operation endpoint and /api/v1/registry through admitted identity",
+    "A2A graphos.op/invoke and filtered card through admitted identity",
+    "GET /api/v1/fleet/catalog and fleet.catalog.search parity",
+    "all generated EG operations after pinned EG scope contract regeneration",
+    "EG errors.json exhaustive mapping"
+  ]
+}
