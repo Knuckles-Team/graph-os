@@ -15,6 +15,8 @@ Notify = Callable[[str], Awaitable[bool]]
 Invoke = Callable[[str, Mapping[str, Any], Any, str], Awaitable[Any]]
 Health = Callable[[], Mapping[str, Any]]
 SessionKeyFor = Callable[[Any], str | None]
+NativeName = Callable[[CatalogItem], str]
+ReadItem = Callable[[CatalogItem, Mapping[str, Any], Any], Awaitable[Any]]
 
 
 class MultiplexerOps:
@@ -37,6 +39,8 @@ class MultiplexerOps:
         health: Health,
         session_key_for: SessionKeyFor | None = None,
         callable_item: Loadable | None = None,
+        native_name: NativeName | None = None,
+        read_item: ReadItem | None = None,
     ) -> None:
         self.catalog = catalog
         self.sessions = sessions
@@ -47,6 +51,10 @@ class MultiplexerOps:
         self._health = health
         self._session_key_for = session_key_for or (lambda _caller: None)
         self._callable_item = callable_item
+
+        self._native_name = native_name or (lambda item: item.id)
+        self._native_ids: dict[str, str] = {}
+        self._read_item = read_item
 
     async def admitted_tool(self, caller: Any, server: str, tool: str) -> CatalogItem:
         """Return one call-authorized descriptor without requiring discovery scope."""
@@ -182,13 +190,12 @@ class MultiplexerOps:
 
         return call
 
-    @staticmethod
-    def _loaded_result(item: CatalogItem) -> dict[str, Any]:
+    def _loaded_result(self, item: CatalogItem) -> dict[str, Any]:
         result = item.public()
         if item.kind == "tool":
             result.update(
                 {
-                    "callable_as": item.id,
+                    "callable_as": self._native_name(item),
                     "input_schema": dict(item.schema),
                     "fallback": {
                         "verb": "act",
@@ -201,7 +208,13 @@ class MultiplexerOps:
                     },
                 }
             )
-        elif item.kind in {"skill", "prompt"}:
+        elif item.kind == "prompt":
+            result["prompt_name"] = self._native_name(item)
+            if item.body is not None:
+                result["body"] = item.body
+        elif item.kind == "resource":
+            result["uri"] = self._native_name(item)
+        elif item.kind == "skill":
             result["body"] = item.body
         return result
 
@@ -236,6 +249,21 @@ class MultiplexerOps:
         for item in resolved:
             if item.kind == "connector_item":
                 continue
+            if item.kind in {"tool", "prompt", "resource", "resource_template"}:
+                name = self._native_name(item)
+                prior = self._native_ids.get(name)
+                if prior is not None and prior != item.id:
+                    raise ValueError(f"native fleet name collision: {name}")
+                self._native_ids[name] = item.id
+            if item.kind == "skill":
+                # A skill body is returned in the load result until a native
+                # Skills-over-MCP provider is bound for this client profile.
+                continue
+            if (
+                item.kind in {"resource", "resource_template"}
+                and self._read_item is None
+            ):
+                raise RuntimeError("governed fleet read adapter is unavailable")
             await self._mount(
                 item, self._forwarder(item) if item.kind == "tool" else None
             )
@@ -307,7 +335,33 @@ class MultiplexerOps:
         return sorted(removed)
 
     def dispatchable(self, session_key: str, item_id: str) -> bool:
-        return item_id in self.sessions.loaded(session_key)
+        return self._native_ids.get(item_id) in self.sessions.loaded(session_key)
+
+    def catalog_id_for_native(self, name: str) -> str | None:
+        return self._native_ids.get(name)
+
+    async def read_loaded_item(
+        self,
+        caller: Any,
+        session_key: str,
+        item_id: str,
+        params: Mapping[str, Any],
+    ) -> Any:
+        """Render one loaded non-tool item under fresh caller policy."""
+        if "mcp:delegate" not in caller.effective_scopes:
+            raise PermissionError("mcp:delegate is required")
+        if item_id not in self.sessions.loaded(session_key):
+            raise PermissionError("item is not loaded in this session")
+        item = await self.catalog.get(item_id, caller)
+        if item is None or not await self._loadable(item, caller):
+            raise PermissionError("item is unavailable")
+        if item.kind in {"prompt", "skill"} and item.body is not None:
+            return item.body
+        if item.kind not in {"prompt", "resource", "resource_template"}:
+            raise ValueError("item has no read surface")
+        if self._read_item is None:
+            raise RuntimeError("governed fleet read adapter is unavailable")
+        return await self._read_item(item, params, caller)
 
     def multiplexer_status(self, session_key: str) -> dict[str, Any]:
         return {

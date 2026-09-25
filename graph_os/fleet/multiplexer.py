@@ -39,7 +39,7 @@ import typing as _typing
 import weakref
 from pathlib import Path
 from types import SimpleNamespace
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 import fastmcp.exceptions as _fastmcp_exceptions
 import fastmcp.server.middleware as _fastmcp_middleware
@@ -108,10 +108,10 @@ _RESIDENT_TOOLS = frozenset(
     {
         "find",
         "ask",
+        "why",
+        "write",
         "act",
-        "plan",
-        "confirm",
-        "explain",
+        "manage",
         "find_tools",
         "load_tools",
         "unload_tools",
@@ -4973,7 +4973,8 @@ def _make_forwarder(mux: MCPMultiplexer, prefixed_name: str):
         caller = _ops_caller()
         if not mux.tool_dispatchable(prefixed_name):
             raise _fastmcp_exceptions.ToolError("Fleet tool is not loaded")
-        item = await ops.catalog.get(prefixed_name, caller)
+        catalog_id = ops.catalog_id_for_native(prefixed_name)
+        item = await ops.catalog.get(catalog_id, caller) if catalog_id else None
         if item is None or item.kind != "tool":
             raise _fastmcp_exceptions.ToolError("Fleet tool is unavailable")
         return await ops._forwarder(item)(kwargs, caller)
@@ -5276,6 +5277,15 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
         # TOLD it can call and what it can ACTUALLY call never drift.
         return self.mux.tool_usable(name, capabilities)
 
+    def _component_visible(self, name: str) -> bool:
+        if name.startswith("graphos://"):
+            return "mcp:discover" in _caller_capabilities()
+        return self._visible(name, _caller_capabilities())
+
+    def _require_component(self, name: str) -> None:
+        if not self._component_visible(name):
+            raise _fastmcp_exceptions.ToolError("MCP item is not loaded or authorized")
+
     async def _refresh_session_policy(self) -> None:
         ops = self.mux._multiplexer_ops
         if ops is None:
@@ -5340,6 +5350,42 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
         await self.mux.notify_pending_tools_changed()
         capabilities = _caller_capabilities()
         return [t for t in tools if self._visible(t.name, capabilities)]
+
+    async def on_list_prompts(self, context, call_next):
+        await self._refresh_session_policy()
+        return [
+            prompt
+            for prompt in await call_next(context)
+            if self._component_visible(prompt.name)
+        ]
+
+    async def on_get_prompt(self, context, call_next):
+        await self._refresh_session_policy()
+        self._require_component(str(getattr(context.message, "name", "")))
+        return await call_next(context)
+
+    async def on_list_resources(self, context, call_next):
+        await self._refresh_session_policy()
+        return [
+            resource
+            for resource in await call_next(context)
+            if self._component_visible(str(resource.uri))
+        ]
+
+    async def on_list_resource_templates(self, context, call_next):
+        await self._refresh_session_policy()
+        return [
+            template
+            for template in await call_next(context)
+            if self._component_visible(
+                str(getattr(template, "uri_template", getattr(template, "uriTemplate", "")))
+            )
+        ]
+
+    async def on_read_resource(self, context, call_next):
+        await self._refresh_session_policy()
+        self._require_component(str(getattr(context.message, "uri", "")))
+        return await call_next(context)
 
     async def on_call_tool(self, context, call_next):
         # Before the dispatch gate: a client that calls an always-load tool
@@ -6177,30 +6223,66 @@ def attach_fleet_loader(
     if ops_factory is None:
         raise RuntimeError("governed multiplexer operations factory is not bound")
 
+    def native_name(item) -> str:
+        if item.server is None:
+            raise ValueError("fleet tool has no server")
+        if item.kind in {"resource", "resource_template"}:
+            return (
+                f"fleet://{mux.server_prefix(item.server)}/"
+                f"{quote(item.name, safe='{}')}"
+            )
+        return clean_tool_name(mux.server_prefix(item.server), item.server, item.name)
+
     async def mount(item, forwarder) -> None:
-        """Register a native tool whose body reenters governed invoke."""
+        """Register a native component with a caller-bound governed body."""
+        name = native_name(item)
+        if name in mux._exposed:
+            return
+
+        if item.kind == "prompt":
+            if item.body is None:
+                raise RuntimeError("governed child prompt render is unavailable")
+
+            @mcp.prompt(name=name, description=item.description)
+            async def render_prompt():
+                return await mux._multiplexer_ops.read_loaded_item(
+                    _ops_caller(), _session_key(), item.id, {}
+                )
+
+            mux._exposed.add(name)
+            return
+
+        if item.kind == "resource":
+
+            @mcp.resource(name, description=item.description)
+            async def read_resource():
+                return await mux._multiplexer_ops.read_loaded_item(
+                    _ops_caller(), _session_key(), item.id, {}
+                )
+
+            mux._exposed.add(name)
+            return
+
         if item.kind != "tool" or forwarder is None:
             raise RuntimeError("native mount for this fleet item is unavailable")
-        if item.id in mux._exposed:
-            return
 
         async def call(**arguments):
             return await forwarder(arguments, _ops_caller())
 
         mcp.add_tool(
             _fastmcp_tools.FunctionTool(
-                name=item.id,
+                name=name,
                 description=item.description,
                 parameters=dict(item.schema),
                 fn=call,
             )
         )
-        mux._exposed.add(item.id)
+        mux._exposed.add(name)
 
     async def notify(_session_key_value: str) -> bool:
         return await _notify_tools_changed(mcp)
 
-    mux._multiplexer_ops = ops_factory(mux, mount, notify)
+    mux._multiplexer_ops = ops_factory(mux, mount, notify, native_name)
     if mux._multiplexer_ops is None:
         raise RuntimeError("governed multiplexer operations factory returned no ops")
     # Keep the host solely for lifecycle replacement of mux-owned forwarding
