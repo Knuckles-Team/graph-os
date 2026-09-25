@@ -144,10 +144,14 @@ def services(
     client = type("Client", (), {"control_leases": FakeLeases()})()
     events: list[dict[str, str]] = []
 
-    async def audit(event: dict[str, str], audit_class: AuditClass) -> None:
+    async def audit(
+        event: dict[str, str], audit_class: AuditClass, actor: VerifiedCaller
+    ) -> None:
         events.append(event)
 
-    async def preflight(event: dict[str, str], audit_class: AuditClass) -> str:
+    async def preflight(
+        event: dict[str, str], audit_class: AuditClass, actor: VerifiedCaller
+    ) -> str:
         engine.audit_preflights.append(event)
         return "audit:1"
 
@@ -364,6 +368,29 @@ async def test_audit_preflight_fails_before_plan_consumption_or_dispatch() -> No
     assert refused.code == "UNAVAILABLE"
     assert engine.calls == []
     assert app.plans._leases.rows[ref]["status"] == "active"
+
+
+@pytest.mark.asyncio
+async def test_outcome_append_failure_is_indeterminate_after_dispatch() -> None:
+    app, engine, _ = services(op(confirm=Confirm.NONE))
+
+    async def failed_outcome(
+        event: dict[str, str], audit_class: AuditClass, actor: VerifiedCaller
+    ) -> None:
+        raise TimeoutError("audit receipt lost")
+
+    from dataclasses import replace
+
+    result = await invoke(
+        "items.change",
+        {"subject": "item:1"},
+        caller(),
+        Surface.MCP,
+        services=replace(app, audit_write=failed_outcome),
+        idempotency_key="request:1",
+    )
+    assert result.code == "INDETERMINATE"
+    assert len(engine.calls) == 1
 
 
 @pytest.mark.asyncio

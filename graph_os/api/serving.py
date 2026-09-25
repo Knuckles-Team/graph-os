@@ -18,6 +18,7 @@ from graph_os.api.invoke.executor import (
     ServiceClaims,
     SubjectCheck,
 )
+from graph_os.api.invoke.eg_audit import EgAuditAdapter
 from graph_os.api.invoke.pipeline import (
     AuditPreflight,
     AuditWrite,
@@ -135,6 +136,14 @@ async def dispatch_public_eg_method(
 def _require_callable(value: Any, name: str) -> None:
     if not callable(value):
         raise ValueError(f"serving port {name} is unavailable")
+
+
+def bind_eg_audit(client_factory: ClientFactory) -> EgAuditAdapter:
+    """Create the durable audit authority after checking the installed EG API."""
+
+    _require_callable(client_factory, "audit_client")
+    EgAuditAdapter.require_contract()
+    return EgAuditAdapter(client_factory)
 
 
 def _validate_ports(ports: ServingPorts, registry: Registry) -> None:
