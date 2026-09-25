@@ -13,6 +13,7 @@ import hashlib
 import importlib
 import importlib.resources
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -227,10 +228,92 @@ def generate(registry: dict[str, Any], errors_path: Path) -> dict[Path, bytes]:
     }
 
 
+def _breaking_changes(before: dict[str, Any], after: dict[str, Any]) -> list[str]:
+    """Identify contract changes that existing stable callers cannot absorb."""
+    current = {op["id"]: op for op in after["ops"]}
+    changes: list[str] = []
+    for previous in before["ops"]:
+        if previous.get("stability") != "stable":
+            continue
+        op_id = previous["id"]
+        updated = current.get(op_id)
+        if updated is None:
+            changes.append(f"{op_id}: removed")
+            continue
+        old_params = previous["params"].get("schema", {})
+        new_params = updated["params"].get("schema", {})
+        required = set(new_params.get("required", [])) - set(
+            old_params.get("required", [])
+        )
+        if required:
+            changes.append(f"{op_id}: new required params {sorted(required)}")
+        old_props = old_params.get("properties", {})
+        new_props = new_params.get("properties", {})
+        removed_params = set(old_props) - set(new_props)
+        if removed_params:
+            changes.append(f"{op_id}: removed params {sorted(removed_params)}")
+        for name in old_props.keys() & new_props.keys():
+            old_enum = old_props[name].get("enum")
+            new_enum = new_props[name].get("enum")
+            if old_enum and new_enum and not set(old_enum) <= set(new_enum):
+                changes.append(f"{op_id}: narrowed param enum {name}")
+            old_type = old_props[name].get("type")
+            new_type = new_props[name].get("type")
+            if old_type != new_type and (old_type, new_type) != (
+                "integer",
+                "number",
+            ):
+                changes.append(f"{op_id}: changed param type {name}")
+        old_result = previous["result"].get("schema", {})
+        new_result = updated["result"].get("schema", {})
+        removed = set(old_result.get("properties", {})) - set(
+            new_result.get("properties", {})
+        )
+        if removed:
+            changes.append(f"{op_id}: removed result fields {sorted(removed)}")
+    return changes
+
+
+def _check_compat(registry: dict[str, Any], base_ref: str) -> int:
+    subprocess.run(
+        ["git", "rev-parse", "--verify", base_ref],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    )
+    baseline = subprocess.run(
+        ["git", "show", f"{base_ref}:graph_os/api/generated/registry.json"],
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+    )
+    if baseline.returncode:
+        print("gen_api: no baseline generated registry at base ref (first release)")
+        return 0
+    previous = json.loads(baseline.stdout)
+    changes = _breaking_changes(previous, registry)
+    if not changes:
+        return 0
+    old_major = int(str(previous["api_version"]).split(".", 1)[0])
+    new_major = int(str(registry["api_version"]).split(".", 1)[0])
+    changelog = ROOT / "docs/api/CHANGELOG.md"
+    text = changelog.read_text() if changelog.exists() else ""
+    if new_major > old_major and all(row.split(":", 1)[0] in text for row in changes):
+        return 0
+    for row in changes:
+        print(f"breaking API change: {row}", file=sys.stderr)
+    print(
+        "gen_api: stable breaking changes require a major bump and changelog entry",
+        file=sys.stderr,
+    )
+    return 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--engine-errors-only", action="store_true")
+    parser.add_argument("--check-compat", metavar="BASE_REF")
     parser.add_argument(
         "--eg-errors",
         type=Path,
@@ -239,6 +322,11 @@ def main() -> int:
     parser.add_argument("--registry-module", default="graph_os.api.ops")
     args = parser.parse_args()
     try:
+        registry = None if args.engine_errors_only else _registry(args.registry_module)
+        if args.check_compat:
+            if registry is None:
+                raise ValueError("--check-compat cannot use --engine-errors-only")
+            return _check_compat(registry, args.check_compat)
         errors_path = args.eg_errors
         if errors_path is None:
             errors_path = Path(
@@ -254,8 +342,16 @@ def main() -> int:
                 / "__init__.py": b'"""Generated GraphOS API contract artifacts."""\n',
             }
         else:
-            outputs = generate(_registry(args.registry_module), errors_path)
-    except (AttributeError, ImportError, OSError, TypeError, ValueError) as exc:
+            assert registry is not None
+            outputs = generate(registry, errors_path)
+    except (
+        AttributeError,
+        ImportError,
+        OSError,
+        subprocess.CalledProcessError,
+        TypeError,
+        ValueError,
+    ) as exc:
         print(f"gen_api: {exc}", file=sys.stderr)
         return 2
     drift = [
