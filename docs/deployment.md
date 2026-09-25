@@ -129,7 +129,7 @@ its own process identity (operator ruling 2026-09-24). Set this on the
 epistemic-graph deployment:
 
 ```bash
-EPISTEMIC_GRAPH_CONTROL_LEASE_KIND_POLICY_JSON='{"<graph-os agent_id>": ["action.approval", "finance.order-proposal"]}'
+EPISTEMIC_GRAPH_CONTROL_LEASE_KIND_POLICY_JSON='{"<graph-os agent_id>": ["action.approval", "finance.order-proposal", "finance.paper-order"]}'
 ```
 
 Any other kind that graph-os tries to issue or transition under its own
@@ -147,6 +147,7 @@ This table covers every control-lease kind that graph-os-hosted code writes:
 | Kind | Written by | Signing identity | Evidence |
 |---|---|---|---|
 | `finance.order-proposal` | `graph_os/finance/orders.py` `propose_order` (issue) | graph-os process | runs on `FinanceService`, which uses `process_authority`. The approve and deny transitions run under the approver's own claims (`gateway/finance_orders.py`). |
+| `finance.paper-order` | `graph_os/finance/paper_orders.py` `submit` (issue) | graph-os process | The shared invoke service executor first checks the verified caller's `finance:paper-trade` scope and tenant graph read authority; its EG lease reserves a caller-owned request key before one paper-only Emerald call. Retry after a collision or unknown outcome is indeterminate and never resubmits. |
 | `action.approval` | agent-utilities `orchestration/action_policy.py` `queue_approval` (issue). Drains to `expired` in `orchestration/fleet_reconciler.py` and `knowledge_graph/research/change_publisher.py`. | graph-os process, and callers | queued by the autonomous loops (fleet reconciler, auto-merge, remediation playbooks, guardrail evolution, spec proposals) under the process session. A tool call queues under its caller, and a console decision (`orchestration/approval.py`) runs under the approver. |
 | `browser.control` | `graph_os/browser_control/browser_control_durability.py` | caller (the human) | the browser channel requires the ambient session to be the binding's verified human (`browser_control_service.py` `_validate_ambient_binding`). WebUI helpers run in the request's copied context. |
 | `browser.registration`, `browser.document` | `browser_control/browser_control_registration.py` | caller (the human) | same channel and session as `browser.control` |
