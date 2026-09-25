@@ -223,7 +223,7 @@ def run_web_ui(
     )
     # The identity broker owns every browser credential: /auth/*, sessions,
     # API keys and the none-mode bootstrap principal (graph_os.identity).
-    identity = served_identity_runtime()
+    identity = served_identity_runtime(mcp_runtime.graph_client)
     app = create_agent_web_app(
         agent,
         workspace_helpers=helpers,

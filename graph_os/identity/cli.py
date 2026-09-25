@@ -252,6 +252,16 @@ async def run(
         return 2
 
 
+def _process_graph_client(graph: str) -> Any:
+    """The process engine's client of one graph, opened as a runtime CLIENT
+    (never the host that owns workers): the same engine the served
+    listeners reach."""
+    from agent_utilities.api.runtime import open_process_runtime
+
+    runtime = open_process_runtime(role="client", defer_background_start=True)
+    return runtime.engine.graph_compute.for_graph(graph).async_client
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Console entry point: the served runtime over this host's configuration."""
     from agent_utilities.core.config import load_config
@@ -259,6 +269,5 @@ def main(argv: Sequence[str] | None = None) -> int:
     from .serving import served_identity_runtime
 
     load_config()
-    return asyncio.run(
-        run(served_identity_runtime(), sys.argv[1:] if argv is None else argv)
-    )
+    runtime = served_identity_runtime(_process_graph_client)
+    return asyncio.run(run(runtime, sys.argv[1:] if argv is None else argv))
