@@ -57,6 +57,13 @@ dependencies = [
     "mcp>=2.0.0",
     "opentelemetry-api>=1.39.1",
     "pydantic-ai-slim[openai]==2.29.0",
+    # External identity providers (graph_os/identity): native SAML 2.0 SP
+    # signature verification (XML-DSig over a hardened lxml parser) and LDAP /
+    # Active Directory bind + group sync. Operator ruling 2026-09-24: OIDC,
+    # SAML and AD/LDAP plug in natively, so these are runtime requirements.
+    "signxml>=5.1.0",
+    "lxml>=6.1.3",
+    "ldap3>=2.9.1",
 ]
 
 [[project.authors]]
