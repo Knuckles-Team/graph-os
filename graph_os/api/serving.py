@@ -15,9 +15,11 @@ from graph_os.api.invoke.executor import (
     BoundOperationRuntime,
     ClientFactory,
     EgDispatch,
+    ServiceClaims,
     SubjectCheck,
 )
 from graph_os.api.invoke.pipeline import (
+    AuditPreflight,
     AuditWrite,
     FleetEffect,
     InvokeServices,
@@ -38,11 +40,13 @@ class ServingPorts:
 
     caller_client: ClientFactory
     service_client: ClientFactory
+    service_claims: ServiceClaims
     check_access: SubjectCheck
     eg_dispatch: EgDispatch
     service_scopes: frozenset[str]
     plan_client: Any
     policy_gate: PolicyGate
+    audit_preflight: AuditPreflight
     audit_write: AuditWrite
     schema_validate: SchemaValidate
     fleet_effect: FleetEffect
@@ -136,8 +140,10 @@ def _validate_ports(ports: ServingPorts, registry: Registry) -> None:
     for name in (
         "caller_client",
         "service_client",
+        "service_claims",
         "check_access",
         "eg_dispatch",
+        "audit_preflight",
         "audit_write",
         "schema_validate",
         "fleet_effect",
@@ -176,6 +182,7 @@ def build_invoke_services(ports: ServingPorts) -> InvokeServices:
     runtime = BoundOperationRuntime(
         caller_client=ports.caller_client,
         service_client=ports.service_client,
+        service_claims=ports.service_claims,
         check_access=ports.check_access,
         eg_dispatch=ports.eg_dispatch,
         service_scopes=ports.service_scopes,
@@ -187,6 +194,7 @@ def build_invoke_services(ports: ServingPorts) -> InvokeServices:
         plans=EgPlanStore(ports.plan_client),
         policy_mode="off" if ports.policy_gate.mode == "none" else "on",
         policy_check=ports.policy_gate.check_op,
+        audit_preflight=ports.audit_preflight,
         audit_write=ports.audit_write,
         fleet_effect=ports.fleet_effect,
         schema_validate=ports.schema_validate,
