@@ -86,10 +86,10 @@ def ports(calls: list[tuple[str, str]]) -> serving.ServingPorts:
         calls.append((context.owner, context.client.claims["principal"]))
         return {"subject": params["subject"]}
 
-    async def audit(event: Any, audit_class: Any) -> None:
+    async def audit(event: Any, audit_class: Any, actor: VerifiedCaller) -> None:
         calls.append(("audit", str(audit_class)))
 
-    async def audit_preflight(event: Any, audit_class: Any) -> str:
+    async def audit_preflight(event: Any, audit_class: Any, actor: VerifiedCaller) -> str:
         calls.append(("audit_preflight", str(audit_class)))
         return "audit:durable:1"
 

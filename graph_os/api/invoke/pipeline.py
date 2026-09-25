@@ -40,8 +40,10 @@ DISPATCH_TIMEOUT_SECONDS = 320
 MFA_FRESH_SECONDS = 900
 
 PolicyCheck = Callable[[Any, VerifiedCaller], Awaitable[bool]]
-AuditWrite = Callable[[Mapping[str, str], AuditClass], Awaitable[None]]
-AuditPreflight = Callable[[Mapping[str, str], AuditClass], Awaitable[str]]
+AuditWrite = Callable[[Mapping[str, str], AuditClass, VerifiedCaller], Awaitable[None]]
+AuditPreflight = Callable[
+    [Mapping[str, str], AuditClass, VerifiedCaller], Awaitable[str]
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -357,7 +359,7 @@ async def invoke(
             return OpError("UNAVAILABLE", {"reason": "audit preflight unavailable"})
         try:
             audit_ref = await services.audit_preflight(
-                audit_event(op, arguments, caller, surface, "PENDING"), op.audit
+                audit_event(op, arguments, caller, surface, "PENDING"), op.audit, caller
             )
         except Exception:
             return OpError("UNAVAILABLE", {"reason": "audit preflight unavailable"})
@@ -374,10 +376,14 @@ async def invoke(
     )
     if decision is not None:
         if audit_ref:
-            await services.audit_write(
-                audit_event(op, arguments, caller, surface, decision.code, audit_ref),
-                op.audit,
-            )
+            try:
+                await services.audit_write(
+                    audit_event(op, arguments, caller, surface, decision.code, audit_ref),
+                    op.audit,
+                    caller,
+                )
+            except Exception:
+                return OpError("INDETERMINATE", {"reason": "audit outcome unavailable"})
         return decision
     status = "OK"
     try:
@@ -385,21 +391,35 @@ async def invoke(
             _dispatch(op, arguments, caller, services, idempotency_key, fleet_decision),
             timeout=DISPATCH_TIMEOUT_SECONDS,
         )
-        return OpResult(value=value)
+        result: OpResult | OpError = OpResult(value=value)
     except TimeoutError:
         status = "INDETERMINATE"
-        return OpError("TIMEOUT")
+        result = OpError("TIMEOUT")
     except asyncio.CancelledError:
         status = "INDETERMINATE"
+        if audit_ref:
+            try:
+                await services.audit_write(
+                    audit_event(op, arguments, caller, surface, status, audit_ref),
+                    op.audit,
+                    caller,
+                )
+            except Exception:
+                pass
         raise
     except OperationRefused as exc:
         status = exc.code
-        return OpError(exc.code, exc.details)
+        result = OpError(exc.code, exc.details)
     except Exception:
         status = "INTERNAL"
-        return OpError(status)
-    finally:
-        if audit_ref:
+        result = OpError(status)
+    if audit_ref:
+        try:
             await services.audit_write(
-                audit_event(op, arguments, caller, surface, status, audit_ref), op.audit
+                audit_event(op, arguments, caller, surface, status, audit_ref),
+                op.audit,
+                caller,
             )
+        except Exception:
+            return OpError("INDETERMINATE", {"reason": "audit outcome unavailable"})
+    return result
