@@ -83,6 +83,49 @@ def test_a2a_uses_the_closed_mapping_and_confirmation_is_a_result() -> None:
         a2a_error_status("CONFIRMATION_REQUIRED")
 
 
+@pytest.mark.parametrize(
+    ("code", "include_console"),
+    [
+        ("CONFIRMATION_REQUIRED", False),
+        ("STEP_UP_REQUIRED", True),
+    ],
+)
+def test_confirmation_keeps_only_bounded_resumption_data(
+    code: str, include_console: bool
+) -> None:
+    plan_ref = "graphos_plan:" + "a" * 48
+    details = {
+        "plan_ref": plan_ref,
+        "op": CONTEXT["op"],
+        "effect": "admin",
+        "console_url": f"/console/confirm/{plan_ref}",
+        "token": "tenant-secret",
+    }
+    status, envelope = to_envelope(InvokeError(code, details), **CONTEXT)
+    assert status == 428
+    expected = {"plan_ref": plan_ref, "op": CONTEXT["op"], "effect": "admin"}
+    if include_console:
+        expected["console_url"] = details["console_url"]
+    assert envelope["error"]["details"] == expected
+    assert "tenant-secret" not in str(envelope)
+
+
+def test_confirmation_rejects_unbounded_or_forged_resume_values() -> None:
+    _, envelope = to_envelope(
+        InvokeError(
+            "STEP_UP_REQUIRED",
+            {
+                "plan_ref": "graphos_plan:" + "x" * 200,
+                "op": CONTEXT["op"],
+                "effect": "admin",
+                "console_url": "https://attacker.invalid/confirm",
+            },
+        ),
+        **CONTEXT,
+    )
+    assert envelope["error"]["details"] == {}
+
+
 def test_engine_codes_are_published_and_pass_through() -> None:
     assert ENGINE_ERRORS, "EG errors.json must be generated before this lane closes"
     for code, (status_hint, retryable) in ENGINE_ERRORS.items():
