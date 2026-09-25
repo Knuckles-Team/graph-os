@@ -28,7 +28,6 @@ __all__ = [
     "UiPermission",
     "Visibility",
     "AccessContext",
-    "AnonymousPilotSession",
     "AttachmentIdentity",
     "ContentReference",
     "ConversationIdentity",
@@ -182,25 +181,12 @@ class AccessContext(_FrozenModel):
     session_ref: OpaqueRef
     permissions: tuple[UiPermission, ...] = Field(min_length=1, max_length=5)
     authenticated: bool = True
-    anonymous_pilot: bool = False
     private_boundary: Literal[True] = True
 
     @model_validator(mode="after")
     def _authority_is_private_and_unambiguous(self) -> AccessContext:
         if len(self.permissions) != len(set(self.permissions)):
             raise ValueError("ui_permission_duplicate")
-        if self.anonymous_pilot:
-            if self.authenticated:
-                raise ValueError("anonymous_pilot_authenticated")
-            if self.actor_ref != "actor:anonymous-pilot":
-                raise ValueError("anonymous_pilot_actor_invalid")
-            if "admin" in self.permissions:
-                raise ValueError("anonymous_pilot_admin_forbidden")
-            if any(
-                permission not in {"read", "write", "feedback", "support"}
-                for permission in self.permissions
-            ):
-                raise ValueError("anonymous_pilot_permission_invalid")
         return self
 
     def allows(self, permission: UiPermission) -> bool:
@@ -243,7 +229,6 @@ class SessionIdentity(_IdentityModel):
     workspace_ref: OpaqueRef
     session_ref: OpaqueRef
     user_ref: OpaqueRef
-    anonymous_pilot: bool = False
     private_boundary: Literal[True] = True
     issued_at: Timestamp
     expires_at: Timestamp
@@ -255,8 +240,6 @@ class SessionIdentity(_IdentityModel):
             raise ValueError("session_expiry_invalid")
         if self.expires_at - self.issued_at > 86_400:
             raise ValueError("session_lifetime_exceeded")
-        if self.anonymous_pilot and self.user_ref != "user:anonymous-pilot":
-            raise ValueError("anonymous_pilot_user_invalid")
         return self
 
 
@@ -502,16 +485,3 @@ class UiStateWriteReceipt(_FrozenModel):
     graphos_permission_mutations: Literal[0] = 0
     provider_grants: Literal[0] = 0
     public_shares: Literal[0] = 0
-
-
-class AnonymousPilotSession(_FrozenModel):
-    """Private-boundary pilot result containing no credential or public share."""
-
-    session: SessionIdentity
-    private_boundary: Literal[True] = True
-
-    @model_validator(mode="after")
-    def _pilot_is_private(self) -> AnonymousPilotSession:
-        if not self.session.anonymous_pilot:
-            raise ValueError("pilot_session_not_anonymous")
-        return self

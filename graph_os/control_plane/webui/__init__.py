@@ -6,7 +6,6 @@ from .errors import (
     WebUiDomainError,
     WebUiEntityNotFoundError,
     WebUiPaginationError,
-    WebUiPilotBoundaryError,
     WebUiRetentionError,
 )
 from .models import (
@@ -14,7 +13,6 @@ from .models import (
     MAX_PAGE_SIZE,
     MAX_WIDGETS,
     AccessContext,
-    AnonymousPilotSession,
     AttachmentIdentity,
     ContentReference,
     ConversationIdentity,
@@ -56,7 +54,6 @@ __all__ = [
     "MAX_PAGE_SIZE",
     "MAX_WIDGETS",
     "AccessContext",
-    "AnonymousPilotSession",
     "AttachmentIdentity",
     "ContentReference",
     "ConversationIdentity",
@@ -91,7 +88,6 @@ __all__ = [
     "WebUiEntity",
     "WebUiEntityNotFoundError",
     "WebUiPaginationError",
-    "WebUiPilotBoundaryError",
     "WebUiRepository",
     "WebUiRetentionError",
     "WebUiService",
