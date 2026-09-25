@@ -38,8 +38,14 @@ class AdminAction:
 
 
 ADMIN_ACTIONS: dict[str, AdminAction] = {
+    "identity.self.password.change": AdminAction(
+        "credential", "change_password", "done"
+    ),
     "identity.users.list": AdminAction("user", "list", "users", True, True),
     "identity.users.search": AdminAction("user", "search", "users", True, True),
+    "identity.service_accounts.list": AdminAction(
+        "user", "list_service_accounts", "users", True, True
+    ),
     "identity.users.get": AdminAction("user", "get", "user", True),
     "identity.users.create": AdminAction("user", "create", "principal"),
     "identity.users.update": AdminAction("user", "update", "done"),
@@ -73,6 +79,10 @@ ADMIN_ACTIONS: dict[str, AdminAction] = {
     "identity.policy.set": AdminAction("config", "update_policy", "config"),
     "identity.mode.status": AdminAction("config", "get", "config", True),
     "identity.audit.list": AdminAction("config", "audit", "audit", True, True),
+    "identity.audit.export": AdminAction("config", "export_audit", "audit", True, True),
+    "identity.audit.verify": AdminAction(
+        "config", "verify_audit", "audit_verification", True
+    ),
 }
 
 
@@ -109,13 +119,16 @@ def _request(op_id: str, params: Mapping[str, Any]) -> dict[str, Any] | None:
         "identity.idps.list",
         "identity.policy.get",
         "identity.mode.status",
+        "identity.audit.verify",
     }:
         return None
     if op_id in {
         "identity.users.list",
         "identity.users.search",
+        "identity.service_accounts.list",
         "identity.api_keys.list",
         "identity.audit.list",
+        "identity.audit.export",
     }:
         limit = int(body.get("limit", 100))
         if not 1 <= limit <= 500:
@@ -224,6 +237,7 @@ def _next_cursor(
         raise IdentityUnavailable("identity page contains an invalid record")
     key = {
         "identity.audit.list": "seq",
+        "identity.audit.export": "seq",
         "identity.api_keys.list": "key_id",
     }.get(op_id, "principal_id")
     if key not in last:

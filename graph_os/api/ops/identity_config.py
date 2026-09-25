@@ -41,6 +41,11 @@ class ConfigValue(RootModel[dict[str, Any]]):
     pass
 
 
+class AuditVerification(StrictModel):
+    valid: bool
+    first_broken_seq: int | None = None
+
+
 _HANDLER = "graph_os.identity.admin_service.execute_identity_op"
 
 
@@ -66,6 +71,8 @@ def specs() -> tuple[Any, ...]:
         ("identity.mode.status", Empty, ConfigValue, True),
         ("identity.mode.transition", ModeTransition, ConfigValue, False),
         ("identity.audit.list", AuditPage, Collection, True),
+        ("identity.audit.export", AuditPage, Collection, True),
+        ("identity.audit.verify", Empty, AuditVerification, True),
     )
     return tuple(
         OpSpec(
