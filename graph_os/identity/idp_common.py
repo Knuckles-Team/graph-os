@@ -56,6 +56,7 @@ __all__ = [
     "identity_op",
     "login_options",
     "new_session_token",
+    "refusal_code",
     "truncate_ip",
 ]
 
@@ -79,7 +80,23 @@ class IdentityRefused(RuntimeError):
 
     @property
     def code(self) -> str:
-        return str(self.args[0]) if self.args else "refused"
+        return _normalise_code(str(self.args[0]) if self.args else "")
+
+
+def refusal_code(refusal: BaseException) -> str:
+    """The snake_case refusal code, whichever spelling the port raised.
+
+    The engine's typed refusals travel as ``IDENTITY_COLLISION``; a port may
+    also raise the bare ``collision``. Both normalise to ``collision``.
+    """
+    if isinstance(refusal, IdentityRefused):
+        return refusal.code
+    raw = getattr(refusal, "code", None) or (refusal.args[0] if refusal.args else "")
+    return _normalise_code(str(raw))
+
+
+def _normalise_code(raw: str) -> str:
+    return raw.removeprefix("IDENTITY_").lower() or "refused"
 
 
 class IdentityPort(Protocol):

@@ -37,7 +37,7 @@ from joserfc.jwk import KeySet, KeySetSerialization
 from joserfc.jws import extract_compact
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 from starlette.requests import Request
-from starlette.responses import JSONResponse, RedirectResponse, Response
+from starlette.responses import RedirectResponse, Response
 from starlette.routing import Route
 
 from graph_os.fleet.remote_oauth_broker import (
@@ -61,7 +61,6 @@ from graph_os.identity.idp_common import (
     UnknownIdp,
     flatten_claims,
     identity_op,
-    login_options,
     new_session_token,
 )
 
@@ -513,15 +512,8 @@ class OidcBroker:
         response.delete_cookie(IDT_COOKIE, path=LOGOUT_PATH, secure=True, httponly=True)
         return response
 
-    async def options(self, request: Request) -> Response:
-        """``GET /auth/idps``: the sign-in choices (optionally routed by e-mail)."""
-        email = _query_param(request, "email")
-        records = await self._directory.records()
-        return JSONResponse({"idps": login_options(records, email)}, headers=NO_STORE)
-
     def routes(self) -> list[Route]:
         return [
-            Route("/auth/idps", self.options, methods=["GET"]),
             Route("/auth/oidc/{idp_id}/login", self.begin, methods=["GET"]),
             Route(CALLBACK_PATH, self.callback, methods=["GET"]),
             Route(LOGOUT_PATH, self.logout, methods=["POST"]),
