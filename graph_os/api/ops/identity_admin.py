@@ -130,6 +130,7 @@ _HANDLER = "graph_os.identity.admin_service.execute_identity_op"
 _OPERATIONS: tuple[tuple[str, type[BaseModel], type[BaseModel], bool], ...] = (
     ("identity.users.list", Page, Collection, True),
     ("identity.users.search", Search, Collection, True),
+    ("identity.service_accounts.list", Page, Collection, True),
     ("identity.users.get", Principal, UserValue, True),
     ("identity.users.create", CreateUser, Created, False),
     ("identity.users.update", UpdateUser, Result, False),

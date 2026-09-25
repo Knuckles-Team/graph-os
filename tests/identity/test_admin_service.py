@@ -179,3 +179,53 @@ async def test_mode_transition_uses_broker_for_issuer_rotation() -> None:
     )
     assert result["mode"] == "local"
     assert broker.calls == [(caller_session, "local", None, "break_glass")]
+
+
+@pytest.mark.asyncio
+async def test_self_password_change_uses_caller_context() -> None:
+    engine = Engine()
+    engine.answers["credential", "change_password"] = IdentityReply(
+        "done", {"changed": True}
+    )
+    caller = object()
+    result = await IdentityAdminService(engine).execute(
+        "identity.self.password.change",
+        caller,
+        {"current": "old-secret", "new": "new-secret"},
+    )
+    assert result == {"changed": True}
+    assert engine.calls == [
+        (
+            caller,
+            IdentityCall(
+                "credential",
+                "change_password",
+                {"current": "old-secret", "new": "new-secret"},
+            ),
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_audit_export_verify_and_service_account_list() -> None:
+    engine = Engine()
+    engine.answers["config", "export_audit"] = IdentityReply(
+        "audit", [{"seq": 7, "chain": "digest"}]
+    )
+    engine.answers["config", "verify_audit"] = IdentityReply(
+        "audit_verification", {"valid": True, "first_broken_seq": None}
+    )
+    engine.answers["user", "list_service_accounts"] = IdentityReply(
+        "users", [{"principal_id": "svc:one", "kind": "service"}]
+    )
+    service = IdentityAdminService(engine)
+    caller = object()
+    exported = await service.execute("identity.audit.export", caller, {"limit": 1})
+    verified = await service.execute("identity.audit.verify", caller, {})
+    accounts = await service.execute(
+        "identity.service_accounts.list", caller, {"limit": 1}
+    )
+    assert exported["next_cursor"] == "7"
+    assert verified["valid"] is True
+    assert accounts["items"][0]["kind"] == "service"
+    assert all(session is caller for session, _ in engine.calls)
