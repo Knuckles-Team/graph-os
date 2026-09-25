@@ -10,6 +10,7 @@ from graph_os.api.registry import (
     Confirm,
     Effect,
     EgMethod,
+    Executor,
     PrincipalRule,
     Verb,
 )
@@ -35,23 +36,22 @@ def test_domain_ops_bind_named_engine_contract_methods() -> None:
             assert method == op.binding.service
 
 
-def test_operator_mutations_need_console_human_and_two_scopes() -> None:
+def test_operator_mutations_need_console_human_and_exact_eg_scope() -> None:
     all_ops = _specs()
-    for op_id in (
-        "ops.backup",
-        "ops.restore",
-        "ops.graphs.create",
-        "ops.graphs.delete",
-        "ops.shards.execute",
-        "ops.shards.reshard",
-    ):
+    for op_id, scope in {
+        "ops.backup": "admin:backup",
+        "ops.restore": "admin:backup",
+        "ops.graphs.create": "graph:admin",
+        "ops.graphs.delete": "graph:admin",
+        "ops.shards.execute": "admin:cluster",
+        "ops.shards.reshard": "admin:cluster",
+    }.items():
         op = all_ops[op_id]
         assert op.verb is Verb.MANAGE
         assert op.effect is Effect.DESTRUCTIVE
         assert op.principals is PrincipalRule.HUMAN_UNDELEGATED
         assert op.confirm is Confirm.CONSOLE
-        assert "ops:admin" in op.scopes
-        assert len(op.scopes) == 2
+        assert op.scopes == frozenset({scope})
 
 
 def test_graph_reads_and_usage_bind_engine_without_local_store() -> None:
@@ -59,9 +59,9 @@ def test_graph_reads_and_usage_bind_engine_without_local_store() -> None:
     assert all_ops["graph.nodes.list"].binding.service == "GetNodesByLabel"
     assert all_ops["graph.edges.list"].binding.service == "GetEdgesPage"
     assert all_ops["usage.resources"].binding.service == "ResourceStatsPage"
-    assert all_ops["usage.resources"].scopes == frozenset(
-        {"ops:read", "service:control"}
-    )
+    assert all_ops["usage.resources"].scopes == frozenset({"service:control"})
+    assert all_ops["usage.resources"].executor is Executor.CALLER
+    assert all_ops["usage.resources"].principals is PrincipalRule.ANY
     assert all_ops["security.audit.verify"].binding.service == "AuditVerify"
     assert all_ops["telemetry.cep.poll"].binding.service == "CepPoll"
     derive = all_ops["telemetry.derive.run"]
