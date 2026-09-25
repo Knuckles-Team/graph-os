@@ -73,7 +73,7 @@ Nothing in `gateway/api.py` mutates module state after startup except
 
 ## Python-tier metrics
 
-Mounted by `register_graph_routes` (so the gateway **and** the agent-webui
+Mounted by `register_graph_routes` (so the gateway **and** the graph-os-webui
 backend both get it). Naming mirrors the Rust engine's `epistemic_graph_*`
 series:
 

@@ -86,12 +86,12 @@ jobs:
           path: .uv-workspace-siblings/agent-connector-sdk
           persist-credentials: false
 
-      - name: Checkout pinned agent-webui source
+      - name: Checkout pinned graph-os-webui source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          repository: Knuckles-Team/agent-webui
-          ref: 9ef29956ffd195ced40149e2a510a09b3783f5e3
-          path: .uv-workspace-siblings/agent-webui
+          repository: Knuckles-Team/graph-os-webui
+          ref: 677a27e0f701eca99cad20887a0b5c4b8ec9734e
+          path: .uv-workspace-siblings/graph-os-webui
           persist-credentials: false
 
       - name: Checkout agent-utilities' own agent-connector-sdk source path
@@ -110,11 +110,11 @@ jobs:
           path: .uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph
           persist-credentials: false
 
-      - name: Materialize agent-webui's pinned AU source path
+      - name: Materialize graph-os-webui's pinned AU source path
         run: |
           set -euo pipefail
-          mkdir -p .uv-workspace-siblings/agent-webui/.uv-workspace-siblings
-          cp -a .uv-workspace-siblings/agent-utilities .uv-workspace-siblings/agent-webui/.uv-workspace-siblings/agent-utilities
+          mkdir -p .uv-workspace-siblings/graph-os-webui/.uv-workspace-siblings
+          cp -a .uv-workspace-siblings/agent-utilities .uv-workspace-siblings/graph-os-webui/.uv-workspace-siblings/agent-utilities
 
       # The base the differential hooks compare against: the pull request base
       # or the previous push, else the root commit (a first push scans all of

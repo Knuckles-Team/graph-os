@@ -84,7 +84,7 @@ def test_webui_supervisor_uses_injected_runner(monkeypatch: pytest.MonkeyPatch) 
 
     start_composed_services(object(), object(), web_ui_runner=web_ui_runner)
 
-    assert started[0][0] == "agent-webui"
+    assert started[0][0] == "graph-os-webui"
     assert started[0][1] is web_ui_runner
 
 

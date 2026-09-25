@@ -284,49 +284,6 @@ guardrails = [
 ]
 
 [[package]]
-name = "agent-webui"
-version = "2.6.2"
-source = { editable = ".uv-workspace-siblings/agent-webui" }
-dependencies = [
-    { name = "fastapi" },
-    { name = "joserfc" },
-    { name = "langfuse" },
-    { name = "logfire", extra = ["fastapi", "starlette"] },
-    { name = "pydantic-ai-slim", extra = ["ui"] },
-    { name = "python-multipart" },
-    { name = "sse-starlette" },
-    { name = "starlette" },
-    { name = "uvicorn" },
-    { name = "watchfiles" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "agent-utilities", extras = ["agent-headless", "graph", "graphos", "metrics"], marker = "extra == 'test'", editable = ".uv-workspace-siblings/agent-webui/.uv-workspace-siblings/agent-utilities" },
-    { name = "fastapi", specifier = ">=0.139.2" },
-    { name = "joserfc", specifier = ">=1.7.4" },
-    { name = "langfuse", specifier = ">=4.14.1" },
-    { name = "logfire", extras = ["fastapi", "starlette"], specifier = ">=4.38.0" },
-    { name = "networkx", marker = "extra == 'test'", specifier = ">=3.6.1" },
-    { name = "opentelemetry-instrumentation-asgi", marker = "extra == 'test'", specifier = ">=0.65b0" },
-    { name = "opentelemetry-instrumentation-fastapi", marker = "extra == 'test'", specifier = ">=0.65b0" },
-    { name = "opentelemetry-instrumentation-starlette", marker = "extra == 'test'", specifier = ">=0.65b0" },
-    { name = "pydantic-ai-slim", extras = ["ui"], specifier = ">=2.14.1" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=9.1.1" },
-    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=1.4.0" },
-    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=7.1.0" },
-    { name = "pytest-env", marker = "extra == 'test'", specifier = ">=1.7.0" },
-    { name = "pytest-timeout", marker = "extra == 'test'", specifier = ">=2.4.0" },
-    { name = "pytest-xdist", marker = "extra == 'test'", specifier = ">=3.8.0" },
-    { name = "python-multipart", specifier = ">=0.0.20" },
-    { name = "sse-starlette", specifier = ">=3.4.6" },
-    { name = "starlette", specifier = ">=1.3.1" },
-    { name = "uvicorn", specifier = ">=0.51.0" },
-    { name = "watchfiles", specifier = ">=1.2.0" },
-]
-provides-extras = ["test"]
-
-[[package]]
 name = "aiofile"
 version = "3.12.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1658,7 +1615,7 @@ test = [
     { name = "types-pyyaml" },
 ]
 webui = [
-    { name = "agent-webui" },
+    { name = "graph-os-webui" },
     { name = "uvicorn" },
 ]
 
@@ -1666,7 +1623,6 @@ webui = [
 requires-dist = [
     { name = "agent-connector-sdk", editable = ".uv-workspace-siblings/agent-connector-sdk" },
     { name = "agent-utilities", extras = ["mcp"], editable = ".uv-workspace-siblings/agent-utilities" },
-    { name = "agent-webui", marker = "extra == 'webui'", editable = ".uv-workspace-siblings/agent-webui" },
     { name = "anyio", specifier = ">=4.13.0" },
     { name = "botbuilder-core", marker = "extra == 'messaging-teams'", specifier = ">=4.17.1" },
     { name = "discord-py", marker = "extra == 'messaging-discord'", specifier = ">=2.7.1" },
@@ -1679,6 +1635,7 @@ requires-dist = [
     { name = "google-auth", marker = "extra == 'messaging-googlechat'", specifier = ">=2.56.1" },
     { name = "google-auth", marker = "extra == 'messaging-googlemeet'", specifier = ">=2.56.1" },
     { name = "graph-os", extras = ["messaging-discord", "messaging-googlechat", "messaging-googlemeet", "messaging-irc", "messaging-line", "messaging-matrix", "messaging-mattermost", "messaging-nextcloud", "messaging-signal", "messaging-slack", "messaging-synology", "messaging-teams", "messaging-telegram", "messaging-twitch", "messaging-voicecall", "messaging-whatsapp"], marker = "extra == 'messaging'" },
+    { name = "graph-os-webui", marker = "extra == 'webui'", editable = ".uv-workspace-siblings/graph-os-webui" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "httpx", marker = "extra == 'messaging-nextcloud'", specifier = ">=0.28.1" },
     { name = "httpx", marker = "extra == 'messaging-synology'", specifier = ">=0.28.1" },
@@ -1715,6 +1672,49 @@ requires-dist = [
     { name = "webauthn", specifier = ">=2.8.0,<3.0.0" },
 ]
 provides-extras = ["test", "messaging-discord", "messaging-slack", "messaging-telegram", "messaging-whatsapp", "messaging-teams", "messaging-googlechat", "messaging-googlemeet", "messaging-mattermost", "messaging-matrix", "messaging-irc", "messaging-signal", "messaging-imessage", "messaging-line", "messaging-twitch", "messaging-synology", "messaging-voicecall", "messaging-nextcloud", "messaging", "webui"]
+
+[[package]]
+name = "graph-os-webui"
+version = "2.6.2"
+source = { editable = ".uv-workspace-siblings/graph-os-webui" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "joserfc" },
+    { name = "langfuse" },
+    { name = "logfire", extra = ["fastapi", "starlette"] },
+    { name = "pydantic-ai-slim", extra = ["ui"] },
+    { name = "python-multipart" },
+    { name = "sse-starlette" },
+    { name = "starlette" },
+    { name = "uvicorn" },
+    { name = "watchfiles" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "agent-utilities", extras = ["agent-headless", "graph", "graphos", "metrics"], marker = "extra == 'test'", editable = ".uv-workspace-siblings/graph-os-webui/.uv-workspace-siblings/agent-utilities" },
+    { name = "fastapi", specifier = ">=0.139.2" },
+    { name = "joserfc", specifier = ">=1.7.4" },
+    { name = "langfuse", specifier = ">=4.14.1" },
+    { name = "logfire", extras = ["fastapi", "starlette"], specifier = ">=4.38.0" },
+    { name = "networkx", marker = "extra == 'test'", specifier = ">=3.6.1" },
+    { name = "opentelemetry-instrumentation-asgi", marker = "extra == 'test'", specifier = ">=0.65b0" },
+    { name = "opentelemetry-instrumentation-fastapi", marker = "extra == 'test'", specifier = ">=0.65b0" },
+    { name = "opentelemetry-instrumentation-starlette", marker = "extra == 'test'", specifier = ">=0.65b0" },
+    { name = "pydantic-ai-slim", extras = ["ui"], specifier = ">=2.14.1" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=9.1.1" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=1.4.0" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=7.1.0" },
+    { name = "pytest-env", marker = "extra == 'test'", specifier = ">=1.7.0" },
+    { name = "pytest-timeout", marker = "extra == 'test'", specifier = ">=2.4.0" },
+    { name = "pytest-xdist", marker = "extra == 'test'", specifier = ">=3.8.0" },
+    { name = "python-multipart", specifier = ">=0.0.20" },
+    { name = "sse-starlette", specifier = ">=3.4.6" },
+    { name = "starlette", specifier = ">=1.3.1" },
+    { name = "uvicorn", specifier = ">=0.51.0" },
+    { name = "watchfiles", specifier = ">=1.2.0" },
+]
+provides-extras = ["test"]
 
 [[package]]
 name = "graphql-core"

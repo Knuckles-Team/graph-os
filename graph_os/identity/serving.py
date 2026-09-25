@@ -10,7 +10,7 @@ here, in three steps that always run together:
    refuses to serve ``none`` mode off loopback or on a production profile
    without the exact acknowledgement, prints the demo-mode warning block and
    starts the scheduled LDAP / AD group sync;
-3. :func:`webui_session_boundary` hands agent-webui the gate through its
+3. :func:`webui_session_boundary` hands graph-os-webui the gate through its
    host session-boundary port, so the WebUI's own identity layer only ever
    sees admitted local-issuer tokens.
 """
@@ -109,12 +109,12 @@ async def prepare_identity(
 
 
 def webui_session_boundary(runtime: IdentityRuntime) -> Callable[[Any], None]:
-    """agent-webui's session-boundary port, backed by the identity gate.
+    """graph-os-webui's session-boundary port, backed by the identity gate.
 
     The WebUI role shown to a browser is derived by the WebUI's own server
     ladder from the admitted scopes; the frontend never derives one.
     """
-    from agent_webui.rbac import resolve_webui_role
+    from graph_os_webui.rbac import resolve_webui_role
 
     def role_of(scopes: Iterable[str]) -> str | None:
         return resolve_webui_role(scopes, authenticated=True)

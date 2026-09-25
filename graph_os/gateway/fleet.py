@@ -31,7 +31,7 @@ no separate supervisor service. Everything here surfaces state the ecosystem
   for ``fleet_touched``'s blast-radius query (eg-workitem WRAPUP EG-5).
 
 These handlers are plain Starlette callables mounted by the gateway; the
-``agent-webui`` Fleet Dashboard consumes them.
+``graph-os-webui`` Fleet Dashboard consumes them.
 """
 
 from __future__ import annotations

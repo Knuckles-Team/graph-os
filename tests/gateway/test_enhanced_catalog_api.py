@@ -284,5 +284,5 @@ def test_route_module_has_no_webui_or_au_gateway_fallback() -> None:
     source = api.__file__
     assert source is not None
     text = __import__("pathlib").Path(source).read_text(encoding="utf-8")
-    assert "agent_webui" not in text
+    assert "graph_os_webui" not in text
     assert "agent_utilities.gateway" not in text

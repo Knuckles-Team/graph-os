@@ -10,7 +10,7 @@ capabilities through one governed surface.
 
 | Layer | Owns | GraphOS relationship |
 |---|---|---|
-| [Agent Web UI](https://knuckles-team.github.io/agent-webui/) | Browser interaction, chat presentation, and local UI state | Hosted by GraphOS with an injected application composer. |
+| [Agent Web UI](https://knuckles-team.github.io/graph-os-webui/) | Browser interaction, chat presentation, and local UI state | Hosted by GraphOS with an injected application composer. |
 | Agent Terminal UI | Terminal and headless operation | Uses GraphOS REST today; conversational ACP chat remains an explicit contract gap. |
 | Geniusbot | Desktop cockpit for chat, graph, fleet, and health | Uses the governed GraphOS gateway for its primary panels. |
 | Messaging channels | Chat and voice entrypoints | Hosted and supervised by GraphOS; adapters and the inbound router remain owned by agent-utilities. |

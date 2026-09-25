@@ -238,7 +238,7 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
     # metrics middleware is OUTERMOST — auth rejections (401) and rate-limit
     # rejections (429) are counted too. GET /metrics remains behind the
     # identity middleware when KG authentication is required. Both the gateway and
-    # the agent-webui backend mount through here, so both get the same
+    # the graph-os-webui backend mount through here, so both get the same
     # instrumentation. With prometheus_client absent (optional ``metrics``
     # extra) everything degrades to a no-op.
     if config.gateway_metrics:
@@ -267,7 +267,7 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
     _mount_sparql_route(app, prefix=prefix)
 
     # Read-only SQL catalog introspection (CONCEPT:AU-KG.query.raw-python) — the
-    # catalogs → tables/views → columns projection the agent-webui catalog
+    # catalogs → tables/views → columns projection the graph-os-webui catalog
     # browser renders. Deliberately NOT a raw SQL passthrough: it takes no query
     # text, only an optional identifier-validated schema filter. See
     # graph_os/gateway/sql_catalog.py.

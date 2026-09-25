@@ -456,7 +456,7 @@ def stop_host_daemon() -> None:
 def main() -> None:
     """Run the single consolidated KG daemon as a standalone host process.
 
-    This is the daemon ``host`` when the full API gateway (agent-webui) isn't
+    This is the daemon ``host`` when the full API gateway (graph-os-webui) isn't
     run as a long-lived service: it starts the one consolidated daemon and
     blocks, draining the durable task queue that ``KG_DAEMON_ROLE=client``
     processes (MCP server / CLI / scripts) submit to. The singleton host lock

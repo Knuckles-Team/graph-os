@@ -107,7 +107,7 @@ messaging = [
     "graph-os[messaging-discord,messaging-slack,messaging-telegram,messaging-whatsapp,messaging-teams,messaging-googlechat,messaging-googlemeet,messaging-mattermost,messaging-matrix,messaging-irc,messaging-signal,messaging-line,messaging-twitch,messaging-synology,messaging-voicecall,messaging-nextcloud]"
 ]
 webui = [
-    "agent-webui>=2.6.0,<3.0.0",
+    "graph-os-webui>=2.6.0,<3.0.0",
     "uvicorn>=0.51.0",
 ]
 
@@ -150,7 +150,7 @@ agent-utilities-venv = "graph_os.deployment.venv_sync:main"
 [tool.uv.sources]
 agent-utilities = { path = ".uv-workspace-siblings/agent-utilities", editable = true }
 agent-connector-sdk = { path = ".uv-workspace-siblings/agent-connector-sdk", editable = true }
-agent-webui = { path = ".uv-workspace-siblings/agent-webui", editable = true }
+graph-os-webui = { path = ".uv-workspace-siblings/graph-os-webui", editable = true }
 
 [tool.setuptools.dynamic]
 version = { attr = "graph_os._version.__version__" }

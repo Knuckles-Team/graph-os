@@ -2,7 +2,7 @@
 
 RF-ADR-009 (`plans/refactor/RF-ADR-009-connector-sdk-and-graph-os.md`) §2 assigns
 this repository phase 5: **the deployable composition** — the MCP server, REST
-gateway, control plane, fleet gateway, agent-webui hosting, and deployment
+gateway, control plane, fleet gateway, graph-os-webui hosting, and deployment
 tooling. It must never own business logic that belongs to
 epistemic-graph, agent-connector-sdk, or the agent-utilities agent plane.
 

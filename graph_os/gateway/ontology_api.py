@@ -287,7 +287,7 @@ async def load_ontology(body: OntologyLoadRequest) -> OntologyEnvelope:
     """Parse + SHACL-validate + register + activate a hosted ontology.
 
     Granular typed twin of ``graph_ontology(action='load')`` — the route the
-    agent-webui Import/Export modal POSTs a dropped/pasted ``.ttl``/RDF file
+    graph-os-webui Import/Export modal POSTs a dropped/pasted ``.ttl``/RDF file
     (or a file path / URL) to. Same core as the collapsed MCP surface; no new
     business logic here.
     """

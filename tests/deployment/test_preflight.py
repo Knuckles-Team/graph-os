@@ -70,6 +70,13 @@ def test_unknown_component_is_skip_not_crash():
     assert c["status"] == "skip"
 
 
+def test_renamed_webui_component_is_checked():
+    assert "graph-os-webui" in P.COMPONENTS
+    rep = P.run_preflight("tiny", ["graph-os-webui"])
+    webui = next(c for c in rep["checks"] if c["name"] == "graph-os-webui")
+    assert webui["status"] in ("ok", "warn", "fail")
+
+
 def test_component_checks_never_raise():
     for name, fn in P._COMPONENT_CHECKS.items():
         res = fn()

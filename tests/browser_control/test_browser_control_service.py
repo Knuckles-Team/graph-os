@@ -408,7 +408,7 @@ def _tool(
         else object_output
     )
     return BrowserToolDescriptor(
-        tool_id="agent-webui.navigate" if mutation else "agent-webui.get-page-context",
+        tool_id="graphos.navigate" if mutation else "graphos.get-page-context",
         version="1.0.0",
         input_schema=input_schema,
         output_schema=output_schema,
@@ -420,7 +420,7 @@ def _tool(
             ConfirmationPolicy.EXACT_REQUEST if mutation else ConfirmationPolicy.NONE
         ),
         required_roles=("user",),
-        source_ref="agent-webui:src/lib/webmcp/tools.ts",
+        source_ref="graph-os-webui:src/lib/webmcp/tools.ts",
     )
 
 
@@ -495,7 +495,7 @@ async def _setup(
 
 
 def test_factory_implements_the_real_webui_port_protocol() -> None:
-    from agent_webui.browser_control import browser_control_port_enabled
+    from graph_os_webui.browser_control import browser_control_port_enabled
 
     def app_factory(*, browser_control: Any = None) -> Any:
         return browser_control

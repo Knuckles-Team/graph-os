@@ -54,7 +54,7 @@ async def test_browser_control_registers_one_mcp_rest_workflow_dispatch(
             action="issue_lease",
             payload={
                 "document_ref": "document_" + "a" * 64,
-                "tool_ids": ["agent-webui.get-page-context"],
+                "tool_ids": ["graphos.get-page-context"],
                 "attended": True,
             },
         )
@@ -64,7 +64,7 @@ async def test_browser_control_registers_one_mcp_rest_workflow_dispatch(
                 "issue_lease",
                 {
                     "document_ref": "document_" + "a" * 64,
-                    "tool_ids": ["agent-webui.get-page-context"],
+                    "tool_ids": ["graphos.get-page-context"],
                     "attended": True,
                 },
             )

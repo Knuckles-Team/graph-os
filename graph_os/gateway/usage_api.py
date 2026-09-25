@@ -2,7 +2,7 @@
 (CONCEPT:AU-ECO.mcp.usage-cost-observability-surface).
 
 Mounted at ``/api/observability`` next to the dashboard + graph routers, so all
-three frontends (agent-webui, agent-terminal-ui, geniusbot) consume one surface.
+three frontends (graph-os-webui, agent-terminal-ui, geniusbot) consume one surface.
 Mirrors the useful agentsview Huma routes; all SQL is delegated to
 ``UsageService``. The upload endpoint is the HTTP half of the remote-ingest
 transport (CONCEPT:AU-ECO.mcp.client-side-chat-session): clients parse local logs and

@@ -302,7 +302,7 @@ async def authority_keepalive_scope(session: Any | None = None) -> AsyncIterator
     CONCEPT:AU-ORCH.execution.delegation-hot-path-authority — keep a long delegation authorized for its whole run, on every entrypoint, not just MCP dispatch.
 
     Every delegation entrypoint — the MCP ``_execute_tool`` dispatch, the
-    ``agent-webui``/REST gateway, the messaging router (Telegram/Mattermost), the
+    ``graph-os-webui``/REST gateway, the messaging router (Telegram/Mattermost), the
     autonomous ``agent_dispatch_worker``, ``org_runtime``, a governed dynamic
     workflow, and the parallel engine — converges on the single function
     :meth:`agent_utilities.orchestration.manager.Orchestrator.execute_agent`.

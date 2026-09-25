@@ -14,7 +14,7 @@ runtime still lives in agent-utilities.
 An eventual image definition here must:
 
 - install exact released GraphOS, epistemic-graph, agent-connector-sdk,
-  agent-utilities, and optional agent-webui artifacts;
+  agent-utilities, and optional graph-os-webui artifacts;
 - run the public `graph-os` entrypoint rather than an agent-utilities alias;
 - resolve endpoints and credentials from deployment configuration and secret
   references, never from values embedded in the image;

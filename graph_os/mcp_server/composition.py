@@ -193,5 +193,5 @@ def start_composed_services(
     if plan.web_ui_enabled:
         if web_ui_runner is None:
             raise RuntimeError("served WebUI runner is required")
-        supervisor.start_service("agent-webui", web_ui_runner, session)
+        supervisor.start_service("graph-os-webui", web_ui_runner, session)
     return supervisor

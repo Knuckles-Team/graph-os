@@ -15,7 +15,7 @@ from graph_os.fleet.shared_multiplexer import run_on_served_multiplexer
 
 
 class WebUiMcpDelegation(TypedDict):
-    """Workspace-helper contract consumed by ``agent_webui``."""
+    """Workspace-helper contract consumed by ``graph_os_webui``."""
 
     list_mcp_server_tools: Callable[..., Awaitable[list[dict[str, Any]]]]
     call_mcp_tool: Callable[..., Awaitable[Any]]

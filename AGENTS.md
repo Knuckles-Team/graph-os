@@ -33,7 +33,7 @@ GraphOS authenticates, composes, routes, supervises, and projects. Durable
 graph state and RDF/OWL/SHACL semantics belong to `epistemic-graph`; agent
 decisions and workflows belong to `agent-utilities`; source-specific transport
 and effects belong to `agent-connector-sdk` and connector services; browser
-presentation belongs to `agent-webui`.
+presentation belongs to `graph-os-webui`.
 
 Dependencies point toward those authorities through public contracts. Do not
 copy their implementations here. Connector widgets invoke admitted fleet tools

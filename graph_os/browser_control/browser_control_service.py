@@ -134,7 +134,7 @@ def browser_control_factory_kwargs(
         return {}
     if not callable(session_revalidator):
         try:
-            from agent_webui.browser_control import (
+            from graph_os_webui.browser_control import (
                 revalidate_browser_control_session,
             )
         except ImportError:

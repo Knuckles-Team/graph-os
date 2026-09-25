@@ -89,15 +89,15 @@ def test_scanner_job_installs_pinned_uv_before_uvx() -> None:
     assert steps[uv_index]["with"]["version"] == "0.11.7"
 
 
-def test_webui_checkout_uses_reachable_published_commit() -> None:
+def test_webui_checkout_pins_renamed_source_carrier() -> None:
     steps = _steps_before_sync()
     checkout = next(
         step
         for step in steps
-        if step.get("with", {}).get("repository") == "Knuckles-Team/agent-webui"
+        if step.get("with", {}).get("repository") == "Knuckles-Team/graph-os-webui"
     )
 
-    assert checkout["with"]["ref"] == "9ef29956ffd195ced40149e2a510a09b3783f5e3"
+    assert checkout["with"]["ref"] == "677a27e0f701eca99cad20887a0b5c4b8ec9734e"
 
 
 def test_release_workflow_pins_published_generated_contract_heads() -> None:

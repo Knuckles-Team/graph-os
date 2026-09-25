@@ -77,7 +77,7 @@ then use the task-oriented references:
 
 | Layer | Authority | Relationship to Graph OS |
 |---|---|---|
-| [Agent Web UI](https://knuckles-team.github.io/agent-webui/) | Browser experience and local interaction state | Graph OS hosts it and supplies governed application routes. |
+| [Agent Web UI](https://knuckles-team.github.io/graph-os-webui/) | Browser experience and local interaction state | Graph OS hosts it and supplies governed application routes. |
 | Agent Terminal UI | Terminal and headless interaction | Uses the governed Graph OS REST interface. |
 | Geniusbot | Desktop cockpit | Uses the governed Graph OS gateway for its primary panels. |
 | Messaging channels | Chat and voice entrypoints | Graph OS hosts and supervises them; agent-utilities owns adapters and routing. |

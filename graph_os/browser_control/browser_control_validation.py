@@ -29,7 +29,7 @@ def validate_origin(origin: str) -> None:
 
 
 def coerce_binding(binding: BrowserChannelBinding) -> BrowserChannelBinding:
-    """Validate a structurally compatible binding supplied by agent-webui."""
+    """Validate a structurally compatible binding supplied by graph-os-webui."""
 
     if isinstance(binding, BrowserChannelBinding):
         return binding

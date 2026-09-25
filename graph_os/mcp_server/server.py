@@ -332,7 +332,7 @@ def mcp_server() -> None:
             # exists. Credentials keep outbound sending available, but the explicit
             # MESSAGING_INTAKE_ENABLED deployment intent (false by default) is the
             # only way this request container may enter the shared native lease
-            # boundary. When ENABLE_WEB_UI is true, the packaged agent-webui is
+            # boundary. When ENABLE_WEB_UI is true, the packaged graph-os-webui is
             # started in-process by this same supervisor as a separately bound,
             # independently restartable co-service.
             web_ui_runner = None

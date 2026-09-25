@@ -93,7 +93,7 @@ explicitly.
 | Build agents, workflows, evaluations, or skills | [agent-utilities](https://knuckles-team.github.io/agent-utilities/) |
 | Store, query, reason over, or prove durable knowledge | [epistemic-graph](https://knuckles-team.github.io/epistemic-graph/) |
 | Build and certify a source connector | [agent-connector-sdk](https://knuckles-team.github.io/agent-connector-sdk/) |
-| Use the platform in a browser | [Agent WebUI](https://knuckles-team.github.io/agent-webui/) |
+| Use the platform in a browser | [Agent WebUI](https://knuckles-team.github.io/graph-os-webui/) |
 
 The [capability status](status.md) is the exact account of the surfaces shipped
 by this package.
