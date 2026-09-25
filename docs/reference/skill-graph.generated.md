@@ -33,6 +33,8 @@ Every concept and component this repo's own registries and documentation nav dec
 - **REST gateway** — `gateway.md`
 - **Fleet gateway** — `fleet.md`
 - **Unary A2A** — `a2a.md`
+- **Policy evolution** — `policy-evolution.md`
+- **Access elevation and guardrails** — `guardrails.md`
 - **Browser control** — `browser-control-service.md`
 
 ## Glossary
