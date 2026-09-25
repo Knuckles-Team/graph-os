@@ -74,6 +74,37 @@ PolicyCheck = Callable[[str, str, Any], Awaitable[bool]]
 DelegatedCall = Callable[[str, str, Mapping[str, Any], Any], Awaitable[Any]]
 
 
+def tool_for_multiplexer_ops(ops: Any) -> ToolFor:
+    """Read private effect/credential metadata from the admitted fleet item.
+
+    The service must derive these fields from verified EG manifest and live
+    child probe data. None of them may come from call arguments or a public
+    catalog response.
+    """
+
+    async def tool_for(server: str, tool: str, caller: Any) -> AdmittedTool:
+        item = await ops.admitted_tool(caller, server, tool)
+        if (
+            item is None
+            or getattr(item, "kind", None) != "tool"
+            or getattr(item, "server", None) != server
+            or getattr(item, "name", None) != tool
+        ):
+            raise PermissionError("fleet tool is not admitted")
+        scopes = getattr(item, "required_scopes", None)
+        mode = getattr(item, "credential_mode", None)
+        if not isinstance(scopes, frozenset) or mode not in {"delegated", "service"}:
+            raise RuntimeError("fleet tool authority metadata is incomplete")
+        return AdmittedTool(
+            annotations=getattr(item, "annotations", None),
+            effect_override=getattr(item, "effect_override", None),
+            required_scopes=scopes,
+            credential_mode=mode,
+        )
+
+    return tool_for
+
+
 def oauth_delegated_call_for_mux(mux: Any) -> DelegatedCall:
     """Use only the per-principal OAuth child path; never the shared pool.
 

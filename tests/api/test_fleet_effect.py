@@ -15,6 +15,7 @@ from graph_os.fleet.gateway_ops import (
     annotation_effect,
     fleet_effect_for,
     oauth_delegated_call_for_mux,
+    tool_for_multiplexer_ops,
 )
 
 
@@ -231,3 +232,35 @@ async def test_oauth_callback_uses_matching_verified_actor(
     caller.principal = "bob"
     with pytest.raises(PermissionError, match="does not match"):
         await dispatch("s", "t", {}, caller)
+
+
+@pytest.mark.asyncio
+async def test_admitted_tool_adapter_rejects_target_or_metadata_drift() -> None:
+    class Ops:
+        def __init__(self) -> None:
+            self.item = SimpleNamespace(
+                kind="tool",
+                server="s",
+                name="t",
+                annotations={"readOnlyHint": True},
+                effect_override=None,
+                required_scopes=frozenset({"finance:read"}),
+                credential_mode="delegated",
+            )
+
+        async def admitted_tool(self, caller: object, server: str, tool: str):
+            return self.item
+
+    ops = Ops()
+    tool_for = tool_for_multiplexer_ops(ops)
+    caller = object()
+    assert await tool_for("s", "t", caller) == AdmittedTool(
+        {"readOnlyHint": True}, None, frozenset({"finance:read"}), "delegated"
+    )
+    ops.item.name = "other"
+    with pytest.raises(PermissionError, match="not admitted"):
+        await tool_for("s", "t", caller)
+    ops.item.name = "t"
+    ops.item.credential_mode = "unknown"
+    with pytest.raises(RuntimeError, match="metadata is incomplete"):
+        await tool_for("s", "t", caller)
