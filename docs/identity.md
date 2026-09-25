@@ -32,4 +32,4 @@ A qualifying probe exercises the actual sign-in form or IdP redirect, then reque
 
 Use dedicated, non-production test users and keep their credentials in the deployment secret backend. Run the browser probe again against the production URL after rollout; a test namespace pass alone does not qualify production. Keep probe output free of cookies, tokens, credentials, and one-time codes.
 
-For scopes, approver groups, service identities and mode-specific troubleshooting, see the deployment skill's `identity-and-access.md` reference. Browser UI role rendering never grants engine authority; the API and engine check the caller on every operation.
+For scopes and service identities, see [deployment](deployment.md) and [capability status](status.md). Browser UI role rendering never grants engine authority; the API and engine check the caller on every operation.
