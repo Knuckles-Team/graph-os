@@ -9,6 +9,13 @@ import types
 from types import SimpleNamespace
 from typing import Any, cast
 
+# The host modules the run_web_ui test patches are imported before that test
+# replaces agent_utilities / agent_webui with synthetic modules: importing them
+# afterwards would resolve their own imports against the stubs.
+from graph_os.browser_control import browser_control_service
+from graph_os.identity import serving
+from graph_os.mcp_server import runtime
+
 
 def _package(name: str) -> types.ModuleType:
     package = types.ModuleType(name)
@@ -67,6 +74,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
             calls["server"] = self
 
         async def serve(self) -> None:
+            assert calls["identity_prepared"] == ("identity-runtime", ["0.0.0.0"])
             calls["served"] = True
             stop_event.set()
 
@@ -185,6 +193,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         workspace_helpers: dict[str, object],
         listener_host: str,
         application_composer: object,
+        session_boundary: object | None = None,
         contact_delivery: object | None = None,
         browser_control: object | None = None,
     ) -> object:
@@ -193,6 +202,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
             "workspace_helpers": workspace_helpers,
             "listener_host": listener_host,
             "application_composer": application_composer,
+            "session_boundary": session_boundary,
             "contact_delivery": contact_delivery,
             "browser_control": browser_control,
         }
@@ -202,8 +212,6 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     monkeypatch.setitem(sys.modules, "agent_webui.server", server_module)
 
     service = object()
-    from graph_os.browser_control import browser_control_service
-    from graph_os.mcp_server import runtime
 
     def browser_control_factory_kwargs(
         app_factory: object,
@@ -224,6 +232,15 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     )
     monkeypatch.setattr(runtime, "_get_engine", lambda: "graph-os-engine")
 
+    async def prepare_identity(identity: object, bind_hosts: list[str]) -> None:
+        calls["identity_prepared"] = (identity, bind_hosts)
+
+    monkeypatch.setattr(serving, "served_identity_runtime", lambda: "identity-runtime")
+    monkeypatch.setattr(
+        serving, "webui_session_boundary", lambda identity: ("boundary", identity)
+    )
+    monkeypatch.setattr(serving, "prepare_identity", prepare_identity)
+
     monkeypatch.delenv(module.ACCESS_LOG_POLICY_ENV, raising=False)
     module.run_web_ui(stop_event, host="0.0.0.0", port=8181)
 
@@ -238,6 +255,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         },
         "listener_host": "0.0.0.0",
         "application_composer": module.compose_web_application,
+        "session_boundary": ("boundary", "identity-runtime"),
         "contact_delivery": "governed-contact-delivery",
         "browser_control": service,
     }

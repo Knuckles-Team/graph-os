@@ -1,10 +1,11 @@
 """Second factors, API keys, administrator resets and the issuer endpoints.
 
-MFA is OPTIONAL for every user; an administrator can require it per group
-(operator ruling 2026-09-24) — the engine then answers a sign-in with
-``mfa_enrollment_required`` and the session authorizes nothing but enrolment
-until a factor is confirmed. WebAuthn needs engine-side credential storage
-that the identity store does not publish yet, so its routes fail closed.
+MFA is OPTIONAL for every user (operator ruling 2026-09-24): enrolment is
+self-service from a signed-in session, and a sign-in only owes a second factor
+once the user confirmed one. A sign-in the engine answers with
+``mfa_enrollment_required`` opened no session. WebAuthn needs engine-side
+credential storage that the identity store does not publish yet, so its routes
+fail closed.
 """
 
 from __future__ import annotations
