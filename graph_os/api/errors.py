@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -128,6 +129,11 @@ def _public_details(
 ) -> dict[str, Any]:
     """Project only reviewed, bounded fields into a GraphOS refusal."""
 
+    if code in {
+        GraphOSErrorCode.CONFIRMATION_REQUIRED,
+        GraphOSErrorCode.STEP_UP_REQUIRED,
+    }:
+        return _confirmation_details(code, details)
     allowed = {
         GraphOSErrorCode.SCOPE_REQUIRED: "missing_scopes",
         GraphOSErrorCode.LOAD_CAP_EXCEEDED: "loaded_items",
@@ -141,6 +147,34 @@ def _public_details(
     if any(not isinstance(item, str) or len(item) > 128 for item in values):
         return {}
     return {key: list(values)}
+
+
+def _confirmation_details(
+    code: GraphOSErrorCode, details: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Keep only the bounded lease reference and UI route needed to resume."""
+
+    plan_ref = details.get("plan_ref")
+    op = details.get("op")
+    effect = details.get("effect")
+    if (
+        not isinstance(plan_ref, str)
+        or re.fullmatch(r"graphos_plan:[0-9a-f]{48}", plan_ref) is None
+    ):
+        return {}
+    if (
+        not isinstance(op, str)
+        or re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{0,127}", op) is None
+    ):
+        return {}
+    if effect not in {"read", "write", "admin", "destructive"}:
+        return {}
+    projected = {"plan_ref": plan_ref, "op": op, "effect": effect}
+    if code == GraphOSErrorCode.STEP_UP_REQUIRED:
+        console_url = details.get("console_url")
+        if console_url == f"/console/confirm/{plan_ref}":
+            projected["console_url"] = console_url
+    return projected
 
 
 def _classified_error(
