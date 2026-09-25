@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from graph_os.api import serving
 from graph_os.api.invoke import VerifiedCaller, invoke
+from graph_os.api.mcp.resolve import IntentResolver
 from graph_os.api.policy import PolicyGate
 from graph_os.api.registry import (
     EgMethod,
@@ -159,3 +160,56 @@ def test_missing_generated_registry_stops_assembly(
     monkeypatch.setattr(serving, "get_registry", unavailable)
     with pytest.raises(ValueError, match="pinned wheel contract missing"):
         serving.build_invoke_services(ports([]))
+
+
+@pytest.mark.asyncio
+async def test_served_assembly_shares_registry_and_policy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(serving, "get_registry", lambda: Registry([op()]))
+
+    async def fleet_search(**kwargs: Any) -> list[Any]:
+        return []
+
+    def fleet_ops_factory(*args: Any) -> object:
+        return object()
+
+    def caller_for_request() -> None:
+        return None
+
+    bundle = serving.ServedApiPorts(
+        serving=ports([]),
+        caller_for_request=caller_for_request,
+        fleet_search=fleet_search,
+        fleet_ops_factory=fleet_ops_factory,
+        resolver=IntentResolver(),
+    )
+    projection, visible, factory = serving.assemble_served_api(bundle)
+    assert projection.registry is projection.services.registry
+    assert projection.policy_gate is bundle.serving.policy_gate
+    assert factory is fleet_ops_factory
+    caller = VerifiedCaller(
+        principal="user:1",
+        tenant="t1",
+        effective_scopes=frozenset({"items:read", "mcp:discover"}),
+        engine_claims={
+            "principal": "user:1",
+            "tenant": "t1",
+            "scopes": ["items:read", "mcp:discover"],
+        },
+        principal_kind="human",
+    )
+    assert await visible(op(), caller)
+    assert not await visible(
+        op(scopes=frozenset({"items:read", "secret:read"})), caller
+    )
+
+
+def test_served_ports_provider_requires_explicit_registration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(serving, "_SERVED_PORTS", None)
+    with pytest.raises(RuntimeError, match="not configured"):
+        serving.configured_served_api_ports()
+    with pytest.raises(TypeError, match="complete"):
+        serving.configure_served_api_ports(None)
