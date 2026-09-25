@@ -14,7 +14,6 @@ from graph_os.gateway.ports import configure_gateway_application
 from graph_os.mcp_server import runtime
 from graph_os.mcp_server.routes import mount_rest_routes
 from graph_os.messaging.intake import start_messaging_intake
-from graph_os.webui_host import run_web_ui
 
 logger = logging.getLogger(__name__)
 
