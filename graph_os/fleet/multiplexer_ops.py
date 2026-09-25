@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import builtins
 from collections.abc import Awaitable, Callable, Iterable, Mapping
-from typing import Any
+from typing import Any, cast
 
 from graph_os.fleet.catalog_items import CatalogItem, FleetCatalog, ItemKind
 from graph_os.fleet.session_loads import SessionLoads
@@ -13,6 +14,7 @@ Mount = Callable[[CatalogItem, Callable[..., Awaitable[Any]] | None], Awaitable[
 Notify = Callable[[str], Awaitable[bool]]
 Invoke = Callable[[str, Mapping[str, Any], Any, str], Awaitable[Any]]
 Health = Callable[[], Mapping[str, Any]]
+SessionKeyFor = Callable[[Any], str | None]
 
 
 class MultiplexerOps:
@@ -33,6 +35,7 @@ class MultiplexerOps:
         notify: Notify,
         invoke: Invoke,
         health: Health,
+        session_key_for: SessionKeyFor | None = None,
     ) -> None:
         self.catalog = catalog
         self.sessions = sessions
@@ -41,6 +44,79 @@ class MultiplexerOps:
         self._notify = notify
         self._invoke = invoke
         self._health = health
+        self._session_key_for = session_key_for or (lambda _caller: None)
+
+    def _session_key(self, caller: Any) -> str:
+        key = self._session_key_for(caller)
+        if not isinstance(key, str) or not key:
+            raise PermissionError("verified MCP session is required")
+        return key
+
+    async def search(self, caller: Any, **params: Any) -> dict[str, Any]:
+        """Registry service contract for ``fleet.catalog.search``."""
+        if "mcp:discover" not in caller.effective_scopes:
+            raise PermissionError("mcp:discover is required")
+        return await self.find_tools(caller, **params)
+
+    async def list(self, caller: Any, **params: Any) -> dict[str, Any]:
+        """Registry browse projection over the same filtered catalog."""
+        return await self.search(caller, **{**params, "browse": True})
+
+    async def load(
+        self,
+        caller: Any,
+        items: Iterable[str],
+        auto_unload: bool = False,
+        evict: str | None = None,
+    ) -> dict[str, Any]:
+        if "mcp:delegate" not in caller.effective_scopes:
+            raise PermissionError("mcp:delegate is required")
+        return await self.load_tools(
+            caller,
+            self._session_key(caller),
+            items,
+            auto_unload=auto_unload,
+            evict=evict,
+        )
+
+    async def unload(
+        self,
+        caller: Any,
+        items: Iterable[str] = (),
+        servers: Iterable[str] = (),
+        kinds: Iterable[ItemKind] = (),
+        all_items: bool = False,
+    ) -> dict[str, Any]:
+        if "mcp:delegate" not in caller.effective_scopes:
+            raise PermissionError("mcp:delegate is required")
+        return await self.unload_tools(
+            caller,
+            self._session_key(caller),
+            items=items,
+            servers=servers,
+            kinds=kinds,
+            all_items=all_items,
+        )
+
+    async def status(self, caller: Any, servers: Iterable[str] = ()) -> dict[str, Any]:
+        if "mcp:discover" not in caller.effective_scopes:
+            raise PermissionError("mcp:discover is required")
+        key = self._session_key_for(caller)
+        snapshot = (
+            self.multiplexer_status(key)
+            if key
+            else {
+                "children": dict(self._health()),
+                "session": None,
+            }
+        )
+        selected = set(servers)
+        if selected:
+            children = cast(Mapping[str, Any], snapshot["children"])
+            snapshot["children"] = {
+                name: state for name, state in children.items() if name in selected
+            }
+        return snapshot
 
     async def find_tools(
         self,
@@ -116,11 +192,11 @@ class MultiplexerOps:
         evict: str | None = None,
     ) -> dict[str, Any]:
         ids = list(dict.fromkeys(items))
-        if not ids or len(ids) > 128:
-            raise ValueError("load expects 1..128 item ids")
+        if not ids or len(ids) > 256:
+            raise ValueError("load expects 1..256 item ids")
         if "mcp:delegate" not in caller.effective_scopes:
             raise PermissionError("mcp:delegate is required")
-        resolved: list[CatalogItem] = []
+        resolved: builtins.list[CatalogItem] = []
         for item_id in ids:
             item = await self.catalog.get(item_id, caller)
             if item is None or not await self._loadable(item, caller):
@@ -193,9 +269,11 @@ class MultiplexerOps:
         self.sessions.redelivered(session_key, sent)
         return sent
 
-    async def revoke_invisible(self, caller: Any, session_key: str) -> list[str]:
+    async def revoke_invisible(
+        self, caller: Any, session_key: str
+    ) -> builtins.list[str]:
         """Drop loaded items whose discovery/load policy changed."""
-        removed: list[str] = []
+        removed: builtins.list[str] = []
         for item_id in self.sessions.loaded(session_key):
             item = await self.catalog.get(item_id, caller)
             if item is None or not await self._loadable(item, caller):
