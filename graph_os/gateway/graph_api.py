@@ -313,6 +313,12 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     register_enhanced_catalog_routes(app, prefix=prefix)
 
+    # Dashboard data and configuration are served by this process's gateway,
+    # using the same verified session as the graph routes.
+    from graph_os.gateway.api import register_dashboard_routes
+
+    register_dashboard_routes(app, prefix=prefix)
+
     # Browser OAuth callbacks are part of the same authenticated gateway
     # surface; pass the graph prefix explicitly so providers register the
     # exact deployed callback path without accidental double-prefixing.
