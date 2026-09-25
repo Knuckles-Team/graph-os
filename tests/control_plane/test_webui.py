@@ -21,7 +21,6 @@ from graph_os.control_plane.webui import (
     WebUiAuthorizationError,
     WebUiCasConflictError,
     WebUiEntityNotFoundError,
-    WebUiPilotBoundaryError,
     WebUiRetentionError,
     WebUiService,
     WidgetIdentity,
@@ -44,18 +43,6 @@ def _context(
         actor_ref="actor:user",
         session_ref=session_ref,
         permissions=("read", "write", "feedback", "support", "admin"),
-    )
-
-
-def _anonymous_context() -> AccessContext:
-    return AccessContext(
-        tenant_ref="tenant:pilot",
-        workspace_ref="workspace:pilot",
-        actor_ref="actor:anonymous-pilot",
-        session_ref="session:pilot",
-        permissions=("read", "write", "feedback"),
-        authenticated=False,
-        anonymous_pilot=True,
     )
 
 
@@ -307,44 +294,23 @@ def test_ui_state_receipt_cannot_mutate_graphos_authority() -> None:
     assert service.save_ui_state(dashboard, context=context).version == 1
 
 
-def test_anonymous_pilot_is_private_and_cannot_mint_authority() -> None:
-    context = _anonymous_context()
-    service = WebUiService(
-        InMemoryWebUiRepository(),
-        clock=lambda: 1_000,
-    )
-    pilot = service.open_anonymous_pilot(
-        context=context,
-        session_ref=context.session_ref,
-        expires_at=1_060,
-    )
-    assert pilot.private_boundary is True
-    assert pilot.session.private_boundary is True
-    assert not hasattr(pilot, "token")
-    assert not hasattr(pilot, "provider_grant")
-    assert not hasattr(pilot, "public_share")
+def test_there_is_no_anonymous_pilot_authority() -> None:
+    """IDM-07: ``none`` mode resolves a real bootstrap principal instead.
 
-    with pytest.raises(WebUiPilotBoundaryError):
-        service.save_ui_state(
-            SavedQueryIdentity(
-                tenant_ref=context.tenant_ref,
-                workspace_ref=context.workspace_ref,
-                saved_query_ref="query:pilot",
-                owner_ref="user:anonymous-pilot",
-                query_ref="query-ref:pilot",
-                visibility="workspace",
-                version=1,
-                digest=_digest("pilot-query"),
-            ),
-            context=context,
-        )
+    The unauthenticated pilot context and its credential-free session were a
+    second, weaker path; they are gone, and a context still claiming one is
+    refused rather than silently accepted.
+    """
+    assert not hasattr(WebUiService, "open_anonymous_pilot")
     with pytest.raises(ValidationError):
-        AccessContext(
-            tenant_ref=context.tenant_ref,
-            workspace_ref=context.workspace_ref,
-            actor_ref="actor:anonymous-pilot",
-            session_ref=context.session_ref,
-            permissions=("read", "admin"),
-            authenticated=False,
-            anonymous_pilot=True,
+        AccessContext.model_validate(
+            {
+                "tenant_ref": "tenant:one",
+                "workspace_ref": "workspace:one",
+                "actor_ref": "actor:anonymous-pilot",
+                "session_ref": "session:one",
+                "permissions": ("read",),
+                "authenticated": False,
+                "anonymous_pilot": True,
+            }
         )

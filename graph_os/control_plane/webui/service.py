@@ -8,10 +8,9 @@ from typing import TypeVar, cast
 
 from pydantic import BaseModel
 
-from .errors import WebUiAuthorizationError, WebUiPilotBoundaryError
+from .errors import WebUiAuthorizationError
 from .models import (
     AccessContext,
-    AnonymousPilotSession,
     AttachmentIdentity,
     ContentReference,
     ConversationIdentity,
@@ -36,7 +35,6 @@ from .models import (
     WebUiEntity,
     WidgetIdentity,
     WorkspaceIdentity,
-    canonical_digest,
 )
 from .protocols import WebUiRepository
 from .repository import entity_kind_for
@@ -59,36 +57,6 @@ class WebUiService:
         self._repository = repository
         self._clock = clock or (lambda: int(time()))
 
-    @staticmethod
-    def _pilot_guard(entity: WebUiEntity, context: AccessContext) -> None:
-        if not isinstance(context, AccessContext):
-            raise WebUiAuthorizationError()
-        if not context.anonymous_pilot:
-            return
-        if not WebUiService._pilot_entity_is_bound(entity, context):
-            raise WebUiPilotBoundaryError()
-        if isinstance(entity, SessionIdentity) and not entity.anonymous_pilot:
-            raise WebUiPilotBoundaryError()
-
-    @staticmethod
-    def _pilot_entity_is_bound(entity: WebUiEntity, context: AccessContext) -> bool:
-        requirements = (
-            ("visibility", "private", "private"),
-            ("session_ref", context.session_ref, context.session_ref),
-            ("user_ref", "user:anonymous-pilot", "user:anonymous-pilot"),
-            ("owner_ref", "user:anonymous-pilot", "user:anonymous-pilot"),
-            ("actor_ref", "actor:anonymous-pilot", "actor:anonymous-pilot"),
-            (
-                "requester_ref",
-                "actor:anonymous-pilot",
-                "actor:anonymous-pilot",
-            ),
-        )
-        return all(
-            getattr(entity, field, default) == expected
-            for field, default, expected in requirements
-        )
-
     def save_entity(
         self,
         entity: WebUiEntity,
@@ -98,7 +66,8 @@ class WebUiService:
     ) -> WebUiEntity:
         """Persist one identity; tenant/workspace authority is never implicit."""
 
-        self._pilot_guard(entity, context)
+        if not isinstance(context, AccessContext):
+            raise WebUiAuthorizationError()
         return self._repository.put(
             entity,
             context=context,
@@ -167,48 +136,6 @@ class WebUiService:
             entity_ref=str(getattr(saved, f"{entity_kind_for(saved)}_ref")),
             version=saved.version,
         )
-
-    def open_anonymous_pilot(
-        self,
-        *,
-        context: AccessContext,
-        session_ref: str,
-        expires_at: int,
-    ) -> AnonymousPilotSession:
-        """Open a private pilot session without minting any credential."""
-
-        if not isinstance(context, AccessContext):
-            raise WebUiAuthorizationError()
-        if not context.anonymous_pilot or not context.allows("write"):
-            raise WebUiPilotBoundaryError()
-        if session_ref != context.session_ref:
-            raise WebUiPilotBoundaryError()
-        issued_at = max(0, int(self._clock()))
-        session = SessionIdentity(
-            tenant_ref=context.tenant_ref,
-            workspace_ref=context.workspace_ref,
-            session_ref=session_ref,
-            user_ref="user:anonymous-pilot",
-            anonymous_pilot=True,
-            private_boundary=True,
-            issued_at=issued_at,
-            expires_at=expires_at,
-            version=1,
-            digest=canonical_digest(
-                {
-                    "tenant_ref": context.tenant_ref,
-                    "workspace_ref": context.workspace_ref,
-                    "session_ref": session_ref,
-                    "user_ref": "user:anonymous-pilot",
-                    "anonymous_pilot": True,
-                    "private_boundary": True,
-                    "issued_at": issued_at,
-                    "expires_at": expires_at,
-                }
-            ),
-        )
-        stored = self.save_entity(session, context=context)
-        return AnonymousPilotSession(session=cast(SessionIdentity, stored))
 
     def _save_typed(
         self,
