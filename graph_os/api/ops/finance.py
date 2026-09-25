@@ -18,6 +18,7 @@ from graph_os.api.registry import (
     OpSpec,
     PrincipalRule,
     SubjectRef,
+    SubjectSource,
     Surface,
     Verb,
 )
@@ -96,7 +97,7 @@ def specs() -> tuple[OpSpec, ...]:
                 executor=Executor.SERVICE,
                 scopes=frozenset({ACTION_SCOPES[action]}),
                 executor_scopes=_INFRA.get(action, frozenset({"node:read"})),
-                subject=SubjectRef(path="$caller.tenant"),
+                subject=SubjectRef(source=SubjectSource.CALLER_TENANT),
                 effect=effect,
                 idempotency=Idempotency.KEY_REQUIRED
                 if effect is Effect.WRITE
@@ -135,7 +136,7 @@ def specs() -> tuple[OpSpec, ...]:
                 executor=Executor.SERVICE,
                 scopes=frozenset({"finance:read"}),
                 executor_scopes=frozenset({"broker:read"}),
-                subject=SubjectRef(path="$caller.tenant"),
+                subject=SubjectRef(source=SubjectSource.CALLER_TENANT),
             )
         )
     return tuple(items)

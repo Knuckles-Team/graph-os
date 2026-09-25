@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from graph_os.api.ops import finance, markets
-from graph_os.api.registry import Executor, Surface
+from graph_os.api.registry import Executor, SubjectSource, Surface
 from graph_os.finance.markets import MarketsService
 
 
@@ -34,7 +34,8 @@ def _context(**changes: object) -> SimpleNamespace:
 def test_service_ops_are_caller_tenant_bound_and_schemas_reject_subject_spoof() -> None:
     for op in (*finance.specs(), *markets.specs()):
         if op.executor is Executor.SERVICE:
-            assert op.subject.path == "$caller.tenant"
+            assert op.subject.source is SubjectSource.CALLER_TENANT
+            assert op.subject.path is None
             assert op.scopes
             assert op.executor_scopes
             with pytest.raises(ValidationError):

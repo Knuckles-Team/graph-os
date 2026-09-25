@@ -16,6 +16,7 @@ from graph_os.api.registry import (
     Idempotency,
     OpSpec,
     SubjectRef,
+    SubjectSource,
     Verb,
 )
 
@@ -139,7 +140,7 @@ def specs() -> tuple[OpSpec, ...]:
             executor=Executor.SERVICE,
             scopes=frozenset({"finance:read"}),
             executor_scopes=scopes,
-            subject=SubjectRef(path="$caller.tenant"),
+            subject=SubjectRef(source=SubjectSource.CALLER_TENANT),
             effect=effect,
             idempotency=Idempotency.KEY_REQUIRED
             if effect is Effect.WRITE
