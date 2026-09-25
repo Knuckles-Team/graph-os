@@ -36,6 +36,7 @@ class MultiplexerOps:
         invoke: Invoke,
         health: Health,
         session_key_for: SessionKeyFor | None = None,
+        callable_item: Loadable | None = None,
     ) -> None:
         self.catalog = catalog
         self.sessions = sessions
@@ -45,6 +46,28 @@ class MultiplexerOps:
         self._invoke = invoke
         self._health = health
         self._session_key_for = session_key_for or (lambda _caller: None)
+        self._callable_item = callable_item
+
+    async def admitted_tool(self, caller: Any, server: str, tool: str) -> CatalogItem:
+        """Return one call-authorized descriptor without requiring discovery scope."""
+        if "mcp:delegate" not in caller.effective_scopes:
+            raise PermissionError("mcp:delegate is required")
+        item = await self.catalog._raw_get(f"fleet:tool:{server}/{tool}")
+        if (
+            item is None
+            or item.kind != "tool"
+            or item.server != server
+            or item.name != tool
+        ):
+            raise PermissionError("fleet tool is unavailable")
+        if not item.required_scopes.issubset(caller.effective_scopes):
+            raise PermissionError("child scopes are required")
+        if (
+            self._callable_item is None
+            or await self._callable_item(item, caller) is not True
+        ):
+            raise PermissionError("fleet call denied by policy")
+        return item
 
     def _session_key(self, caller: Any) -> str:
         key = self._session_key_for(caller)
