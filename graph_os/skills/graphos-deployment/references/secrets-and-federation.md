@@ -21,6 +21,12 @@ Rules:
   value actually reached the container environment; external-secret
   controllers refresh on an interval, and a hand-edited managed Secret is
   reverted on the next reconcile.
+- On Docker Swarm, bootstrap secrets are Swarm secrets (immutable, mounted
+  under `/run/secrets/`, exported into the environment by the stack's
+  entrypoint). There is no External Secrets controller: rotate by creating a
+  new secret, switching the service to it (a stop-first restart) and removing
+  the old one; a value that originates in OpenBao is copied by an operator step
+  with a recorded owner.
 - Prefer workload identity (Kubernetes auth bound to one service account,
   namespace and audience, policy scoped to exactly the paths needed) over a
   static store token. Verify the auth method exists; do not assume it.

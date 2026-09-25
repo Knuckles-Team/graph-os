@@ -1,0 +1,130 @@
+# Graph OS on Docker Swarm (one stack, one writer).
+#
+# Derived from deploy/compose/compose.yaml: one graph-os service that starts and
+# supervises its epistemic-graph engine as a child process inside the same task
+# (Swarm has no pod sidecar). The engine store has exactly ONE writer:
+#   - replicas: 1, update order stop-first (the old task exits and releases the
+#     store lock before the new one starts);
+#   - the data volume is node-local, so the task is pinned to the node labelled
+#     graphos.data=true (label exactly one node).
+#
+# Secrets are Swarm secrets, mounted at /run/secrets/<name> and exported into
+# the process environment by the entrypoint (the runtime reads secret values
+# from its environment or its secrets backend, never from files):
+#   openssl rand -hex 32 | docker secret create graphos_service_auth_secret -
+#
+# Deploy:
+#   docker node update --label-add graphos.data=true <node>
+#   GRAPHOS_IMAGE=<registry>/<graph-os-image>@sha256:<digest> \
+#     docker stack config -c deploy/swarm/stack.yml     # validate
+#   GRAPHOS_IMAGE=... docker stack deploy -c deploy/swarm/stack.yml graph-os
+#   docker service logs graph-os_graph-os | grep 'setup code'   # local mode first boot
+#
+# Limits versus Kubernetes: no NetworkPolicy (isolation is the overlay network
+# plus host firewalling), no External Secrets (rotate by creating a new secret
+# version and redeploying), and published ports go through the routing mesh on
+# every node unless mode: host is used.
+version: "3.9"
+
+services:
+  graph-os:
+    image: ${GRAPHOS_IMAGE:?set GRAPHOS_IMAGE to an immutable graph-os image reference}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        export GRAPH_SERVICE_AUTH_SECRET="$$(cat /run/secrets/graphos_service_auth_secret)" &&
+        exec graph-os --transport streamable-http --host 0.0.0.0 --port 8000
+    environment:
+      APP_PROFILE: ${GRAPHOS_APP_PROFILE:-production}
+      DEPLOYMENT_PROFILE: ${GRAPHOS_DEPLOYMENT_PROFILE:-single-node-prod}
+      # none | local | external — seeds the durable mode on FIRST boot only.
+      # A Swarm task never binds loopback: `none` also needs the exact
+      # GRAPHOS_AUTH_NONE_EXPOSE acknowledgement; prefer local or external.
+      GRAPHOS_AUTH_MODE: ${GRAPHOS_AUTH_MODE:-local}
+      GRAPHOS_AUTH_NONE_EXPOSE: ${GRAPHOS_AUTH_NONE_EXPOSE:-}
+      EUNOMIA_TYPE: ${EUNOMIA_TYPE:-embedded}
+      SECRETS_BACKEND: ${SECRETS_BACKEND:-engine}
+      SECRETS_VAULT_URL: ${SECRETS_VAULT_URL:-}
+      MCP_TOOL_MODE: intent
+      ALLOWED_HOSTS: ${GRAPHOS_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      ENABLE_WEB_UI: "true"
+      GRAPH_OS_WEBUI_PORT: "8080"
+      # Unified topology, child placement: graph-os starts the engine itself.
+      GRAPH_SERVICE_ENDPOINTS: ""
+      GRAPH_SERVICE_PERSIST_DIR: /var/lib/graph-os/engine
+      ENGINE_LIFECYCLE: persistent
+      KG_DAEMON_ROLE: host
+      HOME: /var/lib/graph-os/home
+      XDG_CONFIG_HOME: /var/lib/graph-os/config
+      XDG_DATA_HOME: /var/lib/graph-os/data
+      XDG_STATE_HOME: /var/lib/graph-os/state
+      XDG_CACHE_HOME: /tmp/cache
+      XDG_RUNTIME_DIR: /run/epistemic-graph
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      RUM_OTLP_METRICS_ENDPOINT: ${RUM_OTLP_METRICS_ENDPOINT:-}
+    secrets:
+      - graphos_service_auth_secret
+    networks:
+      - graph-os
+    ports:
+      # Behind a TLS-terminating proxy on the same overlay, drop these and
+      # route to graph-os:8000 / graph-os:8080 instead.
+      - target: 8000
+        published: ${GRAPHOS_API_PORT:-8000}
+        mode: host
+      - target: 8080
+        published: ${GRAPHOS_UI_PORT:-8080}
+        mode: host
+    volumes:
+      - graph-os-data:/var/lib/graph-os
+      - type: tmpfs
+        target: /run/epistemic-graph
+      - type: tmpfs
+        target: /tmp
+    read_only: true
+    cap_drop:
+      - ALL
+    stop_grace_period: 90s
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8000/health/ready', headers={'Host': 'localhost'}), timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.graphos.data == true
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  graph-os:
+    driver: overlay
+    attachable: true
+
+volumes:
+  graph-os-data: {}
+
+secrets:
+  graphos_service_auth_secret:
+    external: true

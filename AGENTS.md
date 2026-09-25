@@ -29,7 +29,7 @@ fabricated receipt to make it appear complete.
 | `graph_os.browser_control` | Governed browser catalog, lease, dispatch, and outcome orchestration |
 | `graph_os.deployment` | Configuration, diagnostics, canaries, environment plans, and production operations |
 | `graph_os.skills` | Operator skills `graphos-genesis` (Day-0 substrate) and `graphos-deployment` (install, identity, verification) |
-| `deploy/helm/graph-os`, `deploy/compose` | The Kubernetes chart and the single-host Compose project those skills drive |
+| `deploy/helm/graph-os`, `deploy/compose`, `deploy/swarm` | The Kubernetes chart, the single-host Compose project and the Docker Swarm stack those skills drive |
 
 GraphOS authenticates, composes, routes, supervises, and projects. Durable
 graph state and RDF/OWL/SHACL semantics belong to `epistemic-graph`; agent

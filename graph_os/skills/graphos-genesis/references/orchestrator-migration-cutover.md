@@ -34,24 +34,24 @@ Preserve canonical issuer/audience and external service names where possible. A
 post-cutover authorization failure may be stale DNS or a gateway token route, not a
 bad credential.
 
-## From Docker Swarm
+## Between Docker Swarm, Compose and Kubernetes
 
-Swarm is not a supported Graph OS target. Treat a Swarm estate as the source of
-an ordinary cutover:
+Swarm is a supported flavor ([docker-swarm.md](docker-swarm.md)); moving onto
+or off it is an ordinary cutover:
 
 - one host → the Compose project (`deploy/compose`); several hosts →
   Kubernetes with the chart (`deploy/helm/graph-os`);
-- move secrets out of Swarm secrets into the selected backend (engine secrets
-  graph or a Vault-compatible store) as references, never by copying values
-  into files;
-- stop the Swarm graph-os service and wait until its task has fully exited
+- move secrets between Swarm secrets and the target's mechanism (Kubernetes
+  Secret from a Vault-compatible store, engine secrets graph, env file) by
+  reference or through the store, never by copying values into files;
+- stop the source graph-os service and wait until its task has fully exited
   before the new unit opens the engine store — the store holds a single-writer
   lock for the life of the process;
 - copy the engine store with the writer stopped (or through the engine's
   backup/restore), never live;
 - repoint connectors that dialled the old engine address to the new engine
   listener (TLS) or through graph-os;
-- keep the Swarm stack definition, scaled to zero, until the rollback window
+- keep the source definition (stack, Compose project or release), scaled to zero, until the rollback window
   closes, then retire it separately.
 
 ## Rollback

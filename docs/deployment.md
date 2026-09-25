@@ -56,18 +56,20 @@ binary at matching releases, pinned by digest.
 | Artifact | Use |
 |---|---|
 | `deploy/compose/compose.yaml` | One host with Docker Compose or Podman: a single GraphOS service that supervises its engine, one data volume, ports published on loopback |
+| `deploy/swarm/stack.yml` | Docker Swarm: the same single GraphOS service as Compose, one replica with stop-first updates, pinned to the node that holds the data, secrets as Swarm secrets, overlay network |
 | `deploy/helm/graph-os` | Kubernetes: GraphOS with its engine as a native sidecar (or child) in one pod, or a shared engine StatefulSet; namespaced RBAC, split API and web UI ingress, NetworkPolicy |
 
 Validate before use:
 
 ```bash
 docker compose -f deploy/compose/compose.yaml config --quiet
+docker stack config -c deploy/swarm/stack.yml
 helm lint deploy/helm/graph-os --strict
 helm template graph-os deploy/helm/graph-os --namespace <namespace> --values <values>
 ```
 
 The engine store has exactly one writer: never scale the unified service or
-pod. The bundled operator skills `graphos-genesis` (substrate) and
+pod or Swarm service. The bundled operator skills `graphos-genesis` (substrate) and
 `graphos-deployment` (installation, identity, verification) walk through both
 paths end to end.
 

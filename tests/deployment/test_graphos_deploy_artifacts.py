@@ -11,6 +11,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 CHART = ROOT / "deploy" / "helm" / "graph-os"
 COMPOSE = ROOT / "deploy" / "compose"
+SWARM = ROOT / "deploy" / "swarm" / "stack.yml"
 
 
 def _templates() -> str:
@@ -85,3 +86,19 @@ def test_skill_provider_is_registered_and_packaged() -> None:
     assert '[project.entry-points."agent_utilities.skill_providers"]' in pyproject
     assert 'graph-os = "graph_os.skills"' in pyproject
     assert '"skills/**/*.md"' in pyproject
+
+
+def test_swarm_stack_is_single_writer_stop_first_and_pinned() -> None:
+    stack = yaml.safe_load(SWARM.read_text(encoding="utf-8"))
+    service = stack["services"]["graph-os"]
+    deploy = service["deploy"]
+
+    assert list(stack["services"]) == ["graph-os"]
+    assert deploy["replicas"] == 1
+    assert deploy["update_config"]["order"] == "stop-first"
+    assert deploy["rollback_config"]["order"] == "stop-first"
+    assert deploy["placement"]["constraints"] == ["node.labels.graphos.data == true"]
+    assert stack["networks"]["graph-os"]["driver"] == "overlay"
+    assert stack["secrets"]["graphos_service_auth_secret"] == {"external": True}
+    assert service["environment"]["GRAPH_SERVICE_ENDPOINTS"] == ""
+    assert service["image"].startswith("${GRAPHOS_IMAGE:?")

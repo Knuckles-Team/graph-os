@@ -71,22 +71,11 @@ Copy both examples, fill them, never commit the copies (the directory's
   (`.container` + `.volume`) generated from the same model, so systemd owns
   restart and boot ordering. Validate the units and prove reboot persistence.
 
-## Docker Swarm (not supported)
+## Several hosts
 
-Swarm is no longer a supported target for Graph OS. Reasons:
-
-- one host is fully covered by Compose, and several hosts by Kubernetes, which
-  the chart targets; a third renderer would drift from both;
-- the unified topology needs a pod-level sidecar with a shared socket volume
-  and a single-writer store pinned to one node; Swarm has no sidecar concept
-  and no equivalent of `Recreate` rollouts or PodDisruptionBudgets;
-- production policy relies on NetworkPolicy, External Secrets and native
-  secret-store integration, which Swarm lacks;
-- the reference estates this skill was built from have already migrated off
-  Swarm, so a Swarm path would be untested.
-
-An existing Swarm estate migrates: one host → Compose, several hosts →
-Kubernetes. Follow [orchestrator-migration-cutover.md](orchestrator-migration-cutover.md).
+For several Docker hosts use the Swarm stack derived from this project
+([docker-swarm.md](docker-swarm.md)), or Kubernetes when NetworkPolicy,
+External Secrets or a shared engine are required.
 
 ## Gates
 

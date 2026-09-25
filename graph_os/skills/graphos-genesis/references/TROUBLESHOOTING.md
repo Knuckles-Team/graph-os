@@ -15,6 +15,7 @@ Start from the failed exit gate and preserve the trace/evidence bundle.
 | graph-os refuses to start: non-loopback bind in `none` mode | identity mode and bind address | use `local`/`external`, or set the exact `GRAPHOS_AUTH_NONE_EXPOSE` acknowledgement and publish on loopback only |
 | Fresh install shows a setup page nobody can complete | the setup code | read `GRAPHOS_SETUP_CODE` or the one-time code in the graph-os log (`/auth/setup`); never disable the gate |
 | Every connector call fails while the multiplexer shows the child `up` | the CHILD's log, not graph-os's; engine address the child dials | the child could not reach an engine; repoint it to the pod's engine listener or through graph-os |
+| Swarm update hangs or the new task crash-loops on a store lock | whether `update_config.order` is `stop-first` and the old task has exited | keep `stop-first` and `replicas: 1`; never `start-first` for graph-os |
 | Fleet discovery returns an empty page with `POLICY_UNAVAILABLE` | Eunomia is on and its policy decision point is unreachable | restore the PDP or policy file; Eunomia fails closed by design — never switch it off to "fix" discovery |
 | External route fails | DNS, certificate names, ingress/Gateway backend, network policy | test each hop and keep the prior route available |
 | Background work starves users | foreground priority, IO/model/GPU limits, checkpoints | pause/checkpoint lower lanes and verify foreground latency |

@@ -19,7 +19,7 @@ scope:
   include: []
   exclude: []
 target:
-  runtime: kubernetes # compose | bare-metal | kubernetes
+  runtime: kubernetes # compose | swarm | bare-metal | kubernetes
   ownership: use-existing # use-existing | provision
   authority: namespace-only # namespace-only | cluster-admin | host-admin
 application:
@@ -36,7 +36,7 @@ capabilities:
   data_plane: [] # optional named services, see data-plane-substrate.md
 topology:
   engine: unified-in-process # unified-in-process | out-of-process-shared
-  engine_placement: sidecar # sidecar | child (unified only)
+  engine_placement: sidecar # sidecar | child (unified only; child on compose/swarm)
   high_availability: false
   failure_domains: []
 artifacts:
@@ -64,6 +64,9 @@ Consistency rules the plan must satisfy before apply:
   OIDC/SAML/LDAP provider;
 - `secrets.backend: vault` requires a reachable Vault-compatible store and a
   delivery path; `engine` requires nothing external;
+- `runtime: swarm` requires `engine: unified-in-process`, `engine_placement:
+  child`, exactly one node labelled for the data volume, and a recorded
+  rotation owner for Swarm secrets;
 - `engine: out-of-process-shared` requires an engine TLS certificate and a
   provisioned signer key for graph-os.
 

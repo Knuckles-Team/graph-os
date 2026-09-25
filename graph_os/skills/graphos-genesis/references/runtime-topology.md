@@ -25,7 +25,7 @@ one identity, one lifecycle and one hostname set.
   graph-os. graph-os admits to it as a client, so the engine signer key for
   graph-os's principal goes in the runtime Secret both containers read (see
   [engine-identity-admission.md](engine-identity-admission.md)).
-- **Engine placement `child` (Compose and bare metal default).** graph-os starts
+- **Engine placement `child` (Compose, Docker Swarm and bare metal).** graph-os starts
   and supervises the engine binary inside its own container or service
   (`GRAPH_SERVICE_ENDPOINTS=""`, `GRAPH_SERVICE_PERSIST_DIR` set explicitly,
   `ENGINE_LIFECYCLE=persistent` so the engine never idles out while connectors
@@ -76,7 +76,7 @@ the engine binary against every node it can run on.
 | Profile | Shape | Identity default | Secrets default |
 |---|---|---|---|
 | `tiny` | one process on loopback, zero external infrastructure | `none` | engine secrets graph |
-| `single-node-prod` | one durable host (Compose or bare metal) | `local` | engine secrets graph or OpenBao |
+| `single-node-prod` | one durable host (Compose or bare metal), or a Swarm estate | `local` | engine secrets graph or OpenBao |
 | `enterprise` | Kubernetes, reuses existing identity/secrets/ingress/observability | `local`, usually moved to `external` | OpenBao / Vault-compatible |
 
 ## Throughput rules

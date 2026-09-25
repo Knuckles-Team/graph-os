@@ -3,8 +3,8 @@ name: graphos-genesis
 skill_type: skill
 description: >-
   Day-0, idempotent substrate provisioning for a Graph OS installation: a
-  laptop or single host with Docker Compose (or Podman), an existing
-  Kubernetes namespace, an existing cluster, or a newly provisioned
+  laptop or single host with Docker Compose (or Podman), a Docker Swarm
+  estate, an existing Kubernetes namespace, an existing cluster, or a newly provisioned
   multi-node cluster. Use for environment discovery, topology selection,
   container or cluster substrate, identity/secrets/PKI boundaries, Helm and
   GitOps foundations and workspace bootstrap, then hand off to
@@ -35,7 +35,7 @@ Read [runtime-topology.md](references/runtime-topology.md) first. In one line:
 - **epistemic-graph (EG)** is the engine and sole durable authority. In the
   standard *unified* topology it runs in the same pod or container as graph-os,
   as a native sidecar container (Kubernetes) or a supervised child process
-  (Compose, bare metal). Its store has exactly one writer.
+  (Compose, Swarm, bare metal). Its store has exactly one writer.
 - **agent-utilities (AU)** is the agent-orchestration library graph-os imports.
   It is not deployed as a service of its own.
 - **Connectors** are MCP servers built on agent-connector-sdk. graph-os reaches
@@ -51,7 +51,8 @@ the installed release first.
 
 - inventory and constraint discovery;
 - a deploy / use-existing / skip decision per infrastructure capability;
-- runtime selection and provisioning (Compose host, Podman host, Kubernetes);
+- runtime selection and provisioning (Compose host, Podman host, Docker
+  Swarm, Kubernetes);
 - namespaces, service accounts, RBAC, network boundaries, storage classes,
   ingress, certificates, secret-store integration and GitOps substrate;
 - placement, capacity, backup, restore and failure-domain planning;
@@ -111,8 +112,8 @@ Collect or infer:
 
 - mode: `evaluation`, `development`, `small-production` or
   `production-at-scale`;
-- runtime: `compose` (Docker or Podman, one host), `bare-metal` (systemd),
-  or `kubernetes`;
+- runtime: `compose` (Docker or Podman, one host), `swarm` (Docker Swarm,
+  several hosts), `bare-metal` (systemd), or `kubernetes`;
 - Kubernetes authority: `namespace-only`, `existing-cluster`,
   `provision-cluster` or `provision-multi-node`;
 - engine topology: `unified-in-process` (default) or
@@ -137,10 +138,10 @@ Collect or infer:
 cluster that reuses existing OIDC, a Vault-compatible store, ingress, storage
 and observability is a first-class production target.
 
-**Docker Swarm is not a supported target.** A Swarm estate migrates to Compose
-(one host) or Kubernetes (several hosts); see
-[compose-and-podman.md](references/compose-and-podman.md) and
-[orchestrator-migration-cutover.md](references/orchestrator-migration-cutover.md).
+**Docker Swarm is a supported flavor** for estates that already run it. It
+has no NetworkPolicy and no External Secrets, and runs the unified topology
+only; read [docker-swarm.md](references/docker-swarm.md) and state those limits
+to the operator before choosing it.
 
 ### Phase 1 — Discover and preflight
 
@@ -191,7 +192,7 @@ acknowledgement.
 | Existing cluster with platform administration | Kubernetes `existing-cluster` | [kubernetes-and-helm.md](references/kubernetes-and-helm.md) |
 | New single-node or edge cluster | Kubernetes `provision-cluster` | [kubernetes-and-helm.md](references/kubernetes-and-helm.md) |
 | Several hosts, HA, several failure domains | Kubernetes `provision-multi-node` | [kubernetes-and-helm.md](references/kubernetes-and-helm.md) |
-| An existing Swarm estate | migrate to Compose or Kubernetes | [orchestrator-migration-cutover.md](references/orchestrator-migration-cutover.md) |
+| Several existing Docker hosts, Kubernetes not wanted | Docker Swarm | [docker-swarm.md](references/docker-swarm.md) |
 | Lakehouse, streaming or triple-store services | optional data plane, Kubernetes | [data-plane-substrate.md](references/data-plane-substrate.md) |
 
 Do not provision Kubernetes merely because it is available. Choose it when its
@@ -204,6 +205,13 @@ scheduling, policy, availability, GitOps or tenancy benefits justify the cost.
 tree ships `deploy/compose/compose.yaml`: one graph-os service with the engine
 as a supervised child, ports published on `127.0.0.1`, one data volume.
 Validate with `docker compose config --quiet` (or `podman compose config`).
+
+**Docker Swarm.** Follow [docker-swarm.md](references/docker-swarm.md). The
+graph-os source tree ships `deploy/swarm/stack.yml`, derived from the Compose
+project: one replica, `stop-first` updates, the engine co-located in the
+graph-os task, a Swarm secret for the engine HMAC secret, an overlay network
+and a placement constraint pinning the task to the node that holds the data
+volume. Validate with `docker stack config -c deploy/swarm/stack.yml`.
 
 **Kubernetes.** Follow [kubernetes-and-helm.md](references/kubernetes-and-helm.md).
 The graph-os source tree ships the chart at `deploy/helm/graph-os`: unified or
@@ -261,11 +269,11 @@ Invoke `graphos-deployment` with:
 
 ```yaml
 deployment_profile: <tiny|single-node-prod|enterprise>
-run_target: <compose|bare-metal|kubernetes>
+run_target: <compose|swarm|bare-metal|kubernetes>
 substrate_resolved: true
 namespace: <namespace-or-null>
 engine_topology: <unified-in-process|out-of-process-shared>
-engine_placement: <sidecar|child|null>
+engine_placement: <sidecar|child|null>   # child for compose, swarm, bare-metal
 identity_mode: <none|local|external>
 components: [<resolved component names>]
 providers:
@@ -280,6 +288,7 @@ providers:
 artifacts:
   helm_values: <path-or-null>
   compose_project: <path-or-null>
+  swarm_stack: <path-or-null>
   inventory: <path>
 constraints:
   namespace_scoped: <true|false>
@@ -295,7 +304,8 @@ recurse into a full genesis run.
 Do not declare success until every applicable gate passes:
 
 1. rendered artifacts contain no unresolved placeholders or plaintext secrets
-   (`helm lint`, `helm template`, `docker compose config --quiet`);
+   (`helm lint`, `helm template`, `docker compose config --quiet`,
+   `docker stack config`);
 2. policy/schema validation and a server-side dry run pass;
 3. workloads meet readiness, resource, placement and restart checks; the
    engine store survives a controlled restart;

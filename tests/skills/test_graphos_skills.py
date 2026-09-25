@@ -82,7 +82,8 @@ def test_genesis_hands_off_to_deployment() -> None:
     assert "**Mandatory delegation rule:**" in text
     assert "`graphos-deployment`" in text
     assert "substrate_resolved: true" in text
-    assert "Docker Swarm is not a supported target" in text
+    assert "Docker Swarm is a supported flavor" in text
+    assert "references/docker-swarm.md" in text
 
 
 def test_deployment_verifies_the_browser_path() -> None:

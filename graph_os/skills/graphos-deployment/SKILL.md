@@ -61,7 +61,7 @@ infrastructure or rotate credentials.
 | Profile | Runtime | Identity mode | Eunomia | Secrets backend |
 |---|---|---|---|---|
 | `tiny` | one host, loopback | `none` | off (`none`) | engine secrets graph |
-| `single-node-prod` | Compose or bare metal | `local` | on (`embedded`, shipped policy) | engine secrets graph, or OpenBao |
+| `single-node-prod` | Compose, Docker Swarm or bare metal | `local` | on (`embedded`, shipped policy) | engine secrets graph, or OpenBao |
 | `enterprise` | Kubernetes | `local`, then usually `external` | on (`embedded` or `remote`) | OpenBao / Vault-compatible |
 
 Rules that hold in every profile:
@@ -84,7 +84,8 @@ choosing a secrets backend or connecting an external database.
   --profile <profile>`), never a hand-written partial file; run
   `setup-config doctor --profile <profile>`.
 - For Kubernetes, render the chart with operator values; for one host, fill
-  the Compose `.env` and `graph-os.env` (see `graphos-genesis`).
+  the Compose `.env` and `graph-os.env`; for Swarm, create the Swarm secret and
+  label the data node, then validate the stack (see `graphos-genesis`).
 - Resolve each dependency as deploy, reuse or skip.
 - Present the plan, destructive steps, rollback and verification before
   apply.
@@ -141,7 +142,7 @@ Classify the change first:
   read-old/write-new path;
 - an **ontology or schema change** belongs to `graph-modeling-and-mutation`;
   coordinate its ordering here;
-- an **orchestrator migration** (Swarm, Compose ↔ Kubernetes) delegates the
+- an **orchestrator migration** (between Compose, Swarm and Kubernetes) delegates the
   target substrate to `graphos-genesis`, then migrates each dependency-closed
   unit with canary traffic and an exact rollback.
 
