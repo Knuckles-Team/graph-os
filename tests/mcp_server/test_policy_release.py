@@ -144,5 +144,11 @@ async def test_a_session_without_the_capability_scope_cannot_move(surface: Any) 
     assert refused.value.code == "POLICY_SCOPE_NOT_GRANTED"
 
 
-def test_the_tool_has_its_rest_twin() -> None:
-    assert runtime.ACTION_TOOL_ROUTES["graph_policy_release"] == "/graph/policy/release"
+def test_release_pointer_is_declared_as_governed_operations() -> None:
+    from graph_os.api.ops.policy import specs
+
+    assert {
+        "policy.release.status",
+        "policy.release.promote",
+        "policy.release.rollback",
+    }.issubset({op.id for op in specs()})

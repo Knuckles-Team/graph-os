@@ -32,16 +32,11 @@ class Mcp:
 @pytest.fixture(autouse=True)
 def restore_graph_rlm_registration():
     prior_tool = runtime.REGISTERED_TOOLS.get("graph_rlm")
-    prior_route = runtime.ACTION_TOOL_ROUTES.get("graph_rlm")
     yield
     if prior_tool is None:
         runtime.REGISTERED_TOOLS.pop("graph_rlm", None)
     else:
         runtime.REGISTERED_TOOLS["graph_rlm"] = prior_tool
-    if prior_route is None:
-        runtime.ACTION_TOOL_ROUTES.pop("graph_rlm", None)
-    else:
-        runtime.ACTION_TOOL_ROUTES["graph_rlm"] = prior_route
 
 
 def _verified_session() -> GraphSession:
@@ -81,7 +76,6 @@ async def test_graph_rlm_is_composed_from_injected_authorities() -> None:
         return ControlPlane()
 
     prior_tool = runtime.REGISTERED_TOOLS.get("graph_rlm")
-    prior_route = runtime.ACTION_TOOL_ROUTES.get("graph_rlm")
     prior_process_session = runtime._PROCESS_SESSION
     runtime._PROCESS_SESSION = session
     try:
@@ -96,17 +90,15 @@ async def test_graph_rlm_is_composed_from_injected_authorities() -> None:
         assert await mcp.tools["graph_rlm"](request) == ('{"action":"run","ok":true}')
         assert calls == [request]
         assert runtime.REGISTERED_TOOLS["graph_rlm"] is mcp.tools["graph_rlm"]
-        assert runtime.ACTION_TOOL_ROUTES["graph_rlm"] == "/graph/rlm"
+        from graph_os.api.ops.agents import operations
+
+        assert "rlm.run" in {op.id for op in operations()}
     finally:
         runtime._PROCESS_SESSION = prior_process_session
         if prior_tool is None:
             runtime.REGISTERED_TOOLS.pop("graph_rlm", None)
         else:
             runtime.REGISTERED_TOOLS["graph_rlm"] = prior_tool
-        if prior_route is None:
-            runtime.ACTION_TOOL_ROUTES.pop("graph_rlm", None)
-        else:
-            runtime.ACTION_TOOL_ROUTES["graph_rlm"] = prior_route
 
 
 @pytest.mark.asyncio

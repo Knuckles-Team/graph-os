@@ -54,7 +54,9 @@ async def test_registration_exposes_exact_mcp_rest_and_native_subset(
     try:
         a2a_mcp.register_a2a_tools(mcp)
         assert runtime.REGISTERED_TOOLS["graph_a2a"] is mcp.tools["graph_a2a"]
-        assert runtime.ACTION_TOOL_ROUTES["graph_a2a"] == "/graph/a2a"
+        from graph_os.api.ops.agents import operations
+
+        assert "agents.tasks.get" in {op.id for op in operations()}
         assert set(mcp.routes) == {
             ("/.well-known/agent-card.json", ("GET",)),
             ("/a2a", ("POST",)),

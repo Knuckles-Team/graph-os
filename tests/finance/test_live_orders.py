@@ -119,7 +119,9 @@ def test_the_tool_cannot_approve_and_takes_no_identity() -> None:
         )
     with pytest.raises(ValidationError):
         FinanceToolRequest.model_validate({"action": "order_status", "actor": "bob"})
-    assert runtime.ACTION_TOOL_ROUTES["graph_finance"] == "/graph/finance"
+    from graph_os.api.ops.finance import specs
+
+    assert "finance.orders.propose" in {op.id for op in specs()}
 
 
 @pytest.mark.parametrize(

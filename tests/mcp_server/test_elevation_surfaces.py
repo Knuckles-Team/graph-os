@@ -115,8 +115,9 @@ def test_the_agent_tool_has_no_approve_action_and_takes_no_identity() -> None:
         ElevationToolRequest.model_validate({"action": "list", "actor": "bob"})
 
 
-def test_the_tool_has_its_rest_twin() -> None:
-    assert runtime.ACTION_TOOL_ROUTES["graph_elevation"] == "/graph/elevation"
+def test_elevation_is_declared_as_governed_operations() -> None:
+    assert not hasattr(runtime, "ACTION_TOOL_ROUTES")
+    assert not hasattr(runtime, "_make_tool_endpoint")
 
 
 async def test_the_console_approves_as_the_signed_in_operator(world: Any) -> None:
