@@ -19,7 +19,7 @@ class SearchParams(BaseModel):
     query: str = Field(default="", max_length=8192)
     filters: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
     kind: str | None = Field(default=None, max_length=256)
-    limit: int = Field(default=100, ge=1, le=500)
+    limit: int = Field(default=100, ge=1, le=256)
 
 
 class SearchResult(BaseModel):
