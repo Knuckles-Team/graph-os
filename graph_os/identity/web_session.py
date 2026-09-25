@@ -8,11 +8,12 @@ password-reset request answers the same thing for any username.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+import re
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse, RedirectResponse, Response
 from starlette.routing import Route
 
 from .admission import AdmissionService
@@ -36,9 +37,15 @@ from .web_common import (
 __all__ = ["session_routes"]
 
 RoleOf = Callable[[Iterable[str]], str | None]
+#: The optional features the deployment offers (e-mail), for the login page.
+Features = Callable[[], Mapping[str, bool]]
 
 _SESSION_MAX_AGE = 7 * 24 * 60 * 60
 _RESET_PURPOSES = frozenset({"admin_reset", "password_reset"})
+#: A login-page error is one of the brokers' FIXED codes; nothing else is
+#: ever reflected into the redirect.
+_ERROR_CODE = re.compile(r"^[a-z_]{1,32}$")
+_PAGE_OF_PATH = {"/auth/login": "sign-in", "/auth/mfa": "second-factor"}
 
 
 def _principal_view(resolution: Resolution, role_of: RoleOf) -> dict[str, Any]:
@@ -75,12 +82,17 @@ def _sign_in_answer(opened: OpenedSession) -> Response:
 
 class _SessionRoutes:
     def __init__(
-        self, admission: AdmissionService, setup: SetupGate, role_of: RoleOf
+        self,
+        admission: AdmissionService,
+        setup: SetupGate,
+        role_of: RoleOf,
+        features: Features,
     ) -> None:
         self._admission = admission
         self._broker = admission.broker
         self._setup = setup
         self._role_of = role_of
+        self._features = features
 
     async def _signed_in_view(self, request: Request) -> dict[str, Any] | None:
         session = session_from_scope(request.scope)
@@ -101,13 +113,17 @@ class _SessionRoutes:
             return JSONResponse(
                 {"authenticated": False, "mode": None, "setup_required": True}
             )
-        base = {"mode": mode, "banner": mode_banner(mode), "setup_required": False}
+        base = {
+            "mode": mode,
+            "banner": mode_banner(mode),
+            "setup_required": False,
+            "features": dict(self._features()),
+        }
         view = await self._signed_in_view(request)
         if view is None and mode == "none":
             return await self._bootstrap_status(base)
         config = await self._broker.config()
         base["registration_policy"] = config.get("registration_policy")
-        base["email_recovery"] = False
         return JSONResponse({**base, **(view or {"authenticated": False})})
 
     async def _bootstrap_status(self, base: dict[str, Any]) -> Response:
@@ -174,6 +190,21 @@ class _SessionRoutes:
         )
         return JSONResponse(reply.expect("principal"), status_code=201)
 
+    async def page(self, request: Request) -> Response:
+        """``GET /auth/login`` / ``GET /auth/mfa``: the application's own screen.
+
+        The external brokers finish a sign-in by redirecting here; the SPA
+        renders the sign-in or second-factor screen at ``/``. Only a fixed
+        error code is carried along.
+        """
+        target = f"/?auth={_PAGE_OF_PATH.get(request.url.path, 'sign-in')}"
+        error = request.query_params.get("error") or ""
+        if _ERROR_CODE.match(error):
+            target += f"&error={error}"
+        return RedirectResponse(
+            target, status_code=303, headers={"cache-control": "no-store"}
+        )
+
     async def forgot(self, request: Request) -> Response:
         """Uniform for every username: no mail adapter ⇒ the offline paths."""
         require_same_origin(request)
@@ -206,11 +237,13 @@ class _SessionRoutes:
 
 
 def session_routes(
-    admission: AdmissionService, setup: SetupGate, role_of: RoleOf
+    admission: AdmissionService, setup: SetupGate, role_of: RoleOf, features: Features
 ) -> list[Route]:
-    routes = _SessionRoutes(admission, setup, role_of)
+    routes = _SessionRoutes(admission, setup, role_of, features)
     table = (
         ("/auth/session", routes.status, "GET"),
+        ("/auth/login", routes.page, "GET"),
+        ("/auth/mfa", routes.page, "GET"),
         ("/auth/login", routes.login, "POST"),
         ("/auth/logout", routes.logout, "POST"),
         ("/auth/setup", routes.setup, "POST"),

@@ -20,21 +20,25 @@ gate. The deployment inputs are read once from the shared settings model:
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from .admission import AdmissionService
 from .broker import IdentityBroker
 from .engine import EngineIdentityPort, IdentityEngine, Resolution
+from .engine_ports import BrokerPort, CallerPort
 from .exchange import UpstreamVerifier, exchange_routes
+from .external import ExternalAuthorities
 from .gate import IdentityGate
-from .issuer import IssuerSettings, LocalIssuer, SecretStore
+from .idp_common import OneShotBackend
+from .issuer import IssuerSettings, LocalIssuer
 from .modes import (
     NoneModeRequestGuard,
     default_mode_for_profile,
     refuse_unsafe_none_mode,
 )
 from .principal_session import session_for
+from .scim import ApiKeyProvisionerAuth
 from .setup_gate import SetupGate
 from .web_factors import factor_routes, issuer_routes
 from .web_session import session_routes
@@ -108,6 +112,10 @@ class IdentityRuntime:
     broker: IdentityBroker
     admission: AdmissionService
     setup: SetupGate
+    external: ExternalAuthorities
+    #: Background tasks the serving loop started (held so they are not
+    #: garbage-collected mid-run; cancelled with the loop).
+    background: list[Any] = field(default_factory=list)
 
     def routes(
         self,
@@ -116,9 +124,12 @@ class IdentityRuntime:
     ) -> list[Any]:
         return [
             *issuer_routes(self.admission),
-            *session_routes(self.admission, self.setup, role_of),
+            *session_routes(
+                self.admission, self.setup, role_of, self.external.features
+            ),
             *factor_routes(self.admission),
             *exchange_routes(self.admission, upstream),
+            *self.external.routes(),
         ]
 
     def refuse_unsafe_exposure(self, mode: str, bind_hosts: Iterable[str]) -> None:
@@ -159,10 +170,30 @@ def self_minted_broker_session(
     return session
 
 
+def _external_authorities(
+    engine: IdentityEngine, broker: IdentityBroker, secrets: OneShotBackend
+) -> ExternalAuthorities:
+    """OIDC/SAML/LDAP brokers, SCIM and mail over the same engine port.
+
+    A SCIM provisioner acts under its OWN service principal: its API key is
+    resolved to the key's current authority and the provisioning ops run
+    under that principal's verified session, never GraphOS's.
+    """
+
+    def provisioner_port(resolution: Resolution) -> CallerPort:
+        return CallerPort(engine, session_for(broker, resolution, ("api_key",)))
+
+    return ExternalAuthorities.build(
+        port=BrokerPort(engine),
+        secrets=secrets,
+        provisioners=ApiKeyProvisionerAuth(broker.verify_api_key, provisioner_port),
+    )
+
+
 def build_identity_runtime(
     deployment: IdentityDeployment,
     *,
-    secrets: SecretStore,
+    secrets: OneShotBackend,
     engine: IdentityEngine | None = None,
     client_for: Callable[[str], Any] | None = None,
     broker_session: Callable[[], Any] | None = None,
@@ -179,5 +210,9 @@ def build_identity_runtime(
     holder.append(broker)
     admission = AdmissionService(broker, NoneModeRequestGuard(deployment.none_hostname))
     return IdentityRuntime(
-        deployment, broker, admission, SetupGate(deployment.setup_code)
+        deployment,
+        broker,
+        admission,
+        SetupGate(deployment.setup_code),
+        _external_authorities(engine, broker, secrets),
     )

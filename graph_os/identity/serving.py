@@ -8,7 +8,8 @@ here, in three steps that always run together:
 2. :func:`prepare_identity` seeds the store on first boot (``none`` for the
    tiny profile; production profiles wait for the first-run form), then
    refuses to serve ``none`` mode off loopback or on a production profile
-   without the exact acknowledgement, and prints the demo-mode warning block;
+   without the exact acknowledgement, prints the demo-mode warning block and
+   starts the scheduled LDAP / AD group sync;
 3. :func:`webui_session_boundary` hands agent-webui the gate through its
    host session-boundary port, so the WebUI's own identity layer only ever
    sees admitted local-issuer tokens.
@@ -16,6 +17,7 @@ here, in three steps that always run together:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Callable, Iterable
 from typing import Any
@@ -68,10 +70,12 @@ async def prepare_identity(
     mode = await seed_first_boot(runtime.admission, deployment.seed_mode)
     if mode is None:
         runtime.setup.announce()
-        return None
-    runtime.refuse_unsafe_exposure(mode, bind_hosts)
+    else:
+        runtime.refuse_unsafe_exposure(mode, bind_hosts)
     if mode == "none":
         logger.warning(_NONE_MODE_WARNING, NONE_MODE_BANNER)
+    # The scheduled LDAP / AD group sync: idle until an ldap IdP is enabled.
+    runtime.background.append(asyncio.ensure_future(runtime.external.ldap_sync_loop()))
     return mode
 
 
