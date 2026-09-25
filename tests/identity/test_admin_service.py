@@ -152,3 +152,30 @@ async def test_search_and_api_key_cursor_use_eg_contract() -> None:
     assert engine.calls[1][1] == IdentityCall(
         "token", "list_api_keys", {"principal_id": "usr:2", "limit": 1}
     )
+
+
+@pytest.mark.asyncio
+async def test_mode_transition_uses_broker_for_issuer_rotation() -> None:
+    class Broker:
+        def __init__(self) -> None:
+            self.calls: list[tuple[Any, str, str | None, str | None]] = []
+
+        async def transition(
+            self, caller: Any, to: str, *, ack: str | None, local_fallback: str | None
+        ) -> dict[str, Any]:
+            self.calls.append((caller, to, ack, local_fallback))
+            return {"mode": to, "epoch": 2}
+
+    broker = Broker()
+    caller_session = object()
+    context = SimpleNamespace(
+        services={"identity": broker},
+        caller=SimpleNamespace(session=caller_session),
+    )
+    result = await admin_service.execute_identity_op(
+        context,
+        {"to": "local", "local_fallback": "break_glass"},
+        SimpleNamespace(id="identity.mode.transition"),
+    )
+    assert result["mode"] == "local"
+    assert broker.calls == [(caller_session, "local", None, "break_glass")]

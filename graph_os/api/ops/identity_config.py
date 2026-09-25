@@ -31,6 +31,12 @@ class AuditPage(StrictModel):
     limit: int = Field(default=100, ge=1, le=500)
 
 
+class ModeTransition(StrictModel):
+    to: Literal["none", "local", "external"]
+    ack: str | None = None
+    local_fallback: Literal["off", "break_glass", "full"] | None = None
+
+
 class ConfigValue(RootModel[dict[str, Any]]):
     pass
 
@@ -39,7 +45,7 @@ _HANDLER = "graph_os.identity.admin_service.execute_identity_op"
 
 
 def specs() -> tuple[Any, ...]:
-    """The supported config subset; transition must rotate the issuer first."""
+    """Config ops, with mode transition routed through the issuer broker."""
     from graph_os.api.registry import (
         AuditClass,
         Composite,
@@ -58,6 +64,7 @@ def specs() -> tuple[Any, ...]:
         ("identity.policy.get", Empty, ConfigValue, True),
         ("identity.policy.set", PolicySet, ConfigValue, False),
         ("identity.mode.status", Empty, ConfigValue, True),
+        ("identity.mode.transition", ModeTransition, ConfigValue, False),
         ("identity.audit.list", AuditPage, Collection, True),
     )
     return tuple(
