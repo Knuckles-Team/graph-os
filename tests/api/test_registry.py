@@ -1,6 +1,8 @@
 """Operation identity and discovery authorization contract."""
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 from pydantic import BaseModel, ValidationError
@@ -10,6 +12,7 @@ from graph_os.api.registry import (
     Composite,
     Confirm,
     Effect,
+    EgSchemaRef,
     Executor,
     OpSpec,
     PrincipalRule,
@@ -75,6 +78,26 @@ def test_registry_digest_is_order_independent_and_covers_contract() -> None:
         ).digest
     )
     assert canonical_registry([first, second]) == left.canonical
+
+
+def test_eg_schema_content_changes_registry_digest(tmp_path: Path) -> None:
+    schemas = tmp_path / "schemas"
+    schemas.mkdir()
+    source = schemas / "method.request.json"
+    doc = {
+        "methods": {"Foo": {"$ref": "#/$defs/Value"}},
+        "$defs": {"Value": {"type": "string"}},
+    }
+    source.write_text(json.dumps(doc))
+    op = make_op(
+        params=EgSchemaRef(path="contract/schemas/method.request.json#/methods/Foo")
+    )
+    first = Registry([op], contract_root=tmp_path)
+    doc["$defs"]["Value"]["type"] = "integer"
+    source.write_text(json.dumps(doc))
+    second = Registry([op], contract_root=tmp_path)
+    assert first.digest != second.digest
+    assert first.canonical != second.canonical
 
 
 def test_registry_rejects_duplicate_wire_identity() -> None:
