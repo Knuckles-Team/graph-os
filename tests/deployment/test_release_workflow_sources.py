@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -28,7 +29,7 @@ def _locked_paths() -> set[str]:
     }
 
 
-def _steps_before_sync() -> list[dict[str, object]]:
+def _steps_before_sync() -> list[dict[str, Any]]:
     workflow_path = ROOT / ".github" / "workflows" / "release.yml"
     workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
     steps = workflow["jobs"]["gates"]["steps"]

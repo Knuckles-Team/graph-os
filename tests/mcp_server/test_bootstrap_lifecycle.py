@@ -131,13 +131,12 @@ def test_explicit_client_role_never_takes_the_host_lock(monkeypatch) -> None:
     import agent_utilities.api.runtime as au_runtime
 
     calls: list[str] = []
-    monkeypatch.setattr(
-        au_runtime,
-        "open_process_runtime",
-        lambda *, role, defer_background_start: (
-            calls.append(role) or SimpleNamespace(engine="e")
-        ),
-    )
+
+    def _open_process_runtime(*, role, defer_background_start):
+        calls.append(role)
+        return SimpleNamespace(engine="e")
+
+    monkeypatch.setattr(au_runtime, "open_process_runtime", _open_process_runtime)
     monkeypatch.setattr(bootstrap, "daemon_role", lambda: "client")
 
     bootstrap._get_engine()

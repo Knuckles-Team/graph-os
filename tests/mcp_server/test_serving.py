@@ -92,9 +92,15 @@ def _fake_use(session: Any) -> Iterator[None]:
 
 def test_remote_metrics_route_requires_a_resolved_token(monkeypatch) -> None:
     routes: list[str] = []
-    fake = SimpleNamespace(
-        custom_route=lambda path, methods: lambda fn: routes.append(path) or fn
-    )
+
+    def _record_route(path, methods):
+        def _decorate(fn):
+            routes.append(path)
+            return fn
+
+        return _decorate
+
+    fake = SimpleNamespace(custom_route=_record_route)
     monkeypatch.delenv("MCP_METRICS_TOKEN_REF", raising=False)
 
     serving.register_metrics_route(fake, transport="streamable-http", host="0.0.0.0")

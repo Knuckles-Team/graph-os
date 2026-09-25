@@ -11,7 +11,9 @@ import asyncio
 import json
 import logging
 import time
+from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import mcp.types
@@ -58,20 +60,28 @@ def test_local_tool_visibility_uses_the_graph_os_fastmcp_host() -> None:
     assert _gated_tool_names(SimpleNamespace()) == set()
 
 
-def _write_config(tmp_path, servers: dict) -> object:
+def _write_config(tmp_path, servers: dict) -> Path:
     path = tmp_path / "mcp_config.json"
     path.write_text(json.dumps({"mcpServers": servers}), encoding="utf-8")
     return path
 
 
 @pytest.mark.asyncio
-async def test_forwarder_preserves_child_tool_error_as_outer_error(tmp_path) -> None:
+async def test_forwarder_preserves_child_tool_error_as_outer_error(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    mux.call_proxied_tool = AsyncMock(
-        return_value=mcp.types.CallToolResult(
-            content=[mcp.types.TextContent(type="text", text="private child detail")],
-            isError=True,
-        )
+    monkeypatch.setattr(
+        mux,
+        "call_proxied_tool",
+        AsyncMock(
+            return_value=mcp.types.CallToolResult(
+                content=[
+                    mcp.types.TextContent(type="text", text="private child detail")
+                ],
+                is_error=True,
+            )
+        ),
     )
 
     with pytest.raises(ToolError, match="delegated_child_tool_failed"):
@@ -176,7 +186,7 @@ def _schema_tool(name: str, property_name: str) -> mcp.types.Tool:
     return mcp.types.Tool(
         name=name,
         description=f"{property_name} schema",
-        inputSchema={
+        input_schema={
             "type": "object",
             "properties": {property_name: {"type": "string"}},
         },
@@ -193,7 +203,9 @@ async def _wait_for_condition(predicate, timeout: float = 1.0) -> None:
 def _mux_with_children(tmp_path, tool_map: dict[str, list[tuple[str, str]]]):
     """Build a mux whose ``_start_child`` yields the given ``server -> [(tool,
     desc)]`` map instead of spawning real processes."""
-    servers = {name: {"command": "python", "args": ["-m", name]} for name in tool_map}
+    servers: dict[str, dict[str, Any]] = {
+        name: {"command": "python", "args": ["-m", name]} for name in tool_map
+    }
     servers["mcp-multiplexer"] = {"command": "self"}  # must be excluded
     servers["off"] = {"command": "python", "disabled": True}  # must be excluded
     mux = multiplexer_from_fixture(_write_config(tmp_path, servers))
@@ -338,7 +350,7 @@ async def test_recovered_child_replaces_exposed_schema_without_catalog_polling(
     async def fake_open_one_session(*_args):
         return generations.pop(0)
 
-    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)
     host = FastMCP("schema-refresh-host")
     mux._host_mcp = host
     mounted = await mux.mount_child(server_name)
@@ -418,7 +430,7 @@ async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     async def fake_open_one_session(*_args):
         return generations.pop(0)
 
-    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)
     host = FastMCP("schema-refresh-host")
     mux._host_mcp = host
     mounted = await mux.mount_child(server_name)
@@ -498,7 +510,7 @@ async def test_schema_refresh_rolls_back_partial_host_registration_atomically(
     async def fake_open_one_session(*_args):
         return generations.pop(0)
 
-    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)
     host = FastMCP("schema-refresh-host")
     mux._host_mcp = host
     mounted = await mux.mount_child(server_name)
@@ -576,7 +588,7 @@ async def _mount_schema_child(tmp_path):
     async def fake_open_one_session(*_args):
         return original
 
-    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)
     host = FastMCP("schema-refresh-host")
     mux._host_mcp = host
     mounted = await mux.mount_child(_SCHEMA_SERVER)
@@ -736,7 +748,7 @@ def _fake_session(tools):
 
 async def test_discover_tools_ranks_and_maps(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(
         mux,
         {
@@ -765,7 +777,7 @@ async def test_discover_tools_ranks_and_maps(tmp_path):
 
 async def test_discover_reports_unavailable_servers(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "c")], "leanix-mcp": []})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(
         mux, {CNT: [(CNT_TOOL, "manage docker")], "leanix-mcp": "timeout after 15s"}
     )
@@ -778,7 +790,7 @@ async def test_discover_reports_unavailable_servers(tmp_path):
 
 async def test_discover_server_level_fallback_on_no_match(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "x")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "containers")]})
 
     # Query matches nothing, but the server probed fine → list servers to load.
@@ -789,7 +801,7 @@ async def test_discover_server_level_fallback_on_no_match(tmp_path):
 
 async def test_discover_all_unreachable_yields_empty_results(tmp_path):
     mux = _mux_with_children(tmp_path, {"leanix-mcp": []})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(mux, {"leanix-mcp": "timeout after 15s"})
 
     discovery = await mux.discover_tools("anything", top_k=5)
@@ -809,7 +821,7 @@ async def test_probe_catalog_returns_partial_results_within_budget(tmp_path):
         await asyncio.sleep(1)
         return {"tools": [], "error": None}
 
-    mux.probe_server = AsyncMock(side_effect=slow_probe)  # type: ignore[method-assign]
+    mux.probe_server = AsyncMock(side_effect=slow_probe)
     result = await mux.probe_catalog(budget=0.01)
 
     # Honest, per-server "still working" -- NOT the old fixed "budget
@@ -838,7 +850,7 @@ async def test_slow_server_degrades_alone_fast_servers_unaffected(tmp_path):
         mux._probe_cache[server] = info
         return info
 
-    mux.probe_server = AsyncMock(side_effect=mixed_probe)  # type: ignore[method-assign]
+    mux.probe_server = AsyncMock(side_effect=mixed_probe)
     result = await mux.probe_catalog(budget=0.05)
 
     assert result[CNT]["error"] is None
@@ -868,7 +880,7 @@ async def test_discovery_succeeds_for_a_previously_timed_out_server(tmp_path):
         mux._probe_cache[server] = info
         return info
 
-    mux.probe_server = AsyncMock(side_effect=eventually_probe)  # type: ignore[method-assign]
+    mux.probe_server = AsyncMock(side_effect=eventually_probe)
 
     first = await mux.probe_catalog(budget=0.01)
     assert first["slow-mcp"]["pending"] is True
@@ -889,7 +901,7 @@ async def test_discovery_succeeds_for_a_previously_timed_out_server(tmp_path):
 
 async def test_cached_results_are_labelled_with_age(tmp_path, monkeypatch):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage docker containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     fixed_now = 1_000_000.0
     mux._probe_cache[CNT] = {
         "tools": [
@@ -928,7 +940,7 @@ async def test_probe_entry_past_ttl_is_reported_stale(tmp_path, monkeypatch):
     ``probe_catalog`` at all -- the exact path where the dead flag hid
     staleness in production."""
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     fixed_now = 1_000_000.0
     mux._probe_cache[CNT] = {
         "tools": [{"name": CNT_TOOL, "description": "containers", "inputSchema": {}}],
@@ -984,7 +996,7 @@ async def test_probe_catalog_retargets_ttl_expired_cache_entries(tmp_path, monke
         }
         return mux._cache_probe(server, info)
 
-    mux.probe_server = AsyncMock(side_effect=refreshed_probe)  # type: ignore[method-assign]
+    mux.probe_server = AsyncMock(side_effect=refreshed_probe)
 
     # Still inside the TTL: served as-is, no re-probe triggered.
     monkeypatch.setattr(time, "time", lambda: fixed_now + 5.0)
@@ -1016,7 +1028,7 @@ async def test_probe_catalog_retargets_ttl_expired_cache_entries(tmp_path, monke
         }
         return mux._cache_probe(server, info)
 
-    mux.probe_server = AsyncMock(side_effect=slow_refresh)  # type: ignore[method-assign]
+    mux.probe_server = AsyncMock(side_effect=slow_refresh)
     monkeypatch.setattr(time, "time", lambda: fixed_now + 22.0)  # past the TTL again
     budgeted = await mux.probe_catalog(budget=0.01)
     assert budgeted[CNT]["stale"] is True
@@ -1053,7 +1065,7 @@ async def test_concurrent_probes_honor_their_own_per_server_deadline(tmp_path):
             await asyncio.sleep(0.1)  # comfortably inside its OWN 5s deadline
         return _fake_session([("op", "does a thing")])
 
-    mux._open_one_session = AsyncMock(side_effect=_open)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=_open)
 
     t0 = asyncio.get_running_loop().time()
     result = await mux.probe_catalog()  # no shared budget: purely per-server
@@ -1122,7 +1134,7 @@ async def test_discover_prioritizes_named_server_inside_shared_budget(
         return {"tools": [], "error": None}
 
     monkeypatch.setattr(agent_config, "mcp_dynamic_discovery_timeout", 0.05)
-    mux.probe_server = AsyncMock(side_effect=staged_probe)  # type: ignore[method-assign]
+    mux.probe_server = AsyncMock(side_effect=staged_probe)
 
     discovery = await mux.discover_tools(query, top_k=5)
 
@@ -1134,7 +1146,7 @@ async def test_discover_prioritizes_named_server_inside_shared_budget(
 
 async def test_discover_marks_mounted(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     await mux.mount_child(CNT)  # mounted server is probed from live tools
     mux._exposed.add(CNT_PREFIXED)
 
@@ -1153,7 +1165,7 @@ async def test_probe_server_success_and_caches(tmp_path):
     async def _open(server, cfg, stack):
         return _fake_session([(CNT_TOOL, "manage containers")])
 
-    mux._open_one_session = AsyncMock(side_effect=_open)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=_open)
     info = await mux.probe_server(CNT)
     assert info["error"] is None
     assert info["tools"][0]["name"] == CNT_TOOL
@@ -1166,7 +1178,7 @@ async def test_probe_server_records_unreachable(tmp_path):
     async def _boom(server, cfg, stack):
         raise OSError("connection refused")
 
-    mux._open_one_session = AsyncMock(side_effect=_boom)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=_boom)
     info = await mux.probe_server(CNT, timeout=1)
     assert info["tools"] == []
     assert info["error"] == "OSError: connection refused"
@@ -1176,7 +1188,7 @@ async def test_probe_server_uses_live_tools_when_mounted(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
     await mux.mount_child(CNT)
     # Should NOT reconnect for an already-mounted child.
-    mux._open_one_session = AsyncMock(  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(
         side_effect=AssertionError("must not reconnect")
     )
     info = await mux.probe_server(CNT)
@@ -1205,9 +1217,9 @@ async def test_probe_server_preserves_an_mcp_apps_tool_descriptor_meta(tmp_path)
         session = AsyncMock()
         return server_name, session, tools, cfg
 
-    mux._start_child = AsyncMock(side_effect=fake_start_child)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=fake_start_child)
     await mux.mount_child(CNT)
-    mux._open_one_session = AsyncMock(  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(
         side_effect=AssertionError("must not reconnect")
     )
 
@@ -1235,7 +1247,7 @@ async def test_live_tools_for_server_omits_meta_key_when_absent(tmp_path):
 
 async def test_list_catalog_all_servers(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "c")], "leanix-mcp": []})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(
         mux,
         {
@@ -1259,7 +1271,7 @@ async def test_list_catalog_all_servers(tmp_path):
 
 async def test_list_catalog_single_server_drilldown(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "c")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "manage containers")]})
 
     cat = await mux.list_catalog(server=CNT)
@@ -1273,7 +1285,7 @@ async def test_list_catalog_single_server_drilldown(tmp_path):
 
 async def test_list_catalog_unknown_server(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "c")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "c")]})
     cat = await mux.list_catalog(server="does-not-exist")
     assert "error" in cat
@@ -1283,7 +1295,7 @@ async def test_list_catalog_meta_tool_registered(tmp_path):
     from fastmcp import FastMCP
 
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "containers")]})
 
     mcp = FastMCP("test-mux")
@@ -1347,7 +1359,7 @@ async def test_list_catalog_splits_enabled_disabled(tmp_path):
         tmp_path, {CNT: [(CNT_TOOL, "a"), ("cm_info_operations", "b")]}
     )
     _seed_disabled(mux, CNT, ["cm_info_operations"])
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "containers"), ("cm_info_operations", "info")]})
 
     cat = await mux.list_catalog()
@@ -1364,7 +1376,7 @@ async def test_list_catalog_drilldown_enabled_flag(tmp_path):
         tmp_path, {CNT: [(CNT_TOOL, "a"), ("cm_info_operations", "b")]}
     )
     _seed_disabled(mux, CNT, ["cm_info_operations"])
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "c"), ("cm_info_operations", "i")]})
 
     cat = await mux.list_catalog(server=CNT)
@@ -1378,7 +1390,7 @@ async def test_discover_skips_disabled_tools(tmp_path):
         tmp_path, {CNT: [(CNT_TOOL, "a"), ("cm_info_operations", "b")]}
     )
     _seed_disabled(mux, CNT, ["cm_info_operations"])
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(
         mux,
         {CNT: [(CNT_TOOL, "manage docker"), ("cm_info_operations", "manage docker")]},
@@ -1455,7 +1467,7 @@ async def test_resolve_and_mount_reports_failed(tmp_path):
             return None  # mount fails
         return await good(server_name, cfg)
 
-    mux._start_child = AsyncMock(side_effect=_fail_leanix)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=_fail_leanix)
     _seed_probe(mux, {"leanix-mcp": "timeout after 15s"})  # reason for the failure
 
     mounted, to_expose, failed = await mux.resolve_and_mount(
@@ -1544,7 +1556,7 @@ async def test_per_session_disclosure_isolation(tmp_path):
     — the high-level ``Client.list_tools()`` wrapper doesn't expose ``meta``).
     """
     from fastmcp import Client, FastMCP
-    from mcp.types import PaginatedRequestParams
+    from mcp.types import PaginatedRequestParams, RequestParamsMeta
 
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
     mcp = FastMCP("test-mux")
@@ -1560,7 +1572,9 @@ async def test_per_session_disclosure_isolation(tmp_path):
 
     async def _list_tool_names(client: Client, session_id: str) -> set[str]:
         result = await client.session.list_tools(
-            params=PaginatedRequestParams(meta={_LOCAL_SESSION_META_KEY: session_id})
+            params=PaginatedRequestParams(
+                _meta=cast(RequestParamsMeta, {_LOCAL_SESSION_META_KEY: session_id})
+            )
         )
         return {t.name for t in result.tools}
 
@@ -1655,7 +1669,7 @@ async def test_find_tools_meta_returns_structured(tmp_path):
     from fastmcp import FastMCP
 
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "manage docker containers")]})
 
     mcp = FastMCP("test-mux")
@@ -1884,7 +1898,7 @@ async def test_list_catalog_mounted_matches_dispatch_reality_across_sessions(
     from fastmcp import Client, FastMCP
 
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "manage containers")]})
     mcp = FastMCP("test-mux")
     _register_meta_tools(mcp, mux)
@@ -1957,7 +1971,7 @@ async def test_three_concurrent_local_sessions_blast_radius(tmp_path):
     than one that also lets a session invoke a tool it never loaded.
     """
     from fastmcp import Client, FastMCP
-    from mcp.types import PaginatedRequestParams
+    from mcp.types import PaginatedRequestParams, RequestParamsMeta
 
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
     mcp = FastMCP("test-mux")
@@ -1973,7 +1987,9 @@ async def test_three_concurrent_local_sessions_blast_radius(tmp_path):
 
     async def _tool_names(client: Client, session_id: str) -> set[str]:
         result = await client.session.list_tools(
-            params=PaginatedRequestParams(meta={_LOCAL_SESSION_META_KEY: session_id})
+            params=PaginatedRequestParams(
+                _meta=cast(RequestParamsMeta, {_LOCAL_SESSION_META_KEY: session_id})
+            )
         )
         return {t.name for t in result.tools}
 
@@ -2313,7 +2329,7 @@ async def test_forced_reprobe_does_not_evict_a_live_joinable_probe(tmp_path):
             await release.wait()
         return {"tools": [], "error": None}
 
-    mux.probe_server = AsyncMock(side_effect=probe)  # type: ignore[method-assign]
+    mux.probe_server = AsyncMock(side_effect=probe)
 
     shared = mux._ensure_probing("slow-mcp", force=False, timeout=None)
     forced = mux._ensure_probing("slow-mcp", force=True, timeout=None)
@@ -2340,7 +2356,7 @@ async def test_aclose_cancels_a_forced_probe_too(tmp_path):
         await asyncio.Event().wait()
         return {"tools": [], "error": None}
 
-    mux.probe_server = AsyncMock(side_effect=never_finishes)  # type: ignore[method-assign]
+    mux.probe_server = AsyncMock(side_effect=never_finishes)
 
     forced = mux._ensure_probing("slow-mcp", force=True, timeout=None)
     await asyncio.sleep(0)

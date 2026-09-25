@@ -486,7 +486,7 @@ def _session_terminated_error() -> BaseException:
     so branch on the actual signature rather than pinning one SDK line.
     """
     if "code" in inspect.signature(MCPError.__init__).parameters:
-        return MCPError(code=32600, message="Session terminated")
+        return MCPError(32600, "Session terminated")
     return MCPError(mcp.types.ErrorData(code=32600, message="Session terminated"))
 
 

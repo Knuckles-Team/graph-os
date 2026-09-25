@@ -34,8 +34,11 @@ class VerifiedActor(Protocol):
 
     actor_id: str
     tenant_id: str
-    roles: Iterable[str]
     authenticated: bool
+
+    @property
+    def roles(self) -> Iterable[str]:
+        """Read-only: any concrete iterable (list, tuple, ...) satisfies this."""
 
     def ensure_credential_current(self) -> None:
         """Raise when the already-verified credential is no longer current."""

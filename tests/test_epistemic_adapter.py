@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -62,17 +63,17 @@ class Topology:
 
 
 class Client:
-    def __init__(self, graph: str, context: dict[str, Any]) -> None:
+    def __init__(self, graph: str, context: Mapping[str, Any]) -> None:
         self.graph = graph
         self.base_context = context
         self.context = context
-        self.seen_contexts: list[dict[str, Any]] = []
+        self.seen_contexts: list[Mapping[str, Any]] = []
         self.placement = Placement(self)
         self.cluster_topology = Topology(self)
         self.closed = False
 
     @contextlib.contextmanager
-    def use_verified_context(self, context: dict[str, Any]):
+    def use_verified_context(self, context: Mapping[str, Any]):
         previous = self.context
         self.context = context
         try:
@@ -131,9 +132,11 @@ def test_pool_reuses_one_client_per_graph_and_rebinds_context() -> None:
             policy_version="policy:1",
         )
         async with pool.bind(first, "tenant:a:graph") as client:
+            assert isinstance(client, Client)
             assert client.context["principal"] == "service:graph-os"
         async with pool.bind(second, "tenant:a:graph") as same_client:
             assert same_client is client
+            assert isinstance(same_client, Client)
             assert same_client.context["principal"] == "service:worker"
         assert len(calls) == 1
         assert pool.graph_count == 1
