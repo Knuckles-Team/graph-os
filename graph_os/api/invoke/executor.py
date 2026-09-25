@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import inspect
 from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from importlib import import_module
 from typing import Any, Protocol
-
-from graph_os.api.registry import Executor, SubjectSource
 
 from graph_os.api.invoke.steps import (
     FORBIDDEN_OWNER,
@@ -19,6 +18,7 @@ from graph_os.api.invoke.steps import (
     authenticate,
     forbidden_path,
 )
+from graph_os.api.registry import Executor, SubjectSource
 
 
 class OperationRuntime(Protocol):
@@ -47,6 +47,13 @@ class ExecutionContext:
     service_identity: bool
     services: Mapping[str, Any]
     idempotency_key: str | None = None
+    fleet_decision: Any = None
+
+    @property
+    def owner_ref(self) -> str:
+        """EG persistence key for the verified owner, never from call parameters."""
+
+        return "principal:sha256:" + hashlib.sha256(self.owner.encode()).hexdigest()
 
 
 def subject_value(
@@ -80,15 +87,18 @@ async def prepare_executor(
     params: Mapping[str, Any],
     caller: VerifiedCaller,
     runtime: OperationRuntime,
+    verified_subject: str | None = None,
 ) -> OpError | None:
     if op.executor != Executor.SERVICE:
         return None
     owner_field = forbidden_path(params, names=FORBIDDEN_OWNER)
     if owner_field is not None:
         return OpError("INVALID_ARGUMENT", {"field": owner_field})
-    if not op.subject:
+    if verified_subject is not None and op.id != "fleet.call":
+        return OpError("UNAVAILABLE", {"reason": "unexpected resolved subject"})
+    if not op.subject and verified_subject is None:
         return OpError("UNAVAILABLE", {"reason": "service op has no subject"})
-    subject = subject_value(op, params, caller)
+    subject = verified_subject or subject_value(op, params, caller)
     if subject is None:
         return OpError("INVALID_ARGUMENT", {"field": "subject"})
     if not set(op.executor_scopes) <= runtime.service_scopes:
@@ -108,6 +118,7 @@ async def execution_context(
     caller: VerifiedCaller,
     runtime: OperationRuntime,
     idempotency_key: str | None = None,
+    fleet_decision: Any = None,
 ) -> AsyncIterator[ExecutionContext]:
     """The dispatcher receives exactly one validated EG identity context."""
 
@@ -120,6 +131,7 @@ async def execution_context(
                 True,
                 getattr(runtime, "bindings", {}),
                 idempotency_key,
+                fleet_decision,
             )
     else:
         async with runtime.as_caller(caller) as client:
@@ -130,6 +142,7 @@ async def execution_context(
                 False,
                 getattr(runtime, "bindings", {}),
                 idempotency_key,
+                fleet_decision,
             )
 
 
