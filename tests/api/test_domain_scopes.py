@@ -10,6 +10,7 @@ def _contract() -> dict[str, object]:
         "approvals:read": ("approver", "graph-os"),
         "approvals:decide": ("approver", "graph-os"),
         "finance:read": ("domain", "finance"),
+        "finance:paper-trade": ("domain", "finance"),
         "fleet:read": ("user", "graph-os"),
         "fleet:control": ("admin", "graph-os"),
         "loops:read": ("user", "graph-os"),
@@ -35,11 +36,12 @@ def _contract() -> dict[str, object]:
 
 def test_projects_exact_scope_classes_and_owners() -> None:
     scopes = project_domain_scopes(_contract())
-    assert len(scopes) == 12
+    assert len(scopes) == 13
     assert {row["scope"] for row in scopes} == {
         "approvals:read",
         "approvals:decide",
         "finance:read",
+        "finance:paper-trade",
         "fleet:read",
         "fleet:control",
         "loops:read",

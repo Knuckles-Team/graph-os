@@ -23,6 +23,7 @@ _REQUIRED_CLASSES = {
     "approvals:read": "approver",
     "approvals:decide": "approver",
     "finance:read": "domain",
+    "finance:paper-trade": "domain",
     "fleet:read": "user",
     "fleet:control": "admin",
     "loops:read": "user",
@@ -53,7 +54,7 @@ def project_domain_scopes(contract: dict[str, object]) -> tuple[DomainScope, ...
     result: list[DomainScope] = []
     for scope, expected_class in sorted(_REQUIRED_CLASSES.items()):
         row = indexed.get(scope)
-        expected_owner = "finance" if scope == "finance:read" else "graph-os"
+        expected_owner = "finance" if scope.startswith("finance:") else "graph-os"
         if (
             row is None
             or row.get("class") != expected_class
