@@ -83,24 +83,33 @@ class EgPlanStore:
             raise RuntimeError("EG did not issue graphos.plan lease")
         return plan_ref
 
-    async def consume(self, plan_ref: str, binding: PlanBinding) -> OpError | None:
+    async def validate(
+        self, plan_ref: str, binding: PlanBinding
+    ) -> tuple[dict[str, Any] | None, OpError | None]:
         lease = await self._leases.get(tenant=binding.tenant, lease_id=plan_ref)
         if not lease or lease.get("kind") != LEASE_KIND:
-            return OpError("PLAN_MISMATCH")
+            return None, OpError("PLAN_MISMATCH")
         if lease.get("status") != "active":
-            return OpError("PLAN_EXPIRED")
+            return None, OpError("PLAN_EXPIRED")
         if int(lease.get("hard_expires_at_ms", 0)) <= int(time.time() * 1000):
-            return OpError("PLAN_EXPIRED")
+            return None, OpError("PLAN_EXPIRED")
         grant = lease.get("grant")
         if not isinstance(grant, Mapping):
-            return OpError("PLAN_MISMATCH")
+            return None, OpError("PLAN_MISMATCH")
         if (
             grant.get("registry_digest") != binding.registry_digest
             or grant.get("policy_revision") != binding.policy_revision
         ):
-            return OpError("PLAN_STALE")
+            return None, OpError("PLAN_STALE")
         if any(grant.get(key) != value for key, value in binding.as_grant().items()):
-            return OpError("PLAN_MISMATCH")
+            return None, OpError("PLAN_MISMATCH")
+        return lease, None
+
+    async def consume(self, plan_ref: str, binding: PlanBinding) -> OpError | None:
+        lease, refusal = await self.validate(plan_ref, binding)
+        if refusal is not None:
+            return refusal
+        assert lease is not None
         answer = await self._leases.transition(
             tenant=binding.tenant,
             lease_id=plan_ref,

@@ -146,6 +146,7 @@ async def recheck_deferred_owner(
 
 
 ClientFactory = Callable[[str], Awaitable[Any]]
+ServiceClaims = Callable[[str], Mapping[str, Any]]
 SubjectCheck = Callable[[Any, VerifiedCaller, str], Awaitable[bool]]
 EgDispatch = Callable[[Any, Mapping[str, Any], ExecutionContext], Awaitable[Any]]
 
@@ -158,6 +159,7 @@ class BoundOperationRuntime:
         *,
         caller_client: ClientFactory,
         service_client: ClientFactory,
+        service_claims: ServiceClaims,
         check_access: SubjectCheck,
         eg_dispatch: EgDispatch,
         service_scopes: frozenset[str],
@@ -165,6 +167,7 @@ class BoundOperationRuntime:
     ) -> None:
         self._caller_client = caller_client
         self._service_client = service_client
+        self._service_claims = service_claims
         self._check_access = check_access
         self._eg_dispatch = eg_dispatch
         self.service_scopes = service_scopes
@@ -178,8 +181,18 @@ class BoundOperationRuntime:
 
     @asynccontextmanager
     async def as_service(self, tenant: str) -> AsyncIterator[Any]:
+        claims = self._service_claims(tenant)
+        scopes = claims.get("scopes")
+        if (
+            claims.get("tenant") != tenant
+            or claims.get("principal") != "svc:graph-os"
+            or not isinstance(scopes, (list, tuple, set, frozenset))
+            or not self.service_scopes <= frozenset(scopes)
+        ):
+            raise PermissionError("verified graph-os service authority is unavailable")
         client = await self._service_client(tenant)
-        yield client
+        with client.use_verified_context(claims):
+            yield client
 
     async def check_subject_access(self, caller: VerifiedCaller, subject: str) -> bool:
         async with self.as_caller(caller) as client:

@@ -15,10 +15,11 @@ def audit_event(
     caller: VerifiedCaller,
     surface: Any,
     status: str,
+    audit_ref: str = "",
 ) -> dict[str, str]:
     """Record identity and a digest, never argument values."""
 
-    return {
+    event = {
         "op": op.id,
         "surface": surface.value,
         "principal": caller.principal,
@@ -27,3 +28,6 @@ def audit_event(
         "result_status": status,
         "request_id": caller.request_id,
     }
+    if audit_ref:
+        event["audit_ref"] = audit_ref
+    return event
