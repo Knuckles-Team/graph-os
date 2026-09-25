@@ -76,3 +76,25 @@ def test_generator_rejects_duplicate_engine_codes(tmp_path: Path) -> None:
     catalog.write_text(json.dumps({"contract_version": 1, "errors": [error, error]}))
     with pytest.raises(ValueError, match="duplicate EG error code"):
         gen_api.generate(_registry(), catalog)
+
+
+def test_compat_detects_stable_breaks_but_allows_additive_changes() -> None:
+    before = _registry()
+    before["ops"][0]["stability"] = "stable"
+    before["ops"][0]["params"]["schema"] = {
+        "type": "object",
+        "properties": {"text": {"type": "string"}},
+        "required": ["text"],
+    }
+    before["ops"][0]["result"]["schema"] = {
+        "type": "object",
+        "properties": {"answer": {"type": "string"}},
+    }
+    after = json.loads(json.dumps(before))
+    after["ops"][0]["params"]["schema"]["properties"]["limit"] = {"type": "integer"}
+    assert gen_api._breaking_changes(before, after) == []
+    after["ops"][0]["params"]["schema"]["required"].append("limit")
+    after["ops"][0]["result"]["schema"]["properties"].pop("answer")
+    changes = gen_api._breaking_changes(before, after)
+    assert any("new required params" in row for row in changes)
+    assert any("removed result fields" in row for row in changes)
