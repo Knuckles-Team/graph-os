@@ -41,14 +41,14 @@ def test_generator_emits_deterministic_artifacts_and_engine_map(tmp_path: Path) 
                 "contract_version": 1,
                 "errors": [
                     {"code": "READ_ONLY", "http_status_hint": 403, "retryable": False},
-                    {"code": "REDIRECTED", "http_status_hint": 503, "retryable": True},
+                    {"code": "REDIRECTED", "http_status_hint": 307, "retryable": True},
                 ],
             }
         )
     )
     first = gen_api.generate(_registry(), catalog)
     assert first == gen_api.generate(_registry(), catalog)
-    assert b"'REDIRECTED': (503, True)" in first[gen_api.GENERATED / "engine_errors.py"]
+    assert b"'REDIRECTED': (307, True)" in first[gen_api.GENERATED / "engine_errors.py"]
     openapi = json.loads(first[gen_api.ROOT / "docs/api/openapi.json"])
     assert (
         openapi["paths"]["/api/v1/ops/query.uql"]["post"]["operationId"] == "query.uql"

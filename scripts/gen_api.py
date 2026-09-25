@@ -63,7 +63,7 @@ def _engine_errors(path: Path) -> bytes:
             or not code
             or not isinstance(status, int)
             or isinstance(status, bool)
-            or not 400 <= status <= 599
+            or not 300 <= status <= 599
             or not isinstance(retryable, bool)
         ):
             raise ValueError(f"invalid EG error row: {row!r}")
