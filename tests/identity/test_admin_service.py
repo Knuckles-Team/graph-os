@@ -9,7 +9,12 @@ import pytest
 
 from graph_os.identity import admin_service
 from graph_os.identity.admin_service import IdentityAdminService
-from graph_os.identity.engine import IdentityCall, IdentityReply, IdentityUnavailable
+from graph_os.identity.engine import (
+    IdentityCall,
+    IdentityRefused,
+    IdentityReply,
+    IdentityUnavailable,
+)
 
 
 class Engine:
@@ -305,3 +310,82 @@ async def test_scim_client_binding_is_typed_and_caller_bound() -> None:
         ),
         (caller, IdentityCall("idp", "get_scim_client", {"id": "corp-scim"})),
     ]
+
+
+@pytest.mark.asyncio
+async def test_explicit_issuer_rotation_records_kid_as_caller() -> None:
+    events: list[str] = []
+
+    class Issuer:
+        def rotate(self, retirement: str) -> str:
+            assert retirement == "overlap"
+            events.append("signer")
+            return "kid-2"
+
+    class Broker:
+        issuer = Issuer()
+
+        async def config(self, *, fresh: bool) -> dict[str, Any]:
+            assert fresh is True
+            events.append("config")
+            return {"epoch": 1}
+
+        def forget_config(self) -> None:
+            events.append("invalidate")
+
+    class RotationEngine(Engine):
+        async def as_caller(self, session: Any, call: IdentityCall) -> IdentityReply:
+            events.append("engine")
+            return await super().as_caller(session, call)
+
+    engine = RotationEngine()
+    engine.answers["config", "rotate_issuer"] = IdentityReply(
+        "config", {"epoch": 2, "issuer_kid_current": "kid-2"}
+    )
+    broker = Broker()
+    broker.engine = engine
+    session = object()
+    context = SimpleNamespace(
+        services={"identity": broker}, caller=SimpleNamespace(session=session)
+    )
+    result = await admin_service.execute_identity_op(
+        context, {}, SimpleNamespace(id="identity.issuer.rotate")
+    )
+    assert result["issuer_kid_current"] == "kid-2"
+    assert events == ["config", "signer", "engine", "invalidate"]
+    assert engine.calls == [
+        (
+            session,
+            IdentityCall(
+                "config", "rotate_issuer", {"expected_epoch": 1, "issuer_kid": "kid-2"}
+            ),
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_issuer_rotation_refusal_does_not_report_success() -> None:
+    invalidated: list[bool] = []
+
+    class Broker:
+        issuer = SimpleNamespace(rotate=lambda _retirement: "kid-2")
+
+        async def config(self, *, fresh: bool) -> dict[str, int]:
+            return {"epoch": 1}
+
+        def forget_config(self) -> None:
+            invalidated.append(True)
+
+        class engine:
+            @staticmethod
+            async def as_caller(_session: Any, _call: IdentityCall) -> IdentityReply:
+                raise IdentityRefused("IDENTITY_EPOCH_CONFLICT")
+
+    context = SimpleNamespace(
+        services={"identity": Broker()}, caller=SimpleNamespace(session=object())
+    )
+    with pytest.raises(IdentityRefused, match="IDENTITY_EPOCH_CONFLICT"):
+        await admin_service.execute_identity_op(
+            context, {}, SimpleNamespace(id="identity.issuer.rotate")
+        )
+    assert invalidated == [True]
