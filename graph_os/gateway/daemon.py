@@ -328,6 +328,65 @@ def daemon_status() -> dict[str, Any]:
         return {"running": False, **public_error_payload(exc, logger=logger)}
 
 
+def _evolution_engine() -> Any:
+    """Return only the live host engine; a client process cannot self-host."""
+    if _engine is None:
+        raise RuntimeError("evolution daemon host is unavailable")
+    return _engine
+
+
+def evolution_loop_status(*, limit: int = 50) -> dict[str, Any]:
+    """Read the daemon's durable AU loop state without making a second store."""
+    if not 1 <= limit <= 200:
+        raise ValueError("limit must be between 1 and 200")
+    from agent_utilities.knowledge_graph.research.loops import active_loops
+
+    return {"loops": active_loops(_evolution_engine(), limit)}
+
+
+def evolution_loop_run(*, max_topics: int = 5) -> dict[str, Any]:
+    """Drive one bounded cycle on the existing AU loop controller."""
+    if not 1 <= max_topics <= 20:
+        raise ValueError("max_topics must be between 1 and 20")
+    from agent_utilities.knowledge_graph.research.loop_controller import LoopController
+
+    return LoopController(_evolution_engine()).run_one_cycle(max_topics=max_topics)
+
+
+def evolution_loop_pause(*, schedule_name: str) -> dict[str, Any]:
+    """Pause recurring loop admission through its durable scheduler entry."""
+    if schedule_name not in {"loop", "evolution"}:
+        raise ValueError("only the loop or evolution schedule may be paused")
+    from agent_utilities.core.schedule_engine import set_enabled
+
+    result = set_enabled(_evolution_engine(), schedule_name, False)
+    if result.get("status") != "success":
+        raise RuntimeError("evolution schedule was not paused")
+    return result
+
+
+class EvolutionDaemonControl:
+    """Explicit in-process adapter for the three supported loop controls."""
+
+    async def execute(self, operation: str, params: dict[str, Any]) -> dict[str, Any]:
+        import asyncio
+
+        if operation == "evolution.loops.status":
+            return await asyncio.to_thread(
+                evolution_loop_status, limit=int(params.get("limit", 50))
+            )
+        if operation == "evolution.loops.run":
+            return await asyncio.to_thread(
+                evolution_loop_run, max_topics=int(params.get("max_topics", 5))
+            )
+        if operation == "evolution.loops.pause":
+            name = params.get("name")
+            if not isinstance(name, str):
+                raise ValueError("name is required to pause a schedule")
+            return await asyncio.to_thread(evolution_loop_pause, schedule_name=name)
+        raise RuntimeError(f"{operation} daemon control is unavailable")
+
+
 def drain_task_queue() -> list[str]:
     """Purge the durable task-queue store (recovery from a corrupt/stuck queue).
 
