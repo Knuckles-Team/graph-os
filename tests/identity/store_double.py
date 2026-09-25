@@ -91,6 +91,9 @@ class StoreDouble:
             ("session", "resolve"): self._resolve_session,
             ("session", "revoke"): self._revoke_session,
             ("user", "create"): self._create_user,
+            ("user", "update"): self._update_user,
+            ("user", "list"): self._list_users,
+            ("credential", "set_password"): self._set_password,
             ("token", "issue_one_time"): self._issue_one_time,
             ("token", "redeem_one_time"): self._redeem_one_time,
             ("token", "issue_api_key"): self._issue_api_key,
@@ -250,6 +253,22 @@ class StoreDouble:
             raise _refuse("IDENTITY_COLLISION")
         user = self.add_user(str(request["username"]), request.get("password"))
         return IdentityReply("principal", {"principal_id": user.principal_id})
+
+    def _update_user(self, request: Mapping[str, Any]) -> IdentityReply:
+        user = self.users[str(request["principal_id"])]
+        user.username = str(request.get("username") or user.username)
+        return IdentityReply("done", {"changed": True})
+
+    def _set_password(self, request: Mapping[str, Any]) -> IdentityReply:
+        self.users[str(request["principal_id"])].password = str(request["password"])
+        return IdentityReply("done", {"changed": True})
+
+    def _list_users(self, _: Mapping[str, Any]) -> IdentityReply:
+        views = [
+            {"principal_id": u.principal_id, "username": u.username}
+            for u in sorted(self.users.values(), key=lambda u: u.principal_id)
+        ]
+        return IdentityReply("users", views)
 
     # -- one-time tokens and API keys ------------------------------------
 
