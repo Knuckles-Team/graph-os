@@ -24,6 +24,8 @@ from graph_os.fleet.child_resilience import (
 )
 from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
+pytestmark = pytest.mark.usefixtures("fleet_scopes")
+
 
 class GatedSession:
     """Fake child session whose calls block until ``release`` is set."""

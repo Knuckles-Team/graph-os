@@ -12,6 +12,8 @@ from fastmcp.exceptions import ToolError
 from graph_os.fleet import multiplexer as mod
 from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
+pytestmark = pytest.mark.usefixtures("fleet_scopes")
+
 
 class _Policy:
     def __init__(self, events: list[str]) -> None:

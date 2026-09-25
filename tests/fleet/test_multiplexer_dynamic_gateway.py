@@ -35,6 +35,8 @@ from graph_os.fleet.multiplexer import (
 )
 from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
+pytestmark = pytest.mark.usefixtures("fleet_scopes")
+
 CNT = "container-manager-mcp"
 CNT_TOOL = "cm_container_operations"
 # container-manager-mcp auto-derives prefix "cm"; clean_tool_name then strips the
@@ -1188,9 +1190,7 @@ async def test_probe_server_uses_live_tools_when_mounted(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
     await mux.mount_child(CNT)
     # Should NOT reconnect for an already-mounted child.
-    mux._open_one_session = AsyncMock(
-        side_effect=AssertionError("must not reconnect")
-    )
+    mux._open_one_session = AsyncMock(side_effect=AssertionError("must not reconnect"))
     info = await mux.probe_server(CNT)
     assert info["error"] is None
     assert info["tools"][0]["name"] == CNT_TOOL
@@ -1219,9 +1219,7 @@ async def test_probe_server_preserves_an_mcp_apps_tool_descriptor_meta(tmp_path)
 
     mux._start_child = AsyncMock(side_effect=fake_start_child)
     await mux.mount_child(CNT)
-    mux._open_one_session = AsyncMock(
-        side_effect=AssertionError("must not reconnect")
-    )
+    mux._open_one_session = AsyncMock(side_effect=AssertionError("must not reconnect"))
 
     info = await mux.probe_server(CNT)
 
@@ -1826,23 +1824,35 @@ async def test_tool_dispatchable_false_for_catalogued_but_unmounted_tool(tmp_pat
     assert mux.tool_dispatchable(CNT_PREFIXED, session_key="any-session") is False
 
 
-def test_tool_dispatchable_true_for_unknown_name_on_a_genuinely_serving_instance(
-    tmp_path,
-):
-    """The 'unknown to our bookkeeping -> unconditionally callable' fallback
-    still applies for a REAL, serving instance (non-empty catalog) — a name
-    that matches no server at all is presumed a native host tool outside the
-    progressive-disclosure surface, same as before D-SH-6's fix. This is the
-    regression guard: D-SH-6 must not turn INTO a false denial for the
-    legitimate case it always covered.
-
-    The EG-backed catalog source (``tests.fleet.catalog_fixture``) composes
-    the catalog synchronously at construction, unlike the retired static
-    ``MCP_CONFIG`` path that deferred the first read to ``load_catalog()`` --
-    so a freshly-built fixture with an admissible server is already serving."""
+def test_tool_dispatchable_false_for_unknown_name_on_a_serving_instance(tmp_path):
+    """EH-629: a name unknown to the multiplexer's bookkeeping is denied even on
+    a serving instance. There is no default-open branch for "native host
+    tools"; the host admits its own tools explicitly (admit_native_tools)."""
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "a")]})
     assert mux.is_serving() is True  # at least one real server catalogued
+    assert mux.tool_dispatchable("some_native_host_tool") is False
+
+
+def test_admitted_native_tool_is_dispatchable_and_fleet_names_are_not(tmp_path):
+    """The explicit admission is the only way a native tool becomes callable,
+    and it never admits a catalogued fleet name or a loaded forwarder."""
+    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "a")]})
+    from fastmcp import FastMCP
+
+    host = FastMCP("host")
+
+    @host.tool(name="some_native_host_tool")
+    def _native() -> str:
+        return "ok"
+
+    @host.tool(name=CNT_PREFIXED)
+    def _looks_like_fleet() -> str:
+        return "no"
+
+    mux.admit_native_tools(host)
+
     assert mux.tool_dispatchable("some_native_host_tool") is True
+    assert mux.tool_dispatchable(CNT_PREFIXED, session_key="any") is False
 
 
 def test_tool_dispatchable_false_for_unknown_name_on_a_non_serving_instance(tmp_path):

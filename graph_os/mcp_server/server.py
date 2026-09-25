@@ -303,6 +303,8 @@ def mcp_server() -> None:
                 mcp,
                 client_for_session=client_for_session,
             )
+            # Unknown tools are denied (EH-629): admit this late native tool.
+            fleet_mux.admit_native_tools(mcp)
 
             # Decide consumers (decide-consumers contract): install AU's
             # runner and assembler for the process tenant now that a verified

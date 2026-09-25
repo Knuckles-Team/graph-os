@@ -164,6 +164,9 @@ async def _execute_tool(tool_name: str, **kwargs) -> Any:
     tool_func = REGISTERED_TOOLS.get(tool_name)
     if not tool_func:
         raise ValueError(f"Tool {tool_name} not registered")
+    from graph_os.mcp_server.policy_filter import authorize_native_call
+
+    await authorize_native_call(tool_name)
 
     import inspect
 
@@ -621,9 +624,16 @@ def _build_server(bootstrap: bool = True):
     )
     # The SDK factory supplies the privacy-safe error and per-caller rate-limit
     # middleware; GraphOS binds the verified caller session inside them.
+    # EH-629: the SDK ships no Eunomia middleware, so graph-os installs its
+    # own narrowing-only policy filter after the verified session binding.
+    from agent_utilities.core.config import config as _config
+
+    from graph_os.mcp_server.policy_filter import served_policy_middlewares
+
     middlewares = [
         *_sdk_middleware,
         VerifiedSessionMiddleware(lambda: _PROCESS_SESSION),
+        *served_policy_middlewares(_config),
     ]
     register_metrics_route(
         mcp,
