@@ -6141,7 +6141,7 @@ def attach_fleet_loader(
     self_server: str = "graph-os",
     embed_fn=None,
     authority_scope=None,
-    multiplexer_ops=None,
+    ops_factory=None,
 ) -> MCPMultiplexer:
     """Attach governed fleet operations to the existing GraphOS FastMCP host.
 
@@ -6174,9 +6174,35 @@ def attach_fleet_loader(
     """
     logger.info("graph-os fleet loader initializing")
     mux = MCPMultiplexer(catalog_reader)
-    if multiplexer_ops is None:
-        raise RuntimeError("governed multiplexer operations are not bound")
-    mux._multiplexer_ops = multiplexer_ops
+    if ops_factory is None:
+        raise RuntimeError("governed multiplexer operations factory is not bound")
+
+    async def mount(item, forwarder) -> None:
+        """Register a native tool whose body reenters governed invoke."""
+        if item.kind != "tool" or forwarder is None:
+            raise RuntimeError("native mount for this fleet item is unavailable")
+        if item.id in mux._exposed:
+            return
+
+        async def call(**arguments):
+            return await forwarder(arguments, _ops_caller())
+
+        mcp.add_tool(
+            _fastmcp_tools.FunctionTool(
+                name=item.id,
+                description=item.description,
+                parameters=dict(item.schema),
+                fn=call,
+            )
+        )
+        mux._exposed.add(item.id)
+
+    async def notify(_session_key_value: str) -> bool:
+        return await _notify_tools_changed(mcp)
+
+    mux._multiplexer_ops = ops_factory(mux, mount, notify)
+    if mux._multiplexer_ops is None:
+        raise RuntimeError("governed multiplexer operations factory returned no ops")
     # Keep the host solely for lifecycle replacement of mux-owned forwarding
     # schemas after a child generation recovers.  Standalone mux/probe paths
     # deliberately leave this unset.
