@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib
+import importlib.resources
 import json
 import sys
 from pathlib import Path
@@ -229,11 +230,31 @@ def generate(registry: dict[str, Any], errors_path: Path) -> dict[Path, bytes]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--eg-errors", type=Path, required=True)
+    parser.add_argument("--engine-errors-only", action="store_true")
+    parser.add_argument(
+        "--eg-errors",
+        type=Path,
+        help="EG error catalog; defaults to the pinned epistemic_graph wheel",
+    )
     parser.add_argument("--registry-module", default="graph_os.api.ops")
     args = parser.parse_args()
     try:
-        outputs = generate(_registry(args.registry_module), args.eg_errors)
+        errors_path = args.eg_errors
+        if errors_path is None:
+            errors_path = Path(
+                str(
+                    importlib.resources.files("epistemic_graph")
+                    / "contract/errors.json"
+                )
+            )
+        if args.engine_errors_only:
+            outputs = {
+                GENERATED / "engine_errors.py": _engine_errors(errors_path),
+                GENERATED
+                / "__init__.py": b'"""Generated GraphOS API contract artifacts."""\n',
+            }
+        else:
+            outputs = generate(_registry(args.registry_module), errors_path)
     except (AttributeError, ImportError, OSError, TypeError, ValueError) as exc:
         print(f"gen_api: {exc}", file=sys.stderr)
         return 2
