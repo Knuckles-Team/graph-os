@@ -396,7 +396,7 @@ def drain_task_queue() -> list[str]:
     """
     from pathlib import Path
 
-    from agent_utilities.core.paths import data_dir
+    from graph_os.deployment.paths import data_dir
 
     base = data_dir() / "kg_task_queue.db"
     removed: list[str] = []

@@ -375,7 +375,7 @@ def write_config(
 
 
 def _default_config_path() -> Path:
-    from agent_utilities.core.paths import config_dir
+    from graph_os.deployment.paths import config_dir
 
     return config_dir() / "config.json"
 
@@ -693,7 +693,8 @@ def _config_doctor_plaintext_secrets_check(
     secret value (credential access is human-gated), so it reports and guides."""
     try:
         from agent_utilities.core.config import plaintext_secret_keys
-        from agent_utilities.core.paths import config_dir
+
+        from graph_os.deployment.paths import config_dir
 
         _secret_src = (
             Path(config_path)
