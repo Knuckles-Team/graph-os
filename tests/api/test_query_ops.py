@@ -22,10 +22,11 @@ def test_curated_ops_bind_unique_eg_methods_with_exact_scopes() -> None:
         "analytics.series.list": ("TsListSeries", "timeseries:read"),
     }
     ops = query.specs() + search.specs() + ontology.specs() + analytics.specs()
-    assert len(ops) == len(expected)
-    assert set(expected) == {op.id for op in ops}
-    assert len({op.binding.service for op in ops}) == len(ops)
-    for op in ops:
+    eg_ops = tuple(op for op in ops if isinstance(op.binding, EgMethod))
+    assert len(eg_ops) == len(expected)
+    assert set(expected) == {op.id for op in eg_ops}
+    assert len({op.binding.service for op in eg_ops}) == len(eg_ops)
+    for op in eg_ops:
         method, scope = expected[op.id]
         assert isinstance(op.binding, EgMethod)
         assert op.binding.service == op.binding.op == method
@@ -39,3 +40,21 @@ def test_sql_and_index_mutations_do_not_enter_read_only_verbs() -> None:
     assert ops["indexes.semantic.manage"].verb is Verb.MANAGE
     assert ops["indexes.semantic.manage"].effect is Effect.WRITE
     assert ops["analytics.series.drop"].effect is Effect.DESTRUCTIVE
+
+
+@pytest.mark.asyncio
+async def test_sql_schema_uses_the_caller_bound_client(monkeypatch) -> None:
+    class Context:
+        client = object()
+
+    seen = {}
+
+    async def fake_sql_schema(client, *, schema):
+        seen.update(client=client, schema=schema)
+        return {"status": "success", "catalogs": [], "capabilities": {}, "counts": {}}
+
+    monkeypatch.setattr("graph_os.gateway.sql_catalog.sql_schema", fake_sql_schema)
+    op = next(op for op in query.specs() if op.id == "query.sql_schema")
+    result = await query.sql_schema_handler(Context(), {"schema": "public"}, op)
+    assert seen == {"client": Context.client, "schema": "public"}
+    assert result["status"] == "success"
