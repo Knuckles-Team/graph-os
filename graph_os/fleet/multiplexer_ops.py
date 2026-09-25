@@ -334,14 +334,16 @@ class MultiplexerOps:
             self.sessions.notification(session_key, await self._notify(session_key))
         return sorted(removed)
 
-    async def invalidate_policy_revision(self, _revision: str) -> dict[str, list[str]]:
+    async def invalidate_policy_revision(
+        self, _revision: str
+    ) -> dict[str, builtins.list[str]]:
         """Drop every loaded grant when the PDP revision changes.
 
         A revision callback has no request caller and cannot safely re-evaluate
         another session's principal. That session may explicitly load again
         under its new policy on its next request.
         """
-        removed_by_session: dict[str, list[str]] = {}
+        removed_by_session: dict[str, builtins.list[str]] = {}
         for key in self.sessions.active_keys():
             removed = self.sessions.unload(key, self.sessions.loaded(key))
             if not removed:
