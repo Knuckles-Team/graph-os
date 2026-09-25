@@ -14,7 +14,13 @@ from pydantic import BaseModel
 
 from graph_os.api.mcp.discovery import find_visible
 from graph_os.api.mcp.resources import operation_spec, registry_index
-from graph_os.api.mcp.verbs import PARAMETERS, MCPProjection, dispatch_verb, make_verb
+from graph_os.api.mcp.verbs import (
+    PARAMETERS,
+    RESIDENT_TOOL_NAMES,
+    MCPProjection,
+    dispatch_verb,
+    make_verb,
+)
 
 
 class Input(BaseModel):
@@ -266,3 +272,15 @@ def test_six_tools_share_one_schema_and_digest_in_instructions() -> None:
     }
     assert all(tool.parameters == PARAMETERS for tool in tools)
     assert "registry_digest=digest-one" in mcp_instructions(projection)
+    assert RESIDENT_TOOL_NAMES == (
+        "find",
+        "ask",
+        "why",
+        "write",
+        "act",
+        "manage",
+        "find_tools",
+        "load_tools",
+        "unload_tools",
+        "multiplexer_status",
+    )

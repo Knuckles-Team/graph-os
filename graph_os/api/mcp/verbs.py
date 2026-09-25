@@ -15,6 +15,13 @@ from graph_os.api.mcp.discovery import (
 )
 
 VERBS = ("find", "ask", "why", "write", "act", "manage")
+RESIDENT_TOOL_NAMES = (
+    *VERBS,
+    "find_tools",
+    "load_tools",
+    "unload_tools",
+    "multiplexer_status",
+)
 PARAMETERS: dict[str, Any] = {
     "type": "object",
     "properties": {
