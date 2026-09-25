@@ -17,6 +17,15 @@ from .routes import _error, make_endpoint
 Visibility = Callable[[Any, Any], Awaitable[bool]]
 
 
+def _subapp_path(path: str) -> str:
+    """Map a public v1 resource path to this app's mount-relative path."""
+    if path.startswith("/api/v1/"):
+        return path[len("/api/v1") :]
+    if path.startswith("/") and not path.startswith("/api/"):
+        return path
+    raise ValueError(f"operation HTTP path is outside /api/v1: {path}")
+
+
 def _outcome_response(
     outcome: Any, op: Any, *, digest: str, request_id: str
 ) -> JSONResponse:
@@ -77,7 +86,7 @@ def create_api_application(
             policy=lambda op, _: allowed.get(op.id, False),
         )
 
-    @app.get("/api/v1/registry", include_in_schema=False)
+    @app.get("/registry", include_in_schema=False)
     async def registry_route(request: Request) -> JSONResponse:
         ops = await visible(request)
         if isinstance(ops, JSONResponse):
@@ -94,7 +103,7 @@ def create_api_application(
             },
         )
 
-    @app.get("/api/v1/ops/{op_id}", include_in_schema=False)
+    @app.get("/ops/{op_id}", include_in_schema=False)
     async def op_route(request: Request, op_id: str) -> JSONResponse:
         ops = await visible(request)
         if isinstance(ops, JSONResponse):
@@ -110,7 +119,7 @@ def create_api_application(
                 )
         return _error("UNKNOWN_OP", digest=registry.digest, op=op_id)
 
-    @app.get("/api/v1/openapi.json", include_in_schema=False)
+    @app.get("/openapi.json", include_in_schema=False)
     async def openapi_route(request: Request) -> JSONResponse:
         ops = await visible(request)
         if isinstance(ops, JSONResponse):
@@ -127,7 +136,7 @@ def create_api_application(
         if Surface.HTTP not in op.surfaces:
             continue
         app.add_api_route(
-            f"/api/v1/ops/{op.id}",
+            f"/ops/{op.id}",
             make_endpoint(
                 op,
                 services=services,
@@ -142,7 +151,7 @@ def create_api_application(
         )
         if op.http is not None:
             app.add_api_route(
-                op.http.path,
+                _subapp_path(op.http.path),
                 make_endpoint(
                     op,
                     services=services,
