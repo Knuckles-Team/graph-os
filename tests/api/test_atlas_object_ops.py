@@ -106,3 +106,49 @@ def test_unbound_atlas_and_object_sets_are_not_in_served_registry() -> None:
     names = {name for name, _factory in CURATED_SOURCES}
     assert "atlas" not in names
     assert "object_sets" not in names
+
+
+@pytest.mark.asyncio
+async def test_by_label_uses_verified_tenant_commons_and_eg_rls_rows() -> None:
+    class Nodes:
+        async def list_by_label_union(self, label, graphs, limit):
+            assert (label, graphs, limit) == (
+                "Document",
+                ["tenant-a", "__commons__"],
+                17,
+            )
+            return [("n1", {"type": "Document"})]
+
+    context = SimpleNamespace(
+        caller=SimpleNamespace(tenant="tenant-a"),
+        client=SimpleNamespace(nodes=Nodes()),
+    )
+    result = await object_sets.by_label_handler(
+        context, {"label": "Document", "limit": 17}, object_sets.served_specs()[0]
+    )
+    assert result == {
+        "ids": ["n1"],
+        "rows": [{"type": "Document", "id": "n1"}],
+        "count": 1,
+    }
+
+
+@pytest.mark.asyncio
+async def test_by_label_rejects_missing_tenant_and_bad_engine_row() -> None:
+    class Nodes:
+        async def list_by_label_union(self, label, graphs, limit):
+            return [("n1", {"id": "n2"})]
+
+    context = SimpleNamespace(
+        caller=SimpleNamespace(tenant=""),
+        client=SimpleNamespace(nodes=Nodes()),
+    )
+    with pytest.raises(RuntimeError, match="tenant"):
+        await object_sets.by_label_handler(
+            context, {"label": "Document"}, object_sets.served_specs()[0]
+        )
+    context.caller.tenant = "tenant-a"
+    with pytest.raises(ValueError, match="mismatched"):
+        await object_sets.by_label_handler(
+            context, {"label": "Document"}, object_sets.served_specs()[0]
+        )
