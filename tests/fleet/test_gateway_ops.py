@@ -273,6 +273,7 @@ async def test_composition_binds_verified_reader_without_starting_probe() -> Non
         mount=mount,
         notify=notify,
         invoke=invoke,
+        session_key_for=lambda _caller: None,
     )
     caller = SimpleNamespace(effective_scopes=frozenset({"mcp:discover"}))
     assert await ops.find_tools(caller, browse=True) == {
@@ -280,3 +281,51 @@ async def test_composition_binds_verified_reader_without_starting_probe() -> Non
         "next_cursor": None,
     }
     assert ops.multiplexer_status("session")["children"]["s"]["healthy"] is True
+
+
+@pytest.mark.asyncio
+async def test_registry_service_api_requires_verified_session_for_mutation() -> None:
+    item = CatalogItem("fleet:tool:s/read", "tool", "read", server="s")
+
+    async def source():
+        return (item,)
+
+    async def yes(_item, _caller):
+        return True
+
+    async def mount(_item, _forwarder):
+        return None
+
+    async def notify(_session):
+        return True
+
+    async def invoke(*_args):
+        return None
+
+    ops = MultiplexerOps(
+        catalog=FleetCatalog([source], yes),
+        sessions=SessionLoads(),
+        loadable=yes,
+        mount=mount,
+        notify=notify,
+        invoke=invoke,
+        health=lambda: {"s": {"healthy": True}},
+        session_key_for=lambda caller: caller.session_key if caller.verified else None,
+    )
+    http = SimpleNamespace(
+        effective_scopes=frozenset({"mcp:discover", "mcp:delegate"}),
+        session_key="http-request",
+        verified=False,
+    )
+    assert [row["id"] for row in (await ops.list(http))["items"]] == [item.id]
+    assert (await ops.status(http))["session"] is None
+    with pytest.raises(PermissionError, match="verified MCP session"):
+        await ops.load(http, [item.id])
+    mcp = SimpleNamespace(
+        effective_scopes=http.effective_scopes,
+        session_key="mcp-session",
+        verified=True,
+    )
+    assert (await ops.load(mcp, [item.id]))["session_total"] == 1
+    assert (await ops.status(mcp, servers=["s"]))["session"]["used"] == 1
+    assert (await ops.unload(mcp, items=[item.id]))["unloaded"] == [item.id]

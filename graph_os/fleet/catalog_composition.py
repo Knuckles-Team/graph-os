@@ -13,6 +13,7 @@ from graph_os.fleet.multiplexer_ops import (
     Mount,
     MultiplexerOps,
     Notify,
+    SessionKeyFor,
 )
 from graph_os.fleet.session_loads import SessionLoads
 
@@ -42,6 +43,7 @@ def compose_multiplexer_ops(
     mount: Mount,
     notify: Notify,
     invoke: Invoke,
+    session_key_for: SessionKeyFor,
     cap: int = 64,
     idle_ttl_seconds: int = 3600,
 ) -> MultiplexerOps:
@@ -70,4 +72,5 @@ def compose_multiplexer_ops(
         notify=notify,
         invoke=invoke,
         health=health,
+        session_key_for=session_key_for,
     )
