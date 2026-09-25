@@ -343,7 +343,7 @@ async def _execute_tool(tool_name: str, **kwargs) -> Any:
     # reserved read lane ahead of a saturating background-ingestion write storm. Tag ONLY
     # when the context is UNTAGGED: a re-entrant call from a delegated agent (ORCHESTRATION)
     # or a background task (BACKGROUND_INGESTION) keeps its own, lower class — never upgraded.
-    from agent_utilities.core.resource_priority import (
+    from agent_utilities.api.runtime import (
         PriorityClass,
         current_priority,
         priority_scope,

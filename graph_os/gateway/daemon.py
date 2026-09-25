@@ -339,18 +339,18 @@ def evolution_loop_status(*, limit: int = 50) -> dict[str, Any]:
     """Read the daemon's durable AU loop state without making a second store."""
     if not 1 <= limit <= 200:
         raise ValueError("limit must be between 1 and 200")
-    from agent_utilities.knowledge_graph.research.loops import active_loops
+    from agent_utilities.api.evolution import active_evolution_loops
 
-    return {"loops": active_loops(_evolution_engine(), limit)}
+    return {"loops": active_evolution_loops(_evolution_engine(), limit=limit)}
 
 
 def evolution_loop_run(*, max_topics: int = 5) -> dict[str, Any]:
     """Drive one bounded cycle on the existing AU loop controller."""
     if not 1 <= max_topics <= 20:
         raise ValueError("max_topics must be between 1 and 20")
-    from agent_utilities.knowledge_graph.research.loop_controller import LoopController
+    from agent_utilities.api.evolution import run_evolution_cycle
 
-    return LoopController(_evolution_engine()).run_one_cycle(max_topics=max_topics)
+    return run_evolution_cycle(_evolution_engine(), max_topics=max_topics)
 
 
 def evolution_loop_pause(*, schedule_name: str) -> dict[str, Any]:

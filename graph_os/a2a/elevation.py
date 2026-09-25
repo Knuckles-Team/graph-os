@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from agent_utilities.security.elevation import ElevationRefused
+from agent_utilities.api.security import ElevationRefused
 from pydantic import BaseModel, ConfigDict
 
 from .models import A2ASkill

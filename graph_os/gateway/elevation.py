@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from agent_utilities.security.elevation import (
+from agent_utilities.api.security import (
     ElevationApproval,
     ElevationRefused,
     ElevationService,

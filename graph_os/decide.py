@@ -273,7 +273,7 @@ def install_decide_at_boot(
 ) -> DecideComposition | None:
     """Boot hook: install Decide, or keep every point on its fallback (logged)."""
     try:
-        from agent_utilities.orchestration.action_policy import get_action_policy
+        from agent_utilities.api.runtime import get_action_policy
 
         return install_decide(
             graph_client_for(str(session.tenant)), session, get_action_policy(engine)

@@ -50,7 +50,7 @@ class MutationAuthority:
         return _opaque_principal(str(self._session.actor.actor_id))
 
     def _receipt(self, kind: str, target: str) -> Any:
-        from agent_utilities.orchestration.action_policy import ActionRequest
+        from agent_utilities.api.runtime import ActionRequest
 
         request = ActionRequest(
             kind=kind,

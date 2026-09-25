@@ -70,7 +70,7 @@ def execute_redeploy(
 
     # 1. Governance gate (fail-closed).
     try:
-        from agent_utilities.orchestration.action_policy import (
+        from agent_utilities.api.runtime import (
             ActionRequest,
             get_action_policy,
         )

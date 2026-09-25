@@ -382,7 +382,7 @@ def attach_throttle_controller(
     authority = process_authority(session, client_for)
 
     def evolution(client: Any) -> Any:
-        from agent_utilities.orchestration.action_policy import get_action_policy
+        from agent_utilities.api.runtime import get_action_policy
         from agent_utilities.security.guardrail_evolution import (
             ActionPolicyLoosenApprovals,
             EgProfileStore,

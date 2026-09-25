@@ -27,7 +27,7 @@ from agent_utilities.api import (
     WorkItemPage,
     WorkItemSnapshot,
 )
-from agent_utilities.security.persistence_privacy import persistence_reference
+from agent_utilities.api.security import persistence_reference
 
 from .models import (
     A2AMessage,

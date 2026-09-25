@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from agent_utilities.security.persistence_privacy import persistence_reference
+from agent_utilities.api.security import persistence_reference
 from agent_utilities.usage.authorization import (
     UsageAuthorizationError,
     require_usage_admin,

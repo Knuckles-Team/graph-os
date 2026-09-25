@@ -284,7 +284,7 @@ async def _dispatch(
     idempotency_key: str | None,
     fleet_decision: FleetCallDecision | None,
 ) -> Any:
-    from agent_utilities.core.resource_priority import (
+    from agent_utilities.api.runtime import (
         PriorityClass,
         current_priority,
         priority_scope,

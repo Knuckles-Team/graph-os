@@ -59,8 +59,8 @@ def _run_codex(_: argparse.Namespace) -> int:
 def _run_harness_fence(args: argparse.Namespace) -> int:
     from pathlib import Path
 
+    from agent_utilities.api.runtime import ActionPolicy
     from agent_utilities.claude_harness.claude_fence import write_fence
-    from agent_utilities.orchestration.action_policy import ActionPolicy
 
     target = args.target or str(Path.home() / ".claude")
     policy = ActionPolicy(policy_path=args.policy) if args.policy else ActionPolicy()

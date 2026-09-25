@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from agent_utilities.layers.contracts import McpEndpoint
+from agent_utilities.api.runtime import McpEndpoint
 from pydantic import BaseModel, ConfigDict, Field
 
 from graph_os.api.harness_context import (

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, fields
 from typing import Any
 
-from agent_utilities.security.persistence_privacy import persistence_reference
+from agent_utilities.api.security import persistence_reference
 
 from graph_os.browser_control.browser_control_api import BrowserChannelBinding
 from graph_os.browser_control.browser_control_common import content_sha256

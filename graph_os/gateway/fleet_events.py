@@ -346,7 +346,7 @@ async def _mirror_event_to_stream(event_id: str, properties: dict[str, Any]) -> 
 async def persist_event(engine: Any, event: FleetEvent) -> str:
     """Write the event as a ``FleetEvent`` KG node and mirror it onto the
     ``fleet.events`` broker stream; returns the node id."""
-    from agent_utilities.security.persistence_privacy import persistence_reference
+    from agent_utilities.api.security import persistence_reference
 
     event_id = f"fleet_event:{uuid.uuid4().hex}"
     source_type = _source_type(event.source)

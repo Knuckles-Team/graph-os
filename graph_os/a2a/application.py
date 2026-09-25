@@ -6,7 +6,7 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any, Protocol, runtime_checkable
 
-from agent_utilities.security.elevation import ElevationRefused
+from agent_utilities.api.security import ElevationRefused
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response, StreamingResponse

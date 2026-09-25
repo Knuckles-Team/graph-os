@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from agent_utilities.security.elevation import (
+from agent_utilities.api.security import (
     MAX_SPAN_MS,
     ElevationRequest,
     ElevationRevocation,

@@ -92,7 +92,7 @@ ToolResult = _fastmcp_tools.ToolResult
 # turned the rename into a silent `RuntimeError: mcp SDK has no
 # streamablehttp_client` on EVERY remote child, which is the whole deployed
 # fleet — `deploy/mcp-fleet.registry.yml` defaults to `streamable-http`).
-import agent_utilities.core.resource_priority as _resource_priority
+import agent_utilities.api.runtime as _resource_priority
 from agent_utilities.core.capability_contract import Capability
 from agent_utilities.core.config import setting
 from agent_utilities.security.error_surface import public_error_text

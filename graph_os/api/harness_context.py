@@ -13,7 +13,7 @@ from agent_connector_sdk.credentials.references import (
     SecretReferenceError,
     parse_secret_reference,
 )
-from agent_utilities.layers.contracts import McpEndpoint
+from agent_utilities.api.runtime import McpEndpoint
 
 _REQUIRED_TOOLS = frozenset({"ask", "find"})
 _REQUIRED_OPS = frozenset({"context.view", "query.uql"})

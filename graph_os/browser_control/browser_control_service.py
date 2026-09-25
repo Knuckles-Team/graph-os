@@ -9,8 +9,8 @@ from collections import OrderedDict
 from collections.abc import Awaitable, Callable
 from typing import Any, Literal
 
+from agent_utilities.api.runtime import get_action_policy
 from agent_utilities.observability.langfuse_exporter import get_langfuse_exporter
-from agent_utilities.orchestration.action_policy import get_action_policy
 
 from graph_os.browser_control.browser_control_api import (
     BrowserCallReceipt,
