@@ -77,6 +77,14 @@ ADMIN_ACTIONS: dict[str, AdminAction] = {
     "identity.idps.list": AdminAction("idp", "list", "idps", True),
     "identity.idps.upsert": AdminAction("idp", "upsert", "done"),
     "identity.idps.remove": AdminAction("idp", "remove", "done"),
+    "identity.scim_clients.list": AdminAction(
+        "idp", "list_scim_clients", "scim_clients", True
+    ),
+    "identity.scim_clients.get": AdminAction(
+        "idp", "get_scim_client", "scim_client", True
+    ),
+    "identity.scim_clients.upsert": AdminAction("idp", "upsert_scim_client", "done"),
+    "identity.scim_clients.remove": AdminAction("idp", "remove_scim_client", "done"),
     "identity.policy.get": AdminAction("config", "get", "config", True),
     "identity.policy.set": AdminAction("config", "update_policy", "config"),
     "identity.mode.status": AdminAction("config", "get", "config", True),
@@ -110,6 +118,8 @@ def _request(op_id: str, params: Mapping[str, Any]) -> dict[str, Any] | None:
         return {"id": body["principal_id"]}
     if op_id in {"identity.users.get", "identity.users.unlock"}:
         return {"id": body["principal_id"]}
+    if op_id in {"identity.scim_clients.get", "identity.scim_clients.remove"}:
+        return {"id": body["idp_id"]}
     if op_id in {
         "identity.roles.remove",
         "identity.groups.remove",
@@ -123,6 +133,7 @@ def _request(op_id: str, params: Mapping[str, Any]) -> dict[str, Any] | None:
         "identity.roles.list",
         "identity.groups.list",
         "identity.idps.list",
+        "identity.scim_clients.list",
         "identity.policy.get",
         "identity.mode.status",
         "identity.audit.verify",
@@ -177,6 +188,7 @@ class IdentityAdminService:
             "roles",
             "groups",
             "idps",
+            "scim_clients",
             "audit",
             "api_keys",
         }:
