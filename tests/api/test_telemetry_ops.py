@@ -51,3 +51,8 @@ def test_graph_reads_and_usage_bind_engine_without_local_store() -> None:
     )
     assert all_ops["security.audit.verify"].binding.service == "AuditVerify"
     assert all_ops["telemetry.cep.poll"].binding.service == "CepPoll"
+    derive = all_ops["telemetry.derive.run"]
+    assert derive.binding.service == "TelemetryDerive"
+    assert derive.scopes == frozenset({"telemetry:derive"})
+    assert derive.verb is Verb.ACT
+    assert derive.effect is Effect.WRITE
