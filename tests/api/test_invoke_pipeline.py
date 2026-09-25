@@ -1,0 +1,300 @@
+"""Focused authority and confirmation checks for the shared chokepoint."""
+
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+from typing import Any
+
+import pytest
+from graph_os.api.registry import (
+    AuditClass,
+    Composite,
+    Confirm,
+    Effect,
+    Executor,
+    Idempotency,
+    OpSpec,
+    PrincipalRule,
+    Registry,
+    SubjectRef,
+    Surface,
+    Verb,
+)
+from pydantic import BaseModel, ConfigDict
+
+from graph_os.api.invoke import InvokeServices, OpError, VerifiedCaller, invoke
+from graph_os.api.invoke.plan import EgPlanStore
+
+
+class Params(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    subject: str
+
+
+class Result(BaseModel):
+    ok: bool
+
+
+class FakeLeases:
+    def __init__(self) -> None:
+        self.rows: dict[str, dict[str, Any]] = {}
+
+    async def issue(self, **kwargs: Any) -> dict[str, str]:
+        self.rows[kwargs["lease_id"]] = {
+            **kwargs,
+            "status": "active",
+            "revision": 1,
+        }
+        return {"outcome": "issued"}
+
+    async def get(self, *, tenant: str, lease_id: str) -> dict[str, Any] | None:
+        row = self.rows.get(lease_id)
+        return row if row and row["tenant"] == tenant else None
+
+    async def transition(self, **kwargs: Any) -> dict[str, str]:
+        row = self.rows[kwargs["lease_id"]]
+        if row["revision"] != kwargs["expected_revision"] or row["status"] != "active":
+            return {"outcome": "conflict"}
+        row["status"] = kwargs["to"]
+        row["revision"] += 1
+        return {"outcome": "applied"}
+
+
+class FakeRuntime:
+    service_scopes = frozenset({"node:write"})
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str]] = []
+        self.readable = True
+
+    @asynccontextmanager
+    async def as_caller(self, caller: VerifiedCaller):
+        yield {"identity": caller.principal}
+
+    @asynccontextmanager
+    async def as_service(self, tenant: str):
+        yield {"identity": "svc:graph-os", "tenant": tenant}
+
+    async def check_subject_access(self, caller: VerifiedCaller, subject: str) -> bool:
+        return self.readable and caller.tenant == "t1" and subject == "item:1"
+
+    async def dispatch(
+        self, op: OpSpec, params: dict[str, Any], context: Any
+    ) -> dict[str, bool]:
+        self.calls.append((context.client["identity"], context.owner))
+        return {"ok": True}
+
+
+def caller(
+    principal: str = "user:1",
+    *,
+    scopes: frozenset[str] = frozenset({"item:write"}),
+    mfa_at_ms: int | None = None,
+) -> VerifiedCaller:
+    return VerifiedCaller(
+        principal=principal,
+        tenant="t1",
+        effective_scopes=scopes,
+        engine_claims={
+            "principal": principal,
+            "tenant": "t1",
+            "scopes": sorted(scopes),
+        },
+        principal_kind="human",
+        policy_revision="p1",
+        request_id="req-1",
+        mfa_at_ms=mfa_at_ms,
+    )
+
+
+def op(**changes: Any) -> OpSpec:
+    values = dict(
+        id="items.change",
+        verb=Verb.WRITE,
+        summary="Change item",
+        examples=("change item",),
+        params=Params,
+        result=Result,
+        binding=Composite(handler="graph_os.items.change"),
+        effect=Effect.DESTRUCTIVE,
+        principals=PrincipalRule.HUMAN,
+        scopes=frozenset({"item:write"}),
+        idempotency=Idempotency.KEY_REQUIRED,
+        audit=AuditClass.EVENT,
+        surfaces=frozenset({Surface.MCP, Surface.HTTP, Surface.A2A, Surface.CONSOLE}),
+    )
+    values.update(changes)
+    return OpSpec(**values)
+
+
+def services(
+    spec: OpSpec, runtime: FakeRuntime | None = None
+) -> tuple[InvokeServices, FakeRuntime, list[dict[str, str]]]:
+    engine = runtime or FakeRuntime()
+    client = type("Client", (), {"control_leases": FakeLeases()})()
+    events: list[dict[str, str]] = []
+
+    async def audit(event: dict[str, str], audit_class: AuditClass) -> None:
+        events.append(event)
+
+    return (
+        InvokeServices(
+            Registry([spec]), engine, EgPlanStore(client), "off", None, audit
+        ),
+        engine,
+        events,
+    )
+
+
+@pytest.mark.asyncio
+async def test_preview_resubmit_consumes_once_and_audits_digest_only() -> None:
+    app, engine, events = services(op())
+    args = {"subject": "item:1"}
+    preview = await invoke("items.change", args, caller(), Surface.MCP, services=app)
+    assert preview.code == "CONFIRMATION_REQUIRED"
+    assert engine.calls == []
+    ref = preview.details["plan_ref"]
+    result = await invoke(
+        "items.change", args, caller(), Surface.HTTP, services=app, plan_ref=ref
+    )
+    assert hasattr(result, "value"), result
+    assert result.value == {"ok": True}
+    assert engine.calls == [("user:1", "user:1")]
+    replay = await invoke(
+        "items.change", args, caller(), Surface.A2A, services=app, plan_ref=ref
+    )
+    assert replay == OpError("PLAN_EXPIRED")
+    assert len(events) == 1 and "item:1" not in str(events)
+
+
+@pytest.mark.asyncio
+async def test_plan_is_bound_to_caller_params_policy_and_registry() -> None:
+    app, engine, _ = services(op())
+    preview = await invoke(
+        "items.change", {"subject": "item:1"}, caller(), Surface.MCP, services=app
+    )
+    ref = preview.details["plan_ref"]
+    wrong_actor = await invoke(
+        "items.change",
+        {"subject": "item:1"},
+        caller("user:2"),
+        Surface.MCP,
+        services=app,
+        plan_ref=ref,
+    )
+    wrong_params = await invoke(
+        "items.change",
+        {"subject": "item:2"},
+        caller(),
+        Surface.MCP,
+        services=app,
+        plan_ref=ref,
+    )
+    assert wrong_actor == OpError("PLAN_MISMATCH")
+    assert wrong_params == OpError("PLAN_MISMATCH")
+    assert engine.calls == []
+
+
+@pytest.mark.asyncio
+async def test_scope_and_nested_authority_refused_before_dispatch() -> None:
+    app, engine, _ = services(op())
+    missing = await invoke(
+        "items.change",
+        {"subject": "item:1"},
+        caller(scopes=frozenset()),
+        Surface.MCP,
+        services=app,
+    )
+    forged = await invoke(
+        "items.change",
+        {"subject": "item:1", "_actor": "root"},
+        caller(),
+        Surface.MCP,
+        services=app,
+    )
+    assert missing == OpError("SCOPE_REQUIRED", {"missing_scopes": ["item:write"]})
+    assert forged.code == "INVALID_ARGUMENT"
+    assert engine.calls == []
+
+
+@pytest.mark.asyncio
+async def test_service_executor_requires_caller_read_before_service_identity() -> None:
+    service_op = op(
+        executor=Executor.SERVICE,
+        executor_scopes=frozenset({"node:write"}),
+        subject=SubjectRef(path="subject"),
+        effect=Effect.READ,
+        audit=AuditClass.NONE,
+    )
+    app, engine, _ = services(service_op)
+    engine.readable = False
+    denied = await invoke(
+        "items.change", {"subject": "item:1"}, caller(), Surface.MCP, services=app
+    )
+    assert denied == OpError("SUBJECT_ACCESS_DENIED")
+    engine.readable = True
+    allowed = await invoke(
+        "items.change", {"subject": "item:1"}, caller(), Surface.MCP, services=app
+    )
+    assert allowed.value == {"ok": True}
+    assert engine.calls == [("svc:graph-os", "user:1")]
+
+
+@pytest.mark.asyncio
+async def test_admin_requires_console_and_fresh_mfa() -> None:
+    import time
+
+    app, engine, _ = services(
+        op(effect=Effect.ADMIN, principals=PrincipalRule.HUMAN_UNDELEGATED)
+    )
+    args = {"subject": "item:1"}
+    preview = await invoke("items.change", args, caller(), Surface.A2A, services=app)
+    assert preview.code == "STEP_UP_REQUIRED"
+    ref = preview.details["plan_ref"]
+    denied = await invoke(
+        "items.change", args, caller(), Surface.A2A, services=app, plan_ref=ref
+    )
+    assert denied == OpError("PRINCIPAL_NOT_ALLOWED")
+    now = int(time.time() * 1000)
+    allowed = await invoke(
+        "items.change",
+        args,
+        caller(mfa_at_ms=now),
+        Surface.CONSOLE,
+        services=app,
+        plan_ref=ref,
+    )
+    assert allowed.value == {"ok": True}
+    assert len(engine.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_policy_unavailable_fails_closed() -> None:
+    app, engine, _ = services(op(effect=Effect.READ))
+    app = InvokeServices(
+        app.registry, app.runtime, app.plans, "on", None, app.audit_write
+    )
+    refused = await invoke(
+        "items.change", {"subject": "item:1"}, caller(), Surface.MCP, services=app
+    )
+    assert refused == OpError("POLICY_UNAVAILABLE")
+    assert engine.calls == []
+
+
+@pytest.mark.asyncio
+async def test_fleet_effect_resolver_is_required_and_can_elevate_to_plan() -> None:
+    fleet = op(id="fleet.call", effect=Effect.WRITE)
+    app, engine, _ = services(fleet)
+    args = {"subject": "item:1"}
+    absent = await invoke("fleet.call", args, caller(), Surface.MCP, services=app)
+    assert absent.code == "UNAVAILABLE"
+
+    async def effect(_op: OpSpec, _params: dict[str, Any], _caller: VerifiedCaller):
+        return Effect.DESTRUCTIVE, Confirm.PLAN, PrincipalRule.HUMAN
+
+    app = InvokeServices(
+        app.registry, app.runtime, app.plans, "off", None, app.audit_write, effect
+    )
+    preview = await invoke("fleet.call", args, caller(), Surface.MCP, services=app)
+    assert preview.code == "CONFIRMATION_REQUIRED"
+    assert engine.calls == []
