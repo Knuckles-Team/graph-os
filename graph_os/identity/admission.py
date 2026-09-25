@@ -52,6 +52,10 @@ class Admission:
     refusal: tuple[int, str] | None = None
     #: Response headers to add (session cookie set / cleared).
     set_headers: tuple[tuple[bytes, bytes], ...] = field(default_factory=tuple)
+    #: Live, CSRF-admitted browser session's principal. Never set for a bearer.
+    session_principal_id: str | None = None
+    #: EG's session-bound MFA completion time, never a JWT auth_time.
+    session_mfa_at_ms: int | None = None
 
     @classmethod
     def refuse(cls, status: int, reason: str) -> Admission:
@@ -108,9 +112,11 @@ class AdmissionService:
         authorization = request_header(scope, b"authorization")
         if len(authorization) > 1:
             return Admission.refuse(401, "ambiguous_credentials")
-        if authorization:
-            return await self._admit_bearer(authorization[0])
         session = session_from_scope(scope)
+        if authorization:
+            if session is not None:
+                return Admission.refuse(401, "ambiguous_credentials")
+            return await self._admit_bearer(authorization[0])
         if session is not None:
             return await self._admit_session(scope, session, mode)
         if mode == "none":
@@ -139,7 +145,14 @@ class AdmissionService:
         reason = csrf_refusal(scope, session)
         if reason is not None:
             return Admission.refuse(403, reason)
-        return Admission(token=self._token(resolution, mode))
+        mfa_at = getattr(resolution, "session_mfa_at_ms", None)
+        if type(mfa_at) is not int or mfa_at < 0:
+            mfa_at = None
+        return Admission(
+            token=self._token(resolution, mode),
+            session_principal_id=resolution.principal_id,
+            session_mfa_at_ms=mfa_at,
+        )
 
     def _token(self, resolution: Resolution, mode: str | None) -> str:
         methods = ("none",) if mode == "none" else ("session",)

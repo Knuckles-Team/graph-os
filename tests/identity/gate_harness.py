@@ -40,6 +40,10 @@ async def _echo(request: Request) -> JSONResponse:
             "sub": (claims or {}).get("sub"),
             "scope": (claims or {}).get("scope"),
             "amr": (claims or {}).get("amr"),
+            "session_admitted": getattr(request.state, "graphos_session_admitted", None),
+            "console_mfa_at_ms": getattr(
+                request.state, "graphos_console_mfa_at_ms", None
+            ),
         }
     )
 

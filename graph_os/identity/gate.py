@@ -91,6 +91,14 @@ def _with_token(scope: Scope, token: str, claims: dict[str, Any]) -> Scope:
     return {**scope, "headers": headers, "state": state}
 
 
+def _without_console_markers(scope: Scope) -> Scope:
+    """Discard caller-supplied state before the gate makes a trusted decision."""
+    state = dict(scope.get("state") or {})
+    state.pop("graphos_session_admitted", None)
+    state.pop("graphos_console_mfa_at_ms", None)
+    return {**scope, "state": state}
+
+
 async def _refuse(scope: Scope, send: Send, status: int, reason: str) -> None:
     if scope.get("type") == "websocket":
         await send({"type": "websocket.close", "code": 4000 + status})
@@ -166,8 +174,21 @@ class IdentityGate:
         if admission.refusal is not None:
             await _refuse(scope, send, *admission.refusal)
             return
-        forwarded = scope
+        forwarded = _without_console_markers(scope)
         if admission.token:
             claims = self._admission.broker.issuer.verify(admission.token)
-            forwarded = _with_token(scope, admission.token, claims)
+            forwarded = _with_token(forwarded, admission.token, claims)
+            if admission.session_principal_id is not None:
+                if (
+                    claims.get("sub") != admission.session_principal_id
+                    or not isinstance(claims.get("tenant_id"), str)
+                    or not claims["tenant_id"]
+                ):
+                    await _refuse(scope, send, 503, "identity_unavailable")
+                    return
+                forwarded["state"]["graphos_session_admitted"] = True
+                if admission.session_mfa_at_ms is not None:
+                    forwarded["state"]["graphos_console_mfa_at_ms"] = (
+                        admission.session_mfa_at_ms
+                    )
         await self.app(forwarded, receive, _decorated_send(send, admission.set_headers))
