@@ -120,6 +120,9 @@ synology = "graph_os.messaging.backends.synology:SynologyChatBackend"
 voicecall = "graph_os.messaging.backends.voicecall:VoiceCallBackend"
 nextcloud = "graph_os.messaging.backends.nextcloud:NextcloudTalkBackend"
 
+[project.entry-points."agent_utilities.messaging.reach"]
+notify_sync = "graph_os.messaging.reach:notify_sync"
+
 [project.scripts]
 graph-os = "graph_os.mcp_server.server:mcp_server"
 graph-os-daemon = "graph_os.gateway.daemon:main"
