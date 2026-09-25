@@ -130,20 +130,24 @@ class NoneModeRequestGuard:
         method = str(scope.get("method") or "GET").upper()
         if scope.get("type") == "http" and method in _SAFE_METHODS:
             return None
-        origins = request_header(scope, b"origin")
-        if not origins:
-            # Browsers send Origin on every cross-origin state change, so its
-            # absence means a non-browser client; a COOKIE-authenticated
-            # request without one is refused by the CSRF check instead.
-            return None
-        if len(origins) != 1:
-            return "origin_ambiguous"
-        origin = urlsplit(origins[0])
-        if (origin.hostname or "").lower() != _host_name(hosts[0]) or origin.port != (
-            urlsplit(f"//{hosts[0]}").port
-        ):
-            return "origin_not_same_host"
+        return _origin_refusal(scope, hosts[0])
+
+
+def _origin_refusal(scope: Mapping[str, Any], host: str) -> str | None:
+    """A state change's ``Origin`` must name the request's own host and port."""
+    origins = request_header(scope, b"origin")
+    if not origins:
+        # Browsers send Origin on every cross-origin state change, so its
+        # absence means a non-browser client; a COOKIE-authenticated
+        # request without one is refused by the CSRF check instead.
         return None
+    if len(origins) != 1:
+        return "origin_ambiguous"
+    origin = urlsplit(origins[0])
+    same_host = (origin.hostname or "").lower() == _host_name(host)
+    if not same_host or origin.port != urlsplit(f"//{host}").port:
+        return "origin_not_same_host"
+    return None
 
 
 def mode_banner(mode: str) -> str | None:

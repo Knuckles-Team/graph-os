@@ -23,12 +23,13 @@ import secrets
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any
 
 from joserfc import jwt
 from joserfc.jwk import KeySet, KeySetSerialization, RSAKey
 
 from .engine import Resolution
+from .idp_common import OneShotBackend
 
 __all__ = [
     "ACCESS_TOKEN_MAX_SECONDS",
@@ -49,16 +50,9 @@ _KEY_BITS = 2048
 _RING_WRITE_ATTEMPTS = 4
 
 
-class SecretStore(Protocol):
-    """The slice of agent-utilities' ``SecretsBackend`` the issuer needs."""
-
-    def get(self, key: str) -> str | None: ...
-
-    def set_if_absent(self, key: str, value: str, **metadata: Any) -> bool: ...
-
-    def compare_and_set(
-        self, key: str, expected: str, value: str, **metadata: Any
-    ) -> bool: ...
+#: The slice of agent-utilities' ``SecretsBackend`` the issuer needs: the same
+#: atomic backend the external authorities keep their one-shot records in.
+SecretStore = OneShotBackend
 
 
 class Retirement:
