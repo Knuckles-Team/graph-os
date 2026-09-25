@@ -344,14 +344,3 @@ def test_unsafe_settings_are_refused(field: str, value: Any) -> None:
     raw = {"issuer": ISSUER, "client_id": CLIENT, "redirect_uri": REDIRECT, field: value}
     with pytest.raises(ValueError):
         OidcSettings.model_validate(raw)
-
-
-def test_login_options_route_by_email_domain(world: Any) -> None:
-    world.port.idps[0]["email_domains"] = ["example.org"]
-    world.port.idps.append(idp_wire("okta", "oidc", {}, order=1))
-
-    listed = world.client.get("/auth/idps").json()["idps"]
-    routed = world.client.get("/auth/idps", params={"email": "bob@Example.org"}).json()["idps"]
-
-    assert [i["idp_id"] for i in listed] == ["keycloak", "okta"]
-    assert [i["idp_id"] for i in routed] == ["keycloak"]

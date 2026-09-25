@@ -36,7 +36,13 @@ from urllib.parse import urlsplit
 import httpx
 
 from graph_os.fleet.remote_oauth_broker import _default_broker_http_client
-from graph_os.identity.idp_common import IdentityPort, IdentityRefused, call_expect, identity_op
+from graph_os.identity.idp_common import (
+    IdentityPort,
+    IdentityRefused,
+    call_expect,
+    identity_op,
+    refusal_code,
+)
 from graph_os.identity.oidc import OidcSettings
 
 __all__ = [
@@ -297,7 +303,7 @@ async def _send_idempotent(port: IdentityPort, op: dict[str, Any]) -> bool:
     try:
         await port.call(op)
     except IdentityRefused as refusal:
-        if refusal.code != "collision":
+        if refusal_code(refusal) != "collision":
             raise
         return False
     return True
