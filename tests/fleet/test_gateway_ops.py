@@ -203,6 +203,9 @@ async def test_combined_source_admits_only_registered_eg_server() -> None:
     good = SimpleNamespace(
         component=SimpleNamespace(server_name="good"),
         registration=object(),
+        content=SimpleNamespace(
+            body=b'{"required_scopes":["data:read"],"fleet_effects":{"read":"admin"}}'
+        ),
         provides=(tool,),
     )
     bad_tool = SimpleNamespace(
@@ -222,7 +225,15 @@ async def test_combined_source_admits_only_registered_eg_server() -> None:
 
     async def live():
         return {
-            "good": {"tools": [{"name": "read", "inputSchema": {"type": "object"}}]},
+            "good": {
+                "tools": [
+                    {
+                        "name": "read",
+                        "inputSchema": {"type": "object"},
+                        "annotations": {"readOnlyHint": True},
+                    }
+                ]
+            },
             "bad": {"tools": [{"name": "admin"}]},
         }
 
@@ -233,6 +244,11 @@ async def test_combined_source_admits_only_registered_eg_server() -> None:
     assert [item.id for item in items] == ["connector:p/sync", "fleet:tool:good/read"]
     assert items[1].description == "EG description"
     assert items[1].schema == {"type": "object"}
+    assert items[1].annotations == {"readOnlyHint": True}
+    assert items[1].effect_override == "admin"
+    assert items[1].required_scopes == frozenset({"data:read"})
+    assert "annotations" not in items[1].public()
+    assert "effect_override" not in items[1].public()
 
 
 @pytest.mark.asyncio
@@ -270,6 +286,7 @@ async def test_composition_binds_verified_reader_without_starting_probe() -> Non
         sdk_entries=sdk,
         visible=visible,
         loadable=visible,
+        callable_item=visible,
         mount=mount,
         notify=notify,
         invoke=invoke,
@@ -329,3 +346,77 @@ async def test_registry_service_api_requires_verified_session_for_mutation() -> 
     assert (await ops.load(mcp, [item.id]))["session_total"] == 1
     assert (await ops.status(mcp, servers=["s"]))["session"]["used"] == 1
     assert (await ops.unload(mcp, items=[item.id]))["unloaded"] == [item.id]
+
+
+@pytest.mark.asyncio
+async def test_admitted_tool_uses_call_policy_without_discovery_scope() -> None:
+    item = CatalogItem(
+        "fleet:tool:s/read",
+        "tool",
+        "read",
+        server="s",
+        annotations={"readOnlyHint": True},
+        effect_override="admin",
+        credential_mode="delegated",
+        required_scopes=frozenset({"data:read"}),
+    )
+
+    async def source():
+        return (item,)
+
+    async def visible(_item, _caller):
+        return False
+
+    async def permitted(_item, _caller):
+        return True
+
+    async def impossible(*_args):
+        raise AssertionError("not called")
+
+    ops = MultiplexerOps(
+        catalog=FleetCatalog([source], visible),
+        sessions=SessionLoads(),
+        loadable=visible,
+        callable_item=permitted,
+        mount=impossible,
+        notify=impossible,
+        invoke=impossible,
+        health=lambda: {},
+    )
+    caller = SimpleNamespace(effective_scopes=frozenset({"mcp:delegate", "data:read"}))
+    assert await ops.admitted_tool(caller, "s", "read") is item
+    with pytest.raises(PermissionError, match="child scopes"):
+        await ops.admitted_tool(
+            SimpleNamespace(effective_scopes=frozenset({"mcp:delegate"})), "s", "read"
+        )
+
+
+def test_manifest_policy_is_verified_and_service_mode_requires_domain_scope() -> None:
+    from graph_os.fleet.catalog_items import items_from_child_probe
+    from graph_os.fleet.catalog_sources import _verified_server_policy
+
+    child = items_from_child_probe(
+        "s",
+        {
+            "tools": [
+                {
+                    "name": "read",
+                    "annotations": {"readOnlyHint": True},
+                    "fleet_effects": "read",
+                    "credential_mode": "service",
+                }
+            ]
+        },
+    )[0]
+    assert child.annotations == {"readOnlyHint": True}
+    assert child.effect_override is None
+    assert child.credential_mode == "delegated"
+    with pytest.raises(ValueError, match="declared domain scopes"):
+        _verified_server_policy(b'{"credential_mode":"service"}')
+    policy = _verified_server_policy(
+        b'{"credential_mode":"service","required_scopes":["domain:read"],'
+        b'"fleet_effects":{"read":"admin"}}'
+    )
+    assert policy.credential_mode == "service"
+    assert policy.required_scopes == frozenset({"domain:read"})
+    assert policy.fleet_effects["read"] == "admin"

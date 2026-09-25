@@ -9,6 +9,7 @@ from typing import Any, Literal
 ItemKind = Literal[
     "tool", "prompt", "resource", "resource_template", "skill", "connector_item"
 ]
+CredentialMode = Literal["delegated", "service"]
 Visible = Callable[["CatalogItem", Any], Awaitable[bool]]
 
 
@@ -26,6 +27,9 @@ class CatalogItem:
     body: str | None = field(default=None, repr=False)
     op: str | None = None
     params: Mapping[str, Any] = field(default_factory=dict)
+    annotations: Mapping[str, Any] | None = field(default=None, repr=False)
+    effect_override: str | None = field(default=None, repr=False)
+    credential_mode: CredentialMode = field(default="delegated", repr=False)
 
     def public(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -70,9 +74,16 @@ class FleetCatalog:
         )
 
     async def get(self, item_id: str, caller: Any) -> CatalogItem | None:
+        item = await self._raw_get(item_id)
+        if item is not None and await self._authorized(item, caller):
+            return item
+        return None
+
+    async def _raw_get(self, item_id: str) -> CatalogItem | None:
+        """Return source metadata only; the caller must apply its own action policy."""
         for source in self._sources:
             for item in await source():
-                if item.id == item_id and await self._authorized(item, caller):
+                if item.id == item_id:
                     return item
         return None
 
@@ -184,6 +195,11 @@ def items_from_child_probe(
                     description=str(row.get("description") or ""),
                     server=server,
                     schema=row.get("inputSchema") or {},
+                    annotations=(
+                        dict(row["annotations"])
+                        if isinstance(row.get("annotations"), Mapping)
+                        else None
+                    ),
                 )
             )
     return tuple(items)
