@@ -54,10 +54,12 @@ BUILTIN_ENVIRONMENTS_DIR = (
     Path(__file__).resolve().parents[2] / "deploy" / "environments"
 )
 
-#: ``genesis.yaml`` — read as data (not imported) so this module has no dependency
+#: ``deploy/genesis.yaml`` — read as data (not imported) so this module has no dependency
 #: on the generator and no circular-import risk; see design doc "reuses genesis.yaml
 #: instead of redeclaring its enums".
-_GENESIS_MANIFEST_PATH = Path(__file__).resolve().parents[2] / "genesis.yaml"
+_GENESIS_MANIFEST_PATH = (
+    Path(__file__).resolve().parents[2] / "deploy" / "genesis.yaml"
+)
 
 _SECRET_REF_RE = re.compile(
     r"^(?:"

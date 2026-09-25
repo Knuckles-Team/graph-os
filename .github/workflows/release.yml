@@ -9,7 +9,7 @@ name: Release
 # its own workflow.
 #
 # Every gate is a shared hook from Knuckles-Team/pipelines, run through
-# pre-commit at the revision pinned in .pre-commit-config.yaml, so CI and the
+# pre-commit at the revision pinned in .config/pre-commit.yaml, so CI and the
 # local hooks can never run different gate code. `scanner-quality` provisions
 # the pinned cccc/kiss/dupehound/jscpd toolchain on the runner (hooks never
 # install scanners) and runs the census and differential forms. The
@@ -34,7 +34,7 @@ on:
       - 'tests/**'
       - 'pyproject.toml'
       - 'uv.lock'
-      - '.pre-commit-config.yaml'
+      - '.config/pre-commit.yaml'
       - '.github/workflows/release.yml'
 
 concurrency:
@@ -126,7 +126,7 @@ jobs:
         run: |
           set -euo pipefail
           for hook in secret-history dependency-audit security-sanitizer root-hygiene gitignore-convergence sprawl mermaid no-stub stubs env-sprawl stdout-writes swallowed-errors event-loop-blocking import-cycles ci-gate-replica-consistency; do
-            uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
+            uvx --from pre-commit==4.6.0 pre-commit run --config .config/pre-commit.yaml "$hook" --hook-stage manual --all-files
           done
 
       # The prohibited-identity catalog is operator-owned and never committed;
@@ -140,7 +140,7 @@ jobs:
             mkdir -p "$HOME/.config/agent-utilities/governance"
             printf '%s' "$PROHIBITED_IDENTITY_CATALOG" > "$HOME/.config/agent-utilities/governance/prohibited-identities.json"
           fi
-          uvx --from pre-commit==4.6.0 pre-commit run tracked-privacy --hook-stage manual --all-files
+          uvx --from pre-commit==4.6.0 pre-commit run --config .config/pre-commit.yaml tracked-privacy --hook-stage manual --all-files
 
       - name: Sync test environment
         run: |
@@ -207,10 +207,10 @@ jobs:
       - name: Shared scanner hooks (versions, censuses incl. orphan modules, clone differentials)
         run: |
           set -euo pipefail
-          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@35209bf6d85569a3c1fe3d5cd31771cacfdc3731' \
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' \
             pipelines-hook scanner-versions cccc kiss dupehound jscpd
           for hook in complexity-census kiss-census dupehound-changed jscpd-differential jscpd-census; do
-            uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
+            uvx --from pre-commit==4.6.0 pre-commit run --config .config/pre-commit.yaml "$hook" --hook-stage manual --all-files
           done
 
   build:

@@ -5,7 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-PIPELINES_REVISION = "444b232c7975e125a24b17d53ff615f5ad26a4cd"
+# Knuckles-Team/pipelines is the one sanctioned exception to this repo's
+# immutable-pin policy: every consumer references it at `main`, never a
+# commit SHA or tag (operator ruling, plans/refactor/DECISIONS.md).
+PIPELINES_REVISION = "main"
 
 
 def test_readme_uses_the_public_title_and_exact_section_order() -> None:
@@ -48,7 +51,7 @@ def test_architecture_names_each_supported_ecosystem_entrypoint() -> None:
     )
 
 
-def test_pages_uses_the_immutable_shared_brand_revision() -> None:
+def test_pages_uses_the_sanctioned_shared_brand_reference() -> None:
     pages = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
 
     assert (

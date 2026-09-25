@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - docs/**
-      - overrides/**
+      - .config/mkdocs-overrides/**
       - mkdocs.yml
       - .github/workflows/pages.yml
   workflow_dispatch: {}
@@ -20,7 +20,7 @@ jobs:
       contents: read
       pages: write
       id-token: write
-    uses: Knuckles-Team/pipelines/.github/workflows/pages_pipeline.yml@444b232c7975e125a24b17d53ff615f5ad26a4cd
+    uses: Knuckles-Team/pipelines/.github/workflows/pages_pipeline.yml@main
     with:
       content_source: docs
       shared_theme_enabled: true

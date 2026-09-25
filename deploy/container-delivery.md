@@ -5,7 +5,7 @@ the MCP composition over `stdio` or `streamable-http`, and its optional WebUI
 co-service is composed by the same process. The wheel and runtime code are
 owned by this repository.
 
-This directory does not currently publish an authoritative Dockerfile or
+This repository does not currently publish an authoritative Dockerfile or
 Compose manifest. Fleet image construction and workload deployment remain in
 the deployment repositories that own those environments. That separation is a
 packaging boundary, not an indication that GraphOS is a scaffold or that its
