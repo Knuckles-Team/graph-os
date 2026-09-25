@@ -1,0 +1,23 @@
+schema: architecture-destination-owner/v1
+owner_repository: graph-os
+components:
+  - component_id: graph-os.public-gateway
+    parent_layer: adapters
+    capability_ids: [graph-os.mcp, graph-os.rest, graph-os.a2a]
+    owned_source_roots: [graph_os/mcp_server, graph_os/gateway, graph_os/a2a]
+    legacy_au_source_roots:
+      - agent_utilities/mcp/kg_server.py
+      - agent_utilities/gateway/daemon.py
+    console_scripts:
+      - graph-os
+      - graph-os-daemon
+  - component_id: graph-os.deployment
+    parent_layer: composition
+    capability_ids: [graph-os.deployment]
+    owned_source_roots: [graph_os/deployment]
+    legacy_au_source_roots:
+      - agent_utilities/deployment/release_canary.py
+      - agent_utilities/deployment/production_ops.py
+    console_scripts:
+      - graph-os-release-canary
+      - graph-os-production-ops
