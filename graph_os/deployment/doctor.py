@@ -28,6 +28,7 @@ from . import doctor_certification as _doctor_certification
 from . import doctor_coverage as _doctor_coverage
 from . import doctor_lakehouse as _doctor_lakehouse
 from . import doctor_observability as _doctor_observability
+from . import doctor_runtime_capabilities as _doctor_runtime_capabilities
 from . import doctor_support as _doctor_support
 
 _RANK = _doctor_support._RANK
@@ -2194,6 +2195,9 @@ CHECKS: dict[str, Callable[..., dict[str, Any]]] = {
     "workspace_config": _check_workspace_config,
     "engine_request_context": _check_engine_request_context,
     "engine": _check_engine,
+    "engine_domains": _doctor_runtime_capabilities.check_engine_domains,
+    "graph_authority": _doctor_runtime_capabilities.check_graph_authority,
+    "native_optimizer": _doctor_runtime_capabilities.check_native_optimizer,
     "secrets": _check_secrets,
     "secrets_backend": _check_secrets_backend,
     "auth": _check_auth,
@@ -2227,6 +2231,7 @@ _LIVE_CHECK_NAMES = frozenset(
     {
         "mcp_fleet",
         "langfuse",
+        "native_optimizer",
         "openai_catalog",
         "kafka",
         "fuseki",
