@@ -118,6 +118,9 @@ def test_v1_subapp_mount_has_one_prefix(monkeypatch: pytest.MonkeyPatch) -> None
         async def authenticate(self, request):
             return SimpleNamespace(authenticated=True)
 
+        def is_console_request(self, request, caller):
+            return False
+
     async def visibility(op, caller):
         return True
 
