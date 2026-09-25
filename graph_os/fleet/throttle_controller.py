@@ -39,7 +39,7 @@ import hashlib
 import json
 import logging
 import time
-from collections.abc import AsyncIterator, Callable, Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -48,10 +48,10 @@ from agent_utilities.security.guardrail_profile import (
     ErrorBudgetDeclaration,
     ThrottleMode,
 )
-from fastmcp.server.extensions import ServerExtension
 from pydantic import ValidationError
 
 from graph_os.fleet.error_budget import WINDOW_S, ChildWindow, prometheus_error_budget
+from graph_os.mcp_server.background import BackgroundLoopExtension, process_authority
 
 logger = logging.getLogger(__name__)
 
@@ -352,23 +352,13 @@ async def _evolve(
     return reports
 
 
-class ThrottleControllerExtension(ServerExtension):
+class ThrottleControllerExtension(BackgroundLoopExtension):
     """Run the controller on the serving loop for the server's lifetime."""
 
     identifier = "graph-os/error-budget-throttle"
 
     def __init__(self, controller: ThrottleController) -> None:
-        self._controller = controller
-
-    @contextlib.asynccontextmanager
-    async def lifespan(self) -> AsyncIterator[None]:
-        task = asyncio.create_task(self._controller.run())
-        try:
-            yield
-        finally:
-            task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
+        super().__init__(controller.run)
 
 
 def attach_throttle_controller(
@@ -389,19 +379,7 @@ def attach_throttle_controller(
         logger.info("Error-budget throttling is off: no Prometheus URL is configured")
         return None
     tenant = str(session.tenant)
-
-    @contextlib.contextmanager
-    def authority() -> Any:
-        from agent_utilities.api.session import use_session
-        from agent_utilities.security.brain_context import use_actor
-
-        client = client_for(tenant)
-        with (
-            use_actor(session.actor),
-            use_session(session),
-            client.use_verified_context(session.engine_verified_context()),
-        ):
-            yield client
+    authority = process_authority(session, client_for)
 
     def evolution(client: Any) -> Any:
         from agent_utilities.orchestration.action_policy import get_action_policy

@@ -14,6 +14,7 @@ a static catalog, process-local durable store, or fabricated success receipt.
 | Agent WebUI host | Available through the `webui` extra | Co-service supervision with an injected GraphOS application composer |
 | Unary A2A | Available | Authenticated Agent Card plus send, get, list, and cancel over durable WorkItems |
 | Browser control | Available when attended identity is configured | Catalog, lease, policy, dispatch, cancellation, and provenance orchestration |
+| Markets (`graph_finance`) | Available with the finance EG scopes | Flip subscriptions and inbox on the EG broker, the backfill/scan schedule, the flip explainer, and live-order proposals decided only at the operator console |
 | Deployment operations | Available | Configuration, diagnostics, release canary, managed environments, backup, and restore validation |
 
 MCP and REST handlers meet at the same application boundary. Connector widgets

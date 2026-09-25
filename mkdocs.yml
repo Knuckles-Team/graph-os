@@ -37,6 +37,7 @@ nav:
       - Unary A2A: a2a.md
       - Policy evolution: policy-evolution.md
       - Access elevation and guardrails: guardrails.md
+      - Markets and live-order approval: finance.md
       - Browser control: browser-control-service.md
   - Architecture:
       - Agent bus: architecture/agent-bus.md

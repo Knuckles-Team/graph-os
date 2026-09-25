@@ -26,22 +26,15 @@ from agent_utilities.security.elevation import (
     ElevationService,
     ElevationSurface,
 )
-from agent_utilities.security.error_surface import public_error_payload
 from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from graph_os.gateway.console import NO_STORE, refusal, upstream_failure
+
 logger = logging.getLogger(__name__)
 
 __all__ = ["elevation_approve", "mount_elevation_routes"]
-
-_NO_STORE = {"Cache-Control": "no-store"}
-
-
-def _refusal(code: str, status: int) -> JSONResponse:
-    return JSONResponse(
-        {"status": "error", "code": code}, status_code=status, headers=_NO_STORE
-    )
 
 
 async def _approval(request: Request) -> ElevationApproval | None:
@@ -71,20 +64,16 @@ async def elevation_approve(request: Request) -> JSONResponse:
     """Approve one exact elevation request as the signed-in operator."""
     approval = await _approval(request)
     if approval is None:
-        return _refusal("invalid_request", 400)
+        return refusal("invalid_request", 400)
     try:
         elevation = await _approve(approval)
     except ElevationRefused as refused:
-        return _refusal(refused.code, 403)
+        return refusal(refused.code, 403)
     except PermissionError:
-        return _refusal("ELEVATION_ACCESS_DENIED", 403)
+        return refusal("ELEVATION_ACCESS_DENIED", 403)
     except Exception as exc:
-        return JSONResponse(
-            public_error_payload(exc, logger=logger), status_code=502, headers=_NO_STORE
-        )
-    return JSONResponse(
-        {"status": "success", "elevation": elevation}, headers=_NO_STORE
-    )
+        return upstream_failure(exc, logger)
+    return JSONResponse({"status": "success", "elevation": elevation}, headers=NO_STORE)
 
 
 def mount_elevation_routes(app: Any, prefix: str = "") -> None:

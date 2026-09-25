@@ -24,6 +24,7 @@ def test_native_action_route_contract_excludes_legacy_au_surface() -> None:
         "browser_control": "/browser/control",
         "graph_a2a": "/graph/a2a",
         "graph_elevation": "/graph/elevation",
+        "graph_finance": "/graph/finance",
         "graph_policy_release": "/graph/policy/release",
     }
 

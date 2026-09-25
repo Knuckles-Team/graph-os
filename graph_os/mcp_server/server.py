@@ -240,6 +240,19 @@ def mcp_server() -> None:
         engine_for=runtime._get_engine,
     )
 
+    # The finance executor (graph_finance runs on it after its caller checks)
+    # and the backfill/scan schedule with flip delivery (EH-416/EH-419), on
+    # the serving loop under the same process authority.
+    from graph_os.finance.scheduler import attach_finance
+
+    attach_finance(
+        mcp,
+        fleet_mux,
+        bootstrap_session,
+        client_for=runtime.graph_client,
+        interval_s=float(setting("GRAPHOS_FINANCE_SCHEDULE_INTERVAL_S", 300)),
+    )
+
     co_service_supervisor = None
     try:
         logger.info("Starting graph-os MCP server (transport=%s)", transport)
