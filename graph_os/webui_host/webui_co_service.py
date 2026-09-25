@@ -74,7 +74,58 @@ def compose_web_application(app: Any) -> None:
 
     from graph_os.gateway.graph_api import register_graph_routes
 
+    # The WebUI's enhanced routes consume only this host port. Resolve the
+    # serving bundle at request time so startup never captures a process actor
+    # or a stale registry. An unconfigured bundle refuses each request.
+    app.state.graphos_invoke_op = _invoke_webui_operation
     register_graph_routes(app)
+
+
+async def _invoke_webui_operation(
+    request: Any, op_id: str, params: dict[str, Any]
+) -> Any:
+    """Run a browser operation with its verified ambient GraphSession."""
+    from agent_utilities.knowledge_graph.core.session import resolve_session
+    from fastapi import HTTPException
+
+    from graph_os.api.errors import to_envelope
+    from graph_os.api.invoke import OpError, OpResult, VerifiedCaller, invoke
+    from graph_os.api.registry import Surface
+
+    try:
+        session = resolve_session()
+        caller = VerifiedCaller.from_session(
+            session, request_id=request.headers.get("x-request-id", "")[:128]
+        )
+    except (PermissionError, ValueError) as exc:
+        raise HTTPException(
+            status_code=401, detail="Verified identity required"
+        ) from exc
+    try:
+        from graph_os.mcp_server.runtime import served_api
+
+        projection, _visibility = served_api()
+    except (ImportError, RuntimeError) as exc:
+        raise HTTPException(
+            status_code=503, detail="GraphOS operation unavailable"
+        ) from exc
+
+    outcome = await invoke(
+        op_id, params, caller, Surface.HTTP, services=projection.services
+    )
+    if isinstance(outcome, OpError) or (
+        isinstance(outcome, OpResult) and outcome.code != "OK"
+    ):
+        status, _envelope = to_envelope(
+            outcome,
+            op=op_id,
+            request_id=caller.request_id,
+            registry_digest=projection.services.registry.digest,
+        )
+        raise HTTPException(status_code=status, detail="GraphOS operation refused")
+    if not isinstance(outcome, OpResult):
+        raise HTTPException(status_code=503, detail="GraphOS operation unavailable")
+    return outcome.value
 
 
 async def _serve_until_stopped(
