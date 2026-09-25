@@ -125,21 +125,23 @@ async def authorization_header(auth: Any, url: str) -> str | None:
 async def _safe_post(
     url: str, payload: dict[str, Any], headers: dict[str, str]
 ) -> dict[str, Any]:
-    from agent_utilities.protocols.source_connectors.http_safety import (
-        configured_source_http_policy,
-        safe_post_json_async,
-    )
+    from agent_connector_sdk.http.source_post import safe_post_json_async
+    from agent_utilities.core.config import config
+    from agent_utilities.core.transport_security import resolve_configured_tls_profile
 
-    policy = configured_source_http_policy()
-    value = await safe_post_json_async(
-        url,
-        payload,
-        headers=headers or None,
-        timeout=60.0,
-        max_bytes=policy["max_bytes"],
-        allowed_private_hosts=policy["allowed_private_hosts"],
-        tls_service="a2a",
-    )
+    profile = resolve_configured_tls_profile("a2a")
+    try:
+        value = await safe_post_json_async(
+            url,
+            payload,
+            headers=headers or None,
+            timeout=60.0,
+            max_bytes=int(config.source_http_max_response_bytes),
+            allowed_private_hosts=tuple(config.source_http_allowed_private_hosts),
+            tls=profile,
+        )
+    finally:
+        profile.cleanup()
     if not isinstance(value, dict):
         raise PolicyEvolutionControlError("TRAINING_TRAINER_PROTOCOL", "non-object")
     return value

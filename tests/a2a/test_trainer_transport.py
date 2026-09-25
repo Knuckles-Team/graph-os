@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from graph_os.a2a.trainer import A2ATrainerTransport, EgTrainerRegistry
+from graph_os.a2a.trainer import A2ATrainerTransport, EgTrainerRegistry, _safe_post
 from graph_os.control_plane.policy_evolution import (
     PolicyEvolutionControlError,
     TrainingLease,
@@ -39,6 +39,31 @@ class _Policy:
 
 
 SPEC = SimpleNamespace(job_id="job-1", method="klpo", policy=_Policy())
+
+
+@pytest.mark.asyncio
+async def test_trainer_post_uses_sdk_http_and_releases_tls_profile(monkeypatch) -> None:
+    from agent_connector_sdk.http import source_post
+    from agent_utilities.core import transport_security
+
+    cleaned: list[bool] = []
+    profile = SimpleNamespace(cleanup=lambda: cleaned.append(True))
+    monkeypatch.setattr(
+        transport_security, "resolve_configured_tls_profile", lambda service: profile
+    )
+    calls: list[dict[str, Any]] = []
+
+    async def post(url: str, payload: Any, **kwargs: Any) -> dict[str, Any]:
+        calls.append({"url": url, "payload": payload, **kwargs})
+        return {"accepted": True}
+
+    monkeypatch.setattr(source_post, "safe_post_json_async", post)
+    result = await _safe_post("https://trainer.example/a2a", {"job": "j"}, {})
+
+    assert result == {"accepted": True}
+    assert calls[0]["tls"] is profile
+    assert calls[0]["timeout"] == 60.0
+    assert cleaned == [True]
 
 
 def _entry(role: str = "policy-trainer", expires: int = 10_000, **extra: Any) -> Any:

@@ -231,21 +231,30 @@ class RemotePolicy:
     async def _post(
         self, chunk: Sequence[schemas.CheckRequest]
     ) -> list[schemas.CheckResponse]:
-        from agent_utilities.protocols.source_connectors.http_safety import (
-            safe_post_json_async,
-        )
+        from agent_connector_sdk.http.source_post import safe_post_json_async
 
-        response = await safe_post_json_async(
-            self._url,
-            [request.model_dump(mode="json") for request in chunk],
-            headers=self._headers,
-            timeout=self._timeout,
-            max_bytes=self._max_bytes,
-            max_request_bytes=self._max_bytes,
-            allowed_private_hosts=self._private_hosts,
-            transport=self._transport,
-            tls_service="eunomia",
-        )
+        profile = None
+        if self._transport is None:
+            from agent_utilities.core.transport_security import (
+                resolve_configured_tls_profile,
+            )
+
+            profile = resolve_configured_tls_profile("eunomia")
+        try:
+            response = await safe_post_json_async(
+                self._url,
+                [request.model_dump(mode="json") for request in chunk],
+                headers=self._headers,
+                timeout=self._timeout,
+                max_bytes=self._max_bytes,
+                max_request_bytes=self._max_bytes,
+                allowed_private_hosts=self._private_hosts,
+                transport=self._transport,
+                tls=profile,
+            )
+        finally:
+            if profile is not None:
+                profile.cleanup()
         if not isinstance(response, list) or len(response) != len(chunk):
             raise ValueError("remote authorization response was misaligned")
         return [schemas.CheckResponse.model_validate(item) for item in response]
