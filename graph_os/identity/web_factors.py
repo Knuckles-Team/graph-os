@@ -46,7 +46,11 @@ def _ttl_ms(body: dict[str, Any]) -> int:
     days = body.get("ttl_days")
     if days is None:
         return API_KEY_DEFAULT_TTL_MS
-    if isinstance(days, bool) or not isinstance(days, int) or not 1 <= days <= _MAX_KEY_DAYS:
+    if (
+        isinstance(days, bool)
+        or not isinstance(days, int)
+        or not 1 <= days <= _MAX_KEY_DAYS
+    ):
         raise RouteError(400, "ttl_days_invalid")
     return days * _DAY_MS
 
@@ -64,7 +68,8 @@ class _FactorRoutes:
         if method not in _SECOND_FACTORS:
             raise RouteError(400, "method_invalid")
         result = await self._broker.second_factor(
-            caller.session_token, string_field(body, "code") or "",
+            caller.session_token,
+            string_field(body, "code") or "",
             recovery=_SECOND_FACTORS[method],
         )
         status = 200 if result.outcome == "ok" else 401
@@ -76,14 +81,19 @@ class _FactorRoutes:
             caller.session_token, caller.resolution.username
         )
         return JSONResponse(
-            {"secret": enrollment.secret, "provisioning_uri": enrollment.provisioning_uri},
+            {
+                "secret": enrollment.secret,
+                "provisioning_uri": enrollment.provisioning_uri,
+            },
             headers={"cache-control": "no-store"},
         )
 
     async def confirm_totp(self, request: Request) -> Response:
         caller = await caller_of(self._admission, request, pending_ok=True)
         body = await json_body(request)
-        await self._broker.confirm_totp(caller.session_token, string_field(body, "code") or "")
+        await self._broker.confirm_totp(
+            caller.session_token, string_field(body, "code") or ""
+        )
         return JSONResponse({"confirmed": True})
 
     async def recovery_codes(self, request: Request) -> Response:
@@ -140,7 +150,10 @@ def factor_routes(admission: AdmissionService) -> list[Route]:
         ("/auth/api-keys/{key_id}", routes.revoke_api_key, "DELETE"),
         ("/auth/admin/reset", routes.admin_reset, "POST"),
     )
-    return [Route(path, guarded(handler), methods=[method]) for path, handler, method in table]
+    return [
+        Route(path, guarded(handler), methods=[method])
+        for path, handler, method in table
+    ]
 
 
 def issuer_routes(admission: AdmissionService) -> list[Route]:

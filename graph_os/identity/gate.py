@@ -33,7 +33,10 @@ ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 
 def _owned(path: str) -> bool:
-    return any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in OWNED_PREFIXES)
+    return any(
+        path == prefix.rstrip("/") or path.startswith(prefix)
+        for prefix in OWNED_PREFIXES
+    )
 
 
 def _with_token(scope: Scope, token: str, claims: dict[str, Any]) -> Scope:
@@ -44,9 +47,14 @@ def _with_token(scope: Scope, token: str, claims: dict[str, Any]) -> Scope:
     the agent-utilities identity gate, so the downstream gate projects the
     same actor without re-fetching this issuer's keys over HTTP.
     """
-    headers = [(k, v) for k, v in scope.get("headers") or [] if k.lower() != b"authorization"]
+    headers = [
+        (k, v) for k, v in scope.get("headers") or [] if k.lower() != b"authorization"
+    ]
     headers.append((b"authorization", f"Bearer {token}".encode("ascii")))
-    state = {**(scope.get("state") or {}), "user_claims": {**claims, "auth_type": "jwt"}}
+    state = {
+        **(scope.get("state") or {}),
+        "user_claims": {**claims, "auth_type": "jwt"},
+    }
     return {**scope, "headers": headers, "state": state}
 
 
@@ -83,7 +91,9 @@ def _decorated_send(send: Send, extra: Sequence[tuple[bytes, bytes]]) -> Send:
 class IdentityGate:
     """ASGI middleware: identity endpoints + per-request admission."""
 
-    def __init__(self, app: ASGIApp, *, admission: AdmissionService, routes: Sequence[Route]) -> None:
+    def __init__(
+        self, app: ASGIApp, *, admission: AdmissionService, routes: Sequence[Route]
+    ) -> None:
         self.app = app
         self._admission = admission
         self._router = Router(routes=list(routes))
@@ -116,7 +126,9 @@ class IdentityGate:
                 return
         await self._router(scope, receive, send)
 
-    async def _forward(self, admission: Admission, scope: Scope, receive: Receive, send: Send) -> None:
+    async def _forward(
+        self, admission: Admission, scope: Scope, receive: Receive, send: Send
+    ) -> None:
         if admission.refusal is not None:
             await _refuse(scope, send, *admission.refusal)
             return

@@ -11,7 +11,12 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from .admission import AdmissionService
-from .browser import clear_cookie_header, csrf_refusal, origin_refusal, session_from_scope
+from .browser import (
+    clear_cookie_header,
+    csrf_refusal,
+    origin_refusal,
+    session_from_scope,
+)
 from .engine import IdentityRefused, IdentityUnavailable, Resolution
 from .principal_session import session_for
 
@@ -77,6 +82,10 @@ def guarded(handler: Handler) -> Handler:
             return JSONResponse({"error": refused.code.lower()}, status_code=status)
         except IdentityUnavailable:
             return JSONResponse({"error": "identity_unavailable"}, status_code=503)
+        except PermissionError:
+            # The caller's own graph authority could not be projected (an
+            # unusable principal, or an incomplete served configuration).
+            return JSONResponse({"error": "not_authorized"}, status_code=403)
 
     return endpoint
 
@@ -94,7 +103,9 @@ async def json_body(request: Request) -> Mapping[str, Any]:
     return body
 
 
-def string_field(body: Mapping[str, Any], name: str, *, required: bool = True) -> str | None:
+def string_field(
+    body: Mapping[str, Any], name: str, *, required: bool = True
+) -> str | None:
     value = body.get(name)
     if value is None and not required:
         return None
@@ -110,7 +121,9 @@ def require_same_origin(request: Request) -> None:
         raise RouteError(403, reason)
 
 
-async def caller_of(admission: AdmissionService, request: Request, *, pending_ok: bool = False) -> Caller:
+async def caller_of(
+    admission: AdmissionService, request: Request, *, pending_ok: bool = False
+) -> Caller:
     """The cookie session's principal, CSRF-checked; 401 without one.
 
     ``pending_ok`` admits a session that still owes its second factor (the

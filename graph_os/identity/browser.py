@@ -18,7 +18,6 @@ import hashlib
 import hmac
 import re
 from collections.abc import Iterable, Mapping
-from http.cookies import CookieError, SimpleCookie
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -59,14 +58,13 @@ def request_header(scope: Mapping[str, Any], name: bytes) -> list[str]:
 
 
 def _cookies(scope: Mapping[str, Any]) -> Iterable[tuple[str, str]]:
+    """Every ``name=value`` pair, duplicates kept (a parser that merges
+    duplicates would let a planted cookie shadow the real session)."""
     for raw in request_header(scope, b"cookie"):
-        parsed: SimpleCookie = SimpleCookie()
-        try:
-            parsed.load(raw)
-        except CookieError:
-            continue
-        for name, morsel in parsed.items():
-            yield name, morsel.value
+        for pair in raw.split(";"):
+            name, sep, value = pair.strip().partition("=")
+            if sep:
+                yield name.strip(), value.strip()
 
 
 def session_from_scope(scope: Mapping[str, Any]) -> str | None:
@@ -77,7 +75,9 @@ def session_from_scope(scope: Mapping[str, Any]) -> str | None:
     return values[0]
 
 
-def session_cookie_header(session_token: str, max_age_seconds: int) -> tuple[bytes, bytes]:
+def session_cookie_header(
+    session_token: str, max_age_seconds: int
+) -> tuple[bytes, bytes]:
     cookie = f"{SESSION_COOKIE}={session_token}; Max-Age={max_age_seconds}; {_COOKIE_ATTRIBUTES}"
     return b"set-cookie", cookie.encode("latin-1")
 
@@ -94,7 +94,9 @@ def _same_origin(scope: Mapping[str, Any], origin: str) -> bool:
     parsed = urlsplit(origin)
     scheme = str(scope.get("scheme") or "http").lower()
     expected = "https" if scheme in {"https", "wss"} else "http"
-    return parsed.scheme.lower() == expected and parsed.netloc.lower() == hosts[0].lower()
+    return (
+        parsed.scheme.lower() == expected and parsed.netloc.lower() == hosts[0].lower()
+    )
 
 
 def origin_refusal(scope: Mapping[str, Any]) -> str | None:
