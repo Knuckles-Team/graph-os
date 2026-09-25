@@ -138,6 +138,7 @@ class ServiceChildAdapter:
             or not all(char in "0123456789abcdef" for char in registry_digest)
             or not isinstance(policy_revision, str)
             or not policy_revision
+            or caller.engine_claims.get("policy_version") != policy_revision
         ):
             raise PermissionError("service child authority revision is unavailable")
         item = await self._admitted_tool(caller, server, tool)

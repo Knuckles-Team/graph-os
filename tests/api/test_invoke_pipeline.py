@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 from contextlib import asynccontextmanager, contextmanager
+from dataclasses import replace
 from typing import Any
 
 import pytest
@@ -448,6 +449,87 @@ async def test_service_fleet_call_checks_domain_subject_grants_and_audits_owner(
     assert engine.calls == [("svc:graph-os", "user:1")]
     assert events[0]["target"] == "finance/alerts"
     assert events[0]["owner"] == "user:1"
+
+
+@pytest.mark.asyncio
+async def test_service_child_retries_share_audit_identity_for_same_key() -> None:
+    class FleetRuntime(FakeRuntime):
+        async def check_subject_access(
+            self, _caller: VerifiedCaller, subject: str
+        ) -> bool:
+            return subject == "component:1"
+
+    fleet = op(
+        id="fleet.call",
+        params=FleetParams,
+        effect=Effect.WRITE,
+        scopes=frozenset({"mcp:delegate"}),
+        idempotency=Idempotency.KEY_REQUIRED,
+    )
+    app, engine, _ = services(fleet, FleetRuntime())
+
+    async def decision(_op: OpSpec, _params: dict[str, Any], _who: VerifiedCaller):
+        return FleetCallDecision(
+            Effect.WRITE,
+            Confirm.NONE,
+            PrincipalRule.ANY,
+            Executor.SERVICE,
+            frozenset({"domain:write"}),
+            frozenset({"node:write"}),
+            "component:1",
+            "service",
+        )
+
+    app = InvokeServices(
+        app.registry,
+        app.runtime,
+        app.plans,
+        "off",
+        None,
+        app.audit_write,
+        fleet_effect=decision,
+        audit_preflight=app.audit_preflight,
+    )
+    who = caller(scopes=frozenset({"mcp:delegate", "domain:write"}))
+    first = {"server": "s", "tool": "run", "arguments": {"value": 1}}
+    changed = {"server": "s", "tool": "run", "arguments": {"value": 2}}
+    missing = await invoke("fleet.call", first, who, Surface.MCP, services=app)
+    assert missing == OpError("INVALID_ARGUMENT", {"field": "idempotency_key"})
+    assert engine.audit_preflights == []
+    for key, params in (("key-1", first), ("key-1", changed), ("key-2", first)):
+        result = await invoke(
+            "fleet.call",
+            params,
+            who,
+            Surface.MCP,
+            services=app,
+            idempotency_key=key,
+        )
+        assert result.value == {"ok": True}
+    changed_policy = replace(
+        who,
+        policy_revision="policy-2",
+        engine_claims={**who.engine_claims, "policy_version": "policy-2"},
+    )
+    await invoke(
+        "fleet.call",
+        first,
+        changed_policy,
+        Surface.MCP,
+        services=app,
+        idempotency_key="key-1",
+    )
+    first_id, changed_id, new_key_id, new_policy_id = (
+        event["request_id"] for event in engine.audit_preflights
+    )
+    assert len(first_id) == 64
+    assert first_id == changed_id
+    assert first_id != new_key_id
+    assert first_id == new_policy_id
+    assert (
+        engine.audit_preflights[0]["plan_digest"]
+        != engine.audit_preflights[1]["plan_digest"]
+    )
 
 
 @pytest.mark.asyncio
