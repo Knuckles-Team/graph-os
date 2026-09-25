@@ -450,3 +450,49 @@ async def test_admin_reset_issues_token_as_verified_caller(monkeypatch: Any) -> 
             ),
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_self_reads_derive_target_in_engine() -> None:
+    engine = Engine()
+    engine.answers["user", "resolve_self"] = IdentityReply(
+        "resolution", {"principal_id": "usr:alice", "scopes": ["identity:self"]}
+    )
+    engine.answers["session", "list_own"] = IdentityReply(
+        "sessions", [{"handle": "opaque-handle"}]
+    )
+    engine.answers["token", "list_own_api_keys"] = IdentityReply(
+        "api_keys", [{"key_id": "key-2"}]
+    )
+    engine.answers["mfa", "status"] = IdentityReply(
+        "mfa_status",
+        {
+            "totp_enrolled": True,
+            "webauthn_credentials": 1,
+            "recovery_codes_left": 5,
+        },
+    )
+    service = IdentityAdminService(engine)
+    caller = object()
+    assert (await service.execute("identity.self.profile", caller, {}))[
+        "principal_id"
+    ] == "usr:alice"
+    assert await service.execute("identity.self.sessions.list", caller, {}) == {
+        "items": [{"handle": "opaque-handle"}],
+        "next_cursor": None,
+    }
+    assert await service.execute(
+        "identity.self.api_keys.list", caller, {"limit": 1}
+    ) == {
+        "items": [{"key_id": "key-2"}],
+        "next_cursor": "key-2",
+    }
+    assert (await service.execute("identity.self.mfa.status", caller, {}))[
+        "totp_enrolled"
+    ] is True
+    assert engine.calls == [
+        (caller, IdentityCall("user", "resolve_self")),
+        (caller, IdentityCall("session", "list_own")),
+        (caller, IdentityCall("token", "list_own_api_keys", {"limit": 1})),
+        (caller, IdentityCall("mfa", "status")),
+    ]

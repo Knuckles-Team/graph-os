@@ -43,6 +43,12 @@ ADMIN_ACTIONS: dict[str, AdminAction] = {
     "identity.self.password.change": AdminAction(
         "credential", "change_password", "done"
     ),
+    "identity.self.profile": AdminAction("user", "resolve_self", "resolution", True),
+    "identity.self.sessions.list": AdminAction("session", "list_own", "sessions", True),
+    "identity.self.api_keys.list": AdminAction(
+        "token", "list_own_api_keys", "api_keys", True, True
+    ),
+    "identity.self.mfa.status": AdminAction("mfa", "status", "mfa_status", True),
     "identity.users.list": AdminAction("user", "list", "users", True, True),
     "identity.users.search": AdminAction("user", "search", "users", True, True),
     "identity.service_accounts.list": AdminAction(
@@ -136,6 +142,9 @@ def _request(op_id: str, params: Mapping[str, Any]) -> dict[str, Any] | None:
         "identity.groups.list",
         "identity.idps.list",
         "identity.scim_clients.list",
+        "identity.self.profile",
+        "identity.self.sessions.list",
+        "identity.self.mfa.status",
         "identity.policy.get",
         "identity.mode.status",
         "identity.audit.verify",
@@ -146,6 +155,7 @@ def _request(op_id: str, params: Mapping[str, Any]) -> dict[str, Any] | None:
         "identity.users.search",
         "identity.service_accounts.list",
         "identity.api_keys.list",
+        "identity.self.api_keys.list",
         "identity.audit.list",
         "identity.audit.export",
     }:
@@ -312,6 +322,7 @@ def _next_cursor(
         "identity.audit.list": "seq",
         "identity.audit.export": "seq",
         "identity.api_keys.list": "key_id",
+        "identity.self.api_keys.list": "key_id",
     }.get(op_id, "principal_id")
     if key not in last:
         raise IdentityUnavailable("identity page lacks a cursor field")
