@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+import hashlib
+import sys
 from contextlib import nullcontext
-from types import SimpleNamespace
+from dataclasses import dataclass
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
 from graph_os.api.ops import fleet
-from graph_os.api.registry import Confirm, Effect, PrincipalRule, Registry, Surface
+from graph_os.api.registry import (
+    Confirm,
+    Effect,
+    Executor,
+    PrincipalRule,
+    Registry,
+    Surface,
+)
 from graph_os.fleet.gateway_ops import (
     AdmittedTool,
     FleetGateway,
@@ -76,7 +86,9 @@ async def test_gateway_rechecks_child_scope_and_policy_before_delegation() -> No
         tool_for=tool_for, policy_check=policy, delegated_call=delegate
     )
     caller = SimpleNamespace(
-        effective_scopes=frozenset({"mcp:delegate"}), session=object()
+        effective_scopes=frozenset({"mcp:delegate"}),
+        session=object(),
+        principal="alice",
     )
     with pytest.raises(PermissionError, match="child scopes"):
         await gateway.call(caller, "s", "t", {}, expected_effect=Effect.WRITE)
@@ -103,9 +115,11 @@ async def test_service_credential_child_fails_closed() -> None:
         tool_for=tool_for, policy_check=policy, delegated_call=delegate
     )
     caller = SimpleNamespace(
-        effective_scopes=frozenset({"mcp:delegate"}), session=object()
+        effective_scopes=frozenset({"mcp:delegate"}),
+        session=object(),
+        principal="alice",
     )
-    with pytest.raises(PermissionError, match="SERVICE binding"):
+    with pytest.raises(PermissionError, match="authority changed"):
         await gateway.call(caller, "s", "t", {}, expected_effect=Effect.ADMIN)
 
 
@@ -265,6 +279,105 @@ async def test_admitted_tool_adapter_rejects_target_or_metadata_drift() -> None:
     ops.item.credential_mode = "unknown"
     with pytest.raises(RuntimeError, match="metadata is incomplete"):
         await tool_for("s", "t", caller)
+
+
+@pytest.mark.asyncio
+async def test_service_child_requires_resolved_decision_and_owner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    @dataclass(frozen=True)
+    class Decision:
+        effect: Effect
+        confirm: Confirm
+        principals: PrincipalRule
+        executor: Executor
+        required_scopes: frozenset[str]
+        executor_scopes: frozenset[str]
+        subject_id: str | None
+        credential_mode: str
+
+    invoke_module = ModuleType("graph_os.api.invoke")
+    invoke_module.FleetCallDecision = Decision  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "graph_os.api.invoke", invoke_module)
+    descriptor = AdmittedTool(
+        None,
+        "admin",
+        frozenset({"finance:read"}),
+        "service",
+        frozenset({"fleet:events"}),
+        "component:server:1",
+    )
+
+    async def tool_for(_server: str, _tool: str, _caller: object) -> AdmittedTool:
+        return descriptor
+
+    async def policy(_server: str, _tool: str, _caller: object) -> bool:
+        return True
+
+    async def delegated(*_args: object) -> object:
+        pytest.fail("service tool reached delegated path")
+
+    stamped: list[str] = []
+
+    async def service(
+        _server: str, _tool: str, _args: object, _caller: object, owner_ref: str
+    ) -> str:
+        stamped.append(owner_ref)
+        return "ok"
+
+    gateway = FleetGateway(
+        tool_for=tool_for,
+        policy_check=policy,
+        delegated_call=delegated,
+        service_call=service,
+    )
+    caller = SimpleNamespace(
+        effective_scopes=frozenset({"mcp:delegate", "finance:read"}),
+        session=object(),
+        principal="alice",
+    )
+    decision = await gateway.effect(None, {"server": "s", "tool": "t"}, caller)
+    assert decision.executor is Executor.SERVICE
+    owner_ref = "principal:sha256:" + hashlib.sha256(b"alice").hexdigest()
+    with pytest.raises(PermissionError, match="authority changed"):
+        await gateway.call(
+            caller,
+            "s",
+            "t",
+            {},
+            expected_effect=Effect.ADMIN,
+            service_identity=False,
+            owner="alice",
+            owner_ref=owner_ref,
+            fleet_decision=decision,
+        )
+    with pytest.raises(PermissionError, match="authority changed"):
+        await gateway.call(
+            caller,
+            "s",
+            "t",
+            {},
+            expected_effect=Effect.ADMIN,
+            service_identity=True,
+            owner="alice",
+            owner_ref="principal:sha256:" + "0" * 64,
+            fleet_decision=decision,
+        )
+    assert (
+        await gateway.call(
+            caller,
+            "s",
+            "t",
+            {},
+            expected_effect=Effect.ADMIN,
+            service_identity=True,
+            owner="alice",
+            owner_ref=owner_ref,
+            fleet_decision=decision,
+        )
+        == "ok"
+    )
+    assert stamped == [owner_ref]
 
 
 def test_gateway_composition_requires_all_authorities() -> None:

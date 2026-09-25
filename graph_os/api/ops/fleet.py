@@ -94,6 +94,10 @@ async def handle_fleet_call(
         params["tool"],
         params["arguments"],
         expected_effect=op.effect,
+        service_identity=context.service_identity,
+        owner=context.owner,
+        owner_ref=getattr(context, "owner_ref", None),
+        fleet_decision=context.fleet_decision,
     )
     return {"value": result}
 
