@@ -3,10 +3,10 @@
 # Tool hooks are adopted from agent-utilities'/epistemic-graph's suites where
 # they apply to a pure-Python package. Every repository-agnostic gate --
 # complexity, KISS, clones, secrets, privacy, hygiene and code shape -- comes
-# from the shared hook repository Knuckles-Team/pipelines at a pinned commit and
+# from the shared hook repository Knuckles-Team/pipelines at main and
 # is configured in pyproject.toml [tool.pipelines_hooks]; no gate script is
 # copied into this repository. Shared hooks list `manual` so CI runs the
-# identical pinned hook with `--hook-stage manual`. Repository-specific inputs
+# identical shared hook with `--hook-stage manual`. Repository-specific inputs
 # are declared in pyproject.toml `[tool.pipelines_hooks]`.
 default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
@@ -85,9 +85,9 @@ repos:
     args: ["--locked"]
     stages: [pre-push, manual]
 
-# ── Shared gates (Knuckles-Team/pipelines, pinned) ─────────────────────────────
+# ── Shared gates (Knuckles-Team/pipelines, main) ─────────────────────────────
 - repo: https://github.com/Knuckles-Team/pipelines
-  rev: 35209bf6d85569a3c1fe3d5cd31771cacfdc3731 # public-surface gate
+  rev: main # sanctioned first-party exception; public-surface gate
   hooks:
   # scanners (pinned versions; never installed by a hook)
   - id: complexity-staged
