@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -422,3 +423,15 @@ def test_the_trigger_script_is_executable_and_self_contained(
     assert "autosync" in body
     assert ("scripts/venvctl" in body) or ("venv_sync" in body)
     assert str(workspace.venv / "bin" / "python") in body
+
+
+def test_checkout_launcher_runs_without_site_packages() -> None:
+    launcher = Path(__file__).resolve().parents[2] / "scripts" / "venvctl"
+    result = subprocess.run(
+        [sys.executable, "-S", str(launcher), "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "--workspace" in result.stdout
