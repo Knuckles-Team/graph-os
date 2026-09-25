@@ -38,6 +38,7 @@ import time
 import typing as _typing
 import weakref
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlsplit
 
 import fastmcp.exceptions as _fastmcp_exceptions
@@ -102,6 +103,21 @@ from mcp.client.streamable_http import streamable_http_client
 import graph_os.fleet.catalog_reader as _catalog_reader
 import graph_os.fleet.child_resilience as _child_resilience
 from graph_os.fleet.session_notifications import SessionCatalogNotifications
+
+_RESIDENT_TOOLS = frozenset(
+    {
+        "find",
+        "ask",
+        "act",
+        "plan",
+        "confirm",
+        "explain",
+        "find_tools",
+        "load_tools",
+        "unload_tools",
+        "multiplexer_status",
+    }
+)
 
 # Direct all logs to stderr so stdout remains perfectly clean for stdio JSON-RPC
 logging.basicConfig(
@@ -1607,6 +1623,8 @@ class MCPMultiplexer:
         # standalone probe and unit-test paths, which do not own a FastMCP
         # server or live forwarders.
         self._host_mcp: _typing.Any | None = None
+        self._multiplexer_ops: _typing.Any | None = None
+        self._policy_blocked_sessions: set[str] = set()
         self.tool_to_server: dict[
             str, tuple[str, str]
         ] = {}  # prefixed_name -> (server_name, original_name)
@@ -4691,6 +4709,13 @@ class MCPMultiplexer:
         """
         if prefixed_name in self._global_visible:
             return True
+        if self._multiplexer_ops is not None:
+            key = session_key if session_key is not None else _session_key()
+            return (
+                key not in self._policy_blocked_sessions
+                and prefixed_name in self._exposed
+                and self._multiplexer_ops.dispatchable(key, prefixed_name)
+            )
         if prefixed_name in self._local_gated:
             key = session_key if session_key is not None else _session_key()
             return prefixed_name in self._session_loaded.get(key, set())
@@ -4717,17 +4742,9 @@ class MCPMultiplexer:
         return False
 
     def admit_native_tools(self, mcp: _typing.Any) -> None:
-        """Admit the host's natively registered, ungated tools as always visible.
-
-        Called once at attach and again by the host after any later native
-        registration (``graph_rlm`` is registered once the engine session
-        exists). Fleet forwarders and catalogued fleet names are never
-        admitted here: they stay per-session.
-        """
-        native = set(_provider_tools(mcp)) - self._local_gated - self._exposed
-        self._global_visible |= {
-            name for name in native if self._server_for_prefixed(name) is None
-        }
+        """Admit only registered members of the ten-tool resident surface."""
+        native = set(_provider_tools(mcp))
+        self._global_visible = native & _RESIDENT_TOOLS
 
     def tool_usable(self, name: str, capabilities: frozenset[str]) -> bool:
         """Dispatchable for this session AND within the caller's fleet scopes."""
@@ -4745,6 +4762,12 @@ class MCPMultiplexer:
         kind = FLEET_META_TOOL_KINDS.get(name)
         if kind is not None:
             return not missing_fleet_scopes(kind, capabilities=capabilities)
+        if self._multiplexer_ops is not None:
+            if name in self._global_visible:
+                return True
+            # The policy-backed loadable predicate checks item scopes during
+            # load and again on each request; invoke rechecks before dispatch.
+            return "mcp:delegate" in capabilities
         server = self._server_for_prefixed(name)
         if server is None:
             return True
@@ -4941,21 +4964,19 @@ def _tool_result_from_child(result: MCPCallToolResult) -> _fastmcp_tools.ToolRes
 
 
 def _make_forwarder(mux: MCPMultiplexer, prefixed_name: str):
-    """Build the async fn that forwards a prefixed tool call to its child."""
+    """Build a native tool whose governed body is ``invoke(fleet.call)``."""
 
-    async def _forward(**kwargs: _typing.Any) -> _fastmcp_tools.ToolResult:
-        if mux._authority_scope is None:
-            result = await mux.call_proxied_tool(prefixed_name, kwargs)
-        else:
-            with mux._authority_scope():
-                result = await mux.call_proxied_tool(prefixed_name, kwargs)
-        if bool(getattr(result, "is_error", False)):
-            # ``_fastmcp_tools.ToolResult`` has no error bit. Returning one here silently
-            # converts a child MCP failure into an outer success, so raise the
-            # framework's typed error exactly as FastMCP's native proxy does.
-            # Keep the public message stable and free of child response data.
-            raise _fastmcp_exceptions.ToolError("delegated_child_tool_failed")
-        return _tool_result_from_child(result)
+    async def _forward(**kwargs: _typing.Any) -> _typing.Any:
+        ops = mux._multiplexer_ops
+        if ops is None:
+            raise _fastmcp_exceptions.ToolError("Governed fleet invoke is unavailable")
+        caller = _ops_caller()
+        if not mux.tool_dispatchable(prefixed_name):
+            raise _fastmcp_exceptions.ToolError("Fleet tool is not loaded")
+        item = await ops.catalog.get(prefixed_name, caller)
+        if item is None or item.kind != "tool":
+            raise _fastmcp_exceptions.ToolError("Fleet tool is unavailable")
+        return await ops._forwarder(item)(kwargs, caller)
 
     return _forward
 
@@ -5242,17 +5263,7 @@ def _refuse_unusable_call(mux: MCPMultiplexer, name: str | None) -> None:
 
 
 class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
-    """Per-session progressive disclosure (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog, plan Phase 5).
-
-    Child forwarders are registered process-globally (once) but a shared server
-    must not leak one session's ``load_tools`` to another. This middleware scopes
-    ``tools/list`` — and gates ``tools/call`` — to each session's loaded set, plus
-    the always-visible meta/always-on tools (``mux._global_visible``), and
-    hides any tool whose exact fleet scopes the caller lacks, so ``tools/list``
-    and ``tools/call`` apply the same predicate (EH-629). When Eunomia is on,
-    ``graph_os.mcp_server.policy_filter`` narrows the result further; with
-    Eunomia off the surface is still scope-filtered, never unfiltered.
-    """
+    """Route the resident tools and session-loaded native fleet forwarders."""
 
     def __init__(self, mux: MCPMultiplexer, mcp: _typing.Any = None) -> None:
         self.mux = mux
@@ -5264,6 +5275,28 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
         # also uses) and the caller's exact fleet scopes. What a session is
         # TOLD it can call and what it can ACTUALLY call never drift.
         return self.mux.tool_usable(name, capabilities)
+
+    async def _refresh_session_policy(self) -> None:
+        ops = self.mux._multiplexer_ops
+        if ops is None:
+            return
+        key = _session_key()
+        try:
+            await ops.revoke_invisible(_ops_caller(), key)
+        except Exception as exc:
+            # A missing policy decision must never expose a previously loaded
+            # native tool. Resident tools remain visible so the caller can
+            # inspect status and receive the policy error from their handler.
+            self.mux._policy_blocked_sessions.add(key)
+            logger.warning("fleet policy refresh unavailable: %s", type(exc).__name__)
+        else:
+            self.mux._policy_blocked_sessions.discard(key)
+        try:
+            await ops.redeliver_pending(key)
+        except Exception as exc:
+            logger.warning(
+                "fleet list-change delivery unavailable: %s", type(exc).__name__
+            )
 
     async def _ensure_always_loaded(self) -> None:
         """Eagerly mount the configured always-load set for this session
@@ -5299,7 +5332,7 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
             )
 
     async def on_list_tools(self, context, call_next):
-        await self._ensure_always_loaded()
+        await self._refresh_session_policy()
         tools = await call_next(context)
         # A child recovery is detached from the request that originally
         # mounted it.  Its schema update is queued until this real client
@@ -5311,7 +5344,7 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
     async def on_call_tool(self, context, call_next):
         # Before the dispatch gate: a client that calls an always-load tool
         # without a preceding tools/list must still find it dispatchable.
-        await self._ensure_always_loaded()
+        await self._refresh_session_policy()
         # A detached recovery can remove a tool between the client's cached
         # tools/list and this call.  Send that session's queued standard
         # invalidation before the gate rejects the stale name; otherwise the
@@ -5321,6 +5354,10 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
         name = getattr(context.message, "name", None)
         _refuse_unusable_call(self.mux, name)
         result = await call_next(context)
+        if self.mux._multiplexer_ops is not None:
+            self.mux._multiplexer_ops.sessions.touch(_session_key(), name)
+            await self.mux._multiplexer_ops.redeliver_pending(_session_key())
+            return result
         # CONCEPT:AU-ECO.mcp.intent-surface-tool-lifecycle — a tool loaded with
         # auto_unload=True is retracted right after this (successful) call so a
         # one-shot task doesn't linger in the session's tool list.
@@ -5873,308 +5910,151 @@ async def unload_session_tools(
     }
 
 
+def _ops_caller() -> _typing.Any:
+    """Project a verified request caller onto the fleet ops authority port."""
+    caller = resolve_fleet_caller()
+    if caller is None:
+        raise _fastmcp_exceptions.ToolError("Verified MCP caller required")
+    return SimpleNamespace(
+        effective_scopes=caller.capabilities,
+        subject=caller.subject,
+        tenant=caller.tenant,
+        groups=caller.groups,
+    )
+
+
+def _ops_result(payload: dict[str, _typing.Any]) -> _fastmcp_tools.ToolResult:
+    return _fastmcp_tools.ToolResult(
+        content=[mcp_types.TextContent(type="text", text=json.dumps(payload))],
+        structured_content=payload,
+    )
+
+
 def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
-    """Register the dynamic-gateway meta-tools (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog):
-    ``find_tools`` (semantic discovery over the whole fleet), ``list_catalog``
-    (flat browse of every server + its tools), ``load_tools`` / ``unload_tools``
-    (mount/expose and retract tools at runtime — with a load->use->auto-unload
-    lifecycle, CONCEPT:AU-ECO.mcp.intent-surface-tool-lifecycle — notifying the client each time), plus
-    the status tool."""
+    """Register four resident projections of the governed fleet operations."""
+    ops = mux._multiplexer_ops
+    if ops is None:
+        raise RuntimeError("governed multiplexer operations are not bound")
 
-    async def _find_tools(
-        query: str,
-        top_k: int = 0,
-        context_budget_tokens: int = 0,
-        capability_iris: list[str] | None = None,
+    async def find_tools(
+        query: str = "",
+        kinds: list[str] | None = None,
+        servers: list[str] | None = None,
+        browse: bool = False,
+        cursor: str | None = None,
+        limit: int = 20,
+        context_budget_tokens: int | None = None,
     ) -> _fastmcp_tools.ToolResult:
         _require_fleet_capability("discover")
-        if not isinstance(query, str) or not 1 <= len(query) <= 4_096:
-            raise _fastmcp_exceptions.ToolError(
-                "find_tools query is outside the safety boundary"
+        return _ops_result(
+            await ops.find_tools(
+                _ops_caller(),
+                query=query,
+                kinds=kinds or (),
+                servers=servers or (),
+                browse=browse,
+                cursor=cursor,
+                limit=limit,
+                context_budget_tokens=context_budget_tokens,
             )
-        if not isinstance(top_k, int) or not 0 <= top_k <= 100:
-            raise _fastmcp_exceptions.ToolError(
-                "find_tools top_k is outside the safety boundary"
-            )
-        loaded = mux.session_loaded(_session_key())
-        discovery = await mux.discover_tools(query, top_k=top_k or None, loaded=loaded)
-        results = discovery["results"]
-        payload = {
-            "query": query,
-            "count": len(results),
-            "results": results,
-            "unavailable": discovery["unavailable"],
-        }
-        if context_budget_tokens:
-            from graph_os.fleet.decide_tools import assembled_tool_subset
-
-            payload["assembled"] = await assembled_tool_subset(
-                results, capability_iris or [], context_budget_tokens
-            )
-        return _fastmcp_tools.ToolResult(
-            content=[
-                mcp_types.TextContent(type="text", text=json.dumps(payload, indent=2))
-            ],
-            structured_content=payload,
         )
 
-    async def _load_tools(
-        tools: list[str] | None = None,
-        servers: list[str] | None = None,
+    async def load_tools(
+        items: list[str],
         auto_unload: bool = False,
+        evict: str | None = None,
     ) -> _fastmcp_tools.ToolResult:
         _require_fleet_capability("delegate")
-        if len(tools or []) > 128 or len(servers or []) > 32:
-            raise _fastmcp_exceptions.ToolError(
-                "load_tools request is outside the safety boundary"
+        return _ops_result(
+            await ops.load_tools(
+                _ops_caller(),
+                _session_key(),
+                items,
+                auto_unload=auto_unload,
+                evict=evict,
             )
-        payload = await load_session_tools(
-            mcp, mux, tools=tools, servers=servers, auto_unload=auto_unload
-        )
-        return _fastmcp_tools.ToolResult(
-            content=[
-                mcp_types.TextContent(type="text", text=json.dumps(payload, indent=2))
-            ],
-            structured_content=payload,
         )
 
-    async def _unload_tools(
-        tools: list[str] | None = None,
+    async def unload_tools(
+        items: list[str] | None = None,
         servers: list[str] | None = None,
-        toolsets: list[str] | None = None,
+        kinds: list[str] | None = None,
+        all_items: bool = False,
     ) -> _fastmcp_tools.ToolResult:
         _require_fleet_capability("delegate")
-        if (
-            len(tools or []) > 128
-            or len(servers or []) > 32
-            or len(toolsets or []) > 64
-        ):
-            raise _fastmcp_exceptions.ToolError(
-                "unload_tools request is outside the safety boundary"
+        return _ops_result(
+            await ops.unload_tools(
+                _ops_caller(),
+                _session_key(),
+                items=items or (),
+                servers=servers or (),
+                kinds=kinds or (),
+                all_items=all_items,
             )
-        payload = await unload_session_tools(
-            mcp, mux, tools=tools, servers=servers, toolsets=toolsets
-        )
-        return _fastmcp_tools.ToolResult(
-            content=[
-                mcp_types.TextContent(type="text", text=json.dumps(payload, indent=2))
-            ],
-            structured_content=payload,
         )
 
-    async def _list_catalog(
-        server: str = "", include_tools: bool = True
-    ) -> _fastmcp_tools.ToolResult:
+    async def multiplexer_status() -> _fastmcp_tools.ToolResult:
         _require_fleet_capability("discover")
-        if not isinstance(server, str) or len(server) > 128:
-            raise _fastmcp_exceptions.ToolError(
-                "catalog selector is outside the safety boundary"
-            )
-        payload = await mux.list_catalog(server=server, include_tools=include_tools)
-        return _fastmcp_tools.ToolResult(
-            content=[
-                mcp_types.TextContent(type="text", text=json.dumps(payload, indent=2))
-            ],
-            structured_content=payload,
-        )
+        _ops_caller()
+        return _ops_result(ops.multiplexer_status(_session_key()))
 
-    mcp.add_tool(
-        _fastmcp_tools.FunctionTool(
-            name="find_tools",
-            description=(
-                "Search the ENTIRE MCP fleet (hundreds of tools across dozens of "
-                "servers that are NOT in your current tool list) for the ones "
-                "matching a natural-language task. ALWAYS call this FIRST before "
-                "concluding a capability is unavailable — most tools are not "
-                "loaded yet and only become visible after you load them. Returns "
-                "ranked prefixed tool names plus an 'unavailable' map of any "
-                "unreachable servers; pass the names you want to load_tools to "
-                "make them callable. (Use list_catalog to browse everything.) "
-                "The first call probes the fleet (a few seconds); later calls "
-                "are cached."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Natural-language description of the task or capability needed.",
-                    },
-                    "top_k": {
-                        "type": "integer",
-                        "description": "Max candidates to return (0 = server default).",
-                        "default": 0,
-                    },
-                    "context_budget_tokens": {
-                        "type": "integer",
-                        "description": (
-                            "Optional context budget (256..1000000). When set, "
-                            "EG AgentAssemble proves the smallest tool subset "
-                            "covering capability_iris within it (evaluate-only; "
-                            "nothing is loaded). On abstention the ranked tools "
-                            "answer, with the reason. 0 = ranked discovery only."
-                        ),
-                        "default": 0,
-                    },
-                    "capability_iris": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": (
-                            "Native capability IRIs the task needs; the "
-                            "budgeted subset must cover them."
-                        ),
-                        "default": [],
-                    },
-                },
-                "required": ["query"],
+    definitions: tuple[
+        tuple[
+            str, _typing.Callable[..., _typing.Any], dict[str, _typing.Any], list[str]
+        ],
+        ...,
+    ] = (
+        (
+            "find_tools",
+            find_tools,
+            {
+                "query": {"type": "string"},
+                "kinds": {"type": "array", "items": {"type": "string"}},
+                "servers": {"type": "array", "items": {"type": "string"}},
+                "browse": {"type": "boolean"},
+                "cursor": {"type": "string"},
+                "limit": {"type": "integer"},
+                "context_budget_tokens": {"type": "integer"},
             },
-            fn=_find_tools,
-        )
-    )
-    mcp.add_tool(
-        _fastmcp_tools.FunctionTool(
-            name="list_catalog",
-            description=(
-                "Browse the ENTIRE MCP fleet: every configured server with its "
-                "tool count, tool names, and reachability. 'process_running' "
-                "means the server's child process is up — it does NOT mean a "
-                "tool is callable by YOU yet. Per-tool 'mounted' (drill-down) "
-                "and 'dispatchable_tools' (all-servers view) are the truthful, "
-                "session-scoped answer to 'can I call this right now' — call "
-                "load_tools first if a tool you want isn't in either. This is "
-                "the flat 'show me everything available' view (find_tools "
-                "is the semantic 'find the right tool for X' search). Pass a "
-                "'server' name to drill into just that one and get its full tool "
-                "list with descriptions. First call probes the fleet (a few "
-                "seconds); cached after."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "server": {
-                        "type": "string",
-                        "description": "Optional: a single server to drill into (full tools + descriptions). Empty = list all servers.",
-                        "default": "",
-                    },
-                    "include_tools": {
-                        "type": "boolean",
-                        "description": "Include each server's tool names in the all-servers view (default true).",
-                        "default": True,
-                    },
-                },
+            [],
+        ),
+        (
+            "load_tools",
+            load_tools,
+            {
+                "items": {"type": "array", "items": {"type": "string"}},
+                "auto_unload": {"type": "boolean"},
+                "evict": {"type": "string"},
             },
-            fn=_list_catalog,
-        )
-    )
-    mcp.add_tool(
-        _fastmcp_tools.FunctionTool(
-            name="load_tools",
-            description=(
-                "Mount and expose tools at runtime. This makes a tool CALLABLE "
-                "SERVER-SIDE, in this session — it does NOT, by itself, make it "
-                "appear in YOUR OWN tool list; that only happens once your own "
-                "client refreshes it. Pass prefixed tool names (from "
-                "find_tools) via 'tools', and/or whole server names via "
-                "'servers' to load all of a server's tools (also works for "
-                "graph-os's OWN granular tools held back under the condensed "
-                "intent-surface profile — pass their bare name, e.g. "
-                "'graph_query'). Spawns the owning child servers on first use "
-                "and attempts to push a tools/list_changed notification — "
-                "check the response's 'notification_sent' field, but read it "
-                "for what it actually is: whether the SERVER succeeded at "
-                "SENDING that push, never whether your client received or "
-                "acted on it (MCP notifications have no ack; the server "
-                "cannot know that). So a newly_exposed name can still fail "
-                "with 'no such tool' even when 'notification_sent' is true — "
-                "that is not a contradiction, it just means your own refresh "
-                "hasn't happened yet. If your environment has a tool-search / "
-                "tool-list-refresh mechanism (e.g. this harness's ToolSearch), "
-                "call it now to pick up the new name before dispatching to it. "
-                "If it does not, do not assume the tool is callable: retry the "
-                "call once, and if it still says 'no such tool', reconnect / "
-                "restart the session rather than stalling — a name that "
-                "cannot become callable without a client-side refresh you "
-                "have no way to trigger is a dead end worth escalating "
-                "immediately, not waiting out. _typing.Any server or specific tool "
-                "that can't be reached/registered is reported in the 'failed' "
-                "map (never silently dropped) instead of erroring the whole "
-                "call. Set auto_unload=true for a ONE-SHOT tool: it is "
-                "automatically retracted the next time it's called, so a task "
-                "you only need once doesn't linger in your tool list — call "
-                "load_tools again anytime to bring it back. A whole-server "
-                "'servers=[...]' load is a SNAPSHOT, not a subscription: a "
-                "tool the server adds LATER (e.g. after it recovers from a "
-                "restart) is not auto-exposed to you. Check "
-                "'server_catalog_revisions' in the response against a later "
-                "multiplexer_status() catalog_revision for that server, and "
-                "call load_tools(servers=[...]) again if it advanced."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "tools": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Prefixed tool names to expose (e.g. 'cnt__cm_container_operations').",
-                    },
-                    "servers": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Server names whose every tool should be exposed (e.g. 'container-manager-mcp').",
-                    },
-                    "auto_unload": {
-                        "type": "boolean",
-                        "description": "Auto-retract these tools after their NEXT call (one-shot use). Default false (stays loaded until unload_tools).",
-                        "default": False,
-                    },
-                },
+            ["items"],
+        ),
+        (
+            "unload_tools",
+            unload_tools,
+            {
+                "items": {"type": "array", "items": {"type": "string"}},
+                "servers": {"type": "array", "items": {"type": "string"}},
+                "kinds": {"type": "array", "items": {"type": "string"}},
+                "all_items": {"type": "boolean"},
             },
-            fn=_load_tools,
-        )
+            [],
+        ),
+        ("multiplexer_status", multiplexer_status, {}, []),
     )
-    mcp.add_tool(
-        _fastmcp_tools.FunctionTool(
-            name="unload_tools",
-            description=(
-                "Retract previously loaded tools to reclaim context — the other "
-                "half of the load->use->unload lifecycle (CONCEPT:AU-ECO.mcp.intent-surface-tool-lifecycle). "
-                "Three granularities, freely combined: 'tools' (exact names), "
-                "'servers' (every tool of a fleet server, or graph-os's WHOLE "
-                "condensed surface at once via servers=['graph-os']), and "
-                "'toolsets' (every tool carrying one of these tags, e.g. a "
-                "domain name — a bulk domain unload). The server attempts to "
-                "push a tools/list_changed notification (reported as "
-                "'notification_sent' — whether the SEND succeeded, not whether "
-                "your client acted on it; see load_tools). Meta-tools and "
-                "always-on tools are kept regardless. Nothing is deleted — "
-                "load_tools brings any of it straight back."
-            ),
-            parameters={
-                "type": "object",
-                "properties": {
-                    "tools": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Exact prefixed/local tool names to unload.",
-                    },
-                    "servers": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Server names to unload entirely (fleet server, or 'graph-os' for the whole condensed surface).",
-                    },
-                    "toolsets": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Tag/domain names — unload every currently-loaded tool carrying one of these tags.",
-                    },
+    for name, fn, properties, required in definitions:
+        mcp.add_tool(
+            _fastmcp_tools.FunctionTool(
+                name=name,
+                description=f"Governed dynamic fleet operation: {name}.",
+                parameters={
+                    "type": "object",
+                    "properties": properties,
+                    "required": required,
                 },
-            },
-            fn=_unload_tools,
+                fn=fn,
+            )
         )
-    )
-    _register_status_tool(mcp, mux)
-    # The resident meta-tools are always visible (their scopes still gate them).
-    mux._global_visible.update(FLEET_META_TOOL_KINDS)
+    mux._global_visible.update(name for name, *_ in definitions)
 
 
 def _always_load_raw_setting(field: str, alias: str) -> _typing.Any:
@@ -6261,15 +6141,12 @@ def attach_fleet_loader(
     self_server: str = "graph-os",
     embed_fn=None,
     authority_scope=None,
+    multiplexer_ops=None,
 ) -> MCPMultiplexer:
-    """Attach on-demand MCP fleet-loading to an EXISTING FastMCP server (graph-os).
+    """Attach governed fleet operations to the existing GraphOS FastMCP host.
 
-    graph-os serves its own KG/engine tools natively (always on). This composes the
-    fleet-aggregation engine on top so the SAME server can also reach the rest of the
-    MCP fleet on demand from the mandatory EG catalog reader. It
-    registers the meta-tools ``find_tools`` / ``list_catalog`` / ``load_tools`` /
-    ``multiplexer_status`` plus a per-session
-    progressive-disclosure middleware. Child
+    The host exposes six intent verbs and four resident multiplexer tools.
+    Loaded native fleet items remain scoped to their MCP session. Child
     servers are mounted LAZILY (each as an isolated subprocess/HTTP session via
     :class:`~graph_os.fleet.child_resilience.ChildRuntime`, with its own breaker +
     concurrency limit) only when a tool is actually loaded, so the base context stays
@@ -6297,6 +6174,9 @@ def attach_fleet_loader(
     """
     logger.info("graph-os fleet loader initializing")
     mux = MCPMultiplexer(catalog_reader)
+    if multiplexer_ops is None:
+        raise RuntimeError("governed multiplexer operations are not bound")
+    mux._multiplexer_ops = multiplexer_ops
     # Keep the host solely for lifecycle replacement of mux-owned forwarding
     # schemas after a child generation recovers.  Standalone mux/probe paths
     # deliberately leave this unset.
@@ -6329,12 +6209,6 @@ def attach_fleet_loader(
             len(mux._always_load_tool_specs),
         )
     _register_meta_tools(mcp, mux)
-    # CONCEPT:AU-ECO.mcp.intent-surface-condensed-collapse (Seam 8) — under MCP_TOOL_MODE=intent,
-    # register_tool_surface has already tagged the host's own condensed/verbose
-    # tools GATED_TAG; seed the session-visibility gate with those names so
-    # load_tools reveals them exactly like a fleet tool (no mounting needed —
-    # they are already registered local FastMCP tools, just hidden by default).
-    mux._local_gated = _gated_tool_names(mcp)
     # The always-visible surface: the meta-tools just registered above plus
     # every other tool graph-os registered natively and did not gate. It is
     # derived from what is registered, so it is always on regardless of
