@@ -64,9 +64,7 @@ async def test_invoke_uses_browser_principal_and_shared_services(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session = _session()
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.session.resolve_session", lambda: session
-    )
+    monkeypatch.setattr("agent_utilities.api.session.resolve_session", lambda: session)
     services = SimpleNamespace(registry=SimpleNamespace(digest="digest:1"))
     projection = SimpleNamespace(services=services)
     monkeypatch.setattr(
@@ -115,9 +113,7 @@ async def test_invoke_refuses_missing_browser_session(
     def missing() -> Any:
         raise PermissionError("synthetic missing ambient session")
 
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.session.resolve_session", missing
-    )
+    monkeypatch.setattr("agent_utilities.api.session.resolve_session", missing)
     with pytest.raises(HTTPException) as exc:
         await _invoke_webui_operation(_request(), "atlas.sources.list", {})
     assert exc.value.status_code == 401
@@ -127,9 +123,7 @@ async def test_invoke_refuses_missing_browser_session(
 async def test_invoke_refuses_unbound_serving_authority(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.session.resolve_session", _session
-    )
+    monkeypatch.setattr("agent_utilities.api.session.resolve_session", _session)
 
     def unbound() -> Any:
         raise RuntimeError("synthetic missing policy and registry")
@@ -146,9 +140,7 @@ async def test_invoke_refuses_unbound_serving_authority(
 async def test_invoke_preserves_governed_refusal_status(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        "agent_utilities.knowledge_graph.core.session.resolve_session", _session
-    )
+    monkeypatch.setattr("agent_utilities.api.session.resolve_session", _session)
     projection = SimpleNamespace(
         services=SimpleNamespace(registry=SimpleNamespace(digest="digest:1"))
     )

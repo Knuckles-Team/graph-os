@@ -85,7 +85,7 @@ async def _invoke_webui_operation(
     request: Any, op_id: str, params: dict[str, Any]
 ) -> Any:
     """Run a browser operation with its verified ambient GraphSession."""
-    from agent_utilities.knowledge_graph.core.session import resolve_session
+    from agent_utilities.api.session import resolve_session
     from fastapi import HTTPException
 
     from graph_os.api.errors import to_envelope

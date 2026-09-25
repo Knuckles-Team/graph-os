@@ -21,6 +21,7 @@ row-level isolation. Engine fidelity is reported in the response's
 
 from __future__ import annotations
 
+import re
 from types import MappingProxyType
 from typing import Any
 
@@ -45,6 +46,7 @@ CATALOG_STATEMENTS: Any = MappingProxyType(
 )
 
 _TABLE_KINDS = MappingProxyType({"BASE TABLE": "table", "VIEW": "view"})
+_SCHEMA_FILTER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,62}\Z")
 
 
 class SqlSchemaUnavailable(RuntimeError):
@@ -89,19 +91,13 @@ def validate_schema_filter(value: Any) -> str | None:
     text = value.strip()
     if not text:
         return None
-    from agent_utilities.security.identifiers import (
-        InvalidIdentifierError,
-        validate_sql_identifier,
-    )
-
-    try:
-        return validate_sql_identifier(text, kind="schema")
-    except InvalidIdentifierError as exc:
+    if _SCHEMA_FILTER_RE.fullmatch(text) is None:
         raise SqlSchemaUnavailable(
             "schema filter is not a valid SQL identifier",
             code="invalid_schema_filter",
             status_code=422,
-        ) from exc
+        )
+    return text
 
 
 def _decode_rows(payload: Any) -> list[dict[str, Any]] | None:

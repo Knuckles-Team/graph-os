@@ -1,4 +1,4 @@
-"""GraphOS MCP serving composition."""
+"""GraphOS MCP serving composition (RF-ADR-009)."""
 
 from graph_os.mcp_server.runtime import (
     REGISTERED_TOOLS,

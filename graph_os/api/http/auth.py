@@ -59,7 +59,7 @@ class AmbientHTTPAuthenticator:
         from graph_os.api.invoke import VerifiedCaller
 
         try:
-            from agent_utilities.knowledge_graph.core.session import resolve_session
+            from agent_utilities.api.session import resolve_session
 
             session = resolve_session()
             if admitted_cookie:

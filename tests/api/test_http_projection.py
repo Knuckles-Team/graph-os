@@ -60,7 +60,7 @@ async def test_missing_authority_fails_closed() -> None:
 async def test_cookie_requires_gate_admission_csrf_and_signed_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from agent_utilities.knowledge_graph.core import session as session_module
+    from agent_utilities.api import session as session_module
 
     from graph_os.api import invoke as invoke_module
 
