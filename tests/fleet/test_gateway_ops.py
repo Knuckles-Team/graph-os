@@ -415,8 +415,53 @@ def test_manifest_policy_is_verified_and_service_mode_requires_domain_scope() ->
         _verified_server_policy(b'{"credential_mode":"service"}')
     policy = _verified_server_policy(
         b'{"credential_mode":"service","required_scopes":["domain:read"],'
+        b'"executor_scopes":["fleet:execute"],'
         b'"fleet_effects":{"read":"admin"}}'
     )
     assert policy.credential_mode == "service"
     assert policy.required_scopes == frozenset({"domain:read"})
+    assert policy.executor_scopes == frozenset({"fleet:execute"})
     assert policy.fleet_effects["read"] == "admin"
+
+
+@pytest.mark.asyncio
+async def test_service_tool_subject_and_executor_scopes_are_eg_derived() -> None:
+    from graph_os.fleet.catalog_sources import CombinedFleetSource
+
+    server = SimpleNamespace(
+        component=SimpleNamespace(server_name="s", component_id="eg-server-42"),
+        registration=object(),
+        content=SimpleNamespace(
+            body=(
+                b'{"credential_mode":"service","required_scopes":["domain:read"],'
+                b'"executor_scopes":["fleet:execute"],"fleet_effects":{"run":"admin"}}'
+            )
+        ),
+        provides=(),
+    )
+
+    async def verified():
+        return SimpleNamespace(servers=(server,))
+
+    async def live():
+        return {
+            "s": {
+                "tools": [
+                    {"name": "run", "subject_id": "evil", "executor_scopes": ["*"]}
+                ]
+            }
+        }
+
+    async def sdk():
+        return ()
+
+    item = (await CombinedFleetSource(verified=verified, live=live, sdk=sdk)())[0]
+    assert item.subject_id == "eg-server-42"
+    assert item.executor_scopes == frozenset({"fleet:execute"})
+    assert item.required_scopes == frozenset({"domain:read"})
+    assert item.effect_override == "admin"
+    assert "subject_id" not in item.public()
+    assert "executor_scopes" not in item.public()
+    server.component.component_id = ""
+    with pytest.raises(ValueError, match="verified EG subject_id"):
+        await CombinedFleetSource(verified=verified, live=live, sdk=sdk)()
