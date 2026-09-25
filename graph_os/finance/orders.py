@@ -22,6 +22,8 @@ it against the lease (``emerald_exchange.trading.live_orders``).
 
 from __future__ import annotations
 
+import hashlib
+import json
 import secrets
 from typing import Any
 
@@ -72,10 +74,23 @@ def _grant(lease: dict[str, Any]) -> dict[str, Any]:
 
 
 async def propose_order(
-    client: Any, claims: dict[str, Any], intent: OrderIntent, reason: str, now_ms: int
+    client: Any,
+    claims: dict[str, Any],
+    intent: OrderIntent,
+    reason: str,
+    now_ms: int,
+    idempotency_key: str | None = None,
 ) -> dict[str, Any]:
     """Issue the pending approval for ``intent``; places nothing."""
-    approval_id = f"finance_order:{secrets.token_hex(16)}"
+    proposer = principal_ref(str(claims["principal"]))
+    if idempotency_key:
+        seed = json.dumps(
+            [str(claims["tenant"]), proposer, idempotency_key],
+            separators=(",", ":"),
+        )
+        approval_id = f"finance_order:{hashlib.sha256(seed.encode()).hexdigest()[:32]}"
+    else:
+        approval_id = f"finance_order:{secrets.token_hex(16)}"
     expires = now_ms + DECISION_WINDOW_MS
     answer = await client.control_leases.issue(
         tenant=str(claims["tenant"]),
@@ -84,7 +99,7 @@ async def propose_order(
         grant={
             "intent": intent.patch(),
             "intent_digest": intent.digest(),
-            "proposer": principal_ref(str(claims["principal"])),
+            "proposer": proposer,
             "reason": reason,
         },
         issued_at_ms=now_ms,
@@ -93,10 +108,32 @@ async def propose_order(
         idempotency_key=f"propose:{approval_id}",
     )
     if answer.get("outcome") != "issued":
-        raise RuntimeError("the proposal could not be recorded")
+        if not idempotency_key:
+            raise RuntimeError("the proposal could not be recorded")
+        existing = await client.control_leases.get(
+            tenant=str(claims["tenant"]), lease_id=approval_id
+        )
+        grant = _grant(existing or {})
+        if (
+            not existing
+            or existing.get("kind") != APPROVAL_KIND
+            or grant.get("proposer") != proposer
+            or grant.get("intent_digest") != intent.digest()
+            or grant.get("reason") != reason
+        ):
+            raise OrderRefused("ORDER_IDEMPOTENCY_CONFLICT")
+        expires = int(existing["hard_expires_at_ms"])
+        states = {
+            "active": "pending_approval",
+            "consumed": "approved",
+            "revoked": "denied",
+        }
+        status = states.get(str(existing.get("status")), "expired")
+    else:
+        status = "pending_approval"
     return {
         "approval_id": approval_id,
-        "status": "pending_approval",
+        "status": status,
         "intent": intent.patch(),
         "intent_digest": intent.digest(),
         "expires_at_ms": expires,
