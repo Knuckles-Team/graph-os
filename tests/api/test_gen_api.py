@@ -57,6 +57,10 @@ def test_generator_emits_deterministic_artifacts_and_engine_map(tmp_path: Path) 
         json.loads(first[gen_api.GENERATED / "registry.json"])["registry_digest"]
         == "fixture-digest"
     )
+    models = first[gen_api.ROOT / "graph_os/client/_generated_models.py"]
+    assert len(models.splitlines()) < 900
+    compile(models, "_generated_models.py", "exec")
+    compile(first[gen_api.ROOT / "graph_os/client/invoke.py"], "invoke.py", "exec")
 
 
 def test_generator_fails_closed_on_missing_or_empty_inputs(tmp_path: Path) -> None:

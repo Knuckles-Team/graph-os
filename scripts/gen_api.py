@@ -195,23 +195,43 @@ def _openapi(
 def _client_models(registry: dict[str, Any]) -> bytes:
     ids = [op["id"] for op in registry["ops"]]
     lines = [
-        '"""Generated operation IDs and wire schemas. Do not edit."""',
+        '"""Generated operation IDs and schema lookup. Do not edit."""',
         "",
         "from __future__ import annotations",
         "",
-        "from typing import Literal, TypeAlias",
+        "import importlib.resources",
+        "import json",
+        "from functools import lru_cache",
+        "from typing import Literal",
         "",
-        f"REGISTRY_DIGEST = {registry['registry_digest']!r}",
-        f"API_VERSION = {registry['api_version']!r}",
-        "OperationId: TypeAlias = Literal[",
+        f"REGISTRY_DIGEST = {json.dumps(registry['registry_digest'])}",
+        f"API_VERSION = {json.dumps(str(registry['api_version']))}",
+        "type OperationId = Literal[",
     ]
-    lines.extend(f"    {op_id!r}," for op_id in ids)
-    lines.extend(["]", "", "OP_SCHEMAS = {"])
+    lines.extend(f"    {json.dumps(op_id)}," for op_id in ids)
     lines.extend(
-        f"    {op['id']!r}: { {'params': op['params'], 'result': op['result']}!r},"
-        for op in registry["ops"]
+        [
+            "]",
+            "",
+            "",
+            "@lru_cache(maxsize=1)",
+            "def _registry() -> dict:",
+            '    source = importlib.resources.files("graph_os.api.generated") / "registry.json"',
+            "    registry = json.loads(source.read_bytes())",
+            '    if registry["registry_digest"] != REGISTRY_DIGEST:',
+            '        raise RuntimeError("generated client registry digest mismatch")',
+            "    return registry",
+            "",
+            "",
+            "def schema_for(op_id: OperationId) -> dict:",
+            '    for op in _registry()["ops"]:',
+            '        if op["id"] == op_id:',
+            '            return {"params": op["params"], "result": op["result"]}',
+            "    raise KeyError(op_id)",
+            "",
+        ]
     )
-    return ("\n".join([*lines, "}", ""])).encode()
+    return "\n".join(lines).encode()
 
 
 def _client_invoker() -> bytes:
@@ -226,7 +246,9 @@ from ._generated_models import OperationId
 
 
 class Transport(Protocol):
-    async def invoke(self, op_id: str, params: Mapping[str, Any]) -> Mapping[str, Any]: ...
+    async def invoke(
+        self, op_id: str, params: Mapping[str, Any]
+    ) -> Mapping[str, Any]: ...
 
 
 async def invoke(
