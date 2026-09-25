@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, Protocol, runtime_checkable
@@ -31,10 +33,12 @@ from agent_utilities.security.persistence_privacy import persistence_reference
 
 from .models import (
     A2AMessage,
+    A2AInputMessage,
     A2ARouteDecision,
     A2ATask,
     A2ATaskState,
     A2ATaskStatus,
+    A2ATextPart,
 )
 
 __all__ = [
@@ -193,16 +197,72 @@ def project(item: WorkItemSnapshot) -> A2ATask:
     from agent_utilities.observability.trace_ontology import trace_id
 
     timestamp = datetime.fromtimestamp(item.updated_at_ms / 1000, tz=UTC)
+    input_message = _pending_plan_message(item)
+    if input_message is not None:
+        state = "input-required"
     return A2ATask(
         id=task_id,
         context_id=str(item.metadata.get("a2a_context_id") or ""),
-        status=A2ATaskStatus(state=state, timestamp=timestamp.isoformat()),
+        status=A2ATaskStatus(
+            state=state, timestamp=timestamp.isoformat(), message=input_message
+        ),
         metadata={
             "graphOs": {
                 "taskAuthorityRef": item.work_item_id,
                 "runId": task_id,
                 "routing": route if isinstance(route, dict) else {},
                 "runTraceRef": trace_id(task_id),
+            }
+        },
+    )
+
+
+def _pending_plan_message(item: WorkItemSnapshot) -> A2AInputMessage | None:
+    """Expose only a live, well-formed approval marker from a running WorkItem."""
+
+    if item.status not in {"leased", "running"}:
+        return None
+    marker = item.metadata.get("pending_input_request")
+    if not isinstance(marker, dict) or marker.get("kind") != "graphos.plan":
+        return None
+    plan_ref = marker.get("plan_ref")
+    op = marker.get("op")
+    digest = marker.get("params_digest")
+    expiry = marker.get("expires_at_ms")
+    if (
+        not isinstance(plan_ref, str)
+        or re.fullmatch(r"graphos_plan:[0-9a-f]{48}", plan_ref) is None
+        or not isinstance(op, str)
+        or re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+", op)
+        is None
+        or len(op) > 256
+        or not isinstance(digest, str)
+        or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+        or isinstance(expiry, bool)
+        or not isinstance(expiry, int)
+        or expiry <= int(time.time() * 1000)
+    ):
+        return None
+    preview = marker.get("preview")
+    safe_preview: dict[str, str] = {}
+    if isinstance(preview, dict):
+        effect = preview.get("effect")
+        summary = preview.get("summary")
+        if effect in {"read", "write", "destructive", "admin"}:
+            safe_preview["effect"] = effect
+        if isinstance(summary, str) and len(summary) <= 256:
+            safe_preview["summary"] = summary
+    return A2AInputMessage(
+        parts=[A2ATextPart(text="Tool confirmation required")],
+        message_id=plan_ref,
+        metadata={
+            "graphOsPlan": {
+                "plan_ref": plan_ref,
+                "op": op,
+                "params_digest": digest,
+                "expires_at_ms": expiry,
+                "preview": safe_preview,
+                "confirm": "plan",
             }
         },
     )

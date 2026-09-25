@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -23,6 +24,7 @@ from graph_os.a2a.authority import (
 )
 from graph_os.a2a.models import A2AMessage, A2ARouteDecision, A2ATextPart
 from graph_os.a2a.routing import A2AAssemblyUnavailable, ControlPlaneA2ARouter
+from graph_os.a2a.service import A2AService
 
 _SESSION = SimpleNamespace(tenant="tenant-a", actor=SimpleNamespace(actor_id="actor-a"))
 _OTHER = SimpleNamespace(tenant="tenant-a", actor=SimpleNamespace(actor_id="actor-b"))
@@ -128,6 +130,68 @@ async def test_lifecycle_uses_one_control_plane_store(bound) -> None:
     assert [listed.id for listed in tasks] == [task.id] and cursor is None
     cancelled = await authority.cancel(task.id)
     assert cancelled.status.state == "canceled"
+
+
+async def test_live_pending_plan_projects_input_required_without_raw_params(bound) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+    task = await authority.dispatch(
+        message=_message(),
+        idempotency_key="approval",
+        decision=A2ARouteDecision(agent_name="expert", selection_mode="router"),
+    )
+    item_id = f"workitem:orchestrator:{task.id}"
+    marker = {
+        "kind": "graphos.plan",
+        "plan_ref": "graphos_plan:" + "a" * 48,
+        "op": "fleet.call",
+        "params_digest": "b" * 64,
+        "expires_at_ms": int(time.time() * 1000) + 600_000,
+        "preview": {"effect": "write", "summary": "Restart worker", "secret": "hide"},
+        "params": {"host": "private"},
+    }
+    plane.items[item_id] = plane.items[item_id].model_copy(
+        update={
+            "status": "running",
+            "version": 2,
+            "updated_at_ms": 2_000,
+            "metadata": plane.items[item_id].metadata
+            | {"pending_input_request": marker},
+        }
+    )
+    pending = await authority.get(task.id)
+    assert pending is not None
+    assert pending.status.state == "input-required"
+    assert pending.status.message is not None
+    public = pending.model_dump(mode="json", by_alias=True)
+    assert public["status"]["message"]["metadata"]["graphOsPlan"] == {
+        "plan_ref": marker["plan_ref"],
+        "op": "fleet.call",
+        "params_digest": marker["params_digest"],
+        "expires_at_ms": marker["expires_at_ms"],
+        "preview": {"effect": "write", "summary": "Restart worker"},
+        "confirm": "plan",
+    }
+    assert "private" not in str(public) and "hide" not in str(public)
+    listed, _ = await authority.list(cursor=None, limit=10)
+    assert listed[0].status.state == "input-required"
+    events = [
+        event
+        async for event in A2AService(authority, SimpleNamespace())._status_events(
+            pending
+        )
+    ]
+    assert len(events) == 1 and events[0].final is False
+    assert events[0].status.message is not None
+
+    plane.items[item_id] = plane.items[item_id].model_copy(
+        update={
+            "metadata": plane.items[item_id].metadata
+            | {"pending_input_request": marker | {"expires_at_ms": 1}}
+        }
+    )
+    expired = await authority.get(task.id)
+    assert expired is not None and expired.status.state == "working"
 
 
 async def test_reused_key_with_a_different_request_conflicts(bound) -> None:

@@ -15,6 +15,7 @@ __all__ = [
     "A2AContextBudget",
     "A2AListResult",
     "A2AMessage",
+    "A2AInputMessage",
     "A2ARouteDecision",
     "A2ASkill",
     "A2ATask",
@@ -60,6 +61,15 @@ class A2AMessage(_WireModel):
         return "\n".join(part.text for part in self.parts)
 
 
+class A2AInputMessage(_WireModel):
+    """Bounded agent request shown while a durable task awaits input."""
+
+    role: Literal["agent"] = "agent"
+    parts: list[A2ATextPart] = Field(min_length=1, max_length=1)
+    message_id: str = Field(min_length=1, max_length=128)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class A2AContextBudget(_WireModel):
     """Evaluate-only context bound used by assembly/tool-subset selection."""
 
@@ -91,13 +101,14 @@ class A2ARouteDecision(_WireModel):
 
 
 A2ATaskState = Literal[
-    "submitted", "working", "completed", "canceled", "failed", "rejected"
+    "submitted", "working", "input-required", "completed", "canceled", "failed", "rejected"
 ]
 
 
 class A2ATaskStatus(_WireModel):
     state: A2ATaskState
     timestamp: str | None = None
+    message: A2AInputMessage | None = None
 
 
 class A2ATask(_WireModel):
