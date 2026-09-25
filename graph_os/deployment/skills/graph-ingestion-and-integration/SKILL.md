@@ -19,6 +19,11 @@ description: >-
 > legacy action-to-operation examples below remain pending EH-624 parity; do
 > not assume a name or its old arguments map directly to an operation.
 
+The T5 registry declares
+`ask(op="ingest.sources.list", params={})` for listing connector sources visible
+to the caller. Before syncing a source, inspect the exact `ingest.sources.sync`
+schema and effect requirements with `find` or `graphos://registry`.
+
 
 Build an idempotent source-to-graph flow with explicit provenance, freshness,
 and verification.

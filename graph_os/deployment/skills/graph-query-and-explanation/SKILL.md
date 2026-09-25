@@ -21,6 +21,12 @@ description: >-
 > legacy action-to-operation examples below remain pending EH-624 parity; do
 > not assume a name or its old arguments map directly to an operation.
 
+Use `find(op="query.sql_schema")` to inspect the caller-visible descriptor of
+the registry-declared SQL catalog operation. The `find` call discovers the
+operation; it does not execute it. For a query, inspect the exact operation
+schema through `find` or `graphos://registry`; a legacy `graph_query` argument
+is not automatically a T5 query parameter.
+
 
 Turn a question into the smallest safe read plan, execute it, and return an
 answer that separates evidence from inference.
