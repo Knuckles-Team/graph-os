@@ -368,3 +368,9 @@ class SecretsDouble:
             return False
         self.values[key] = value
         return True
+
+    def set(self, key: str, value: str, **metadata: Any) -> None:
+        self.values[key] = value
+
+    def delete(self, key: str) -> bool:
+        return self.values.pop(key, None) is not None

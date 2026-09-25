@@ -11,25 +11,58 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections.abc import Awaitable, Callable, MutableMapping, Sequence
 from typing import Any
 
 from starlette.routing import Route, Router
 
 from .admission import Admission, AdmissionService
+from .browser import csrf_refusal, origin_refusal, session_from_scope
 from .engine import IdentityUnavailable
 
-__all__ = ["IdentityGate", "OWNED_PREFIXES"]
+__all__ = ["IdentityGate", "OWNED_PREFIXES", "owned_route_refusal"]
 
 logger = logging.getLogger(__name__)
 
 #: Paths the gate answers itself.
-OWNED_PREFIXES = ("/auth/", "/.well-known/", "/oauth/token")
+OWNED_PREFIXES = ("/auth/", "/.well-known/", "/oauth/token", "/scim/v2/")
+
+#: Owned routes that carry their own proof and no browser session, so no
+#: Origin/CSRF rule applies: a SCIM provisioner's API key, the token
+#: exchange's subject credential, and the IdP's signed SAML response (its
+#: transaction cookie + ``InResponseTo`` are the cross-site defence).
+_SELF_AUTHENTICATED = ("/scim/v2/", "/oauth/token", "/auth/saml/acs")
+#: Forms submitted before any session exists: a same-origin ``Origin`` is
+#: the whole CSRF defence (there is no session to bind a token to yet).
+_PRE_SESSION = frozenset(
+    {"/auth/login", "/auth/setup", "/auth/password/forgot", "/auth/password/reset"}
+)
+_LDAP_LOGIN = re.compile(r"^/auth/ldap/[^/]+/login$")
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 Scope = MutableMapping[str, Any]
 Receive = Callable[[], Awaitable[MutableMapping[str, Any]]]
 Send = Callable[[MutableMapping[str, Any]], Awaitable[None]]
 ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
+
+
+def owned_route_refusal(scope: Scope) -> str | None:
+    """Why a state-changing request to an owned route is refused as cross-site.
+
+    Self-authenticated routes are exempt; pre-session forms need a
+    same-origin ``Origin``; everything else that carries a session cookie
+    needs the session's CSRF token too.
+    """
+    path = str(scope.get("path") or "")
+    if str(scope.get("method") or "GET").upper() in _SAFE_METHODS:
+        return None
+    if path.startswith(_SELF_AUTHENTICATED) or path.rstrip("/") in _SELF_AUTHENTICATED:
+        return None
+    session = session_from_scope(scope)
+    if session is None or path in _PRE_SESSION or _LDAP_LOGIN.match(path):
+        return origin_refusal(scope)
+    return csrf_refusal(scope, session)
 
 
 def _owned(path: str) -> bool:
@@ -119,11 +152,12 @@ class IdentityGate:
         except IdentityUnavailable:
             await _refuse(scope, send, 503, "identity_unavailable")
             return
-        if mode == "none":
+        reason = owned_route_refusal(scope)
+        if reason is None and mode == "none":
             reason = self._admission.none_guard.refusal(scope)
-            if reason is not None:
-                await _refuse(scope, send, 403, reason)
-                return
+        if reason is not None:
+            await _refuse(scope, send, 403, reason)
+            return
         await self._router(scope, receive, send)
 
     async def _forward(
