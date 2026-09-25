@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from graph_os.gateway.aggregator import Aggregator
@@ -46,6 +47,7 @@ def _require_scope(scope: str) -> None:
 
 
 dashboard_router = APIRouter(tags=["dashboard"], dependencies=[Depends(_require_read)])
+health_router = APIRouter(tags=["dashboard"])
 _aggregator: Aggregator | None = None
 
 
@@ -141,9 +143,38 @@ async def discover_services() -> DashboardLayout:
     return ConfigManager()._auto_discover()
 
 
+@health_router.get("/health")
+async def health_check() -> JSONResponse:
+    """Expose the shared truthful liveness report without a read session."""
+    from agent_utilities.observability.runtime_health import collect_health_async
+
+    return JSONResponse(
+        await collect_health_async(), headers={"Cache-Control": "no-store"}
+    )
+
+
+@dashboard_router.get("/daemon/status")
+async def daemon_status() -> dict[str, Any]:
+    """Project the one GraphOS host daemon's live status."""
+    from graph_os.gateway.daemon import daemon_status as status
+
+    return status()
+
+
+@dashboard_router.get("/daemon/shards")
+async def daemon_shards() -> dict[str, Any]:
+    """Project the AU control plane's existing engine-shard health view."""
+    from agent_utilities.knowledge_graph.core.shard_topology import (
+        shard_topology_status,
+    )
+
+    return shard_topology_status()
+
+
 def register_dashboard_routes(app, prefix: str = "/api") -> None:
     """Mount dashboard endpoints once; all routes share the gateway session."""
     base = f"{prefix}/dashboard"
     if any(getattr(route, "path", None) == f"{base}/layout" for route in app.routes):
         return
+    app.include_router(health_router, prefix=base)
     app.include_router(dashboard_router, prefix=base)

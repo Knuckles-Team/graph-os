@@ -96,3 +96,33 @@ def test_dashboard_rejects_missing_session_and_read_only_layout_write(
 
     monkeypatch.setattr(session, "resolve_session", read_only)
     assert client.put("/api/dashboard/layout", json={}).status_code == 403
+
+
+def test_dashboard_health_is_public_while_daemon_status_requires_read_scope(
+    monkeypatch,
+) -> None:
+    from agent_utilities.api import session
+    from agent_utilities.observability import runtime_health
+    from graph_os.gateway import daemon
+
+    async def health() -> dict[str, bool]:
+        return {"healthy": True}
+
+    def missing_session(*, required_scope: str) -> None:
+        raise session.SessionRequiredError("missing")
+
+    monkeypatch.setattr(runtime_health, "collect_health_async", health)
+    monkeypatch.setattr(daemon, "daemon_status", lambda: {"running": True})
+    monkeypatch.setattr(session, "resolve_session", missing_session)
+    app = FastAPI()
+    api.register_dashboard_routes(app)
+    client = TestClient(app)
+
+    health_response = client.get("/api/dashboard/health")
+    assert health_response.status_code == 200
+    assert health_response.json() == {"healthy": True}
+    assert health_response.headers["cache-control"] == "no-store"
+    assert client.get("/api/dashboard/daemon/status").status_code == 401
+
+    monkeypatch.setattr(session, "resolve_session", lambda *, required_scope: None)
+    assert client.get("/api/dashboard/daemon/status").json() == {"running": True}
