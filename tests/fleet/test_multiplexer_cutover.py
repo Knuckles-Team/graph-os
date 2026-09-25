@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
+import sys
 from types import SimpleNamespace
 
 import pytest
 from fastmcp import FastMCP
 
+from graph_os.fleet.catalog_items import CatalogItem
 from graph_os.fleet.multiplexer import (
     SessionVisibilityMiddleware,
     _make_forwarder,
     _register_meta_tools,
     attach_fleet_loader,
 )
-from tests.fleet.catalog_fixture import multiplexer_from_fixture
+from tests.fleet.catalog_fixture import _NeverRead, multiplexer_from_fixture
 from tests.fleet.conftest import fleet_session
 
 
@@ -64,6 +66,48 @@ def test_cutover_refuses_missing_governed_ops():
     mcp = FastMCP("test")
     with pytest.raises(RuntimeError, match="governed multiplexer operations"):
         attach_fleet_loader(mcp, catalog_reader=object())
+
+
+@pytest.mark.asyncio
+async def test_factory_mounts_native_tool_with_governed_body(monkeypatch):
+    mcp = FastMCP("test")
+    monkeypatch.setitem(
+        sys.modules,
+        "graph_os.fleet.shared_multiplexer",
+        SimpleNamespace(
+            bind_served_multiplexer=lambda mux: None,
+            ServedMultiplexerLoopExtension=lambda mux: object(),
+            claim_served_multiplexer_loop=lambda mux: None,
+        ),
+    )
+    monkeypatch.setattr(mcp, "add_extension", lambda extension: None, raising=False)
+    captured = {}
+
+    def factory(mux, mount, notify):
+        captured.update(mux=mux, mount=mount, notify=notify)
+        return _Ops()
+
+    mux = attach_fleet_loader(mcp, catalog_reader=_NeverRead(), ops_factory=factory)
+    assert captured["mux"] is mux
+    calls = []
+
+    async def governed(arguments, caller):
+        calls.append((arguments, caller.subject))
+        return {"ok": True}
+
+    item = CatalogItem(
+        id="s__tool",
+        kind="tool",
+        name="tool",
+        server="s",
+        schema={"type": "object", "properties": {"value": {"type": "integer"}}},
+    )
+    await captured["mount"](item, governed)
+    assert "s__tool" in mux._exposed
+    with fleet_session("mcp:delegate"):
+        tool = await mcp.get_tool("s__tool")
+        assert await tool.fn(value=7) == {"ok": True}
+    assert calls[0][0] == {"value": 7}
 
 
 def test_loaded_native_tool_is_scoped_to_one_session(tmp_path):
