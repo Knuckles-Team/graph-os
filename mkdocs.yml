@@ -38,6 +38,7 @@ nav:
       - Browser control: browser-control-service.md
   - Operate:
       - Deployment and configuration: deployment.md
+      - Identity and authentication: identity.md
       - Capability status: status.md
       - Quality gate terms: quality-gate-terms.md
   - Glossary: glossary.md

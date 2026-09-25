@@ -77,6 +77,9 @@ Read [identity-and-access.md](references/identity-and-access.md) before
 choosing or changing any identity setting, and
 [secrets-and-federation.md](references/secrets-and-federation.md) before
 choosing a secrets backend or connecting an external database.
+The public `docs/identity.md` runbook in the Graph OS source distribution gives
+the train 7 first-boot and browser acceptance sequence. A site overlay supplies concrete
+hosts, trust roots and secret references; this skill does not.
 
 ### 3. Preflight and plan
 
@@ -128,6 +131,11 @@ end. It probes the **browser sign-in path**, the MCP session, the API control
 plane, a delegated tool call, the engine store across a restart, and the
 policy/secret wiring. Health endpoints alone never verify a deployment. Record
 profile, component status, evidence and remaining operator actions.
+For a train 7 identity cutover, verify local user sign-in and MFA before the
+external transition. After transition, verify the OIDC browser redirect and
+callback plus the MFA-protected local break-glass sign-in. Fetch `/auth/session`
+with each resulting browser cookie and check the server-resolved principal and
+role. A successful discovery document or service token is insufficient.
 
 ### 7. Upgrade, migrate or recover
 
