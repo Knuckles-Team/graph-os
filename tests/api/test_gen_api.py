@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -127,3 +128,78 @@ def test_openapi_embeds_eg_schema_and_rewrites_local_refs(tmp_path: Path) -> Non
     assert result["components"]["schemas"]["EgMethodRequest"]["methods"]["Create"] == {
         "$ref": "#/components/schemas/EgMethodRequest/$defs/Payload"
     }
+
+
+def _eg_compat_registry(root: Path, *, required_limit: bool, answer: bool) -> dict:
+    root.mkdir(parents=True)
+    request = {
+        "$defs": {
+            "Params": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["text", "limit"] if required_limit else ["text"],
+            }
+        },
+        "methods": {"Uql": {"properties": {"params": {"$ref": "#/$defs/Params"}}}},
+    }
+    response = {
+        "$defs": {
+            "Result": {
+                "type": "object",
+                "properties": {"answer": {"type": "string"}} if answer else {},
+            }
+        },
+        "methods": {
+            "Uql": {"bodies": {"result": {"schema": {"$ref": "#/$defs/Result"}}}}
+        },
+    }
+    registry = _registry()
+    registry["ops"][0]["stability"] = "stable"
+    for field, name, document in (
+        ("params", "method.request.json", request),
+        ("result", "result.query.json", response),
+    ):
+        path = root / name
+        path.write_text(json.dumps(document))
+        canonical = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
+        registry["ops"][0][field] = {
+            "eg_schema": f"contract/schemas/{name}#/methods/Uql",
+            "schema_sha256": hashlib.sha256(canonical).hexdigest(),
+        }
+    gen_api._snapshot_eg_schemas(registry, root.parent)
+    return registry
+
+
+def test_compat_resolves_eg_refs_and_detects_nested_breaks(tmp_path: Path) -> None:
+    baseline = _eg_compat_registry(
+        tmp_path / "before" / "schemas", required_limit=False, answer=True
+    )
+    candidate = _eg_compat_registry(
+        tmp_path / "after" / "schemas", required_limit=True, answer=False
+    )
+    changes = gen_api._breaking_changes(baseline, candidate)
+    assert any("new required params params.params" in change for change in changes)
+    assert any("removed result fields" in change for change in changes)
+
+
+def test_compat_fails_closed_when_eg_schema_hash_is_stale(tmp_path: Path) -> None:
+    registry = _eg_compat_registry(
+        tmp_path / "contract" / "schemas", required_limit=False, answer=True
+    )
+    registry["ops"][0]["params"]["schema_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="EG schema digest changed"):
+        gen_api._snapshot_eg_schemas(registry, tmp_path / "contract")
+
+
+def test_compat_requires_review_for_unclassified_eg_schema_change(
+    tmp_path: Path,
+) -> None:
+    baseline = _eg_compat_registry(
+        tmp_path / "contract" / "schemas", required_limit=False, answer=True
+    )
+    candidate = json.loads(json.dumps(baseline))
+    candidate["ops"][0]["params"]["schema_sha256"] = "1" * 64
+    assert "review required" in " ".join(gen_api._breaking_changes(baseline, candidate))

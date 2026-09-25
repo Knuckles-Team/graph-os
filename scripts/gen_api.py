@@ -41,7 +41,76 @@ def _registry(module_name: str) -> dict[str, Any]:
     if not document.get("ops"):
         raise ValueError("refusing to generate an empty API registry")
     document["registry_digest"] = registry.digest
+    _snapshot_eg_schemas(document)
     return document
+
+
+def _pointer(document: Any, reference: str) -> Any:
+    if not reference.startswith("/"):
+        raise ValueError(f"invalid EG schema pointer: {reference!r}")
+    value = document
+    for token in reference.lstrip("/").split("/"):
+        token = token.replace("~1", "/").replace("~0", "~")
+        if not isinstance(value, dict) or token not in value:
+            raise ValueError(f"missing EG schema pointer: {reference!r}")
+        value = value[token]
+    return value
+
+
+def _resolve_local_refs(value: Any, document: dict, seen: frozenset[str]) -> Any:
+    if isinstance(value, list):
+        return [_resolve_local_refs(item, document, seen) for item in value]
+    if not isinstance(value, dict):
+        return value
+    reference = value.get("$ref")
+    if isinstance(reference, str) and reference.startswith("#/"):
+        if reference in seen:
+            return value
+        target = _pointer(document, reference[1:])
+        resolved = _resolve_local_refs(target, document, seen | {reference})
+        siblings = {key: item for key, item in value.items() if key != "$ref"}
+        if not siblings:
+            return resolved
+        return {**resolved, **_resolve_local_refs(siblings, document, seen)}
+    return {
+        key: _resolve_local_refs(item, document, seen) for key, item in value.items()
+    }
+
+
+def _snapshot_eg_schemas(
+    registry: dict[str, Any], contract_root: Path | None = None
+) -> None:
+    """Embed selected EG schema shapes for baseline compatibility comparison."""
+    root = contract_root or Path(
+        str(importlib.resources.files("epistemic_graph") / "contract")
+    )
+    documents: dict[Path, dict] = {}
+    for op in registry["ops"]:
+        for field in ("params", "result"):
+            spec = op[field]
+            reference = spec.get("eg_schema")
+            if reference is None:
+                continue
+            filename, separator, pointer = reference.partition("#")
+            if not separator or not filename.startswith("contract/schemas/"):
+                raise ValueError(f"invalid EG schema reference: {reference!r}")
+            relative = Path(filename.removeprefix("contract/"))
+            if ".." in relative.parts:
+                raise ValueError(f"EG schema leaves contract: {reference!r}")
+            if relative not in documents:
+                documents[relative] = json.loads((root / relative).read_bytes())
+            document = documents[relative]
+            canonical = json.dumps(
+                document, sort_keys=True, separators=(",", ":")
+            ).encode()
+            if hashlib.sha256(canonical).hexdigest() != spec.get("schema_sha256"):
+                raise ValueError(
+                    f"EG schema digest changed during generation: {reference}"
+                )
+            selected = _pointer(document, pointer)
+            spec["schema_snapshot"] = _resolve_local_refs(
+                selected, document, frozenset()
+            )
 
 
 def _engine_errors(path: Path) -> bytes:
@@ -298,6 +367,45 @@ def generate(registry: dict[str, Any], errors_path: Path) -> dict[Path, bytes]:
     }
 
 
+def _shape(spec: dict[str, Any], *, result: bool) -> dict[str, Any]:
+    shape = spec.get("schema", spec.get("schema_snapshot", {}))
+    if result and "bodies" in shape:
+        return shape.get("bodies", {}).get("result", {}).get("schema", {})
+    return shape
+
+
+def _shape_breaks(
+    old: dict[str, Any], new: dict[str, Any], *, path: str, result: bool
+) -> list[str]:
+    changes: list[str] = []
+    required = set(new.get("required", [])) - set(old.get("required", []))
+    if not result and required:
+        changes.append(f"new required params {path}: {sorted(required)}")
+    old_props = old.get("properties", {})
+    new_props = new.get("properties", {})
+    removed = set(old_props) - set(new_props)
+    if removed:
+        kind = "result fields" if result else "params"
+        changes.append(f"removed {kind} {path}: {sorted(removed)}")
+    old_enum, new_enum = old.get("enum"), new.get("enum")
+    if old_enum and new_enum and not set(old_enum) <= set(new_enum):
+        changes.append(f"narrowed enum {path}")
+    old_type, new_type = old.get("type"), new.get("type")
+    allows_numeric_widening = not result and (old_type, new_type) == (
+        "integer",
+        "number",
+    )
+    if old_type != new_type and not allows_numeric_widening:
+        changes.append(f"changed type {path}")
+    for name in old_props.keys() & new_props.keys():
+        changes.extend(
+            _shape_breaks(
+                old_props[name], new_props[name], path=f"{path}.{name}", result=result
+            )
+        )
+    return changes
+
+
 def _breaking_changes(before: dict[str, Any], after: dict[str, Any]) -> list[str]:
     """Identify contract changes that existing stable callers cannot absorb."""
     current = {op["id"]: op for op in after["ops"]}
@@ -310,37 +418,23 @@ def _breaking_changes(before: dict[str, Any], after: dict[str, Any]) -> list[str
         if updated is None:
             changes.append(f"{op_id}: removed")
             continue
-        old_params = previous["params"].get("schema", {})
-        new_params = updated["params"].get("schema", {})
-        required = set(new_params.get("required", [])) - set(
-            old_params.get("required", [])
-        )
-        if required:
-            changes.append(f"{op_id}: new required params {sorted(required)}")
-        old_props = old_params.get("properties", {})
-        new_props = new_params.get("properties", {})
-        removed_params = set(old_props) - set(new_props)
-        if removed_params:
-            changes.append(f"{op_id}: removed params {sorted(removed_params)}")
-        for name in old_props.keys() & new_props.keys():
-            old_enum = old_props[name].get("enum")
-            new_enum = new_props[name].get("enum")
-            if old_enum and new_enum and not set(old_enum) <= set(new_enum):
-                changes.append(f"{op_id}: narrowed param enum {name}")
-            old_type = old_props[name].get("type")
-            new_type = new_props[name].get("type")
-            if old_type != new_type and (old_type, new_type) != (
-                "integer",
-                "number",
-            ):
-                changes.append(f"{op_id}: changed param type {name}")
-        old_result = previous["result"].get("schema", {})
-        new_result = updated["result"].get("schema", {})
-        removed = set(old_result.get("properties", {})) - set(
-            new_result.get("properties", {})
-        )
-        if removed:
-            changes.append(f"{op_id}: removed result fields {sorted(removed)}")
+        for field in ("params", "result"):
+            old_spec, new_spec = previous[field], updated[field]
+            old_shape = _shape(old_spec, result=field == "result")
+            new_shape = _shape(new_spec, result=field == "result")
+            findings = _shape_breaks(
+                old_shape, new_shape, path=field, result=field == "result"
+            )
+            changes.extend(f"{op_id}: {finding}" for finding in findings)
+            old_hash, new_hash = (
+                old_spec.get("schema_sha256"),
+                new_spec.get("schema_sha256"),
+            )
+            if (old_hash is not None or new_hash is not None) and old_hash != new_hash:
+                if not findings:
+                    changes.append(
+                        f"{op_id}: EG {field} schema changed; review required"
+                    )
     return changes
 
 
