@@ -106,14 +106,47 @@ class OperationProjection:
         code = result.code
         details = result.details
         if code in {"CONFIRMATION_REQUIRED", "STEP_UP_REQUIRED"}:
-            # The caller must answer with graphos.plan/confirm or visit the
-            # human console. A2A never performs a console confirmation.
+            # Only a PLAN confirmation can return to this authenticated A2A
+            # caller. The EG lease independently binds these exact parameters
+            # and will reject a changed op, actor, tenant, or policy revision.
+            # A CONSOLE confirmation always stays with the human console.
+            plan_ref = details.get("plan_ref") if details else None
+            if not isinstance(plan_ref, str) or not plan_ref:
+                return OperationReply(code="UNAVAILABLE", refused=True)
+            metadata: dict[str, Any] = {}
+            if code == "CONFIRMATION_REQUIRED":
+                metadata["graphOsPlan"] = {
+                    "plan_ref": plan_ref,
+                    "op": parsed.op,
+                    "params": parsed.params,
+                    "confirm": "plan",
+                }
+            elif details.get("console_url") == f"/console/confirm/{plan_ref}":
+                metadata["graphOsConsoleUrl"] = details["console_url"]
             return OperationReply(
                 value={
                     "state": "input-required",
                     "code": code,
-                    "plan_ref": details["plan_ref"],
+                    "plan_ref": plan_ref,
                     "preview": dict(details),
+                    "status": {
+                        "state": "input-required",
+                        "message": {
+                            "role": "agent",
+                            "parts": [
+                                {
+                                    "kind": "text",
+                                    "text": (
+                                        "Open the console to confirm"
+                                        if code == "STEP_UP_REQUIRED"
+                                        else "Confirmation required"
+                                    ),
+                                }
+                            ],
+                            "messageId": plan_ref,
+                            "metadata": metadata,
+                        },
+                    },
                 },
                 code=code,
             )
