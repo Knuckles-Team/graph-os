@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from graph_os.api.invoke.eg_audit import EgAuditAdapter
 from graph_os.api.invoke.executor import (
     BoundOperationRuntime,
     ClientFactory,
@@ -18,7 +19,6 @@ from graph_os.api.invoke.executor import (
     ServiceClaims,
     SubjectCheck,
 )
-from graph_os.api.invoke.eg_audit import EgAuditAdapter
 from graph_os.api.invoke.pipeline import (
     AuditPreflight,
     AuditWrite,
@@ -53,6 +53,7 @@ class ServingPorts:
     schema_validate: SchemaValidate
     fleet_effect: FleetEffect
     bindings: Mapping[str, Any]
+    context_endpoint_export: Callable[[], Awaitable[tuple[Any, Any]]] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,6 +164,8 @@ def _validate_ports(ports: ServingPorts, registry: Registry) -> None:
         raise ValueError("serving port policy_gate is unavailable")
     if not isinstance(ports.bindings, Mapping):
         raise ValueError("serving port bindings is unavailable")
+    if registry.get("harness.context_endpoint") is not None:
+        _require_callable(ports.context_endpoint_export, "context_endpoint_export")
     if not isinstance(ports.service_scopes, frozenset):
         raise ValueError("serving port service_scopes is unavailable")
     if not isinstance(ports.plan_seal_key, bytes) or len(ports.plan_seal_key) != 32:
@@ -194,6 +197,10 @@ def build_invoke_services(ports: ServingPorts) -> InvokeServices:
     bindings = dict(ports.bindings)
     if "invoke_services" in bindings:
         raise ValueError("invoke_services is reserved for the serving root")
+    if "context_endpoint_export" in bindings:
+        raise ValueError("context_endpoint_export is reserved for the serving root")
+    if ports.context_endpoint_export is not None:
+        bindings["context_endpoint_export"] = ports.context_endpoint_export
     bindings["invoke_services"] = None
     runtime = BoundOperationRuntime(
         caller_client=ports.caller_client,

@@ -8,13 +8,13 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from graph_os.api.policy import PolicyGate, PolicyUnavailable
-from graph_os.api.registry import Surface, Verb
 from pydantic import BaseModel
 
 from graph_os.api.mcp.discovery import find_visible
 from graph_os.api.mcp.resources import operation_spec, registry_index
 from graph_os.api.mcp.verbs import PARAMETERS, MCPProjection, dispatch_verb, make_verb
+from graph_os.api.policy import PolicyGate, PolicyUnavailable
+from graph_os.api.registry import Effect, Surface, Verb
 
 
 class Input(BaseModel):
@@ -199,6 +199,47 @@ def test_natural_language_write_uses_preview_path(
     )
     assert received["resolved_from_intent"] is True
     assert result["meta"]["plan"]["plan_ref"] == "bound-plan"
+
+
+def test_exact_find_operation_uses_governed_invoke_and_preview_stays_discovery(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import graph_os.api.invoke as invoke_module
+
+    calls: list[tuple[str, dict[str, str]]] = []
+
+    async def invoke(op: str, params: Any, *_args: Any, **_kwargs: Any) -> Any:
+        calls.append((op, dict(params)))
+        return invoke_module.OpResult(value={"schema": "available"})
+
+    monkeypatch.setattr(invoke_module, "invoke", invoke)
+    spec = _op("query.sql_schema", Verb.FIND, "read")
+    spec.effect = Effect.READ
+    projection = _projection(Registry(spec))
+
+    executed = asyncio.run(
+        dispatch_verb(
+            "find", projection, op="query.sql_schema", params={"value": "users"}
+        )
+    )
+    assert executed["result"] == {"schema": "available"}
+    assert calls == [("query.sql_schema", {"value": "users"})]
+
+    preview = asyncio.run(
+        dispatch_verb("find", projection, op="query.sql_schema", execute=False)
+    )
+    assert preview["ok"] is True
+    assert calls == [("query.sql_schema", {"value": "users"})]
+
+    other = asyncio.run(
+        dispatch_verb(
+            "find",
+            _projection(Registry(_op("things.read", Verb.ASK, "read"))),
+            op="things.read",
+        )
+    )
+    assert other["ok"] is True
+    assert calls == [("query.sql_schema", {"value": "users"})]
 
 
 def test_resources_filter_operation_schemas_by_caller_authority() -> None:

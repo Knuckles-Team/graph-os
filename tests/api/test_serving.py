@@ -89,7 +89,9 @@ def ports(calls: list[tuple[str, str]]) -> serving.ServingPorts:
     async def audit(event: Any, audit_class: Any, actor: VerifiedCaller) -> None:
         calls.append(("audit", str(audit_class)))
 
-    async def audit_preflight(event: Any, audit_class: Any, actor: VerifiedCaller) -> str:
+    async def audit_preflight(
+        event: Any, audit_class: Any, actor: VerifiedCaller
+    ) -> str:
         calls.append(("audit_preflight", str(audit_class)))
         return "audit:durable:1"
 
@@ -176,6 +178,95 @@ def test_missing_ports_and_service_grants_fail_before_serving(
     monkeypatch.setattr(serving, "get_registry", lambda: Registry([service_op]))
     with pytest.raises(ValueError, match="service grants unavailable"):
         serving.build_invoke_services(basic)
+
+
+def test_harness_endpoint_requires_export_port_before_serving(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from graph_os.api.ops.harness import specs
+
+    monkeypatch.setattr(serving, "get_registry", lambda: Registry(specs()))
+    basic = ports([])
+    with pytest.raises(ValueError, match="context_endpoint_export"):
+        serving.build_invoke_services(basic)
+
+    async def export() -> tuple[object, object]:
+        return object(), object()
+
+    services = serving.build_invoke_services(
+        replace(basic, context_endpoint_export=export)
+    )
+    assert services.runtime.bindings["context_endpoint_export"] is export
+
+
+@pytest.mark.asyncio
+async def test_harness_endpoint_invokes_only_for_scoped_service_caller(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from agent_utilities.layers.contracts import McpEndpoint
+
+    from graph_os.api.harness_context import ContextCapabilityProof
+    from graph_os.api.ops.harness import specs
+
+    monkeypatch.setattr(serving, "get_registry", lambda: Registry(specs()))
+
+    async def export() -> tuple[McpEndpoint, ContextCapabilityProof]:
+        return (
+            McpEndpoint(
+                name="epistemic-graph-context",
+                url="https://graph.example/mcp",
+                bearer_ref="env://GRAPHOS_CONTEXT_TOKEN",
+            ),
+            ContextCapabilityProof(
+                endpoint_url="https://graph.example/mcp",
+                registry_digest="a" * 64,
+                tools=frozenset({"find", "ask"}),
+                operations=frozenset({"context.view", "query.uql"}),
+            ),
+        )
+
+    services = serving.build_invoke_services(
+        replace(ports([]), context_endpoint_export=export)
+    )
+
+    def caller(kind: str, scopes: frozenset[str]) -> VerifiedCaller:
+        return VerifiedCaller(
+            principal="svc:agent-utilities" if kind == "service" else "user:1",
+            tenant="t1",
+            principal_kind=kind,
+            effective_scopes=scopes,
+            engine_claims={
+                "principal": "svc:agent-utilities" if kind == "service" else "user:1",
+                "tenant": "t1",
+                "scopes": sorted(scopes),
+            },
+        )
+
+    granted = frozenset({"mcp:discover", "mcp:delegate"})
+    allowed = await invoke(
+        "harness.context_endpoint",
+        {},
+        caller("service", granted),
+        Surface.HTTP,
+        services=services,
+    )
+    assert allowed.value["endpoint"]["bearer_ref"] == "env://GRAPHOS_CONTEXT_TOKEN"
+    human = await invoke(
+        "harness.context_endpoint",
+        {},
+        caller("human", granted),
+        Surface.HTTP,
+        services=services,
+    )
+    assert human.code == "PRINCIPAL_NOT_ALLOWED"
+    missing_scope = await invoke(
+        "harness.context_endpoint",
+        {},
+        caller("service", frozenset({"mcp:discover"})),
+        Surface.HTTP,
+        services=services,
+    )
+    assert missing_scope.code == "SCOPE_REQUIRED"
 
 
 def test_missing_generated_registry_stops_assembly(

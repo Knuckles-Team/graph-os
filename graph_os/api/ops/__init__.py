@@ -22,6 +22,7 @@ CURATED_SOURCES = (
     ("finance", "specs"),
     ("fleet", "operations"),
     ("graph", "specs"),
+    ("harness", "specs"),
     ("ingest", "specs"),
     ("markets", "specs"),
     ("memory", "specs"),
