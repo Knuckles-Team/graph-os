@@ -55,6 +55,7 @@ nav:
       - Multi-tenant streamable HTTP: architecture/multi-tenant-streamable-http.md
   - Operate:
       - Deployment and configuration: deployment.md
+      - Identity and authentication: identity.md
       - Capability status: status.md
       - Quality gate terms: quality-gate-terms.md
   - Reference:
