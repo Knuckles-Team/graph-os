@@ -81,6 +81,10 @@ def test_registry_rejects_duplicate_wire_identity() -> None:
         Registry([make_op(), make_op()])
 
 
+def test_eg_generated_method_id_preserves_contract_case() -> None:
+    assert make_op("eg.query.Uql").id == "eg.query.Uql"
+
+
 def test_discovery_requires_principal_scopes_policy_and_surface() -> None:
     op = make_op()
     registry = Registry([op])

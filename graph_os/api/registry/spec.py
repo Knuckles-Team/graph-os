@@ -135,8 +135,10 @@ class OpSpec(BaseModel):
     @field_validator("id")
     @classmethod
     def _valid_id(cls, value: str) -> str:
-        if not re.fullmatch(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+", value):
-            raise ValueError("operation id must be a stable dotted lowercase name")
+        if not re.fullmatch(
+            r"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+", value
+        ):
+            raise ValueError("operation id must be a stable dotted name")
         return value
 
     @field_validator("examples")
