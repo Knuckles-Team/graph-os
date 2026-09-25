@@ -177,14 +177,20 @@ class DecideComposition:
     bindings: RefreshingBindings
     refresher: Any
     authority: MutationAuthority
+    #: The swarm-topology catalog (templates + capacity scope), when installed.
+    topology: Any = None
 
     def uninstall(self) -> None:
         from agent_utilities import decide
         from agent_utilities.decide.consumers.assembly import install_assembler
+        from agent_utilities.decide.consumers.topology import install_topology
 
         self.refresher.cancel()
+        if self.topology is not None and self.topology.refresher is not None:
+            self.topology.refresher.cancel()
         decide.install_runner(None)
         install_assembler(None)
+        install_topology(None)
         _INSTALLED[0] = None
         self.loop.stop()
 
@@ -195,6 +201,23 @@ _INSTALLED: list[DecideComposition | None] = [None]
 def current_decide() -> DecideComposition | None:
     """The installed composition, or ``None`` (every call site falls back)."""
     return _INSTALLED[0]
+
+
+def _topology_catalog() -> Any:
+    from graph_os.decide_topology import TopologyCatalog
+
+    return TopologyCatalog()
+
+
+def _install_topology(composition: DecideComposition, interval_s: float) -> None:
+    """Bind AU's swarm-topology asker (ST-9); a failure keeps topology
+    questions unanswered (they abstain upward), never the rest of Decide."""
+    from graph_os.decide_topology import install_topology_asker
+
+    try:
+        install_topology_asker(composition, composition.topology, interval_s)
+    except (RuntimeError, TimeoutError, ValueError) as exc:
+        logger.warning("topology asker not installed (%s)", type(exc).__name__)
 
 
 def install_decide(
@@ -233,8 +256,9 @@ def install_decide(
         bindings.refresh_forever(interval), loop.loop
     )
     composition = DecideComposition(
-        runner, assembler, loop, bindings, refresher, authority
+        runner, assembler, loop, bindings, refresher, authority, _topology_catalog()
     )
+    _install_topology(composition, interval)
     _INSTALLED[0] = composition
     logger.info(
         "Decide installed for tenant: %d of %d points bound",

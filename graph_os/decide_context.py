@@ -44,6 +44,11 @@ class MutationAuthority:
         self._session = session
         self._policy = policy
 
+    @property
+    def principal(self) -> str:
+        """The session's opaque principal: EG's owner digest for its leases."""
+        return _opaque_principal(str(self._session.actor.actor_id))
+
     def _receipt(self, kind: str, target: str) -> Any:
         from agent_utilities.orchestration.action_policy import ActionRequest
 

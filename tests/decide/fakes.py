@@ -20,20 +20,34 @@ def record(outcome: str, digest: str = "d" * 64) -> dict[str, Any]:
     }
 
 
+def _agent(agent_id: str, tools: tuple[str, ...]) -> Any:
+    from epistemic_graph.generated.decision import AgentLibraryEntryDraft
+
+    return AgentLibraryEntryDraft.model_construct(
+        agent_id=agent_id,
+        version="1",
+        tools=[{"component_id": t, "kind": "tool"} for t in tools],
+    )
+
+
 def solved(
-    agent_id: str = "agent-a", tools: tuple[str, ...] = ("tool-x",)
+    agent_id: str = "agent-a",
+    tools: tuple[str, ...] = ("tool-x",),
+    *more_agents: str,
 ) -> dict[str, Any]:
-    return {
-        "record": record("solved"),
-        "graph": {"graph_id": "graph-a", "version": "1"},
-        "agents": [
-            {
-                "agent_id": agent_id,
-                "version": "1",
-                "tools": [{"component_id": t} for t in tools],
-            }
-        ],
-    }
+    """A REAL generated ``AssemblyResult`` (every slot's agent in ``agents``),
+    as the L3 client hands it to AU: its JSON dump (EH-475 -- a dict fake with
+    a singular ``agent`` key hid that the real field is the ``agents`` list)."""
+    from epistemic_graph.generated.decision import AssemblyResult
+
+    agents = [_agent(agent_id, tools), *(_agent(extra, ()) for extra in more_agents)]
+    result = AssemblyResult.model_construct(
+        schema_version=1,
+        record=record("solved"),
+        graph={"graph_id": "graph-a", "version": "1"},
+        agents=agents,
+    )
+    return result.model_dump(mode="json", exclude_none=True)
 
 
 def abstained() -> dict[str, Any]:

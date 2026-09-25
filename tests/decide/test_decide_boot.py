@@ -89,12 +89,18 @@ def test_boot_installs_and_uninstalls_the_runner_and_assembler(
 ) -> None:
     from agent_utilities import decide
     from agent_utilities.decide import StaticBindings
-    from agent_utilities.decide.consumers import assembly
+    from agent_utilities.decide.consumers import assembly, topology
+
+    from graph_os.decide_topology import TopologyCatalog
 
     async def no_bindings(components: Any, tenant: str) -> Any:
         return StaticBindings({})
 
+    async def empty_catalog(self: TopologyCatalog, graphs: Any, tenant: str) -> bool:
+        return True
+
     monkeypatch.setattr(graphos_decide, "resolve_bindings", no_bindings)
+    monkeypatch.setattr(TopologyCatalog, "refresh", empty_catalog)
     composition = graphos_decide.install_decide(
         SimpleNamespace(), session(), _Policy(allowed=True)
     )
@@ -105,10 +111,13 @@ def test_boot_installs_and_uninstalls_the_runner_and_assembler(
         assert runner.bindings is composition.bindings
         assert not composition.refresher.done()
         assert assembly._INSTALLED[0] is not None
+        assert topology._INSTALLED[0] is not None, "the topology asker is bound"
+        assert composition.topology is not None
         assert graphos_decide.current_decide() is composition
     finally:
         composition.uninstall()
     assert decide.current_runner() is None
+    assert topology._INSTALLED[0] is None
     assert graphos_decide.current_decide() is None
 
 

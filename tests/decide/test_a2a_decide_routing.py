@@ -91,6 +91,21 @@ async def test_a_solved_route_is_committed_and_published_with_its_evidence(
     assert kinds == ["agent_library_publish", "agent_graph_publish"]
 
 
+async def test_every_slot_agent_of_a_real_assembly_result_is_published(
+    published_agents: list[dict[str, Any]],
+) -> None:
+    """EH-475: a multi-slot result keeps ALL its agents (``agents`` list)."""
+    decide = composition(solved("agent-lead", ("tool-x",), "agent-worker"))
+    decision = await DecideA2ARouter(_Inner(), lambda: decide).route(
+        _message(["cap:incident"]), context_budget_tokens=None
+    )
+    assert decision.agent_name == "agent-lead"
+    assert [op["request"]["entry"]["agent_id"] for op in published_agents] == [
+        "agent-lead",
+        "agent-worker",
+    ]
+
+
 async def test_a_failed_publish_keeps_the_committed_route(
     published_agents: list[dict[str, Any]],
 ) -> None:
