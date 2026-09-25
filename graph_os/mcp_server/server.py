@@ -142,7 +142,7 @@ def _preflight_mcp_sdk_floor() -> None:
 
 
 def _attach_fleet_runtime(mcp: Any, fleet_catalog_reader: Any) -> Any:
-    """Attach the mandatory fleet surface or fail before serving."""
+    """Attach the four governed multiplexer tools or fail before serving."""
 
     try:
         from graph_os.fleet.multiplexer import attach_fleet_loader
@@ -152,25 +152,22 @@ def _attach_fleet_runtime(mcp: Any, fleet_catalog_reader: Any) -> Any:
             catalog_reader=fleet_catalog_reader,
             embed_fn=_fleet_embed_fn(),
             authority_scope=runtime.verified_tool_session_scope,
+            ops_factory=runtime.fleet_ops_factory(),
         )
     except Exception as exc:
         raise RuntimeError(
-            "graph-os fleet loader attach failed: the fleet meta-tools "
-            "(find_tools/list_catalog/load_tools/unload_tools/multiplexer_status) "
-            "and the session-visibility middleware could not be registered, so the "
-            "served tool surface would be wrong under every MCP_TOOL_MODE."
+            "graph-os fleet loader attach failed: the four resident multiplexer "
+            "tools and session visibility middleware are required."
         ) from exc
 
 
 def mcp_server() -> None:
     """``graph-os`` MCP server entry point (registered as console_scripts).
 
-    Thin FastMCP wrapper following the standard ``mcp_server.py`` template: it
-    serves ONLY the MCP tool surface, over ``stdio`` or ``streamable-http``,
+    FastMCP wrapper over the operation registry and governed fleet. It serves
+    over ``stdio`` or ``streamable-http``,
     selected by the standard ``--transport/--host/--port`` args
-    from :func:`create_mcp_server`. The REST API (``/graph/*``, ``/sessions``,
-    ``/goals``, ``/tools``) is centralized in the API gateway
-    (:mod:`graph_os.gateway`) — see :func:`_mount_rest_routes`.
+    from :func:`create_mcp_server`. HTTP operations are under ``/api/v1``.
     """
     from agent_utilities.core.config import load_config
 
@@ -190,25 +187,10 @@ def mcp_server() -> None:
     for middleware in middlewares:
         mcp.add_middleware(middleware)
 
-    # Fold in the MCP fleet-loader (retires the standalone mcp-multiplexer): graph-os's
-    # own tools stay always-on; this adds find_tools/load_tools/... so the SAME server
-    # reaches the rest of the MCP fleet on demand. Attached AFTER the factory middlewares
-    # so per-session tool visibility runs with identity/auth already applied. Only for a
-    # directly-served process — the embedded API-gateway build owns no serving loop.
-    # The five meta-tools this attaches (find_tools/list_catalog/load_tools/
-    # unload_tools/multiplexer_status) plus the
-    # session-visibility middleware are
-    # MODE-INDEPENDENT infrastructure — they are the only way to reach anything
-    # the active MCP_TOOL_MODE holds back, so they must be present under intent,
-    # condensed, verbose AND both. A failure here is therefore NOT survivable:
-    # the previous `except Exception: logger.error(...)` downgraded it to a log
-    # line and served a silently wrong surface (an SDK-rename ImportError in
-    # child_resilience left graph-os exposing 118 ungated tools with no
-    # load_tools at all). Fail loud, preserving __cause__.
-    # CONCEPT:AU-ECO.mcp.fleet-meta-tools-always-on
-    # Inject graph-os's own embedding model so find_tools ranks fleet tools by
-    # query↔description MEANING (semantic), not just literal token overlap.
+    # The fleet adapter adds only four resident projections. The six intent
+    # tools are registered in runtime._build_server; both groups are required.
     fleet_mux = _attach_fleet_runtime(mcp, fleet_catalog_reader)
+    runtime.verify_resident_tools(mcp)
 
     transport = getattr(args, "transport", "stdio")
     host = getattr(args, "host", "127.0.0.1")
@@ -305,19 +287,6 @@ def mcp_server() -> None:
                     multiplexer=fleet_mux,
                 )
             )
-
-            from graph_os.mcp_server.agent_control import register_graph_rlm
-
-            def client_for_session(session: Any) -> Any:
-                claims = session.engine_verified_context()
-                return runtime.graph_client(str(claims["tenant"]))
-
-            register_graph_rlm(
-                mcp,
-                client_for_session=client_for_session,
-            )
-            # Unknown tools are denied (EH-629): admit this late native tool.
-            fleet_mux.admit_native_tools(mcp)
 
             # Decide consumers (decide-consumers contract): install AU's
             # runner and assembler for the process tenant now that a verified

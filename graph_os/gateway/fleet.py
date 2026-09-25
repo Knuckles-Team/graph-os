@@ -641,22 +641,11 @@ async def fleet_touched(request: Request) -> JSONResponse:
 
 
 def mount_fleet_routes(app, prefix: str = "") -> None:
-    """Mount the supervisory plane onto a Starlette/FastAPI ``app``."""
-    # Webhook ingress for monitoring events (CONCEPT:AU-OS.config.fleet-event-ingress) —
-    # sibling module
-    # so alert normalization/persistence stays out of the supervisory handlers.
+    """Mount only the signed fleet webhook protocol endpoint.
+
+    Supervisory reads and actions are operation-registry entries under
+    ``/api/v1``. They are never served through the retired ``/fleet/*`` paths.
+    """
     from graph_os.gateway.fleet_events import fleet_events_receive
 
-    def route(path: str, handler, methods: list[str]) -> None:
-        app.add_route(prefix + path, handler, methods=methods)
-
-    route("/fleet/health", fleet_health, ["GET"])
-    route("/fleet/events", fleet_events_receive, ["POST"])
-    route("/fleet/topology", fleet_topology, ["GET"])
-    route("/fleet/pause", fleet_pause, ["POST"])
-    route("/fleet/kill", fleet_kill, ["POST"])
-    route("/fleet/approvals", fleet_approvals, ["GET"])
-    route("/fleet/approvals/grant", fleet_grant_approval, ["POST"])
-    route("/fleet/actions/verify", fleet_verify_action, ["POST"])
-    route("/fleet/trace", fleet_trace, ["GET"])
-    route("/fleet/touched", fleet_touched, ["GET"])
+    app.add_route(prefix + "/fleet/events", fleet_events_receive, methods=["POST"])

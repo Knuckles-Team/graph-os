@@ -12,7 +12,6 @@ from typing import Any
 
 from graph_os.gateway.ports import configure_gateway_application
 from graph_os.mcp_server import runtime
-from graph_os.mcp_server.routes import mount_rest_routes
 from graph_os.messaging.intake import start_messaging_intake
 from graph_os.webui_host import run_web_ui
 
@@ -165,7 +164,13 @@ class NativeGatewayApplication:
         runtime.ensure_tools_registered()
 
     def mount_rest_routes(self, app: Any, *, prefix: str) -> None:
-        mount_rest_routes(app, prefix=prefix)
+        from graph_os.api.http.app import create_api_application
+
+        projection, visibility = runtime.served_api()
+        app.mount(
+            "/api/v1",
+            create_api_application(services=projection.services, visibility=visibility),
+        )
 
 
 def install_gateway_application() -> NativeGatewayApplication:
