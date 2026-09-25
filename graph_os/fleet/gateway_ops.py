@@ -87,24 +87,65 @@ class FleetGateway:
         tool_for: ToolFor,
         policy_check: PolicyCheck,
         delegated_call: DelegatedCall,
+        catalog_ops: Any | None = None,
     ) -> None:
         self._tool_for = tool_for
         self._policy_check = policy_check
         self._delegated_call = delegated_call
+        self._catalog_ops = catalog_ops
+
+    def _catalog(
+        self, caller: Any, scope: str, *, session_required: bool = False
+    ) -> Any:
+        if scope not in caller.effective_scopes:
+            raise PermissionError(f"{scope} is required")
+        if session_required and caller.session is None:
+            raise PermissionError("verified fleet session is required")
+        if self._catalog_ops is None:
+            raise RuntimeError("fleet catalog operations are not bound")
+        return self._catalog_ops
+
+    async def search(self, caller: Any, **params: Any) -> Any:
+        return await self._catalog(caller, "mcp:discover").search(caller, **params)
+
+    async def list(self, caller: Any, **params: Any) -> Any:
+        return await self._catalog(caller, "mcp:discover").list(caller, **params)
+
+    async def status(self, caller: Any, **params: Any) -> Any:
+        return await self._catalog(caller, "mcp:discover").status(caller, **params)
+
+    async def load(self, caller: Any, **params: Any) -> Any:
+        return await self._catalog(caller, "mcp:delegate", session_required=True).load(
+            caller, **params
+        )
+
+    async def unload(self, caller: Any, **params: Any) -> Any:
+        if not any(
+            (
+                params.get("items"),
+                params.get("servers"),
+                params.get("kinds"),
+                params.get("all_items"),
+            )
+        ):
+            raise ValueError("unload requires a target")
+        return await self._catalog(
+            caller, "mcp:delegate", session_required=True
+        ).unload(caller, **params)
 
     async def effect(
         self, _op: Any, params: Mapping[str, Any], caller: Any
     ) -> tuple[Effect, Confirm, PrincipalRule]:
-        descriptor = await self._tool_for(params["server"], params["tool"], caller)
+        descriptor = await self._admitted_tool(caller, params["server"], params["tool"])
         return annotation_effect(
             descriptor.annotations, override=descriptor.effect_override
         )
 
-    async def call(
-        self, caller: Any, server: str, tool: str, arguments: Mapping[str, Any]
-    ) -> Any:
+    async def _admitted_tool(self, caller: Any, server: str, tool: str) -> AdmittedTool:
         if "mcp:delegate" not in caller.effective_scopes:
             raise PermissionError("mcp:delegate is required")
+        if caller.session is None:
+            raise PermissionError("verified fleet session is required")
         descriptor = await self._tool_for(server, tool, caller)
         if not descriptor.required_scopes.issubset(caller.effective_scopes):
             raise PermissionError("child scopes are required")
@@ -112,6 +153,23 @@ class FleetGateway:
             raise PermissionError("service-credential child needs SERVICE binding")
         if await self._policy_check(server, tool, caller) is not True:
             raise PermissionError("fleet call denied by policy")
+        return descriptor
+
+    async def call(
+        self,
+        caller: Any,
+        server: str,
+        tool: str,
+        arguments: Mapping[str, Any],
+        *,
+        expected_effect: Effect,
+    ) -> Any:
+        descriptor = await self._admitted_tool(caller, server, tool)
+        current_effect, _, _ = annotation_effect(
+            descriptor.annotations, override=descriptor.effect_override
+        )
+        if current_effect is not expected_effect:
+            raise RuntimeError("fleet effect changed before dispatch")
         return await self._delegated_call(server, tool, arguments, caller)
 
 
