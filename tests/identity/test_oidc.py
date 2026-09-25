@@ -78,7 +78,9 @@ class MockIdp:
     def client(self) -> httpx.Client:
         return httpx.Client(transport=httpx.MockTransport(self.handle))
 
-    def sign(self, claims: dict[str, Any], *, key: Any = None, alg: str = "RS256") -> str:
+    def sign(
+        self, claims: dict[str, Any], *, key: Any = None, alg: str = "RS256"
+    ) -> str:
         return jwt.encode({"alg": alg, "kid": "k1"}, claims, key or self.key)
 
 
@@ -118,7 +120,9 @@ def world() -> Any:
         redirect_uri=REDIRECT,
         post_logout_redirect_uri="https://graphos.example/",
     ).model_dump()
-    port = FakeIdentityPort([idp_wire("keycloak", "oidc", config, secret_ref="kc/secret")])
+    port = FakeIdentityPort(
+        [idp_wire("keycloak", "oidc", config, secret_ref="kc/secret")]
+    )
     secrets = FakeSecrets({"kc/secret": "s3cret"})
     broker = OidcBroker(
         port=port,
@@ -131,7 +135,9 @@ def world() -> Any:
     app = Starlette(routes=broker.routes())
     client = TestClient(app, base_url="https://graphos.example", follow_redirects=False)
 
-    return SimpleNamespace(idp=idp, port=port, client=client, secrets=secrets, clock=clock)
+    return SimpleNamespace(
+        idp=idp, port=port, client=client, secrets=secrets, clock=clock
+    )
 
 
 def _begin(world: Any) -> tuple[str, str]:
@@ -144,7 +150,9 @@ def _begin(world: Any) -> tuple[str, str]:
 
 
 def _callback(world: Any, state: str) -> httpx.Response:
-    return world.client.get("/auth/oidc/callback", params={"code": "c0de", "state": state})
+    return world.client.get(
+        "/auth/oidc/callback", params={"code": "c0de", "state": state}
+    )
 
 
 def test_valid_id_token_signs_in_through_the_engine(world: Any) -> None:
@@ -202,7 +210,9 @@ def _foreign_key(world: Any, nonce: str) -> str:
 
 
 REFUSED = {
-    "wrong issuer": lambda w, n: w.idp.sign(_claims(n, iss="https://evil.example/realms/x")),
+    "wrong issuer": lambda w, n: w.idp.sign(
+        _claims(n, iss="https://evil.example/realms/x")
+    ),
     "wrong audience": lambda w, n: w.idp.sign(_claims(n, aud="another-client")),
     "multi-aud without azp": lambda w, n: w.idp.sign(_claims(n, aud=[CLIENT, "other"])),
     "azp is another client": lambda w, n: w.idp.sign(_claims(n, azp="other")),
@@ -233,7 +243,9 @@ def test_bad_id_tokens_are_refused_before_the_engine(world: Any, case: str) -> N
 
 def test_multi_audience_with_matching_azp_is_accepted(world: Any) -> None:
     state, nonce = _begin(world)
-    world.idp.next_id_token = world.idp.sign(_claims(nonce, aud=[CLIENT, "x"], azp=CLIENT))
+    world.idp.next_id_token = world.idp.sign(
+        _claims(nonce, aud=[CLIENT, "x"], azp=CLIENT)
+    )
 
     assert _callback(world, state).headers["location"] == "/"
 
@@ -243,7 +255,9 @@ def test_state_is_single_use_and_bound_to_the_browser(world: Any) -> None:
     world.idp.next_id_token = world.idp.sign(_claims(nonce))
     assert _callback(world, state).headers["location"] == "/"
 
-    world.client.cookies.set(TX_COOKIE, state, domain="graphos.example", path="/auth/oidc/callback")
+    world.client.cookies.set(
+        TX_COOKIE, state, domain="graphos.example", path="/auth/oidc/callback"
+    )
     replay = _callback(world, state)
 
     assert replay.headers["location"] == "/auth/login?error=stale_login"
@@ -286,15 +300,22 @@ def test_unknown_kid_refetches_the_jwks_for_key_rotation(world: Any) -> None:
     rotated = RSAKey.generate_key(2048, parameters={"kid": "k2"})
     world.idp.jwks_keys = [world.idp.key, rotated]
     state, nonce = _begin(world)
-    world.idp.next_id_token = jwt.encode({"alg": "RS256", "kid": "k2"}, _claims(nonce), rotated)
+    world.idp.next_id_token = jwt.encode(
+        {"alg": "RS256", "kid": "k2"}, _claims(nonce), rotated
+    )
     # Inside the refresh floor the cached set is kept: the rotated key is not
     # yet known, so the token is refused rather than fetched on demand.
-    assert _callback(world, state).headers["location"] == "/auth/login?error=idp_unverified"
+    assert (
+        _callback(world, state).headers["location"]
+        == "/auth/login?error=idp_unverified"
+    )
     assert world.idp.jwks_fetches == fetched
 
     world.clock.now += 61
     state, nonce = _begin(world)
-    world.idp.next_id_token = jwt.encode({"alg": "RS256", "kid": "k2"}, _claims(nonce), rotated)
+    world.idp.next_id_token = jwt.encode(
+        {"alg": "RS256", "kid": "k2"}, _claims(nonce), rotated
+    )
     assert _callback(world, state).headers["location"] == "/"
     assert world.idp.jwks_fetches == fetched + 1
 
@@ -341,6 +362,11 @@ def test_engine_refusal_outcomes_never_set_a_session(world: Any) -> None:
     ],
 )
 def test_unsafe_settings_are_refused(field: str, value: Any) -> None:
-    raw = {"issuer": ISSUER, "client_id": CLIENT, "redirect_uri": REDIRECT, field: value}
+    raw = {
+        "issuer": ISSUER,
+        "client_id": CLIENT,
+        "redirect_uri": REDIRECT,
+        field: value,
+    }
     with pytest.raises(ValueError):
         OidcSettings.model_validate(raw)

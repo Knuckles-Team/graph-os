@@ -81,7 +81,12 @@ def test_preset_maps_only_what_a_person_may_hold() -> None:
     assert rules["kc.role.kg:read"]["privileged"] is False
     for scope in ("rbac:approve-elevation", "finance:approve-live-order"):
         assert "approver group" in preset.skipped[f"role:{scope}"]
-    for scope in ("capacity:admin", "fleet:events", "lease:write", "connector:write-back"):
+    for scope in (
+        "capacity:admin",
+        "fleet:events",
+        "lease:write",
+        "connector:write-back",
+    ):
         assert "IDM-02" in preset.skipped[f"role:{scope}"]
     assert preset.skipped["role:default-roles-homelab"] == "not in the scope registry"
 
@@ -151,7 +156,7 @@ def test_dry_run_links_every_owner_verbatim_with_zero_ownership_changes() -> Non
         "email": "alice@home.arpa",
         "display_name": "Alice A",
     }
-    assert [(l["subject"], l["principal_id"]) for l in plan.link] == [
+    assert [(row["subject"], row["principal_id"]) for row in plan.link] == [
         ("5b1e-alice", "5b1e-alice"),
         ("77aa-bob", "77aa-bob"),
     ]
@@ -200,7 +205,9 @@ async def test_apply_is_idempotent() -> None:
 
     first = await apply_link_migration(store, plan)
     second = await apply_link_migration(store, plan)
-    replanned = plan_link_migration("keycloak", USERS, OWNERS, await load_principals(store))
+    replanned = plan_link_migration(
+        "keycloak", USERS, OWNERS, await load_principals(store)
+    )
 
     assert (first.created, first.linked, first.already_present) == (2, 2, 0)
     assert (second.created, second.linked, second.already_present) == (0, 0, 4)
@@ -218,7 +225,10 @@ async def test_apply_surfaces_real_refusals() -> None:
 
 def test_admin_api_users_are_paged_and_classified() -> None:
     pages = [
-        [{"id": "a", "username": "alice", "firstName": "Alice"}, {"id": "b", "username": "bob"}],
+        [
+            {"id": "a", "username": "alice", "firstName": "Alice"},
+            {"id": "b", "username": "bob"},
+        ],
         [{"id": "s", "username": "service-account-x", "serviceAccountClientId": "x"}],
     ]
     seen: list[str] = []

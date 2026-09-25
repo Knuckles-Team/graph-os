@@ -54,15 +54,18 @@ IDP = TestIdp()
 
 
 def _settings(**over: Any) -> dict[str, Any]:
-    return SamlSettings(
-        idp_entity_id=IDP_ENTITY,
-        idp_sso_url=SSO,
-        idp_certs=(IDP.cert_body,),
-        sp_entity_id=SP_ENTITY,
-        acs_url=ACS,
-        attribute_paths={"groups": "groups"},
-        username_attribute="uid",
-    ).model_dump() | over
+    return (
+        SamlSettings(
+            idp_entity_id=IDP_ENTITY,
+            idp_sso_url=SSO,
+            idp_certs=(IDP.cert_body,),
+            sp_entity_id=SP_ENTITY,
+            acs_url=ACS,
+            attribute_paths={"groups": "groups"},
+            username_attribute="uid",
+        ).model_dump()
+        | over
+    )
 
 
 def _world(**settings: Any) -> Any:
@@ -171,19 +174,25 @@ def _doctype_entity() -> bytes:
 
 def _billion_laughs() -> bytes:
     dtd = '<!DOCTYPE lolz [<!ENTITY lol "lol"><!ENTITY lol2 "&lol;&lol;&lol;">]>'
-    return (dtd + "<samlp:Response xmlns:samlp='%s'>&lol2;</samlp:Response>" % NS["samlp"]).encode()
+    return (
+        dtd + f"<samlp:Response xmlns:samlp='{NS['samlp']}'>&lol2;</samlp:Response>"
+    ).encode()
 
 
 def _sha1_digest() -> bytes:
     signed = IDP.sign(
-        assertion(RID, NOW), method=SignatureMethod.RSA_SHA256, digest=DigestAlgorithm.SHA1
+        assertion(RID, NOW),
+        method=SignatureMethod.RSA_SHA256,
+        digest=DigestAlgorithm.SHA1,
     )
     return to_bytes(response(RID, signed))
 
 
 def _rsa_sha1_signature() -> bytes:
     signed = IDP.sign(
-        assertion(RID, NOW), method=SignatureMethod.RSA_SHA1, digest=DigestAlgorithm.SHA256
+        assertion(RID, NOW),
+        method=SignatureMethod.RSA_SHA1,
+        digest=DigestAlgorithm.SHA256,
     )
     return to_bytes(response(RID, signed))
 
@@ -214,9 +223,15 @@ BAD: dict[str, Any] = {
     "RSA-SHA1 signature": _rsa_sha1_signature,
     "EncryptedAssertion": _encrypted,
     "processing instruction": _processing_instruction,
-    "wrong issuer": lambda: to_bytes(response(RID, _signed_assertion(issuer="https://evil"))),
-    "wrong audience": lambda: to_bytes(response(RID, _signed_assertion(audience="https://x"))),
-    "wrong recipient": lambda: to_bytes(response(RID, _signed_assertion(recipient="https://x/acs"))),
+    "wrong issuer": lambda: to_bytes(
+        response(RID, _signed_assertion(issuer="https://evil"))
+    ),
+    "wrong audience": lambda: to_bytes(
+        response(RID, _signed_assertion(audience="https://x"))
+    ),
+    "wrong recipient": lambda: to_bytes(
+        response(RID, _signed_assertion(recipient="https://x/acs"))
+    ),
     "answers another request": lambda: to_bytes(
         response(RID, _signed_assertion(in_response_to="_other"))
     ),
@@ -230,7 +245,11 @@ BAD: dict[str, Any] = {
         response(RID, _signed_assertion(not_before="2026-09-24T12:10:00Z"))
     ),
     "status is not Success": lambda: to_bytes(
-        response(RID, _signed_assertion(), status="urn:oasis:names:tc:SAML:2.0:status:Requester")
+        response(
+            RID,
+            _signed_assertion(),
+            status="urn:oasis:names:tc:SAML:2.0:status:Requester",
+        )
     ),
     "Destination is another SP": lambda: to_bytes(
         response(RID, _signed_assertion(), destination="https://other.example/acs")
@@ -316,7 +335,9 @@ def test_pending_request_is_single_use() -> None:
     xml = to_bytes(response(request_id, IDP.sign(assertion(request_id, NOW))))
     assert _post(world, xml).headers["location"] == "/"
 
-    world.client.cookies.set(TX_COOKIE, request_id, domain="graphos.example", path="/auth/saml/acs")
+    world.client.cookies.set(
+        TX_COOKIE, request_id, domain="graphos.example", path="/auth/saml/acs"
+    )
     assert _post(world, xml).headers["location"] == "/auth/login?error=stale_login"
 
 
@@ -336,7 +357,7 @@ def test_sp_metadata_and_idp_metadata_import() -> None:
     acs = sp.find("md:SPSSODescriptor/md:AssertionConsumerService", NS)
     assert sp.get("entityID") == SP_ENTITY and acs.get("Location") == ACS
 
-    idp_md = f"""<md:EntityDescriptor xmlns:md="{NS['md']}" xmlns:ds="{NS['ds']}" entityID="{IDP_ENTITY}">
+    idp_md = f"""<md:EntityDescriptor xmlns:md="{NS["md"]}" xmlns:ds="{NS["ds"]}" entityID="{IDP_ENTITY}">
 <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
 <md:KeyDescriptor use="signing"><ds:KeyInfo><ds:X509Data><ds:X509Certificate>{IDP.cert_body}</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor>
 <md:KeyDescriptor use="encryption"><ds:KeyInfo><ds:X509Data><ds:X509Certificate>AAAA</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor>
@@ -344,14 +365,22 @@ def test_sp_metadata_and_idp_metadata_import() -> None:
 </md:IDPSSODescriptor></md:EntityDescriptor>"""
     imported = parse_idp_metadata(idp_md.encode())
 
-    assert imported == {"idp_entity_id": IDP_ENTITY, "idp_sso_url": SSO, "idp_certs": [IDP.cert_body]}
+    assert imported == {
+        "idp_entity_id": IDP_ENTITY,
+        "idp_sso_url": SSO,
+        "idp_certs": [IDP.cert_body],
+    }
     with pytest.raises(ValueError):
-        parse_idp_metadata(b'<!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]><x>&e;</x>')
+        parse_idp_metadata(
+            b'<!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]><x>&e;</x>'
+        )
 
 
 def test_settings_refuse_plain_http_and_bad_certificates() -> None:
     with pytest.raises(ValueError):
-        SamlSettings.model_validate(_settings(acs_url="http://graphos.example/auth/saml/acs"))
+        SamlSettings.model_validate(
+            _settings(acs_url="http://graphos.example/auth/saml/acs")
+        )
     with pytest.raises(ValueError):
         SamlSettings.model_validate(_settings(idp_certs=["not base64!"]))
     with pytest.raises(ValueError):

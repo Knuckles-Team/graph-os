@@ -30,7 +30,7 @@ import zlib
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlencode
 from xml.sax.saxutils import escape, quoteattr
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
@@ -46,6 +46,8 @@ from graph_os.identity.idp_common import (
     LoginCompleter,
     OneShotStore,
     UnknownIdp,
+    login_error,
+    require_https,
 )
 from graph_os.identity.saml_assertion import (
     MAX_DOCUMENT_BYTES,
@@ -72,12 +74,6 @@ TX_COOKIE = "__Secure-graphos_saml_tx"
 _TX_TTL_S = 600.0
 _REDIRECT_BINDING = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
 _POST_BINDING = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
-
-
-def _https(value: str) -> str:
-    if urlsplit(value).scheme != "https":
-        raise ValueError("must be an https URL")
-    return value
 
 
 def _pem_body(value: str) -> str:
@@ -109,7 +105,7 @@ class SamlSettings(BaseModel):
     username_attribute: str | None = None
     clock_skew_s: int = Field(default=60, ge=0, le=300)
 
-    _urls = field_validator("idp_sso_url", "acs_url")(_https)
+    _urls = field_validator("idp_sso_url", "acs_url")(require_https)
 
     @field_validator("idp_certs")
     @classmethod
@@ -119,7 +115,11 @@ class SamlSettings(BaseModel):
 
 def _pem(body: str) -> str:
     lines = [body[i : i + 64] for i in range(0, len(body), 64)]
-    return "-----BEGIN CERTIFICATE-----\n" + "\n".join(lines) + "\n-----END CERTIFICATE-----\n"
+    return (
+        "-----BEGIN CERTIFICATE-----\n"
+        + "\n".join(lines)
+        + "\n-----END CERTIFICATE-----\n"
+    )
 
 
 def _instant(moment: datetime) -> str:
@@ -166,6 +166,21 @@ def sp_metadata(settings: SamlSettings) -> str:
     )
 
 
+def _redirect_sso_locations(descriptor: Any) -> list[str]:
+    services = descriptor.findall("md:SingleSignOnService", NS)
+    redirect = [s for s in services if s.get("Binding") == _REDIRECT_BINDING]
+    return [str(s.get("Location")) for s in redirect if s.get("Location")]
+
+
+def _signing_certificates(descriptor: Any) -> list[str]:
+    keys = descriptor.findall("md:KeyDescriptor", NS)
+    signing = [key for key in keys if key.get("use") in (None, "signing")]
+    path = "ds:KeyInfo/ds:X509Data/ds:X509Certificate"
+    return [
+        "".join(c.itertext()).strip() for key in signing for c in key.findall(path, NS)
+    ]
+
+
 def parse_idp_metadata(xml: bytes) -> dict[str, Any]:
     """The SAML settings an IdP's metadata determines (hardened parse)."""
     try:
@@ -175,20 +190,17 @@ def parse_idp_metadata(xml: bytes) -> dict[str, Any]:
     descriptor = root.find("md:IDPSSODescriptor", NS)
     if root.tag != f"{{{NS['md']}}}EntityDescriptor" or descriptor is None:
         raise ValueError("not an IdP EntityDescriptor")
-    sso = [
-        s.get("Location")
-        for s in descriptor.findall("md:SingleSignOnService", NS)
-        if s.get("Binding") == _REDIRECT_BINDING
-    ]
-    certs = [
-        "".join(c.itertext()).strip()
-        for key in descriptor.findall("md:KeyDescriptor", NS)
-        if key.get("use") in (None, "signing")
-        for c in key.findall("ds:KeyInfo/ds:X509Data/ds:X509Certificate", NS)
-    ]
+    sso = _redirect_sso_locations(descriptor)
+    certs = _signing_certificates(descriptor)
     if not sso or not certs:
-        raise ValueError("the IdP metadata lacks a Redirect SSO service or a signing key")
-    return {"idp_entity_id": root.get("entityID"), "idp_sso_url": sso[0], "idp_certs": certs[:2]}
+        raise ValueError(
+            "the IdP metadata lacks a Redirect SSO service or a signing key"
+        )
+    return {
+        "idp_entity_id": root.get("entityID"),
+        "idp_sso_url": sso[0],
+        "idp_certs": certs[:2],
+    }
 
 
 def _settings(record: IdpRecord) -> SamlSettings:
@@ -196,10 +208,6 @@ def _settings(record: IdpRecord) -> SamlSettings:
         return SamlSettings.model_validate(record.config)
     except ValidationError:
         raise UnknownIdp(record.idp_id) from None
-
-
-def _login_error(code: str) -> Response:
-    return RedirectResponse(f"/auth/login?error={code}", status_code=303, headers=NO_STORE)
 
 
 def _decode_post(value: object) -> bytes:
@@ -235,13 +243,17 @@ class SamlBroker:
     async def begin(self, request: Request) -> Response:
         """``GET /auth/saml/{idp_id}/login``: redirect with an AuthnRequest."""
         try:
-            record = await self._directory.enabled(request.path_params["idp_id"], "saml")
+            record = await self._directory.enabled(
+                request.path_params["idp_id"], "saml"
+            )
             settings = _settings(record)
         except UnknownIdp:
-            return _login_error("idp_unavailable")
+            return login_error("idp_unavailable")
         request_id = "_" + secrets.token_hex(20)
         self._transactions.put(request_id, {"idp_id": record.idp_id}, _TX_TTL_S)
-        query = urlencode({"SAMLRequest": authn_request(settings, request_id, self._now())})
+        query = urlencode(
+            {"SAMLRequest": authn_request(settings, request_id, self._now())}
+        )
         response = RedirectResponse(
             f"{settings.idp_sso_url}?{query}", status_code=303, headers=NO_STORE
         )
@@ -277,7 +289,9 @@ class SamlBroker:
             raise SamlError("assertion replayed")
         return validated
 
-    def _assertion(self, record: IdpRecord, validated: ValidatedAssertion) -> ExternalAssertion:
+    def _assertion(
+        self, record: IdpRecord, validated: ValidatedAssertion
+    ) -> ExternalAssertion:
         settings = _settings(record)
         claims = {
             path: list(validated.attributes[name])
@@ -297,25 +311,31 @@ class SamlBroker:
         request_id = request.cookies.get(TX_COOKIE)
         tx = self._transactions.take(request_id) if request_id else None
         if tx is None or request_id is None:
-            return _login_error("stale_login")
+            return login_error("stale_login")
         try:
             record = await self._directory.enabled(str(tx["idp_id"]), "saml")
             xml = _decode_post((await request.form()).get("SAMLResponse"))
             validated = self.accept(xml, record, request_id)
         except (UnknownIdp, SamlError):
-            return _login_error("idp_unverified")
-        response = await self._completer.complete(request, self._assertion(record, validated))
+            return login_error("idp_unverified")
+        response = await self._completer.complete(
+            request, self._assertion(record, validated)
+        )
         response.delete_cookie(TX_COOKIE, path=ACS_PATH, secure=True, httponly=True)
         return response
 
     async def metadata(self, request: Request) -> Response:
         """``GET /auth/saml/{idp_id}/metadata``: this SP, as that IdP sees it."""
         try:
-            record = await self._directory.enabled(request.path_params["idp_id"], "saml")
+            record = await self._directory.enabled(
+                request.path_params["idp_id"], "saml"
+            )
             settings = _settings(record)
         except UnknownIdp:
             return Response(status_code=404)
-        return Response(sp_metadata(settings), media_type="application/samlmetadata+xml")
+        return Response(
+            sp_metadata(settings), media_type="application/samlmetadata+xml"
+        )
 
     def routes(self) -> list[Route]:
         return [

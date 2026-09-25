@@ -93,7 +93,11 @@ _MAX_HEADER_CHARS = 320
 
 def _header_safe(value: str, name: str) -> str:
     """Refuse header injection: no CR/LF/NUL, bounded length."""
-    if not value or len(value) > _MAX_HEADER_CHARS or any(c in value for c in "\r\n\x00"):
+    if (
+        not value
+        or len(value) > _MAX_HEADER_CHARS
+        or any(c in value for c in "\r\n\x00")
+    ):
         raise MailUnavailable(f"refusing an unsafe {name}")
     return value
 
@@ -170,7 +174,9 @@ SmtpFactory = Callable[..., smtplib.SMTP]
 class SmtpMailer:
     """:class:`Mailer` over :mod:`smtplib`, certificate-validated TLS."""
 
-    def __init__(self, settings: SmtpSettings, *, smtp_factory: SmtpFactory | None = None) -> None:
+    def __init__(
+        self, settings: SmtpSettings, *, smtp_factory: SmtpFactory | None = None
+    ) -> None:
         self._settings = settings
         self._context = ssl.create_default_context()
         self._factory = smtp_factory
@@ -180,7 +186,9 @@ class SmtpMailer:
         if self._factory is not None:
             return self._factory(s.host, s.port, timeout=s.timeout_s)
         if s.security == "tls":
-            return smtplib.SMTP_SSL(s.host, s.port, timeout=s.timeout_s, context=self._context)
+            return smtplib.SMTP_SSL(
+                s.host, s.port, timeout=s.timeout_s, context=self._context
+            )
         return smtplib.SMTP(s.host, s.port, timeout=s.timeout_s)
 
     def _message(self, mail: OutgoingMail) -> EmailMessage:
@@ -201,7 +209,9 @@ class SmtpMailer:
                     client.login(s.username, s.password)
                 client.send_message(self._message(mail))
         except (smtplib.SMTPException, OSError) as exc:
-            raise MailUnavailable(f"the SMTP relay refused the message ({type(exc).__name__})") from None
+            raise MailUnavailable(
+                f"the SMTP relay refused the message ({type(exc).__name__})"
+            ) from None
 
 
 # ---------------------------------------------------------------------------
@@ -245,7 +255,9 @@ class ListmonkMailer:
         client_factory: Callable[[], httpx.Client] | None = None,
     ) -> None:
         self._settings = settings
-        self._client_factory = client_factory or (lambda: httpx.Client(timeout=settings.timeout_s))
+        self._client_factory = client_factory or (
+            lambda: httpx.Client(timeout=settings.timeout_s)
+        )
 
     def purposes(self) -> frozenset[MailPurpose]:
         return frozenset(self._settings.templates)
@@ -263,11 +275,17 @@ class ListmonkMailer:
         url = self._settings.url.rstrip("/") + "/api/tx"
         try:
             with self._client_factory() as client:
-                response = client.post(url, json=payload, auth=(self._settings.user, self._settings.token))
+                response = client.post(
+                    url, json=payload, auth=(self._settings.user, self._settings.token)
+                )
         except httpx.HTTPError as exc:
-            raise MailUnavailable(f"listmonk is unreachable ({type(exc).__name__})") from None
+            raise MailUnavailable(
+                f"listmonk is unreachable ({type(exc).__name__})"
+            ) from None
         if response.status_code >= 300:
-            raise MailUnavailable(f"listmonk refused the message (HTTP {response.status_code})")
+            raise MailUnavailable(
+                f"listmonk refused the message (HTTP {response.status_code})"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -276,7 +294,9 @@ class ListmonkMailer:
 class IdentityNotifier:
     """Renders and sends identity e-mail; without a mailer it offers nothing."""
 
-    def __init__(self, mailer: Mailer | None, purposes: frozenset[MailPurpose] | None = None) -> None:
+    def __init__(
+        self, mailer: Mailer | None, purposes: frozenset[MailPurpose] | None = None
+    ) -> None:
         self._mailer = mailer
         self._purposes = frozenset(MailPurpose) if purposes is None else purposes
         if mailer is None:
@@ -294,7 +314,9 @@ class IdentityNotifier:
         }
 
     @staticmethod
-    def render(purpose: MailPurpose, to: str, *, username: str, link: str, ttl_s: int) -> OutgoingMail:
+    def render(
+        purpose: MailPurpose, to: str, *, username: str, link: str, ttl_s: int
+    ) -> OutgoingMail:
         variables = {
             "username": _header_safe(username, "username"),
             "link": _https_link(link),
@@ -309,7 +331,9 @@ class IdentityNotifier:
             variables=variables,
         )
 
-    async def send(self, purpose: MailPurpose, to: str, *, username: str, link: str, ttl_s: int) -> None:
+    async def send(
+        self, purpose: MailPurpose, to: str, *, username: str, link: str, ttl_s: int
+    ) -> None:
         """Send one identity e-mail; :class:`MailUnavailable` when not offered."""
         if self._mailer is None or not self.offers(purpose):
             raise MailUnavailable(f"{purpose.value} e-mail is not configured")
@@ -331,7 +355,9 @@ def _templates(spec: str) -> dict[MailPurpose, int]:
     return templates
 
 
-def _secret(settings: Mapping[str, Any], secrets: SecretResolver, name: str) -> str | None:
+def _secret(
+    settings: Mapping[str, Any], secrets: SecretResolver, name: str
+) -> str | None:
     reference = settings.get(name)
     if not reference:
         return None
@@ -359,7 +385,9 @@ def _smtp(settings: Mapping[str, Any], secrets: SecretResolver) -> SmtpMailer:
 def _listmonk(settings: Mapping[str, Any], secrets: SecretResolver) -> ListmonkMailer:
     token = _secret(settings, secrets, "GRAPHOS_LISTMONK_TOKEN_REF")
     if not token:
-        raise ValueError("GRAPHOS_LISTMONK_TOKEN_REF is required with GRAPHOS_LISTMONK_URL")
+        raise ValueError(
+            "GRAPHOS_LISTMONK_TOKEN_REF is required with GRAPHOS_LISTMONK_URL"
+        )
     return ListmonkMailer(
         ListmonkSettings(
             url=str(settings["GRAPHOS_LISTMONK_URL"]),
@@ -370,7 +398,9 @@ def _listmonk(settings: Mapping[str, Any], secrets: SecretResolver) -> ListmonkM
     )
 
 
-def notifier_from_settings(settings: Mapping[str, Any], secrets: SecretResolver) -> IdentityNotifier:
+def notifier_from_settings(
+    settings: Mapping[str, Any], secrets: SecretResolver
+) -> IdentityNotifier:
     """The deployment's notifier: listmonk, else SMTP, else none (features off).
 
     A half-configured transport raises :class:`ValueError` at startup rather

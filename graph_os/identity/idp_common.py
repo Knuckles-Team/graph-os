@@ -32,6 +32,7 @@ import time
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
+from urllib.parse import urlsplit
 
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
@@ -54,9 +55,11 @@ __all__ = [
     "dry_run",
     "flatten_claims",
     "identity_op",
+    "login_error",
     "login_options",
     "new_session_token",
     "refusal_code",
+    "require_https",
     "truncate_ip",
 ]
 
@@ -131,6 +134,14 @@ async def call_expect(port: IdentityPort, op: Mapping[str, Any], kind: str) -> A
     if reply.get("kind") != kind:
         raise IdentityRefused(f"identity op {op.get('op')!r} did not answer {kind!r}")
     return reply.get("value")
+
+
+def require_https(value: str) -> str:
+    """``value`` if it is an absolute https URL without a fragment."""
+    parsed = urlsplit(value)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.fragment:
+        raise ValueError("must be an absolute https URL without a fragment")
+    return value
 
 
 def new_session_token() -> str:
@@ -211,7 +222,9 @@ class ExternalAssertion:
     claims: Mapping[str, list[str]]
     username_hint: str | None = None
 
-    def login_request(self, session_token: str, ip_prefix: str | None) -> dict[str, Any]:
+    def login_request(
+        self, session_token: str, ip_prefix: str | None
+    ) -> dict[str, Any]:
         """The ``external_login`` request body."""
         body: dict[str, Any] = {
             "idp_id": self.idp_id,
@@ -256,7 +269,9 @@ class IdpRecord:
             enabled=bool(raw.get("enabled")),
             config=config if isinstance(config, dict) else {},
             secret_ref=raw.get("secret_ref"),
-            email_domains=tuple(str(d).casefold() for d in raw.get("email_domains", ())),
+            email_domains=tuple(
+                str(d).casefold() for d in raw.get("email_domains", ())
+            ),
             order=int(raw.get("order", 0)),
         )
 
@@ -304,13 +319,23 @@ def login_options(
     With an ``email`` whose domain an IdP claims (its ``email_domains`` hint),
     only that IdP is returned so the page can route straight to it.
     """
-    usable = [r for r in records if r.enabled and r.kind in _BROWSER_KINDS]
-    domain = email.rpartition("@")[2].casefold() if email and "@" in email else ""
+    usable = [r for r in records if _browser_usable(r)]
+    domain = _email_domain(email)
     routed = [r for r in usable if domain and domain in r.email_domains]
     return [
         {"idp_id": r.idp_id, "kind": r.kind, "display_name": r.display_name}
         for r in (routed[:1] or usable)
     ]
+
+
+def _browser_usable(record: IdpRecord) -> bool:
+    return record.enabled and record.kind in _BROWSER_KINDS
+
+
+def _email_domain(email: str | None) -> str:
+    if not email or "@" not in email:
+        return ""
+    return email.rpartition("@")[2].casefold()
 
 
 # ---------------------------------------------------------------------------
@@ -404,6 +429,17 @@ _OUTCOME_ERRORS = {
 the assertion or the engine's reply is ever reflected."""
 
 
+LOGIN_PATH = "/auth/login"
+
+
+def login_error(code: str) -> Response:
+    """Back to the login page with a FIXED error code; nothing from the
+    assertion, the directory or the engine is ever reflected."""
+    return RedirectResponse(
+        f"{LOGIN_PATH}?error={code}", status_code=303, headers=NO_STORE
+    )
+
+
 def _client_host(request: Request) -> str | None:
     return request.client.host if request.client else None
 
@@ -424,7 +460,9 @@ class EngineLoginCompleter:
         self._targets = {"ok": landing_path, "mfa_required": mfa_path}
         self._login_path = login_path
 
-    async def complete(self, request: Request, assertion: ExternalAssertion) -> Response:
+    async def complete(
+        self, request: Request, assertion: ExternalAssertion
+    ) -> Response:
         token = new_session_token()
         body = assertion.login_request(token, truncate_ip(_client_host(request)))
         op = identity_op("credential", "external_login", body)
@@ -473,9 +511,10 @@ def _rule_matches(rule: Mapping[str, Any], claims: Mapping[str, Iterable[str]]) 
     return False
 
 
-def _split_target(target: str) -> tuple[str, str]:
-    kind, _, ident = target.partition(":")
-    return kind, ident
+def _targets(rules: Iterable[Mapping[str, Any]], kind: str) -> set[str]:
+    """The ids of every ``<kind>:<id>`` target among ``rules``."""
+    split = (str(rule.get("target", "")).partition(":") for rule in rules)
+    return {ident for prefix, _, ident in split if prefix == kind}
 
 
 def dry_run(
@@ -489,29 +528,30 @@ def dry_run(
     (the engine refuses any other match kind at upsert); ``role:<id>`` grants
     the role, ``group:<id>`` a membership whose group roles apply."""
     materialized = {path: list(values) for path, values in claims.items()}
-    matched = [rule for rule in idp.get("rules", ()) if _rule_matches(rule, materialized)]
-    targets = [_split_target(str(rule.get("target", ""))) for rule in matched]
-    role_ids = {ident for kind, ident in targets if kind == "role"}
-    group_ids = {ident for kind, ident in targets if kind == "group"}
-    group_roles = {
-        str(role)
-        for group in groups
-        if group.get("group_id") in group_ids
-        for role in group.get("roles", ())
-    }
-    effective = role_ids | group_roles
-    scopes = {
-        str(scope)
-        for role in roles
-        if role.get("role_id") in effective
-        for scope in role.get("scopes", ())
-    }
+    matched = [
+        rule for rule in idp.get("rules", ()) if _rule_matches(rule, materialized)
+    ]
+    role_ids = _targets(matched, "role")
+    group_ids = _targets(matched, "group")
+    effective = role_ids | _collect(groups, "group_id", group_ids, "roles")
+    scopes = _collect(roles, "role_id", effective, "scopes")
+    privileged = [rule for rule in matched if rule.get("privileged")]
     return DryRunResult(
-        matched_rules=tuple(str(rule.get("rule_id")) for rule in matched),
+        matched_rules=_rule_ids(matched),
         roles=tuple(sorted(effective)),
         groups=tuple(sorted(group_ids)),
         scopes=tuple(sorted(scopes)),
-        privileged_rules=tuple(
-            str(rule.get("rule_id")) for rule in matched if rule.get("privileged")
-        ),
+        privileged_rules=_rule_ids(privileged),
     )
+
+
+def _collect(
+    records: Iterable[Mapping[str, Any]], key: str, wanted: set[str], field: str
+) -> set[str]:
+    """Every ``field`` value of the records whose ``key`` is in ``wanted``."""
+    selected = [record for record in records if record.get(key) in wanted]
+    return {str(value) for record in selected for value in record.get(field, ())}
+
+
+def _rule_ids(rules: Iterable[Mapping[str, Any]]) -> tuple[str, ...]:
+    return tuple(str(rule.get("rule_id")) for rule in rules)

@@ -106,7 +106,9 @@ def _primary_email(emails: Any) -> str | None:
         return None
     if not isinstance(emails, list) or not all(isinstance(e, Mapping) for e in emails):
         raise _invalid("emails must be a list of objects")
-    chosen = next((e for e in emails if e.get("primary") in (True, "true", "True")), emails[0])
+    chosen = next(
+        (e for e in emails if e.get("primary") in (True, "true", "True")), emails[0]
+    )
     return _text(chosen.get("value"), "emails.value")
 
 
@@ -115,7 +117,10 @@ def _name(value: Any) -> dict[str, str]:
         return {}
     if not isinstance(value, Mapping):
         raise _invalid("name must be an object")
-    parts = {k: _text(value.get(k), f"name.{k}") for k in ("formatted", "givenName", "familyName")}
+    parts = {
+        k: _text(value.get(k), f"name.{k}")
+        for k in ("formatted", "givenName", "familyName")
+    }
     return {k: v for k, v in parts.items() if v}
 
 
@@ -143,7 +148,9 @@ class ScimUser:
         )
 
     def effective_display_name(self) -> str | None:
-        joined = " ".join(p for p in (self.name.get("givenName"), self.name.get("familyName")) if p)
+        joined = " ".join(
+            p for p in (self.name.get("givenName"), self.name.get("familyName")) if p
+        )
         return self.display_name or self.name.get("formatted") or joined or None
 
     def provision(self, idp_id: str, subject: str) -> dict[str, Any]:
@@ -186,7 +193,9 @@ class ScimUser:
             "externalId": self.external_id,
             "displayName": self.effective_display_name(),
             "name": dict(self.name) or None,
-            "emails": [{"value": self.email, "primary": True, "type": "work"}] if self.email else None,
+            "emails": [{"value": self.email, "primary": True, "type": "work"}]
+            if self.email
+            else None,
         }
         body.update({k: v for k, v in optional.items() if v})
         return body
@@ -243,7 +252,9 @@ class ScimGroup:
             request["external_id"] = self.external_id
         return request
 
-    def resource(self, group_id: str, location: str, user_location: str) -> dict[str, Any]:
+    def resource(
+        self, group_id: str, location: str, user_location: str
+    ) -> dict[str, Any]:
         body: dict[str, Any] = {
             "schemas": [GROUP_SCHEMA],
             "id": group_id,
@@ -262,9 +273,15 @@ class ScimGroup:
 # ---------------------------------------------------------------------------
 # Filters
 # ---------------------------------------------------------------------------
-_FILTER = re.compile(r'^\s*([A-Za-z][A-Za-z0-9.]*)\s+eq\s+"((?:[^"\\]|\\.){1,256})"\s*$', re.I)
+_FILTER = re.compile(
+    r'^\s*([A-Za-z][A-Za-z0-9.]*)\s+eq\s+"((?:[^"\\]|\\.){1,256})"\s*$', re.I
+)
 _USER_FILTERS = {"id": "principal_id", "externalid": "subject", "username": "username"}
-_GROUP_FILTERS = {"id": "group_id", "externalid": "external_id", "displayname": "display_name"}
+_GROUP_FILTERS = {
+    "id": "group_id",
+    "externalid": "external_id",
+    "displayname": "display_name",
+}
 
 
 @dataclass(frozen=True)
@@ -283,7 +300,11 @@ def parse_filter(text: str | None, resource: str) -> ScimFilter | None:
     allowed = _USER_FILTERS if resource == "User" else _GROUP_FILTERS
     target = allowed.get(match.group(1).casefold()) if match else None
     if match is None or target is None:
-        raise ScimError(400, "only one `<attribute> eq \"<value>\"` filter is supported", "invalidFilter")
+        raise ScimError(
+            400,
+            'only one `<attribute> eq "<value>"` filter is supported',
+            "invalidFilter",
+        )
     value = re.sub(r"\\(.)", r"\1", match.group(2))
     return ScimFilter(target, value)
 
@@ -391,9 +412,13 @@ def _group_path_op(group: ScimGroup, op: str, path: str, value: Any) -> ScimGrou
     if lowered == "members":
         return _group_members_op(group, op, value)
     if lowered == "displayname" and op != "remove":
-        return replace(group, display_name=str(_text(value, "displayName", required=True)))
+        return replace(
+            group, display_name=str(_text(value, "displayName", required=True))
+        )
     if lowered == "externalid":
-        return replace(group, external_id=None if op == "remove" else _text(value, "externalId"))
+        return replace(
+            group, external_id=None if op == "remove" else _text(value, "externalId")
+        )
     raise ScimError(400, f"unsupported path {path!r}", "invalidPath")
 
 
@@ -404,7 +429,9 @@ def apply_group_patch(group: ScimGroup, body: Mapping[str, Any]) -> ScimGroup:
             group = _group_path_op(group, op, path, value)
             continue
         if op == "remove" or not isinstance(value, Mapping):
-            raise ScimError(400, "a PATCH without a path needs an object value", "noTarget")
+            raise ScimError(
+                400, "a PATCH without a path needs an object value", "noTarget"
+            )
         for key, item in value.items():
             group = _group_path_op(group, op, str(key), item)
     return group
@@ -413,7 +440,9 @@ def apply_group_patch(group: ScimGroup, body: Mapping[str, Any]) -> ScimGroup:
 # ---------------------------------------------------------------------------
 # Discovery documents
 # ---------------------------------------------------------------------------
-def list_body(resources: list[dict[str, Any]], total: int, start: int) -> dict[str, Any]:
+def list_body(
+    resources: list[dict[str, Any]], total: int, start: int
+) -> dict[str, Any]:
     return {
         "schemas": [LIST_SCHEMA],
         "totalResults": total,
@@ -450,14 +479,23 @@ def resource_types(base: str) -> list[dict[str, Any]]:
             "name": name,
             "endpoint": f"/{name}s",
             "schema": schema,
-            "meta": {"resourceType": "ResourceType", "location": f"{base}/ResourceTypes/{name}"},
+            "meta": {
+                "resourceType": "ResourceType",
+                "location": f"{base}/ResourceTypes/{name}",
+            },
         }
         for name, schema in (("User", USER_SCHEMA), ("Group", GROUP_SCHEMA))
     ]
 
 
 def _attribute(name: str, kind: str = "string", **extra: Any) -> dict[str, Any]:
-    return {"name": name, "type": kind, "multiValued": False, "required": False, **extra}
+    return {
+        "name": name,
+        "type": kind,
+        "multiValued": False,
+        "required": False,
+        **extra,
+    }
 
 
 def schemas_body() -> list[dict[str, Any]]:
@@ -473,6 +511,16 @@ def schemas_body() -> list[dict[str, Any]]:
         _attribute("members", "complex", multiValued=True),
     ]
     return [
-        {"schemas": [_SCHEMA_SCHEMA], "id": USER_SCHEMA, "name": "User", "attributes": user},
-        {"schemas": [_SCHEMA_SCHEMA], "id": GROUP_SCHEMA, "name": "Group", "attributes": group},
+        {
+            "schemas": [_SCHEMA_SCHEMA],
+            "id": USER_SCHEMA,
+            "name": "User",
+            "attributes": user,
+        },
+        {
+            "schemas": [_SCHEMA_SCHEMA],
+            "id": GROUP_SCHEMA,
+            "name": "Group",
+            "attributes": group,
+        },
     ]

@@ -36,13 +36,19 @@ from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
 import anyio
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 from starlette.requests import Request
-from starlette.responses import RedirectResponse, Response
+from starlette.responses import Response
 from starlette.routing import Route
 
 from graph_os.identity.idp_common import (
-    NO_STORE,
     ExternalAssertion,
     IdpDirectory,
     IdpRecord,
@@ -50,6 +56,7 @@ from graph_os.identity.idp_common import (
     OneShotBackend,
     SecretResolver,
     UnknownIdp,
+    login_error,
     truncate_ip,
 )
 
@@ -157,7 +164,9 @@ class LdapSettings(BaseModel):
     def _tls_url(cls, value: str) -> str:
         scheme, _, rest = value.partition("://")
         if scheme not in ("ldaps", "ldap") or not rest.strip("/"):
-            raise ValueError("an LDAP IdP URL is ldaps://host[:port] or ldap://host[:port]")
+            raise ValueError(
+                "an LDAP IdP URL is ldaps://host[:port] or ldap://host[:port]"
+            )
         return value
 
     @field_validator("user_filter")
@@ -170,7 +179,9 @@ class LdapSettings(BaseModel):
     @model_validator(mode="after")
     def _encrypted(self) -> LdapSettings:
         if self.url.startswith("ldap://") and not self.start_tls:
-            raise ValueError("plain LDAP is refused: use ldaps:// or ldap:// with start_tls")
+            raise ValueError(
+                "plain LDAP is refused: use ldaps:// or ldap:// with start_tls"
+            )
         if self.group_mode == "ad_nested" and not self.group_base_dn:
             raise ValueError("ad_nested group resolution needs group_base_dn")
         return self
@@ -328,15 +339,23 @@ class Ldap3Directory:
         s = self._settings
         names = [s.username_attribute, s.subject_attribute, s.email_attribute]
         names.append(s.display_name_attribute)
-        names.extend(("memberOf", "userAccountControl") if s.directory == "active_directory" else ("memberOf",))
+        names.extend(
+            ("memberOf", "userAccountControl")
+            if s.directory == "active_directory"
+            else ("memberOf",)
+        )
         return names
 
-    def _groups(self, connection: Any, dn: str, attributes: Mapping[str, Any]) -> tuple[list[str], list[str]]:
+    def _groups(
+        self, connection: Any, dn: str, attributes: Mapping[str, Any]
+    ) -> tuple[list[str], list[str]]:
         mode = self._settings.group_mode
         if mode == "none":
             return [], []
         if mode == "member_of":
-            dns = [str(v) for v in attributes.get("memberOf") or () if isinstance(v, str)]
+            dns = [
+                str(v) for v in attributes.get("memberOf") or () if isinstance(v, str)
+            ]
         else:
             dns = self._nested_group_dns(connection, dn)
         names = [name for name in (_rdn_value(d) for d in dns) if name]
@@ -347,12 +366,18 @@ class Ldap3Directory:
 
         base = self._settings.group_base_dn or self._settings.user_base_dn
         connection.search(base, nested_groups_filter(dn), SUBTREE, attributes=["cn"])
-        return [str(r["dn"]) for r in connection.response or () if r.get("type") == "searchResEntry"]
+        return [
+            str(r["dn"])
+            for r in connection.response or ()
+            if r.get("type") == "searchResEntry"
+        ]
 
     def _read_subject(self, raw: Mapping[str, Any]) -> str | None:
         """``objectGUID`` is read from the raw bytes; any other id as text."""
         name = self._settings.subject_attribute
-        source = raw.get("raw_attributes" if name == "objectGUID" else "attributes") or {}
+        source = (
+            raw.get("raw_attributes" if name == "objectGUID" else "attributes") or {}
+        )
         return _subject(_first(source, name))
 
     def _entry(self, connection: Any, raw: Mapping[str, Any]) -> DirectoryEntry | None:
@@ -369,7 +394,9 @@ class Ldap3Directory:
             username=username,
             email=_text(_first(attributes, s.email_attribute)),
             display_name=_text(_first(attributes, s.display_name_attribute)),
-            active=_ad_active(attributes) if s.directory == "active_directory" else True,
+            active=_ad_active(attributes)
+            if s.directory == "active_directory"
+            else True,
             groups=tuple(groups),
             member_of=tuple(member_of),
         )
@@ -386,7 +413,11 @@ class Ldap3Directory:
                 attributes=self._attributes(),
                 size_limit=2,
             )
-            hits = [r for r in connection.response or () if r.get("type") == "searchResEntry"]
+            hits = [
+                r
+                for r in connection.response or ()
+                if r.get("type") == "searchResEntry"
+            ]
             return self._entry(connection, hits[0]) if len(hits) == 1 else None
         finally:
             connection.unbind()
@@ -414,7 +445,11 @@ class Ldap3Directory:
                 generator=True,
             )
             for raw in pages:
-                entry = self._entry(connection, raw) if raw.get("type") == "searchResEntry" else None
+                entry = (
+                    self._entry(connection, raw)
+                    if raw.get("type") == "searchResEntry"
+                    else None
+                )
                 if entry is not None:
                     yield entry
         finally:
@@ -439,7 +474,9 @@ def ldap3_directory_factory(secrets: SecretResolver) -> DirectoryFactory:
         settings = ldap_settings(record)
         password = secrets.get(record.secret_ref) if record.secret_ref else None
         if not password:
-            raise DirectoryUnavailable("the LDAP service bind secret is not provisioned")
+            raise DirectoryUnavailable(
+                "the LDAP service bind secret is not provisioned"
+            )
         return Ldap3Directory(settings, password)
 
     return build
@@ -485,11 +522,17 @@ class FailureThrottle:
         for _ in range(3):
             raw, failures, _ = self._read(key)
             failures += 1
-            wait = min(self._cap_s, 2.0 ** (failures - self._free)) if failures > self._free else 0.0
+            wait = (
+                min(self._cap_s, 2.0 ** (failures - self._free))
+                if failures > self._free
+                else 0.0
+            )
             record = json.dumps({"failures": failures, "until": self._clock() + wait})
             if raw is None and self._backend.set_if_absent(self._key(key), record):
                 return
-            if raw is not None and self._backend.compare_and_set(self._key(key), raw, record):
+            if raw is not None and self._backend.compare_and_set(
+                self._key(key), raw, record
+            ):
                 return
 
     def success(self, key: str) -> None:
@@ -499,10 +542,6 @@ class FailureThrottle:
 # ---------------------------------------------------------------------------
 # The broker
 # ---------------------------------------------------------------------------
-def _login_error(code: str) -> Response:
-    return RedirectResponse(f"/auth/login?error={code}", status_code=303, headers=NO_STORE)
-
-
 def _credentials(form: Mapping[str, Any]) -> tuple[str, str] | None:
     username, password = form.get("username"), form.get("password")
     if not isinstance(username, str) or not isinstance(password, str):
@@ -531,14 +570,18 @@ class LdapBroker:
         self._completer = completer
         self._throttle = throttle
 
-    def _verify(self, record: IdpRecord, username: str, password: str) -> DirectoryEntry | None:
+    def _verify(
+        self, record: IdpRecord, username: str, password: str
+    ) -> DirectoryEntry | None:
         directory = self._directories(record)
         entry = directory.find_user(username)
         if entry is None or not entry.active:
             return None
         return entry if directory.verify_password(entry.dn, password) else None
 
-    def _throttle_keys(self, record: IdpRecord, username: str, request: Request) -> tuple[str, ...]:
+    def _throttle_keys(
+        self, record: IdpRecord, username: str, request: Request
+    ) -> tuple[str, ...]:
         account = f"acct:{record.idp_id}:{username.casefold()}"
         network = truncate_ip(request.client.host if request.client else None)
         return (account, f"ip:{network}") if network else (account,)
@@ -547,22 +590,24 @@ class LdapBroker:
         """``POST /auth/ldap/{idp_id}/login`` (form ``username``, ``password``)."""
         credentials = _credentials(await request.form())
         if credentials is None:
-            return _login_error("denied")
+            return login_error("denied")
         try:
-            record = await self._directory.enabled(request.path_params["idp_id"], "ldap")
+            record = await self._directory.enabled(
+                request.path_params["idp_id"], "ldap"
+            )
         except UnknownIdp:
-            return _login_error("idp_unavailable")
+            return login_error("idp_unavailable")
         keys = self._throttle_keys(record, credentials[0], request)
         if any(self._throttle.blocked(key) for key in keys):
-            return _login_error("throttled")
+            return login_error("throttled")
         try:
             entry = await anyio.to_thread.run_sync(self._verify, record, *credentials)
         except (UnknownIdp, DirectoryUnavailable):
-            return _login_error("idp_unavailable")
+            return login_error("idp_unavailable")
         if entry is None:
             for key in keys:
                 self._throttle.failure(key)
-            return _login_error("denied")
+            return login_error("denied")
         self._throttle.success(keys[0])
         assertion = ExternalAssertion(
             idp_id=record.idp_id,

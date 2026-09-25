@@ -73,8 +73,16 @@ _SIGNATURE_METHODS = frozenset(
         SignatureMethod.ECDSA_SHA512,
     }
 )
-_DIGESTS = frozenset({DigestAlgorithm.SHA256, DigestAlgorithm.SHA384, DigestAlgorithm.SHA512})
-_VERIFY_ERRORS = (InvalidSignature, InvalidInput, InvalidCertificate, InvalidDigest, ValueError)
+_DIGESTS = frozenset(
+    {DigestAlgorithm.SHA256, DigestAlgorithm.SHA384, DigestAlgorithm.SHA512}
+)
+_VERIFY_ERRORS = (
+    InvalidSignature,
+    InvalidInput,
+    InvalidCertificate,
+    InvalidDigest,
+    ValueError,
+)
 
 
 class SamlError(ValueError):
@@ -138,7 +146,9 @@ def _check_structure(root: etree._Element) -> None:
         raise SamlError("duplicate ID attributes")
     if root.xpath("//saml:EncryptedAssertion", namespaces=NS):
         raise SamlError("encrypted assertions are not supported")
-    _only(root.xpath("//saml:Assertion", namespaces=NS), "saml:Assertion in the document")
+    _only(
+        root.xpath("//saml:Assertion", namespaces=NS), "saml:Assertion in the document"
+    )
 
 
 def _verify_at(xml: bytes, cert: str, location: str) -> etree._Element:
@@ -164,7 +174,9 @@ def _verified(xml: bytes, certs: Iterable[str], location: str) -> etree._Element
     raise SamlError("no configured IdP certificate verifies the signature")
 
 
-def _signed_assertion(xml: bytes, root: etree._Element, certs: tuple[str, ...]) -> etree._Element:
+def _signed_assertion(
+    xml: bytes, root: etree._Element, certs: tuple[str, ...]
+) -> etree._Element:
     if root.find("ds:Signature", NS) is not None:
         response = _verified(xml, certs, "./")
         if response.tag != root.tag:
@@ -225,10 +237,14 @@ def _check_conditions(assertion: etree._Element, expect: Expectation) -> None:
     not_before = conditions.get("NotBefore")
     if not_before and _instant(not_before, "NotBefore") > expect.now + expect.skew:
         raise SamlError("assertion is not yet valid")
-    if _instant(conditions.get("NotOnOrAfter"), "NotOnOrAfter") <= expect.now - expect.skew:
+    if (
+        _instant(conditions.get("NotOnOrAfter"), "NotOnOrAfter")
+        <= expect.now - expect.skew
+    ):
         raise SamlError("assertion has expired")
     audiences = {
-        _text(a) for a in conditions.findall("saml:AudienceRestriction/saml:Audience", NS)
+        _text(a)
+        for a in conditions.findall("saml:AudienceRestriction/saml:Audience", NS)
     }
     if expect.sp_entity_id not in audiences:
         raise SamlError("this SP is not an audience of the assertion")

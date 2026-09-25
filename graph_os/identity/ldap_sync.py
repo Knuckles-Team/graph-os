@@ -187,5 +187,7 @@ class LdapSync:
             try:
                 await self.sync_due(await self._directory.records())
             except IdentityRefused as refusal:
-                _LOG.warning("ldap sync could not read the identity store: %s", refusal.code)
+                _LOG.warning(
+                    "ldap sync could not read the identity store: %s", refusal.code
+                )
             await anyio.sleep(_TICK_S)

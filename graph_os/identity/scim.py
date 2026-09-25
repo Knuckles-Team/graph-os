@@ -153,7 +153,9 @@ def _paging(request: Request) -> tuple[int, int]:
         start = max(1, int(request.query_params.get("startIndex", "1")))
         count = int(request.query_params.get("count", str(MAX_RESULTS)))
     except ValueError:
-        raise ScimError(400, "startIndex and count must be integers", "invalidValue") from None
+        raise ScimError(
+            400, "startIndex and count must be integers", "invalidValue"
+        ) from None
     return start, min(max(count, 0), MAX_RESULTS)
 
 
@@ -171,12 +173,16 @@ class _Call:
         except IdentityRefused as refusal:
             raise _refusal(refusal) from None
 
-    async def collect(self, op: str, kind: str, query: Mapping[str, Any], key: Callable[[Any], str]) -> list[Any]:
+    async def collect(
+        self, op: str, kind: str, query: Mapping[str, Any], key: Callable[[Any], str]
+    ) -> list[Any]:
         rows: list[Any] = []
         after: str | None = None
         while True:
             page_query = {"idp_id": self.idp_id, "limit": _PAGE, **query}
-            page = await self.ask(op, page_query | ({"after": after} if after else {}), kind)
+            page = await self.ask(
+                op, page_query | ({"after": after} if after else {}), kind
+            )
             rows.extend(page)
             if len(page) < _PAGE:
                 return rows
@@ -232,12 +238,16 @@ class ScimServer:
         return bound[0] if len(bound) == 1 else None
 
     async def _call(self, request: Request) -> _Call:
-        provisioner = await self._auth.authenticate(request.headers.get("authorization"))
+        provisioner = await self._auth.authenticate(
+            request.headers.get("authorization")
+        )
         if provisioner is None:
             raise ScimError(401, "a provisioning API key is required")
         record = await self._bound_idp(provisioner.principal_id)
         if record is None:
-            raise ScimError(403, "this key is not bound to exactly one enabled SCIM IdP")
+            raise ScimError(
+                403, "this key is not bound to exactly one enabled SCIM IdP"
+            )
         base = str(request.base_url).rstrip("/") + SCIM_BASE
         return _Call(record.idp_id, provisioner.port, base)
 
@@ -264,7 +274,11 @@ class ScimServer:
         if user.external_id:
             queries.append({"subject": user.external_id})
         for query in queries:
-            if await call.ask("list_provisioned", {"idp_id": call.idp_id, "limit": 1, **query}, "provisioned"):
+            if await call.ask(
+                "list_provisioned",
+                {"idp_id": call.idp_id, "limit": 1, **query},
+                "provisioned",
+            ):
                 raise ScimError(409, "the user already exists", "uniqueness")
         subject = user.external_id or f"{_GENERATED_SUBJECT}{secrets.token_hex(16)}"
         view = await call.ask("provision", user.provision(call.idp_id, subject), "user")
@@ -274,15 +288,21 @@ class ScimServer:
     async def _list_users(self, call: _Call, request: Request) -> Response:
         wanted = parse_filter(request.query_params.get("filter"), "User")
         query = {wanted.field: wanted.value} if wanted else {}
-        rows = await call.collect("list_provisioned", "provisioned", query, _principal_of)
+        rows = await call.collect(
+            "list_provisioned", "provisioned", query, _principal_of
+        )
         return self._page(request, [_user_resource(call, row) for row in rows])
 
-    async def _replace_user(self, call: _Call, request: Request, principal_id: str) -> Response:
+    async def _replace_user(
+        self, call: _Call, request: Request, principal_id: str
+    ) -> Response:
         row = await self._user_row(call, principal_id)
         user = ScimUser.parse(await _json_body(request))
         return await self._save_user(call, user, str(row["subject"]))
 
-    async def _patch_user(self, call: _Call, request: Request, principal_id: str) -> Response:
+    async def _patch_user(
+        self, call: _Call, request: Request, principal_id: str
+    ) -> Response:
         row = await self._user_row(call, principal_id)
         subject = str(row["subject"])
         current = ScimUser.from_engine(row, _external_id(subject))
@@ -293,7 +313,11 @@ class ScimServer:
         row = await self._user_row(call, principal_id)
         subject = str(row["subject"])
         current = ScimUser.from_engine(row, _external_id(subject))
-        await call.ask("provision", {**current.provision(call.idp_id, subject), "active": False}, "user")
+        await call.ask(
+            "provision",
+            {**current.provision(call.idp_id, subject), "active": False},
+            "user",
+        )
         return Response(status_code=204)
 
     # -- groups ----------------------------------------------------------
@@ -308,8 +332,12 @@ class ScimServer:
         row: Mapping[str, Any] = rows[0]
         return row
 
-    async def _save_group(self, call: _Call, group: ScimGroup, group_id: str, status: int = 200) -> Response:
-        row = await call.ask("provision_group", group.provision(call.idp_id, group_id), "directory_group")
+    async def _save_group(
+        self, call: _Call, group: ScimGroup, group_id: str, status: int = 200
+    ) -> Response:
+        row = await call.ask(
+            "provision_group", group.provision(call.idp_id, group_id), "directory_group"
+        )
         resource = _group_resource(call, row)
         location = resource["meta"]["location"] if status == 201 else None
         return _scim(resource, status, location)
@@ -324,20 +352,32 @@ class ScimServer:
     async def _list_groups(self, call: _Call, request: Request) -> Response:
         wanted = parse_filter(request.query_params.get("filter"), "Group")
         query = {wanted.field: wanted.value} if wanted else {}
-        rows = await call.collect("list_directory_groups", "directory_groups", query, _group_of)
+        rows = await call.collect(
+            "list_directory_groups", "directory_groups", query, _group_of
+        )
         return self._page(request, [_group_resource(call, row) for row in rows])
 
-    async def _replace_group(self, call: _Call, request: Request, group_id: str) -> Response:
+    async def _replace_group(
+        self, call: _Call, request: Request, group_id: str
+    ) -> Response:
         await self._group_row(call, group_id)
-        return await self._save_group(call, ScimGroup.parse(await _json_body(request)), group_id)
+        return await self._save_group(
+            call, ScimGroup.parse(await _json_body(request)), group_id
+        )
 
-    async def _patch_group(self, call: _Call, request: Request, group_id: str) -> Response:
+    async def _patch_group(
+        self, call: _Call, request: Request, group_id: str
+    ) -> Response:
         current = ScimGroup.from_engine(await self._group_row(call, group_id))
         patched = apply_group_patch(current, await _json_body(request))
         return await self._save_group(call, patched, group_id)
 
     async def _delete_group(self, call: _Call, group_id: str) -> Response:
-        await call.ask("remove_directory_group", {"idp_id": call.idp_id, "group_id": group_id}, "done")
+        await call.ask(
+            "remove_directory_group",
+            {"idp_id": call.idp_id, "group_id": group_id},
+            "done",
+        )
         return Response(status_code=204)
 
     # -- dispatch --------------------------------------------------------
@@ -347,7 +387,9 @@ class ScimServer:
         window = resources[start - 1 : start - 1 + count]
         return _scim(list_body(window, len(resources), start))
 
-    async def _serve(self, request: Request, handler: Callable[[_Call], Awaitable[Response]]) -> Response:
+    async def _serve(
+        self, request: Request, handler: Callable[[_Call], Awaitable[Response]]
+    ) -> Response:
         try:
             return await handler(await self._call(request))
         except ScimError as error:
@@ -356,7 +398,9 @@ class ScimServer:
     async def users(self, request: Request) -> Response:
         """``GET`` (list/filter) and ``POST`` (create) on ``/Users``."""
         if request.method == "POST":
-            return await self._serve(request, lambda call: self._create_user(call, request))
+            return await self._serve(
+                request, lambda call: self._create_user(call, request)
+            )
         return await self._serve(request, lambda call: self._list_users(call, request))
 
     async def user(self, request: Request) -> Response:
@@ -376,7 +420,9 @@ class ScimServer:
     async def groups(self, request: Request) -> Response:
         """``GET`` (list/filter) and ``POST`` (create) on ``/Groups``."""
         if request.method == "POST":
-            return await self._serve(request, lambda call: self._create_group(call, request))
+            return await self._serve(
+                request, lambda call: self._create_group(call, request)
+            )
         return await self._serve(request, lambda call: self._list_groups(call, request))
 
     async def group(self, request: Request) -> Response:
@@ -400,7 +446,9 @@ class ScimServer:
         async def answer(call: _Call) -> Response:
             if name == "ServiceProviderConfig":
                 return _scim(service_provider_config())
-            items = resource_types(call.base) if name == "ResourceTypes" else schemas_body()
+            items = (
+                resource_types(call.base) if name == "ResourceTypes" else schemas_body()
+            )
             return _scim(list_body(items, len(items), 1))
 
         return await self._serve(request, answer)
@@ -417,4 +465,3 @@ class ScimServer:
                 for name in ("ServiceProviderConfig", "ResourceTypes", "Schemas")
             ),
         ]
-
