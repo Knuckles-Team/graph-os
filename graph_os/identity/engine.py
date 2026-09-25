@@ -97,9 +97,13 @@ class Resolution:
     mfa_required: bool = False
     mfa_enrolled: bool = False
     session_mfa_pending: bool = False
+    session_mfa_at_ms: int | None = None
 
     @classmethod
     def parse(cls, value: Mapping[str, Any]) -> Resolution:
+        mfa_at_ms = value.get("session_mfa_at_ms")
+        if mfa_at_ms is not None and (type(mfa_at_ms) is not int or mfa_at_ms < 0):
+            raise IdentityUnavailable("identity session MFA time is invalid")
         return cls(
             principal_id=str(value["principal_id"]),
             username=str(value["username"]),
@@ -112,6 +116,7 @@ class Resolution:
             mfa_required=bool(value.get("mfa_required", False)),
             mfa_enrolled=bool(value.get("mfa_enrolled", False)),
             session_mfa_pending=bool(value.get("session_mfa_pending", False)),
+            session_mfa_at_ms=mfa_at_ms,
         )
 
     @property
