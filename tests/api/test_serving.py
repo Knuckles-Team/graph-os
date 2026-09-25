@@ -213,3 +213,43 @@ def test_served_ports_provider_requires_explicit_registration(
         serving.configured_served_api_ports()
     with pytest.raises(TypeError, match="complete"):
         serving.configure_served_api_ports(None)
+
+
+def test_mcp_caller_comes_from_verified_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from graph_os.mcp_server import runtime
+
+    class Actor:
+        authenticated = True
+        actor_type = "human"
+        actor_id = "user:1"
+
+        def ensure_credential_current(self) -> None:
+            pass
+
+    class Session:
+        actor = Actor()
+        tenant = "t1"
+        scopes = frozenset({"items:read"})
+        policy_version = "rev:1"
+
+        def ensure_authority_current(self) -> None:
+            pass
+
+        def engine_verified_context(self) -> dict[str, Any]:
+            return {
+                "principal": "user:1",
+                "tenant": "t1",
+                "scopes": ["items:read"],
+            }
+
+    @contextmanager
+    def verified_scope():
+        yield Session()
+
+    monkeypatch.setattr(runtime, "verified_tool_session_scope", verified_scope)
+    caller = serving.caller_from_verified_session()
+    assert caller.principal == "user:1"
+    assert caller.tenant == "t1"
+    assert caller.session is not None
