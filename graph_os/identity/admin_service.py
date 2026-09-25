@@ -191,9 +191,20 @@ class IdentityAdminService:
 async def execute_identity_op(context: Any, params: Mapping[str, Any], op: Any) -> Any:
     """Composite handler used by the shared API invoke chokepoint.
 
-    The execution context supplies the *caller's* verified graph session and
-    tenant-bound EG client. The broker's service authority is deliberately absent.
+    The execution context supplies the caller's verified graph session and
+    tenant-bound EG client. Only mode transition uses the identity broker,
+    because it must rotate issuer keys before sending the EG transition.
     """
+    if op.id == "identity.mode.transition":
+        broker = context.services.get("identity")
+        if broker is None:
+            raise IdentityUnavailable("identity broker is unavailable")
+        return await broker.transition(
+            context.caller.session,
+            params["to"],
+            ack=params.get("ack"),
+            local_fallback=params.get("local_fallback"),
+        )
     engine = EngineIdentityPort(lambda _tenant: context.client, lambda: None)
     service = IdentityAdminService(engine)
     if op.id == "identity.idps.mapping_dry_run":
