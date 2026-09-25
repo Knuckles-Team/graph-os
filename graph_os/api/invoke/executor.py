@@ -16,6 +16,7 @@ from graph_os.api.invoke.steps import (
     FORBIDDEN_OWNER,
     OpError,
     VerifiedCaller,
+    authenticate,
     forbidden_path,
 )
 
@@ -48,10 +49,21 @@ class ExecutionContext:
     idempotency_key: str | None = None
 
 
-def subject_value(op: Any, params: Mapping[str, Any]) -> str | None:
+CALLER_TENANT_SUBJECT = "$caller.tenant"
+
+
+def subject_value(
+    op: Any, params: Mapping[str, Any], caller: VerifiedCaller
+) -> str | None:
+    """Resolve a declared subject from params or verified caller authority."""
+
     subject = getattr(op, "subject", None)
     path = getattr(subject, "path", None)
     if not path:
+        return None
+    if path == CALLER_TENANT_SUBJECT:
+        return caller.tenant
+    if path.startswith("$caller."):
         return None
     value: Any = params
     for segment in path.split("."):
@@ -74,7 +86,7 @@ async def prepare_executor(
         return OpError("INVALID_ARGUMENT", {"field": owner_field})
     if not op.subject:
         return OpError("UNAVAILABLE", {"reason": "service op has no subject"})
-    subject = subject_value(op, params)
+    subject = subject_value(op, params, caller)
     if subject is None:
         return OpError("INVALID_ARGUMENT", {"field": "subject"})
     if not set(op.executor_scopes) <= runtime.service_scopes:
@@ -124,6 +136,9 @@ async def recheck_deferred_owner(
 ) -> OpError | None:
     """Revocation fence for deferred deliveries and scheduled work."""
 
+    refused = authenticate(owner)
+    if refused is not None:
+        return refused
     missing = sorted(set(op.scopes) - owner.effective_scopes)
     if missing:
         return OpError("SCOPE_REQUIRED", {"missing_scopes": missing})
