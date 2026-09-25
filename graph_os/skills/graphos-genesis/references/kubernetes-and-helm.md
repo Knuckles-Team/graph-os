@@ -58,6 +58,7 @@ Use `--create-namespace` only when the contract grants namespace creation.
 | `engine.tcp.enabled`, `engine.tls.secretName` | expose the engine's TLS listener to in-cluster connectors; required TLS for any non-loopback listener |
 | `identity.mode` | `none`, `local` (default) or `external`; seeds the durable mode on first boot. `none` refuses to render without `identity.noneExposeAck` set to the exact acknowledgement |
 | `identity.issuer`, `identity.tenant` | the issuer URL the engine and clients trust, and the engine tenant |
+| `graphos.config` | extra runtime settings; on releases before train 7 (no identity modes) set `AUTH_TYPE=jwt` and `AUTH_JWT_ISSUER`/`AUTH_JWT_JWKS_URI`/`AUTH_JWT_AUDIENCE` here for the external OIDC issuer |
 | `policy.eunomia.type` | empty derives from the mode: `none` → `none`, `local`/`external` → `embedded`; `remote` needs `remoteUrl` |
 | `secrets.backend`, `secrets.vaultUrl` | `vault` (OpenBao or another Vault-compatible store, default) or `engine` |
 | `telemetry.*`, `capacity.prometheusUrl` | OTLP export, browser RUM relay, throttle-controller metrics source |
