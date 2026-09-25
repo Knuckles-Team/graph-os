@@ -55,9 +55,7 @@ class AmbientHTTPAuthenticator:
                 tenant=session.tenant,
                 effective_scopes=frozenset(session.scopes),
                 engine_claims=session.engine_verified_context(),
-                principal_kind="service"
-                if actor.actor_type.value == "automated_service"
-                else "human",
+                principal_kind="human" if actor.actor_type.value == "human" else "service",
                 authenticated=True,
                 credential_kind="bearer",
                 policy_revision=str(session.policy_version),
