@@ -1585,7 +1585,8 @@ def test_skills_check_requires_exact_suite_without_persisting_local_path(
 def test_skills_check_accepts_the_complete_consolidated_suite(tmp_path, monkeypatch):
     from agent_utilities.core import paths, providers
     from agent_utilities.core.provider_materialization import build_asset_manifest
-    from agent_utilities.skills import BUNDLED_SKILLS
+
+    from graph_os.deployment.skills import BUNDLED_SKILLS
 
     source = tmp_path / "source"
     for name in BUNDLED_SKILLS:

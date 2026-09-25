@@ -80,7 +80,7 @@ def _check_skills() -> dict[str, Any]:
 
     CONCEPT:AU-OS.deployment.agent-factory-autoload — the agent factory loads flat
     operator-owned skills plus valid managed subtrees for current providers under
-    ``core.paths.skills_dir()``. The thirteen AU workflow skills unlock the platform. If
+    ``core.paths.skills_dir()``. The twelve GraphOS workflow skills unlock deployment operations. If
     they are absent, point at the one command that installs them. Local discovery
     paths never leave this probe.
     """
@@ -89,7 +89,8 @@ def _check_skills() -> dict[str, Any]:
             _skill_identity,
             resolve_skill_provider_dirs,
         )
-        from agent_utilities.skills import BUNDLED_SKILLS
+
+        from graph_os.deployment.skills import BUNDLED_SKILLS
 
         installed_names = {
             _skill_identity(root) for _provider, root in resolve_skill_provider_dirs()
@@ -110,7 +111,7 @@ def _check_skills() -> dict[str, Any]:
             "skills",
             "warn",
             f"{len(missing)} of {len(BUNDLED_SKILLS)} pre-bundled workflow skills are missing",
-            remediation="`agent-utilities install` (installs the thirteen-skill workflow toolkit)",
+            remediation="`agent-utilities install` (installs the GraphOS workflow toolkit)",
             skill="agent-utilities-deployment",
             data={"installed": len(installed_names), "missing": missing},
         )
