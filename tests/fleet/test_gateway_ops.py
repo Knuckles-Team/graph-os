@@ -185,3 +185,51 @@ async def test_notification_redelivery_and_policy_revocation() -> None:
     assert await ops.revoke_invisible(caller, "a") == [item.id]
     assert not ops.dispatchable("a", item.id)
     assert notices == ["a", "a", "a"]
+
+
+@pytest.mark.asyncio
+async def test_combined_source_admits_only_registered_eg_server() -> None:
+    from graph_os.fleet.catalog_sources import CombinedFleetSource
+
+    tool = SimpleNamespace(
+        entry=SimpleNamespace(
+            kind="tool",
+            server_name="good",
+            upstream_name="read",
+            summary="EG description",
+        ),
+        content=SimpleNamespace(body=b""),
+    )
+    good = SimpleNamespace(
+        component=SimpleNamespace(server_name="good"),
+        registration=object(),
+        provides=(tool,),
+    )
+    bad_tool = SimpleNamespace(
+        entry=SimpleNamespace(
+            kind="tool", server_name="bad", upstream_name="admin", summary=""
+        ),
+        content=SimpleNamespace(body=b""),
+    )
+    bad = SimpleNamespace(
+        component=SimpleNamespace(server_name="bad"),
+        registration=None,
+        provides=(bad_tool,),
+    )
+
+    async def verified():
+        return SimpleNamespace(servers=(good, bad))
+
+    async def live():
+        return {
+            "good": {"tools": [{"name": "read", "inputSchema": {"type": "object"}}]},
+            "bad": {"tools": [{"name": "admin"}]},
+        }
+
+    async def sdk():
+        return ({"pack": "p", "name": "sync", "op": "ingest.sources.sync"},)
+
+    items = await CombinedFleetSource(verified=verified, live=live, sdk=sdk)()
+    assert [item.id for item in items] == ["connector:p/sync", "fleet:tool:good/read"]
+    assert items[1].description == "EG description"
+    assert items[1].schema == {"type": "object"}
