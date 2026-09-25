@@ -28,6 +28,8 @@ fabricated receipt to make it appear complete.
 | `graph_os.a2a` | Authenticated Agent Card and unary A2A projection |
 | `graph_os.browser_control` | Governed browser catalog, lease, dispatch, and outcome orchestration |
 | `graph_os.deployment` | Configuration, diagnostics, canaries, environment plans, and production operations |
+| `graph_os.skills` | Operator skills `graphos-genesis` (Day-0 substrate) and `graphos-deployment` (install, identity, verification) |
+| `deploy/helm/graph-os`, `deploy/compose` | The Kubernetes chart and the single-host Compose project those skills drive |
 
 GraphOS authenticates, composes, routes, supervises, and projects. Durable
 graph state and RDF/OWL/SHACL semantics belong to `epistemic-graph`; agent

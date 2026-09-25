@@ -47,6 +47,30 @@ Inspect the complete option reference without writing configuration:
 setup-config reference
 ```
 
+## Container and Kubernetes deployment
+
+The source tree ships two deployment artifacts. Both consume an
+operator-built image that carries GraphOS and the epistemic-graph engine
+binary at matching releases, pinned by digest.
+
+| Artifact | Use |
+|---|---|
+| `deploy/compose/compose.yaml` | One host with Docker Compose or Podman: a single GraphOS service that supervises its engine, one data volume, ports published on loopback |
+| `deploy/helm/graph-os` | Kubernetes: GraphOS with its engine as a native sidecar (or child) in one pod, or a shared engine StatefulSet; namespaced RBAC, split API and web UI ingress, NetworkPolicy |
+
+Validate before use:
+
+```bash
+docker compose -f deploy/compose/compose.yaml config --quiet
+helm lint deploy/helm/graph-os --strict
+helm template graph-os deploy/helm/graph-os --namespace <namespace> --values <values>
+```
+
+The engine store has exactly one writer: never scale the unified service or
+pod. The bundled operator skills `graphos-genesis` (substrate) and
+`graphos-deployment` (installation, identity, verification) walk through both
+paths end to end.
+
 ## Local MCP transport
 
 Use `stdio` when an MCP client launches GraphOS as a child process:

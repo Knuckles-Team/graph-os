@@ -1,0 +1,136 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "graph-os.fullname" . }}
+  labels:
+    {{- include "graph-os.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.api.host }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.api.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "graph-os.fullname" . }}-graphos
+                port: {name: http}
+    {{- if and .Values.graphos.webUi .Values.ingress.webUi.host }}
+    - host: {{ .Values.ingress.webUi.host }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.webUi.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "graph-os.fullname" . }}-graphos
+                port: {name: webui}
+    {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.api.host }}
+        {{- if and .Values.graphos.webUi .Values.ingress.webUi.host }}
+        - {{ .Values.ingress.webUi.host }}
+        {{- end }}
+      secretName: {{ required "ingress.tls.secretName is required when TLS is enabled" .Values.ingress.tls.secretName }}
+  {{- end }}
+{{- end }}
+{{- if and .Values.autoscaling.enabled (not (include "graph-os.unified" .)) }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "graph-os.fullname" . }}-graphos
+  labels:
+    {{- include "graph-os.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "graph-os.fullname" . }}-graphos
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    {{- with .Values.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: {{ . }}}
+    {{- end }}
+    {{- with .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target: {type: Utilization, averageUtilization: {{ . }}}
+    {{- end }}
+{{- end }}
+{{- if .Values.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "graph-os.fullname" . }}-graphos
+  labels:
+    {{- include "graph-os.labels" . | nindent 4 }}
+spec:
+  # A single-writer unified pod cannot keep one available through a drain.
+  minAvailable: {{ if include "graph-os.unified" . }}0{{ else }}{{ .Values.podDisruptionBudget.minAvailable }}{{ end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: graphos
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "graph-os.fullname" . }}-default
+  labels:
+    {{- include "graph-os.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+        {{- with .Values.networkPolicy.ingressFrom }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      ports:
+        - {protocol: TCP, port: {{ .Values.graphos.port }}}
+        {{- if .Values.graphos.webUi }}
+        - {protocol: TCP, port: {{ .Values.graphos.webUiPort }}}
+        {{- end }}
+        {{- if include "graph-os.engineTcp" . }}
+        - {protocol: TCP, port: {{ .Values.engine.port }}}
+        {{- end }}
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+    {{- with .Values.networkPolicy.egress.extra }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

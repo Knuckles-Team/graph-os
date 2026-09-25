@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph OS Genesis"
+  short_description: "Provision a portable Day-0 substrate and hand off deployment"
+  default_prompt: "Use $graphos-genesis to resolve and provision the smallest suitable substrate (Docker Compose on one host, or Kubernetes with the graph-os chart), then invoke $graphos-deployment for the application layer and prove the first-boot gates."

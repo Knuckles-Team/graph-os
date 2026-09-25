@@ -1,0 +1,228 @@
+# Render-only defaults use the reserved .invalid domain. A deployment MUST override
+# every enabled image with an approved immutable reference (digest).
+#
+# unified-in-process (STANDARD): one pod owns graph-os and its epistemic-graph
+# engine. The engine runs as a native sidecar container (`engine.placement:
+# sidecar`, default) or as a child process graph-os supervises inside its own
+# container (`engine.placement: child`). Either way the pod is the single writer
+# of the engine store: never more than one replica, Recreate strategy only.
+#
+# out-of-process-shared: a separate engine StatefulSet and stateless graph-os
+# replicas behind an HPA. Choose it only when those replicas are genuinely
+# required; it costs a second workload whose config must match graph-os's.
+topology: unified-in-process
+
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+rbac:
+  create: true
+
+# Kubernetes service-link variables collide with graph-os configuration names;
+# keep them off for every pod this chart renders.
+enableServiceLinks: false
+
+runtimeSecret:
+  # Created/synchronized outside this chart (External Secrets, a CSI driver, or
+  # an operator-run `kubectl create secret`). No secret values belong in values.
+  # Both graph-os and the engine read it: GRAPH_SERVICE_AUTH_SECRET (the shared
+  # envelope HMAC), EPISTEMIC_GRAPH_* engine secrets, and optional
+  # GRAPHOS_SETUP_CODE.
+  name: graph-os-runtime
+  optional: false
+
+# Identity (train 7 "identity"). The mode is DURABLE engine state; this value
+# only seeds it on first boot (GRAPHOS_AUTH_MODE) and the stored mode wins after.
+identity:
+  # none | local | external. A pod never binds loopback only, so `none` renders
+  # only with the exact acknowledgement below.
+  mode: local
+  # GRAPHOS_IDENTITY_ISSUER / GRAPHOS_IDENTITY_TENANT: required outside tiny.
+  issuer: ""
+  tenant: ""
+  # Exact string I-UNDERSTAND-ANYONE-WHO-CAN-REACH-THIS-PORT-IS-ADMIN, or empty.
+  noneExposeAck: ""
+  noneHostname: ""
+
+policy:
+  eunomia:
+    # "" derives from identity.mode: none -> none, local/external -> embedded.
+    # When on, an unreachable policy decision point fails closed.
+    type: ""
+    # Container path of the policy document (mount it with graphos.extraVolumes).
+    policyFile: ""
+    remoteUrl: ""
+
+secrets:
+  # engine = the engine's encrypted secrets graph; vault = OpenBao or another
+  # Vault-compatible store (SECRETS_VAULT_URL + an auth method in config).
+  backend: vault
+  vaultUrl: https://secrets.example.invalid
+
+telemetry:
+  # OTLP endpoint for traces/metrics/logs; empty disables export.
+  otlpEndpoint: ""
+  # First-party browser RUM relay target (the collector's OTLP metrics
+  # receiver). RUM is on by default in the web UI; empty accepts and drops.
+  rumOtlpMetricsEndpoint: ""
+
+capacity:
+  # SCALING_PROMETHEUS_URL for the fleet throttle controller (observe-only by
+  # default); empty leaves throttling without measurements.
+  prometheusUrl: ""
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+graphos:
+  image:
+    repository: registry.invalid/graph-os/graph-os
+    tag: replace-me
+    digest: ""
+    pullPolicy: IfNotPresent
+  # Only out-of-process-shared honours values above 1.
+  replicas: 1
+  port: 8000
+  # graph-os serves the web UI in-process on this port when webUi is true.
+  webUi: true
+  webUiPort: 8080
+  args:
+    - graph-os
+    - --transport
+    - streamable-http
+    - --host
+    - "0.0.0.0"
+    - --port
+    - "8000"
+  # Host header the kubelet probes send; it must be an allowed host.
+  probeHostHeader: localhost
+  config:
+    APP_PROFILE: production
+    DEPLOYMENT_PROFILE: enterprise
+    MCP_TOOL_MODE: intent
+    ALLOWED_HOSTS: localhost
+  resources:
+    requests: {cpu: 500m, memory: 2Gi}
+    limits: {cpu: "8", memory: 16Gi}
+  # Holds engine data (unified topology) and graph-os XDG config/data/state.
+  persistence:
+    size: 100Gi
+    storageClass: ""
+    accessModes: [ReadWriteOnce]
+  extraVolumes: []
+  extraVolumeMounts: []
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+engine:
+  # unified-in-process only: sidecar | child.
+  placement: sidecar
+  # Empty repository = reuse graphos.image (the unified image carries the
+  # epistemic-graph-server binary). The shared StatefulSet needs its own value.
+  image:
+    repository: ""
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+  replicas: 1
+  port: 9100
+  # Expose the engine's TCP listener (required for out-of-process-shared, and for
+  # fleet connectors that must reach the same engine). Non-loopback TCP requires TLS.
+  tcp:
+    enabled: false
+  tls:
+    # Secret with tls.crt / tls.key for the engine TCP listener.
+    secretName: ""
+  extraArgs: []
+  config:
+    EPISTEMIC_GRAPH_PERSIST_BACKEND: redb
+    EPISTEMIC_GRAPH_REQUIRE_VERIFIED_CONTEXT: "1"
+    EPISTEMIC_GRAPH_REQUIRE_SIGNED: "1"
+    EPISTEMIC_GRAPH_RLS_DEFAULT_DENY: "1"
+  # Separate volume only for out-of-process-shared; unified uses graphos.persistence.
+  persistence:
+    size: 100Gi
+    storageClass: ""
+    accessModes: [ReadWriteOnce]
+  resources:
+    requests: {cpu: "1", memory: 4Gi}
+    limits: {cpu: "8", memory: 32Gi}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+service:
+  type: ClusterIP
+  port: 80
+  webUiPort: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # MCP + REST/A2A control plane.
+  api:
+    host: graph-os.example.invalid
+    path: /
+  # Browser web UI (sign-in, first-run setup, admin). Empty host = no UI ingress.
+  webUi:
+    host: graph-os-ui.example.invalid
+    path: /
+  tls:
+    enabled: true
+    secretName: graph-os-tls
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: null
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  # Extra NetworkPolicyPeer entries allowed to reach graph-os (e.g. the ingress
+  # controller's namespace). Same-namespace traffic is always allowed.
+  ingressFrom: []
+  egress:
+    # Empty means DNS plus same-namespace traffic only. Add explicit CIDRs or
+    # selectors for the identity provider, secret store, models and connectors.
+    extra: []
+
+# Fleet MCP connectors graph-os multiplexes (resolved by graphos-deployment).
+connectors: []
+# - name: example-mcp
+#   image: {repository: registry.invalid/graph-os/example-mcp, tag: replace-me, digest: ""}
+#   port: 8000
+#   args: []
+#   env: {TRANSPORT: streamable-http, PORT: "8000"}
+#   secretName: example-mcp-runtime
+#   replicas: 1
+#   resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: "1", memory: 1Gi}}
+
+# Extra first-party workloads. The web UI is NOT one of them: graph-os serves it
+# in-process, and a second copy would need an identity that cannot sign admission.
+components: []
