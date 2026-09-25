@@ -6,6 +6,7 @@ InvokeServices and must never construct an alternate registry or executor.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -28,7 +29,7 @@ from graph_os.api.mcp.resolve import IntentResolver
 from graph_os.api.mcp.verbs import MCPProjection
 from graph_os.api.ops import get_registry
 from graph_os.api.policy import PolicyGate, op_resource
-from graph_os.api.registry import Executor, Registry
+from graph_os.api.registry import EgMethod, EgSchemaRef, Executor, Registry
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +89,42 @@ def caller_from_verified_session() -> VerifiedCaller:
 
     with verified_tool_session_scope() as session:
         return VerifiedCaller.from_session(session)
+
+
+_EG_REQUEST_REF = re.compile(
+    r"^contract/schemas/method\.request\.json#/methods/([A-Za-z][A-Za-z0-9_]*)$"
+)
+
+
+def validate_public_eg_params(
+    reference: EgSchemaRef, params: Mapping[str, Any]
+) -> Mapping[str, Any]:
+    """Validate an EG method's params through its packaged generated contract."""
+
+    match = _EG_REQUEST_REF.fullmatch(reference.path)
+    if match is None:
+        raise ValueError("EG request schema reference is unavailable")
+    from epistemic_graph.contract.invocation import validate_method_params
+
+    return validate_method_params(match.group(1), dict(params))
+
+
+async def dispatch_public_eg_method(
+    binding: EgMethod, params: Mapping[str, Any], context: Any
+) -> Any:
+    """Call the EG wheel's allowlisted public invoker under verified context."""
+
+    if not isinstance(binding, EgMethod):
+        raise ValueError("EG method binding required")
+    method = getattr(context.client, "invoke_method", None)
+    if not callable(method):
+        raise RuntimeError("public EG method invoker is unavailable")
+    return await method(
+        binding.op,
+        dict(params),
+        graph=context.caller.tenant,
+        idempotency_key=context.idempotency_key,
+    )
 
 
 def _require_callable(value: Any, name: str) -> None:

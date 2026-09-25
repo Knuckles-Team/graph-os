@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 from contextlib import contextmanager
 from dataclasses import replace
+from types import ModuleType, SimpleNamespace
 from typing import Any
 
 import pytest
@@ -15,6 +17,7 @@ from graph_os.api.mcp.resolve import IntentResolver
 from graph_os.api.policy import PolicyGate
 from graph_os.api.registry import (
     EgMethod,
+    EgSchemaRef,
     Executor,
     OpSpec,
     Registry,
@@ -253,3 +256,45 @@ def test_mcp_caller_comes_from_verified_session(
     assert caller.principal == "user:1"
     assert caller.tenant == "t1"
     assert caller.session is not None
+
+
+@pytest.mark.asyncio
+async def test_public_eg_adapters_use_only_validated_wheel_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    invocation = ModuleType("epistemic_graph.contract.invocation")
+    seen: list[tuple[str, Any]] = []
+
+    def validate(method: str, params: dict[str, Any]) -> dict[str, Any]:
+        seen.append((method, params))
+        return {"subject": params["subject"]}
+
+    invocation.validate_method_params = validate
+    monkeypatch.setitem(sys.modules, invocation.__name__, invocation)
+    ref = EgSchemaRef(path="contract/schemas/method.request.json#/methods/GetItem")
+    assert serving.validate_public_eg_params(ref, {"subject": "item:1"}) == {
+        "subject": "item:1"
+    }
+    with pytest.raises(ValueError, match="schema reference"):
+        serving.validate_public_eg_params(
+            EgSchemaRef(path="contract/schemas/result.query.json#/methods/GetItem"), {}
+        )
+
+    class PublicClient:
+        async def invoke_method(self, method: str, params: Any, **kwargs: Any) -> Any:
+            seen.append((method, kwargs))
+            return {"subject": params["subject"]}
+
+    context = SimpleNamespace(
+        client=PublicClient(),
+        caller=SimpleNamespace(tenant="t1"),
+        idempotency_key="request:1",
+    )
+    result = await serving.dispatch_public_eg_method(
+        EgMethod(service="Items", op="GetItem"), {"subject": "item:1"}, context
+    )
+    assert result == {"subject": "item:1"}
+    assert seen == [
+        ("GetItem", {"subject": "item:1"}),
+        ("GetItem", {"graph": "t1", "idempotency_key": "request:1"}),
+    ]
