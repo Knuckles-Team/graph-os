@@ -3,7 +3,7 @@
 Operator ruling 2026-09-24: registration is administrator-only, and a fresh
 instance cannot be used until its first administrator exists. The tiny
 profile seeds ``none`` mode at boot (the bootstrap principal is that
-administrator, claimed later with ``graph-os identity claim``); every other
+administrator, claimed later with ``graph-os-identity claim``); every other
 profile starts UNINITIALIZED and the first-run form creates the administrator
 through the engine's ``initialize`` op.
 

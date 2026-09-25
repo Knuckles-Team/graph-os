@@ -34,7 +34,7 @@ _NONE_MODE_WARNING = (
     "\n"
     "==================================================================\n"
     " GraphOS auth mode is 'none': %s.\n"
-    " Secure this install: graph-os identity claim\n"
+    " Secure this install: graph-os-identity claim\n"
     "==================================================================\n"
 )
 

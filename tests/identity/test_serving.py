@@ -22,7 +22,7 @@ def test_tiny_profile_seeds_none_on_loopback_and_warns(
     with caplog.at_level(logging.WARNING):
         mode = asyncio.run(prepare_identity(served.runtime, ["127.0.0.1"]))
     assert mode == "none"
-    assert "graph-os identity claim" in caplog.text
+    assert "graph-os-identity claim" in caplog.text
 
 
 def test_none_mode_off_loopback_is_refused_before_anything_is_seeded() -> None:

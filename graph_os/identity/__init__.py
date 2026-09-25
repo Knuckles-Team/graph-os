@@ -6,7 +6,7 @@ identity STORE is engine-owned (``Method::Identity`` in epistemic-graph).
 This package owns every web and process flow around that store: the
 persistent local token issuer and its JWKS, the ``none`` / ``local`` /
 ``external`` authenticators, server-side browser sessions with CSRF, second
-factors, API keys for MCP and REST clients, and the ``graph-os identity``
+factors, API keys for MCP and REST clients, and the ``graph-os-identity``
 operator commands. It never holds a password hash, a session hash or a TOTP
 secret: every secret is verified, hashed or sealed inside the engine.
 

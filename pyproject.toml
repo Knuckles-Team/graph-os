@@ -135,6 +135,7 @@ service = "graph_os.messaging.reach:service_port"
 [project.scripts]
 graph-os = "graph_os.mcp_server.server:mcp_server"
 graph-os-daemon = "graph_os.gateway.daemon:main"
+graph-os-identity = "graph_os.identity.cli:main"
 graph-os-release-canary = "graph_os.deployment.release_canary:main"
 graph-os-production-ops = "graph_os.deployment.production_ops:main"
 setup-config = "graph_os.deployment.cli:main"
