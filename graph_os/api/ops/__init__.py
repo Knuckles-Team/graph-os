@@ -29,6 +29,7 @@ CURATED_SOURCES = (
     ("ontology", "specs"),
     ("object_sets", "specs"),
     ("ops", "specs"),
+    ("plan", "specs"),
     ("policy", "specs"),
     ("query", "specs"),
     ("retrieval", "specs"),

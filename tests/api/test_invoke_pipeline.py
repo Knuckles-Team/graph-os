@@ -7,6 +7,11 @@ from contextlib import asynccontextmanager, contextmanager
 from typing import Any
 
 import pytest
+from pydantic import BaseModel, ConfigDict
+
+from graph_os.api.invoke import InvokeServices, OpError, VerifiedCaller, invoke
+from graph_os.api.invoke.executor import BoundOperationRuntime
+from graph_os.api.invoke.plan import EgPlanStore
 from graph_os.api.registry import (
     AuditClass,
     Composite,
@@ -22,11 +27,6 @@ from graph_os.api.registry import (
     Surface,
     Verb,
 )
-from pydantic import BaseModel, ConfigDict
-
-from graph_os.api.invoke import InvokeServices, OpError, VerifiedCaller, invoke
-from graph_os.api.invoke.executor import BoundOperationRuntime
-from graph_os.api.invoke.plan import EgPlanStore
 
 
 class Params(BaseModel):
@@ -155,7 +155,7 @@ def services(
         InvokeServices(
             Registry([spec]),
             engine,
-            EgPlanStore(client),
+            EgPlanStore(client, seal_key=b"s" * 32),
             "off",
             None,
             audit,

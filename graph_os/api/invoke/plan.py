@@ -6,14 +6,20 @@ import hashlib
 import json
 import secrets
 import time
+from base64 import urlsafe_b64decode, urlsafe_b64encode
+from binascii import Error as Base64Error
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
+
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from graph_os.api.invoke.steps import OpError, VerifiedCaller
 
 LEASE_KIND = "graphos.plan"
 PLAN_TTL_MS = 600_000
+MAX_SEALED_PLAN_BYTES = 16_384
 
 
 def params_digest(params: Mapping[str, Any]) -> str:
@@ -63,17 +69,51 @@ def bind_plan(
 class EgPlanStore:
     """Use EG's allowlisted control leases; caller supplies a service-authorized client."""
 
-    def __init__(self, client: Any) -> None:
+    def __init__(self, client: Any, *, seal_key: bytes | None = None) -> None:
         self._leases = client.control_leases
+        if seal_key is not None and len(seal_key) != 32:
+            raise ValueError("plan seal key must be 32 bytes")
+        self._cipher = AESGCM(seal_key) if seal_key is not None else None
 
-    async def issue(self, binding: PlanBinding) -> str:
+    def _seal(self, plan_ref: str, params: Mapping[str, Any]) -> str:
+        if self._cipher is None:
+            raise RuntimeError("console plan seal key is unavailable")
+        raw = json.dumps(
+            params, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ).encode()
+        if len(raw) > MAX_SEALED_PLAN_BYTES:
+            raise ValueError("console plan arguments exceed the sealed limit")
+        nonce = secrets.token_bytes(12)
+        ciphertext = self._cipher.encrypt(nonce, raw, plan_ref.encode())
+        return urlsafe_b64encode(nonce + ciphertext).decode("ascii")
+
+    def _open(self, plan_ref: str, sealed: str) -> dict[str, Any]:
+        if self._cipher is None:
+            raise RuntimeError("console plan seal key is unavailable")
+        raw = urlsafe_b64decode(sealed.encode("ascii"))
+        if len(raw) < 29 or len(raw) > MAX_SEALED_PLAN_BYTES + 28:
+            raise ValueError("invalid sealed plan size")
+        decoded = self._cipher.decrypt(raw[:12], raw[12:], plan_ref.encode())
+        params = json.loads(decoded)
+        if not isinstance(params, dict):
+            raise ValueError("sealed plan arguments are invalid")
+        return params
+
+    async def issue(
+        self, binding: PlanBinding, params: Mapping[str, Any] | None = None
+    ) -> str:
         plan_ref = f"graphos_plan:{secrets.token_hex(24)}"
         now_ms = int(time.time() * 1000)
+        grant = binding.as_grant()
+        if binding.confirm == "console":
+            if params is None or params_digest(params) != binding.params_digest:
+                raise ValueError("console plan arguments do not match binding")
+            grant["sealed_params"] = self._seal(plan_ref, params)
         answer = await self._leases.issue(
             tenant=binding.tenant,
             lease_id=plan_ref,
             kind=LEASE_KIND,
-            grant=binding.as_grant(),
+            grant=grant,
             issued_at_ms=now_ms,
             expires_at_ms=now_ms + PLAN_TTL_MS,
             hard_expires_at_ms=now_ms + PLAN_TTL_MS,
@@ -82,6 +122,42 @@ class EgPlanStore:
         if answer.get("outcome") != "issued":
             raise RuntimeError("EG did not issue graphos.plan lease")
         return plan_ref
+
+    async def get_console_plan(
+        self, plan_ref: str, caller: VerifiedCaller, registry_digest: str
+    ) -> tuple[dict[str, Any] | None, OpError | None]:
+        """Read only this caller's live, sealed plan for attended review."""
+
+        lease = await self._leases.get(tenant=caller.tenant, lease_id=plan_ref)
+        if not lease or lease.get("kind") != LEASE_KIND:
+            return None, OpError("PLAN_MISMATCH")
+        if lease.get("status") != "active" or int(
+            lease.get("hard_expires_at_ms", 0)
+        ) <= int(time.time() * 1000):
+            return None, OpError("PLAN_EXPIRED")
+        grant = lease.get("grant")
+        if not isinstance(grant, Mapping) or grant.get("confirm") != "console":
+            return None, OpError("PLAN_MISMATCH")
+        if (
+            grant.get("principal") != caller.principal
+            or grant.get("tenant") != caller.tenant
+        ):
+            return None, OpError("PLAN_MISMATCH")
+        if (
+            grant.get("policy_revision") != caller.policy_revision
+            or grant.get("registry_digest") != registry_digest
+        ):
+            return None, OpError("PLAN_STALE")
+        sealed = grant.get("sealed_params")
+        if not isinstance(sealed, str):
+            return None, OpError("PLAN_MISMATCH")
+        try:
+            params = self._open(plan_ref, sealed)
+        except (ValueError, TypeError, InvalidTag, Base64Error):
+            return None, OpError("PLAN_MISMATCH")
+        if params_digest(params) != grant.get("params_digest"):
+            return None, OpError("PLAN_MISMATCH")
+        return {"plan_ref": plan_ref, "op": grant.get("op_id"), "params": params}, None
 
     async def validate(
         self, plan_ref: str, binding: PlanBinding
