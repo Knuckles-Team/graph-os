@@ -271,6 +271,42 @@ class IdentityBroker:
         )
         return codes
 
+    async def webauthn_credentials(self, session_token: str) -> list[Mapping[str, Any]]:
+        """Public credentials bound to the live session's principal."""
+        reply = await self._engine.broker(
+            IdentityCall(
+                "mfa", "webauthn_credentials", {"session_token": session_token}
+            )
+        )
+        return reply.expect("webauthn_credentials")
+
+    async def register_webauthn(
+        self, session_token: str, credential: Mapping[str, Any]
+    ) -> None:
+        await self._engine.broker(
+            IdentityCall(
+                "mfa",
+                "register_webauthn",
+                {"session_token": session_token, **credential},
+            )
+        )
+
+    async def verify_webauthn(
+        self, session_token: str, credential_id: str, sign_count: int
+    ) -> SignIn:
+        reply = await self._engine.broker(
+            IdentityCall(
+                "mfa",
+                "verify_webauthn",
+                {
+                    "session_token": session_token,
+                    "credential_id": credential_id,
+                    "new_sign_count": sign_count,
+                },
+            )
+        )
+        return SignIn.parse(reply.expect("authenticate"))
+
     # -- passwords and one-time tokens -------------------------------------
 
     async def issue_admin_reset(

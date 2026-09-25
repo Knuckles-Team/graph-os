@@ -3,9 +3,8 @@
 MFA is OPTIONAL for every user (operator ruling 2026-09-24): enrolment is
 self-service from a signed-in session, and a sign-in only owes a second factor
 once the user confirmed one. A sign-in the engine answers with
-``mfa_enrollment_required`` opened no session. WebAuthn needs engine-side
-credential storage that the identity store does not publish yet, so its routes
-fail closed.
+``mfa_enrollment_required`` opened no session. WebAuthn ceremonies verify
+browser evidence before passing public credentials to the engine.
 """
 
 from __future__ import annotations
@@ -26,6 +25,7 @@ from .web_common import (
     json_body,
     string_field,
 )
+from .web_webauthn import WebauthnCeremonies
 
 __all__ = ["factor_routes", "issuer_routes"]
 
@@ -60,6 +60,7 @@ class _FactorRoutes:
     def __init__(self, admission: AdmissionService) -> None:
         self._admission = admission
         self._broker = admission.broker
+        self._webauthn = WebauthnCeremonies(admission)
 
     async def verify(self, request: Request) -> Response:
         """Complete a pending sign-in with a TOTP or a recovery code."""
@@ -103,7 +104,16 @@ class _FactorRoutes:
         return JSONResponse({"codes": codes}, headers={"cache-control": "no-store"})
 
     async def webauthn(self, request: Request) -> Response:
-        raise RouteError(501, "webauthn_unavailable")
+        step = request.path_params["step"]
+        handler = {
+            "register": self._webauthn.register,
+            "register-complete": self._webauthn.register_complete,
+            "authenticate": self._webauthn.authenticate,
+            "authenticate-complete": self._webauthn.authenticate_complete,
+        }.get(step)
+        if handler is None:
+            raise RouteError(404, "webauthn_step_unknown")
+        return await handler(request)
 
     async def issue_api_key(self, request: Request) -> Response:
         caller = await caller_of(self._admission, request)
