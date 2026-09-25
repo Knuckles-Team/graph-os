@@ -128,7 +128,10 @@ async def test_factory_mounts_native_tool_with_governed_body(monkeypatch):
         body="Guidance",
     )
     await captured["mount"](prompt_item, None)
-    prompt = await mcp.get_prompt(captured["native_name"](prompt_item))
+    prompt_name = captured["native_name"](prompt_item)
+    assert prompt_name in mux._exposed_items
+    assert prompt_name not in mux._exposed
+    prompt = await mcp.get_prompt(prompt_name)
     with fleet_session("mcp:delegate"):
         rendered = await prompt.render()
     assert rendered.messages[0].content.text == "Guidance"
@@ -140,6 +143,7 @@ async def test_factory_mounts_native_tool_with_governed_body(monkeypatch):
         server="s",
     )
     await captured["mount"](resource_item, None)
+    assert captured["native_name"](resource_item) in mux._exposed_items
     resource = await mcp.get_resource(captured["native_name"](resource_item))
     with fleet_session("mcp:delegate"):
         assert await resource.read() == "Record"
