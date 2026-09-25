@@ -676,6 +676,9 @@ def _build_server(bootstrap: bool = True):
         projection.caller_for_request,
         projection.policy_gate,
     )
+    from graph_os.a2a.mcp import register_a2a_protocol_routes
+
+    register_a2a_protocol_routes(mcp)
 
     return args, mcp, middlewares
 
