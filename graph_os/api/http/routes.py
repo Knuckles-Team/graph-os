@@ -93,13 +93,22 @@ def make_endpoint(
         ):
             return _error("INVALID_ARGUMENT", digest=digest, op=op.id)
         from graph_os.api.invoke import invoke
-        from graph_os.api.registry import Surface
+        from graph_os.api.registry import Confirm, Surface
+
+        surface = (
+            Surface.CONSOLE
+            if op.confirm == Confirm.CONSOLE
+            and Surface.CONSOLE in op.surfaces
+            and caller.mfa_at_ms is not None
+            and caller.principal_kind == "human"
+            else Surface.HTTP
+        )
 
         outcome = await invoke(
             op.id,
             params,
             caller,
-            Surface.HTTP,
+            surface,
             services=services,
             plan_ref=plan_ref,
             idempotency_key=key,

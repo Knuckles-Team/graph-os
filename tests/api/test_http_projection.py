@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from types import ModuleType, SimpleNamespace
 
 import pytest
@@ -14,11 +15,15 @@ from graph_os.api.http.app import _subapp_path, create_api_application
 from graph_os.api.http.auth import AmbientHTTPAuthenticator, HTTPAuthenticationError
 from graph_os.api.http.openapi import document
 from graph_os.api.http.protocol_routes import PROTOCOL_ROUTES
-from graph_os.api.http.routes import _params
+from graph_os.api.http.routes import _params, make_endpoint
 
 
 def request(
-    method: str, path: str, headers: list[tuple[bytes, bytes]] = (), body: bytes = b""
+    method: str,
+    path: str,
+    headers: list[tuple[bytes, bytes]] = (),
+    body: bytes = b"",
+    state: dict | None = None,
 ) -> Request:
     sent = False
 
@@ -36,6 +41,7 @@ def request(
             "path": path,
             "headers": headers,
             "query_string": b"",
+            "state": state or {},
         },
         receive,
     )
@@ -50,21 +56,134 @@ async def test_missing_authority_fails_closed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_cookie_mutation_requires_verified_csrf() -> None:
-    caller = SimpleNamespace(authenticated=True)
-
-    async def verify(value: str):
-        assert value == "opaque"
-        return caller, "secret"
-
-    auth = AmbientHTTPAuthenticator(cookie_verifier=verify)
-    cookie = (b"cookie", b"__Host-graphos-session=opaque")
-    with pytest.raises(HTTPAuthenticationError):
-        await auth.authenticate(request("POST", "/api/v1/ops/example", [cookie]))
-    good = request(
-        "POST", "/api/v1/ops/example", [cookie, (b"x-csrf-token", b"secret")]
+async def test_cookie_requires_gate_admission_and_csrf(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    invoke_module = ModuleType("graph_os.api.invoke")
+    session = SimpleNamespace(
+        tenant="tenant-a", actor=SimpleNamespace(actor_id="alice")
     )
-    assert await auth.authenticate(good) is caller
+
+    class Caller:
+        @staticmethod
+        def from_session(value, *, request_id, mfa_at_ms=None):
+            assert value is session
+            return SimpleNamespace(
+                principal="alice",
+                tenant="tenant-a",
+                request_id=request_id,
+                mfa_at_ms=mfa_at_ms,
+            )
+
+    invoke_module.VerifiedCaller = Caller  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "graph_os.api.invoke", invoke_module)
+    from agent_utilities.knowledge_graph.core import session as session_module
+
+    monkeypatch.setattr(session_module, "resolve_session", lambda: session)
+    identity_module = ModuleType("graph_os.identity")
+    identity_module.__path__ = []  # type: ignore[attr-defined]
+    browser_module = ModuleType("graph_os.identity.browser")
+
+    def session_from_scope(scope):
+        cookies = [v for k, v in scope["headers"] if k == b"cookie"]
+        return "opaque" if cookies == [b"__Host-graphos_session=opaque"] else None
+
+    def csrf_refusal(scope, token):
+        assert token == "opaque"
+        return (
+            None
+            if (b"origin", b"https://example.test") in scope["headers"]
+            and (b"x-csrf-token", b"secret") in scope["headers"]
+            else "csrf_refused"
+        )
+
+    browser_module.session_from_scope = session_from_scope  # type: ignore[attr-defined]
+    browser_module.csrf_refusal = csrf_refusal  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "graph_os.identity", identity_module)
+    monkeypatch.setitem(sys.modules, "graph_os.identity.browser", browser_module)
+    auth = AmbientHTTPAuthenticator()
+    cookie = (b"cookie", b"__Host-graphos_session=opaque")
+    bearer = (b"authorization", b"Bearer gate-minted")
+    with pytest.raises(HTTPAuthenticationError):
+        await auth.authenticate(
+            request("POST", "/api/v1/ops/example", [cookie, bearer])
+        )
+    with pytest.raises(HTTPAuthenticationError):
+        await auth.authenticate(
+            request(
+                "POST",
+                "/api/v1/ops/example",
+                [cookie, bearer],
+                state={"graphos_session_admitted": True},
+            )
+        )
+    good = request(
+        "POST",
+        "/api/v1/ops/example",
+        [
+            cookie,
+            bearer,
+            (b"origin", b"https://example.test"),
+            (b"x-csrf-token", b"secret"),
+        ],
+        state={
+            "graphos_session_admitted": True,
+            "user_claims": {"sub": "alice", "tenant_id": "tenant-a"},
+            "graphos_console_mfa_at_ms": int(time.time() * 1000),
+        },
+    )
+    admitted = await auth.authenticate(good)
+    assert admitted.principal == "alice"
+    assert admitted.mfa_at_ms is not None
+    mismatch = request(
+        "POST",
+        "/api/v1/ops/example",
+        [
+            cookie,
+            bearer,
+            (b"origin", b"https://example.test"),
+            (b"x-csrf-token", b"secret"),
+        ],
+        state={
+            "graphos_session_admitted": True,
+            "user_claims": {"sub": "bob", "tenant_id": "tenant-a"},
+        },
+    )
+    with pytest.raises(HTTPAuthenticationError):
+        await auth.authenticate(mismatch)
+    duplicate = request(
+        "POST",
+        "/api/v1/ops/example",
+        [
+            cookie,
+            cookie,
+            bearer,
+            (b"origin", b"https://example.test"),
+            (b"x-csrf-token", b"secret"),
+        ],
+        state={
+            "graphos_session_admitted": True,
+            "user_claims": {"sub": "alice", "tenant_id": "tenant-a"},
+        },
+    )
+    with pytest.raises(HTTPAuthenticationError):
+        await auth.authenticate(duplicate)
+    stale = request(
+        "POST",
+        "/api/v1/ops/example",
+        [
+            cookie,
+            bearer,
+            (b"origin", b"https://example.test"),
+            (b"x-csrf-token", b"secret"),
+        ],
+        state={
+            "graphos_session_admitted": True,
+            "user_claims": {"sub": "alice", "tenant_id": "tenant-a"},
+            "graphos_console_mfa_at_ms": int(time.time() * 1000) - 16 * 60 * 1000,
+        },
+    )
+    assert (await auth.authenticate(stale)).mfa_at_ms is None
 
 
 @pytest.mark.asyncio
@@ -139,3 +258,46 @@ def test_resource_path_rejects_other_api_versions() -> None:
     assert _subapp_path("/identity/users") == "/identity/users"
     with pytest.raises(ValueError):
         _subapp_path("/api/v2/identity/users")
+
+
+@pytest.mark.asyncio
+async def test_console_surface_requires_verified_fresh_mfa(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen = []
+    invoke_module = ModuleType("graph_os.api.invoke")
+
+    async def invoke(op_id, params, caller, surface, **kwargs):
+        seen.append(surface)
+        return SimpleNamespace(code="OK", value={"done": True})
+
+    invoke_module.invoke = invoke  # type: ignore[attr-defined]
+    registry_module = ModuleType("graph_os.api.registry")
+    registry_module.Surface = SimpleNamespace(HTTP="http", CONSOLE="console")  # type: ignore[attr-defined]
+    registry_module.Confirm = SimpleNamespace(CONSOLE="console")  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "graph_os.api.invoke", invoke_module)
+    monkeypatch.setitem(sys.modules, "graph_os.api.registry", registry_module)
+    op = SimpleNamespace(
+        id="identity.users.admin_reset",
+        confirm="console",
+        surfaces={"http", "console"},
+    )
+    caller = SimpleNamespace(request_id="req", principal_kind="human", mfa_at_ms=None)
+
+    async def authenticate(_request):
+        return caller
+
+    endpoint = make_endpoint(
+        op,
+        services=SimpleNamespace(registry=SimpleNamespace(digest="abc")),
+        authenticate=authenticate,
+        response=lambda result, op, request_id: result,
+        generic=True,
+    )
+    headers = [(b"content-type", b"application/json")]
+    await endpoint(request("POST", "/ops/admin_reset", headers, b"{}"))
+    caller.mfa_at_ms = int(time.time() * 1000)
+    await endpoint(request("POST", "/ops/admin_reset", headers, b"{}"))
+    caller.principal_kind = "service"
+    await endpoint(request("POST", "/ops/admin_reset", headers, b"{}"))
+    assert seen == ["http", "console", "http"]
