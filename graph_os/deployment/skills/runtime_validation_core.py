@@ -12,10 +12,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
-
-from graph_os.deployment.skills import BUNDLED_SKILLS
-from graph_os.deployment.skills.validation import (
+from agent_utilities.skills.validation import (
     _ARCHITECTURE_COMPONENT_ID,
     _ARCHITECTURE_MANIFEST_PATH,
     _ARCHITECTURE_SOURCE_REPOSITORY_ID,
@@ -23,10 +20,13 @@ from graph_os.deployment.skills.validation import (
     _ARCHITECTURE_SOURCE_REVISION,
     _ARCHITECTURE_SOURCE_WORKSPACE_MANIFEST,
     _ARCHITECTURE_TARGET_REF,
-    FORWARD_MATRIX,
     _architecture_canonical_relative_path,
     _architecture_revision_exists,
 )
+from pydantic import BaseModel, ConfigDict, Field
+
+from graph_os.deployment.skills import BUNDLED_SKILLS
+from graph_os.deployment.skills.validation import FORWARD_MATRIX
 
 _SAFE_ROUTE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _SAFE_ERROR = re.compile(r"^[a-z][a-z0-9_]{0,95}$")

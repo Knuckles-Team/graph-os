@@ -82,7 +82,7 @@ def _validate_skill_certification_commands(
     """The GraphOS endpoint must be the active one and the argv arrays sound."""
     from pathlib import Path
 
-    from agent_utilities.skills.runtime_validation import (
+    from graph_os.deployment.skills.runtime_validation import (
         _validate_external_command_argv,
     )
 
@@ -326,7 +326,8 @@ def _cert_configuration_gate(
 def _cert_validated_commands(cfg: Any, command_maps: tuple[Any, ...]) -> list[Any]:
     """Every certification command, proven exact-scenario and non-shell argv."""
     from agent_utilities.core.config import PRODUCTION_CERTIFICATION_SCENARIOS
-    from agent_utilities.skills.runtime_validation import (
+
+    from graph_os.deployment.skills.runtime_validation import (
         _validate_external_command_argv,
     )
 

@@ -17,13 +17,10 @@ from agent_utilities.security.persistence_privacy import (
     PersistencePrivacyGuard,
     persistence_reference,
 )
+from agent_utilities.skills.validation import architecture_candidate_from_owner_manifest
 from pydantic import AfterValidator, BaseModel, Field, create_model
 
-from graph_os.deployment.skills.validation import (
-    FORWARD_MATRIX,
-    SKILLS_ROOT,
-    architecture_candidate_from_owner_manifest,
-)
+from graph_os.deployment.skills.validation import FORWARD_MATRIX, SKILLS_ROOT
 
 from .runtime_validation_core import (
     _MAX_TOOL_DEPTH,

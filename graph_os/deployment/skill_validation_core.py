@@ -22,12 +22,13 @@ from pathlib import Path
 from typing import Any, Literal
 
 from agent_utilities.core._env import setting
-from agent_utilities.skills.runtime_validation import (
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from graph_os.deployment.skills.runtime_validation import (
     _CASE_COUNT,
     load_matrix,
     minimum_campaign_authority_ttl_seconds,
 )
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 _DIGEST = re.compile(r"^sha256:(?!0{64}$)[a-f0-9]{64}$")
 _MARKER_ENV = "GRAPHOS_SKILL_VALIDATION_INSTANCE"

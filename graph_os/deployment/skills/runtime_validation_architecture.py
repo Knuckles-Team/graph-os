@@ -7,7 +7,7 @@ import math
 import time
 from typing import Any
 
-from graph_os.deployment.skills.validation import (
+from agent_utilities.skills.validation import (
     _ARCHITECTURE_ACTIVE_STATUS,
     _ARCHITECTURE_AUTHORITY_STATE,
     _ARCHITECTURE_MANIFEST_PATH,

@@ -90,6 +90,13 @@ graph-os-production-ops = "graph_os.deployment.production_ops:main"
 setup-config = "graph_os.deployment.cli:main"
 agent-utilities-doctor = "graph_os.deployment.doctor:main"
 agent-utilities-venv = "graph_os.deployment.venv_sync:main"
+agent-utilities-validate-skills = "graph_os.deployment.skills.validation:main"
+agent-utilities-validate-skill-fleet = "graph_os.deployment.skill_fleet.cli:main"
+graph-os-certify-skills = "graph_os.deployment.skill_validation:main"
+graph-os-generate-skill-runtime-profile = "graph_os.deployment.skill_validation_assets:profile_main"
+graph-os-generate-skill-certification = "graph_os.deployment.skill_validation_assets:generator_main"
+graph-os-skill-readiness = "graph_os.deployment.skill_validation_assets:readiness_main"
+graph-os-verify-skill-certification = "graph_os.deployment.skill_validation_assets:verifier_main"
 
 # Portable development binding for the not-yet-published AU 2.5 release.
 # The path is ignored and supplied as a local symlink; package metadata keeps

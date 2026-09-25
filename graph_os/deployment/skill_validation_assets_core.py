@@ -561,7 +561,7 @@ def generate_runtime_profile(
         raise CertificationAssetError("runtime_profile_destination_invalid") from exc
     profile = _runtime_profile_document(configuration)
     rendered = json.dumps(profile, sort_keys=True, indent=2) + "\n"
-    from agent_utilities.skills.runtime_validation import publish_report
+    from graph_os.deployment.skills.runtime_validation import publish_report
 
     publish_report(profile_path, rendered)
     if _read_regular(
