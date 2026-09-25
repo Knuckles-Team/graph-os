@@ -8,9 +8,18 @@ from __future__ import annotations
 
 import re
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
+from agent_connector_sdk.credentials.references import (
+    SecretReferenceError,
+    parse_secret_reference,
+)
+
+from graph_os.api.harness_context import (
+    BearerResolver,
+    configured_eg_context_endpoint,
+)
 from graph_os.api.invoke.eg_audit import EgAuditAdapter
 from graph_os.api.invoke.executor import (
     BoundOperationRuntime,
@@ -70,14 +79,59 @@ class ServedApiPorts:
 _SERVED_PORTS: ServedApiPorts | None = None
 
 
-def configure_served_api_ports(ports: ServedApiPorts) -> None:
-    """Register one process-owned bundle before server construction."""
+def bind_context_endpoint_export(
+    ports: ServingPorts, *, bearer_ref: str, resolve_bearer: BearerResolver
+) -> ServingPorts:
+    """Bind the harness export to an explicit secret reference and resolver.
+
+    Resolution and the live authorized MCP probe happen for each invocation.
+    The exported descriptor contains the reference, never the bearer value.
+    """
+
+    if ports.context_endpoint_export is not None:
+        raise ValueError("context endpoint export is already bound")
+    try:
+        reference = parse_secret_reference(bearer_ref).render()
+    except SecretReferenceError as exc:
+        raise ValueError("context endpoint bearer reference is unavailable") from exc
+    _require_callable(resolve_bearer, "context_endpoint_resolver")
+
+    async def export() -> tuple[Any, Any]:
+        return await configured_eg_context_endpoint(
+            bearer_ref=reference, resolve_bearer=resolve_bearer
+        )
+
+    return replace(ports, context_endpoint_export=export)
+
+
+def configure_served_api_ports(
+    ports: ServedApiPorts,
+    *,
+    context_bearer_ref: str | None = None,
+    resolve_bearer: BearerResolver | None = None,
+) -> None:
+    """Register one process-owned bundle before server construction.
+
+    The host may supply an explicit export port, or these two bootstrap inputs
+    to bind the configured EG MCP probe. A partial pair never serves.
+    """
 
     if not isinstance(ports, ServedApiPorts):
         raise TypeError("complete served API ports are required")
     global _SERVED_PORTS
     if _SERVED_PORTS is not None:
         raise RuntimeError("served API ports already configured")
+    if (context_bearer_ref is None) != (resolve_bearer is None):
+        raise ValueError("context endpoint reference and resolver are both required")
+    if context_bearer_ref is not None and resolve_bearer is not None:
+        ports = replace(
+            ports,
+            serving=bind_context_endpoint_export(
+                ports.serving,
+                bearer_ref=context_bearer_ref,
+                resolve_bearer=resolve_bearer,
+            ),
+        )
     _SERVED_PORTS = ports
 
 
