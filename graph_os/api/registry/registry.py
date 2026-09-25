@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable, Iterable, Iterator
+from pathlib import Path
 from typing import Protocol
 
-from .digest import canonical_registry, registry_digest
+from .digest import canonical_registry
 from .spec import OpSpec, PrincipalRule, Surface, Verb
 
 
@@ -51,7 +53,13 @@ def authorized(op: OpSpec, caller: Caller, *, policy: PolicyDecision) -> bool:
 class Registry:
     """An immutable registry whose discovery always requires a policy decision."""
 
-    def __init__(self, ops: Iterable[OpSpec], *, api_version: str = "1") -> None:
+    def __init__(
+        self,
+        ops: Iterable[OpSpec],
+        *,
+        api_version: str = "1",
+        contract_root: Path | None = None,
+    ) -> None:
         index: dict[str, OpSpec] = {}
         for op in ops:
             if op.id in index:
@@ -59,8 +67,10 @@ class Registry:
             index[op.id] = op
         self._ops = index
         self.api_version = api_version
-        self.canonical = canonical_registry(index.values(), api_version=api_version)
-        self.digest = registry_digest(index.values(), api_version=api_version)
+        self.canonical = canonical_registry(
+            index.values(), api_version=api_version, contract_root=contract_root
+        )
+        self.digest = hashlib.sha256(self.canonical).hexdigest()
 
     def __getitem__(self, op_id: str) -> OpSpec:
         return self._ops[op_id]
