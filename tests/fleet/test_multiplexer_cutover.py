@@ -318,3 +318,57 @@ async def test_resource_requires_governed_read_adapter():
     with pytest.raises(RuntimeError, match="governed fleet read adapter"):
         await ops.load_tools(caller, "a", [item.id])
     assert not ops.sessions.loaded("a")
+
+
+@pytest.mark.asyncio
+async def test_policy_revision_drops_every_active_loaded_session():
+    item = CatalogItem("fleet:tool:s/read", "tool", "read", server="s")
+
+    async def source():
+        return (item,)
+
+    async def yes(_item, _caller):
+        return True
+
+    async def mount(_item, _forwarder):
+        return None
+
+    notify_ok = [True]
+    notifications = []
+
+    async def notify(key):
+        notifications.append(key)
+        return notify_ok[0]
+
+    async def invoke(*_args):
+        return None
+
+    ops = MultiplexerOps(
+        catalog=FleetCatalog((source,), yes),
+        sessions=SessionLoads(),
+        loadable=yes,
+        mount=mount,
+        notify=notify,
+        invoke=invoke,
+        health=lambda: {},
+        native_name=lambda _item: "s__read",
+    )
+    caller = SimpleNamespace(
+        effective_scopes=frozenset({"mcp:discover", "mcp:delegate"})
+    )
+    await ops.load_tools(caller, "a", [item.id])
+    await ops.load_tools(caller, "b", [item.id])
+    assert ops.dispatchable("a", "s__read")
+    assert ops.dispatchable("b", "s__read")
+    notify_ok[0] = False
+    assert await ops.invalidate_policy_revision("new") == {
+        "a": [item.id],
+        "b": [item.id],
+    }
+    assert not ops.dispatchable("a", "s__read")
+    assert not ops.dispatchable("b", "s__read")
+    assert ops.sessions.status("a")["used"] == 0
+    assert ops.sessions.status("b")["used"] == 0
+    assert ops.sessions.status("a")["list_changed_pending"]
+    assert ops.sessions.status("b")["list_changed_pending"]
+    assert notifications == ["a", "b", "a", "b"]
