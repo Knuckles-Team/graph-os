@@ -16,6 +16,7 @@ from graph_os.api.registry import (
     Registry,
     Stability,
     SubjectRef,
+    SubjectSource,
     Surface,
     Verb,
     canonical_registry,
@@ -131,6 +132,20 @@ def test_service_executor_requires_subject_and_executor_scopes() -> None:
         executor_scopes=frozenset({"identity:service"}),
     )
     assert service.subject == SubjectRef(path="params.user_id")
+
+
+def test_tenant_subject_is_typed_and_cannot_read_a_request_field() -> None:
+    tenant = SubjectRef(source=SubjectSource.CALLER_TENANT)
+    assert tenant.path is None
+    with pytest.raises(ValidationError, match="cannot carry a request path"):
+        SubjectRef(source=SubjectSource.CALLER_TENANT, path="params.tenant")
+    with pytest.raises(ValidationError, match="non-reserved request path"):
+        SubjectRef(path="$caller.tenant")
+
+
+def test_mutating_operation_must_declare_an_audit_class() -> None:
+    with pytest.raises(ValidationError, match="requires an audit class"):
+        make_op(audit=AuditClass.NONE)
 
 
 def test_effect_confirmation_defaults_and_deprecation_metadata() -> None:

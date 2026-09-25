@@ -16,6 +16,7 @@ from .spec import (
     PrincipalRule,
     Stability,
     SubjectRef,
+    SubjectSource,
     Surface,
     Verb,
 )
@@ -37,6 +38,7 @@ __all__ = [
     "Registry",
     "Stability",
     "SubjectRef",
+    "SubjectSource",
     "Surface",
     "Verb",
     "authorized",

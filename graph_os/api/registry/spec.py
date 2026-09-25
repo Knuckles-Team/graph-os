@@ -69,6 +69,11 @@ class AuditClass(StrEnum):
     IDENTITY_CHAIN = "identity_chain"
 
 
+class SubjectSource(StrEnum):
+    PARAM = "param"
+    CALLER_TENANT = "caller_tenant"
+
+
 class EgSchemaRef(BaseModel):
     """A schema shipped in the epistemic-graph contract wheel."""
 
@@ -94,10 +99,20 @@ class Composite(BaseModel):
 
 
 class SubjectRef(BaseModel):
-    """Path to the request subject checked under caller authority."""
+    """A request path or verified caller tenant checked before service execution."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
-    path: str = Field(min_length=1)
+    source: SubjectSource = SubjectSource.PARAM
+    path: str | None = None
+
+    @model_validator(mode="after")
+    def _source_shape(self) -> SubjectRef:
+        if self.source is SubjectSource.CALLER_TENANT:
+            if self.path is not None:
+                raise ValueError("caller tenant subject cannot carry a request path")
+        elif not self.path or not self.path.strip() or self.path.startswith("$"):
+            raise ValueError("parameter subject requires a non-reserved request path")
+        return self
 
 
 class HttpShape(BaseModel):
@@ -162,6 +177,8 @@ class OpSpec(BaseModel):
             raise ValueError("remove_in is reserved for deprecated operations")
         if not self.surfaces:
             raise ValueError("operation requires at least one surface")
+        if self.effect is not Effect.READ and self.audit is AuditClass.NONE:
+            raise ValueError("mutating operation requires an audit class")
         if self.confirm is None:
             default = {Effect.DESTRUCTIVE: Confirm.PLAN, Effect.ADMIN: Confirm.CONSOLE}
             object.__setattr__(self, "confirm", default.get(self.effect, Confirm.NONE))

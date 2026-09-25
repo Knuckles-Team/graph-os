@@ -9,6 +9,7 @@ import pytest
 
 from graph_os.api.registry.eg_binding import EgContractError, load_eg_bindings
 from graph_os.api.registry.spec import (
+    AuditClass,
     Effect,
     EgMethod,
     EgSchemaRef,
@@ -101,6 +102,7 @@ def test_generates_exact_caller_bound_ops(tmp_path: Path) -> None:
     assert (
         admin.effect is Effect.ADMIN and admin.idempotency is Idempotency.KEY_REQUIRED
     )
+    assert admin.audit is AuditClass.EVENT
     assert read.effect is Effect.READ and read.idempotency is Idempotency.NATURAL
     assert service.principals.value == "service_only"
     assert all(op.executor.value == "caller" for op in ops)
