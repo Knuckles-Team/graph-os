@@ -9,6 +9,7 @@ import pytest
 
 from graph_os.api.harness_context import (
     ContextEndpointUnavailable,
+    context_endpoint_payload,
     export_verified_eg_context_endpoint,
 )
 
@@ -67,6 +68,20 @@ async def test_export_requires_live_authorized_mcp_and_keeps_token_out(
     assert proof.operations == frozenset(_Client.ops)
     assert _Client.seen == [(endpoint.url, "private-bearer")]
     assert "private-bearer" not in repr(endpoint) + repr(proof)
+    assert context_endpoint_payload(endpoint, proof) == {
+        "endpoint": {
+            "name": "epistemic-graph-context",
+            "url": "https://graph.example.test/mcp",
+            "transport": "http",
+            "bearer_ref": "env://HARNESS_EG_BEARER",
+        },
+        "proof": {
+            "endpoint_url": endpoint.url,
+            "registry_digest": "a" * 64,
+            "tools": ["ask", "find"],
+            "operations": ["context.view", "query.uql"],
+        },
+    }
 
 
 @pytest.mark.asyncio
