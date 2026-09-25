@@ -54,6 +54,8 @@ class Admission:
     set_headers: tuple[tuple[bytes, bytes], ...] = field(default_factory=tuple)
     #: Live, CSRF-admitted browser session's principal. Never set for a bearer.
     session_principal_id: str | None = None
+    #: Broker-verified cookie token; downstream console adapter never reads raw cookies.
+    session_token: str | None = None
     #: EG's session-bound MFA completion time, never a JWT auth_time.
     session_mfa_at_ms: int | None = None
 
@@ -151,6 +153,7 @@ class AdmissionService:
         return Admission(
             token=self._token(resolution, mode),
             session_principal_id=resolution.principal_id,
+            session_token=session,
             session_mfa_at_ms=mfa_at,
         )
 

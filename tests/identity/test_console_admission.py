@@ -14,14 +14,17 @@ from .store_double import StoreDouble
 
 def _local():
     served = serve(StoreDouble(), profile="single-node-prod")
-    assert served.post(
-        "/auth/setup",
-        {
-            "setup_code": SETUP_CODE,
-            "username": "root",
-            "password": "correct horse battery staple",
-        },
-    ).status_code == 200
+    assert (
+        served.post(
+            "/auth/setup",
+            {
+                "setup_code": SETUP_CODE,
+                "username": "root",
+                "password": "correct horse battery staple",
+            },
+        ).status_code
+        == 200
+    )
     return served
 
 
@@ -29,6 +32,7 @@ def test_live_session_has_admitted_marker_but_no_inferred_mfa() -> None:
     served = _local()
     body = served.get("/api/echo").json()
     assert body["session_admitted"] is True
+    assert body["session_token_present"] is True
     assert body["console_mfa_at_ms"] is None
     assert body["sub"] is not None
 
@@ -69,6 +73,7 @@ def test_revoked_session_cannot_gain_session_marker() -> None:
         session.revoked = True
     body = served.get("/api/echo").json()
     assert body["session_admitted"] is None
+    assert body["session_token_present"] is False
     assert body["console_mfa_at_ms"] is None
 
 
@@ -87,6 +92,7 @@ def test_incoming_asgi_state_cannot_assert_console_provenance() -> None:
         "headers": [],
         "state": {
             "graphos_session_admitted": True,
+            "graphos_identity_session_token": "caller-planted-token",
             "graphos_console_mfa_at_ms": 1_797_027_200_000,
         },
     }
@@ -99,4 +105,5 @@ def test_incoming_asgi_state_cannot_assert_console_provenance() -> None:
 
     asyncio.run(gate._forward(Admission(), scope, receive, send))
     assert "graphos_session_admitted" not in captured
+    assert "graphos_identity_session_token" not in captured
     assert "graphos_console_mfa_at_ms" not in captured

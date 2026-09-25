@@ -95,6 +95,7 @@ def _without_console_markers(scope: Scope) -> Scope:
     """Discard caller-supplied state before the gate makes a trusted decision."""
     state = dict(scope.get("state") or {})
     state.pop("graphos_session_admitted", None)
+    state.pop("graphos_identity_session_token", None)
     state.pop("graphos_console_mfa_at_ms", None)
     return {**scope, "state": state}
 
@@ -187,6 +188,10 @@ class IdentityGate:
                     await _refuse(scope, send, 503, "identity_unavailable")
                     return
                 forwarded["state"]["graphos_session_admitted"] = True
+                if admission.session_token is not None:
+                    forwarded["state"]["graphos_identity_session_token"] = (
+                        admission.session_token
+                    )
                 if admission.session_mfa_at_ms is not None:
                     forwarded["state"]["graphos_console_mfa_at_ms"] = (
                         admission.session_mfa_at_ms
