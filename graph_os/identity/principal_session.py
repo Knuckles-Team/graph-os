@@ -11,17 +11,23 @@ session exactly as it does for a bearer on any served request.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Sequence
 from typing import Any
 
 from .broker import IdentityBroker
 from .engine import Resolution
+from .issuer import TokenGrant
 
 __all__ = ["session_for"]
 
 
 def session_for(
-    broker: IdentityBroker, resolution: Resolution, methods: Sequence[str]
+    broker: IdentityBroker,
+    resolution: Resolution,
+    methods: Sequence[str],
+    *,
+    process_key: bool = False,
 ) -> Any:
     """The verified ``GraphSession`` of ``resolution`` (refuses a pending one)."""
     from agent_utilities.security.request_identity import (
@@ -29,7 +35,13 @@ def session_for(
         mint_graph_session,
     )
 
-    token = broker.access_token(resolution, methods)
-    claims = broker.issuer.verify(token)
+    if process_key:
+        token = broker.issuer.mint_process(
+            resolution, TokenGrant(tuple(methods), int(time.time()))
+        )
+        claims = broker.issuer.verify_process(token)
+    else:
+        token = broker.access_token(resolution, methods)
+        claims = broker.issuer.verify(token)
     del token
     return mint_graph_session(actor_from_claims(claims))

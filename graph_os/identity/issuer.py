@@ -19,7 +19,9 @@ die immediately).
 from __future__ import annotations
 
 import json
+import os
 import secrets
+import threading
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -48,6 +50,8 @@ ISSUER_KEYS_SECRET = "graph-os/identity/issuer-signing-keys"
 ACCESS_TOKEN_MAX_SECONDS = 300
 _KEY_BITS = 2048
 _RING_WRITE_ATTEMPTS = 4
+_PROCESS_KEY_LOCK = threading.Lock()
+_PROCESS_KEY: tuple[int, Mapping[str, Any]] | None = None
 
 
 #: The slice of agent-utilities' ``SecretsBackend`` the issuer needs: the same
@@ -106,6 +110,28 @@ def _public(jwk: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _process_key() -> Mapping[str, Any]:
+    """One private key per OS process, never sent to the secrets backend."""
+
+    global _PROCESS_KEY
+    with _PROCESS_KEY_LOCK:
+        pid = os.getpid()
+        if _PROCESS_KEY is None or _PROCESS_KEY[0] != pid:
+            _PROCESS_KEY = (pid, _new_key())
+        return _PROCESS_KEY[1]
+
+
+def _after_fork() -> None:
+    """A child cannot inherit its parent's issuer key or a held lock."""
+
+    global _PROCESS_KEY, _PROCESS_KEY_LOCK
+    _PROCESS_KEY = None
+    _PROCESS_KEY_LOCK = threading.Lock()
+
+
+os.register_at_fork(after_in_child=_after_fork)
+
+
 @dataclass(frozen=True)
 class KeyRing:
     """The active private key plus the retired public keys still published."""
@@ -162,10 +188,12 @@ class LocalIssuer:
         settings: IssuerSettings,
         *,
         clock: Callable[[], float] = time.time,
+        process_key_enabled: bool = False,
     ) -> None:
         self._store = store
         self._settings = settings
         self._clock = clock
+        self._process_key_enabled = process_key_enabled
 
     @property
     def settings(self) -> IssuerSettings:
@@ -196,7 +224,17 @@ class LocalIssuer:
         raise RuntimeError("issuer key rotation lost every compare-and-set race")
 
     def jwks(self) -> KeySetSerialization:
-        return {"keys": [dict(key) for key in self.ring().published(self._clock())]}
+        published = [dict(key) for key in self.ring().published(self._clock())]
+        if self._process_key_enabled:
+            published.append(_public(_process_key()))
+        return {"keys": published}
+
+    def process_jwks(self) -> KeySetSerialization:
+        """Bootstrap verifier for the process key, independent of EG secrets."""
+
+        if not self._process_key_enabled:
+            raise PermissionError("process key is disabled for this profile")
+        return {"keys": [_public(_process_key())]}
 
     def discovery(self) -> dict[str, Any]:
         """The OpenID provider metadata GraphOS publishes for its issuer."""
@@ -247,9 +285,33 @@ class LocalIssuer:
         header = {"alg": "RS256", "typ": "at+jwt", "kid": active["kid"]}
         return jwt.encode(header, self.claims_for(resolution, grant), key)
 
+    def mint_process(self, resolution: Resolution, grant: TokenGrant) -> str:
+        """Mint bootstrap authority without reading the persistent key ring."""
+
+        if not self._process_key_enabled:
+            raise PermissionError("process key is disabled for this profile")
+        if not resolution.usable or resolution.kind != "service":
+            raise PermissionError("process authority requires an active service")
+        active = _process_key()
+        header = {"alg": "RS256", "typ": "at+jwt", "kid": active["kid"]}
+        return jwt.encode(
+            header,
+            self.claims_for(resolution, grant),
+            RSAKey.import_key(dict(active)),
+        )
+
     def verify(self, token: str) -> dict[str, Any]:
         """Decode a token this issuer minted (signature, iss, aud, exp)."""
         key_set = KeySet.import_key_set(self.jwks())
+        return self._validate_token(token, key_set)
+
+    def verify_process(self, token: str) -> dict[str, Any]:
+        """Verify only a token signed by this OS process's ephemeral key."""
+
+        key_set = KeySet.import_key_set(self.process_jwks())
+        return self._validate_token(token, key_set)
+
+    def _validate_token(self, token: str, key_set: KeySet) -> dict[str, Any]:
         decoded = jwt.decode(token, key_set, algorithms=["RS256"])
         registry = jwt.JWTClaimsRegistry(
             now=lambda: int(self._clock()),

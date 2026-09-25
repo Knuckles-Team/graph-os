@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from joserfc.errors import ExpiredTokenError, JoseError
 
 from graph_os.identity.engine import Resolution
+from graph_os.identity.composition import self_minted_broker_session
 from graph_os.identity.issuer import (
     ISSUER_KEYS_SECRET,
     IssuerSettings,
@@ -167,6 +170,61 @@ def test_discovery_points_at_the_jwks(issuer: LocalIssuer) -> None:
     document = issuer.discovery()
     assert document["jwks_uri"] == "https://graph-os.test/.well-known/jwks.json"
     assert document["issuer"] == SETTINGS.issuer
+
+
+def test_process_key_bootstraps_without_a_secrets_backend(clock: Clock) -> None:
+    class UnavailableSecrets:
+        def get(self, key: str) -> str:
+            raise AssertionError("bootstrap must not read the secrets backend")
+
+    first = LocalIssuer(
+        UnavailableSecrets(), SETTINGS, clock=clock, process_key_enabled=True
+    )
+    second = LocalIssuer(
+        UnavailableSecrets(), SETTINGS, clock=clock, process_key_enabled=True
+    )
+    service = Resolution(
+        "svc:graph-os",
+        "graph-os",
+        "service",
+        "active",
+        scopes=frozenset({"identity:authenticate"}),
+    )
+    token = first.mint_process(service, TokenGrant(("process",), int(clock.now)))
+    assert second.verify_process(token)["sub"] == "svc:graph-os"
+    assert (
+        second.process_jwks()["keys"][0]["kid"]
+        == first.process_jwks()["keys"][0]["kid"]
+    )
+    assert "d" not in first.process_jwks()["keys"][0]
+    with pytest.raises(PermissionError):
+        first.mint_process(ALICE, _grant(clock))
+
+
+def test_process_key_is_published_only_for_tiny_profile(clock: Clock) -> None:
+    store = SecretsDouble()
+    tiny = LocalIssuer(store, SETTINGS, clock=clock, process_key_enabled=True)
+    standard = LocalIssuer(store, SETTINGS, clock=clock)
+    persistent_kid = tiny.ring().kid
+    assert {key["kid"] for key in tiny.jwks()["keys"]} == {
+        persistent_kid,
+        tiny.process_jwks()["keys"][0]["kid"],
+    }
+    assert {key["kid"] for key in standard.jwks()["keys"]} == {persistent_kid}
+    with pytest.raises(PermissionError):
+        standard.process_jwks()
+
+
+def test_tiny_broker_session_uses_process_key_before_ring_exists() -> None:
+    class UnavailableSecrets:
+        def get(self, key: str) -> str:
+            raise AssertionError("process session must not read the ring")
+
+    issuer = LocalIssuer(UnavailableSecrets(), SETTINGS, process_key_enabled=True)
+    broker = SimpleNamespace(issuer=issuer)
+    session = self_minted_broker_session(lambda: broker, process_key=True)()
+    assert session.actor.actor_id == "svc:graph-os"
+    assert "identity:authenticate" in session.actor.roles
 
 
 @pytest.mark.parametrize("ttl", [0, 301])
