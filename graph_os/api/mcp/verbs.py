@@ -7,7 +7,12 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from graph_os.api.mcp.discovery import FleetSearch, describe_op, find_visible
+from graph_os.api.mcp.discovery import (
+    FleetSearch,
+    describe_op,
+    find_visible,
+    visible_ops,
+)
 
 VERBS = ("find", "ask", "why", "write", "act", "manage")
 PARAMETERS: dict[str, Any] = {
@@ -32,7 +37,7 @@ class MCPProjection:
     services: Any
     resolver: Any
     caller_for_request: Callable[[], Any]
-    discover_policy: Callable[..., bool]
+    policy_gate: Any
     fleet_search: FleetSearch | None = None
 
 
@@ -68,17 +73,6 @@ def _refusal(
     return envelope
 
 
-def _visible(projection: MCPProjection, caller: Any, verb: str) -> tuple[Any, ...]:
-    from graph_os.api.registry import Surface, Verb
-
-    return projection.registry.find(
-        caller,
-        policy=projection.discover_policy,
-        surface=Surface.MCP,
-        verb=Verb(verb),
-    )
-
-
 def _scope_ref(projection: MCPProjection, caller: Any) -> str:
     return projection.resolver.scope_ref(
         caller.tenant,
@@ -101,6 +95,7 @@ async def dispatch_verb(
     """Route one verb without granting authority through a client hint."""
 
     from graph_os.api.invoke import OpError, invoke
+    from graph_os.api.policy import PolicyUnavailable
     from graph_os.api.registry import Surface
 
     if verb not in VERBS:
@@ -113,24 +108,32 @@ async def dispatch_verb(
         return _refusal("INVALID_ARGUMENT", projection, caller, op or verb)
     scope_ref = _scope_ref(projection, caller)
     if verb == "find":
-        found = await find_visible(
-            registry=projection.registry,
-            caller=caller,
-            policy=projection.discover_policy,
-            resolver=projection.resolver,
-            fleet_search=projection.fleet_search,
-            intent=intent,
-            op=op,
-            params=arguments,
-            scope_ref=scope_ref,
-        )
+        try:
+            found = await find_visible(
+                registry=projection.registry,
+                caller=caller,
+                policy_gate=projection.policy_gate,
+                resolver=projection.resolver,
+                fleet_search=projection.fleet_search,
+                intent=intent,
+                op=op,
+                params=arguments,
+                scope_ref=scope_ref,
+            )
+        except PolicyUnavailable:
+            return _refusal("POLICY_UNAVAILABLE", projection, caller, op or verb)
         return _envelope(found, projection.registry)
     if not op and not intent:
         return _refusal("INVALID_ARGUMENT", projection, caller, verb)
-    visible = _visible(projection, caller, verb)
-    candidates = [describe_op(item) for item in visible]
     resolution = None
     if not op:
+        try:
+            visible = await visible_ops(
+                projection.registry, caller, projection.policy_gate, verb=verb
+            )
+        except PolicyUnavailable:
+            return _refusal("POLICY_UNAVAILABLE", projection, caller, verb)
+        candidates = [describe_op(item) for item in visible]
         resolution = projection.resolver.resolve(
             verb, intent or "", candidates, scope_ref=scope_ref, params=arguments
         )

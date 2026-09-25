@@ -10,6 +10,34 @@ from pydantic import BaseModel
 FleetSearch = Callable[..., Awaitable[Sequence[Mapping[str, Any]]]]
 
 
+async def visible_ops(
+    registry: Any, caller: Any, policy_gate: Any, *, verb: str | None = None
+) -> tuple[Any, ...]:
+    """Batch caller-scoped PDP decisions in registry order."""
+
+    from graph_os.api.policy import PolicyUnavailable, op_resource
+    from graph_os.api.registry import Surface
+
+    candidates = tuple(
+        item
+        for item in registry
+        if Surface.MCP in item.surfaces and (verb is None or item.verb.value == verb)
+    )
+    try:
+        decisions = await policy_gate.visible(
+            [op_resource(item) for item in candidates], caller
+        )
+    except Exception as exc:
+        raise PolicyUnavailable("policy decision point unavailable") from exc
+    if len(decisions) != len(candidates):
+        raise PolicyUnavailable("policy response alignment failed")
+    return tuple(
+        item
+        for item, allowed in zip(candidates, decisions, strict=True)
+        if allowed is True
+    )
+
+
 def _schema(model: Any) -> dict[str, Any]:
     if isinstance(model, type) and issubclass(model, BaseModel):
         return model.model_json_schema()
@@ -51,7 +79,7 @@ async def find_visible(
     *,
     registry: Any,
     caller: Any,
-    policy: Callable[..., bool],
+    policy_gate: Any,
     resolver: Any,
     fleet_search: FleetSearch | None,
     intent: str | None = None,
@@ -65,9 +93,7 @@ async def find_visible(
     unchecked child catalog rows are never accepted by this API.
     """
 
-    from graph_os.api.registry import Surface
-
-    visible = registry.find(caller, policy=policy, surface=Surface.MCP)
+    visible = await visible_ops(registry, caller, policy_gate)
     selected = tuple(item for item in visible if op is None or item.id == op)
     domain = (params or {}).get("domain")
     if domain is not None:
