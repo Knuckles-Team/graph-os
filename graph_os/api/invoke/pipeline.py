@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
+import secrets
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from pydantic import BaseModel
@@ -44,6 +47,37 @@ AuditWrite = Callable[[Mapping[str, str], AuditClass, VerifiedCaller], Awaitable
 AuditPreflight = Callable[
     [Mapping[str, str], AuditClass, VerifiedCaller], Awaitable[str]
 ]
+
+
+def _service_fleet_caller(
+    op: Any,
+    caller: VerifiedCaller,
+    *,
+    idempotency_key: str | None,
+    plan_ref: str | None,
+) -> VerifiedCaller | OpError:
+    """Use one audit/journal identity for retries of the same authorized call.
+
+    EG binds payload and authority digests to this ID, rejecting a changed
+    binding. Including them in the ID would permit a second reservation.
+    """
+
+    if plan_ref is not None:
+        source = ("plan", plan_ref)
+    elif idempotency_key is not None:
+        if not isinstance(idempotency_key, str) or not 1 <= len(idempotency_key) <= 256:
+            return OpError("INVALID_ARGUMENT", {"field": "idempotency_key"})
+        source = ("key", idempotency_key)
+    elif op.effect == Effect.READ:
+        source = ("request", caller.request_id or secrets.token_hex(16))
+    else:
+        return OpError("INVALID_ARGUMENT", {"field": "idempotency_key"})
+    raw = json.dumps(
+        [caller.tenant, caller.principal, op.id, *source],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode()
+    return replace(caller, request_id=hashlib.sha256(raw).hexdigest())
 
 
 @dataclass(frozen=True, slots=True)
@@ -361,6 +395,16 @@ async def invoke(
             return refused
     audit_ref = ""
     will_execute = not _requires_plan(op, resolved_from_intent) or plan_ref is not None
+    if (
+        will_execute
+        and fleet_decision is not None
+        and fleet_decision.executor == Executor.SERVICE
+    ):
+        caller = _service_fleet_caller(
+            op, caller, idempotency_key=idempotency_key, plan_ref=plan_ref
+        )
+        if isinstance(caller, OpError):
+            return caller
     needs_audit = op.effect != Effect.READ or op.id == "fleet.call"
     if needs_audit and will_execute:
         if op.audit == AuditClass.NONE:

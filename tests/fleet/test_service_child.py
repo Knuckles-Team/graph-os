@@ -87,7 +87,10 @@ def _caller():
         principal="alice",
         tenant="tenant-a",
         effective_scopes=frozenset({"mcp:delegate", "domain:read"}),
-        engine_claims={"scopes": ["domain:read", "mcp:delegate"]},
+        engine_claims={
+            "scopes": ["domain:read", "mcp:delegate"],
+            "policy_version": "policy-1",
+        },
         policy_revision="policy-1",
         request_id="req-1",
         session=session,
@@ -225,8 +228,25 @@ async def test_scope_snapshot_must_match_verified_engine_carrier() -> None:
         journal=journal, transport=transport, admitted_tool=_admitted
     )
     caller = _caller()
-    caller.engine_claims = {"scopes": ["mcp:delegate"]}
+    caller.engine_claims = {
+        "scopes": ["mcp:delegate"],
+        "policy_version": "policy-1",
+    }
     with pytest.raises(PermissionError, match="scope carrier"):
+        await adapter("s", "run", {}, caller, _owner_ref(), REGISTRY_DIGEST)
+    assert journal.records == []
+    assert transport.calls == []
+
+
+@pytest.mark.asyncio
+async def test_policy_revision_must_match_verified_engine_carrier() -> None:
+    journal, transport = Journal(), Transport()
+    adapter = ServiceChildAdapter(
+        journal=journal, transport=transport, admitted_tool=_admitted
+    )
+    caller = _caller()
+    caller.policy_revision = "policy-2"
+    with pytest.raises(PermissionError, match="authority revision"):
         await adapter("s", "run", {}, caller, _owner_ref(), REGISTRY_DIGEST)
     assert journal.records == []
     assert transport.calls == []
