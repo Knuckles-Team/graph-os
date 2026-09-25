@@ -13,7 +13,6 @@ from typing import Any
 from graph_os.gateway.ports import configure_gateway_application
 from graph_os.mcp_server import runtime
 from graph_os.mcp_server.routes import mount_rest_routes
-from graph_os.webui_host import run_web_ui
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +179,7 @@ def start_composed_services(
     engine: Any,
     *,
     messaging_intake_enabled: bool | None = None,
+    web_ui_runner: Callable[[threading.Event], None] | None = None,
 ) -> CoServiceSupervisor:
     """Start AU agent-plane messaging and the graph-os-owned WebUI host."""
 
@@ -203,5 +203,7 @@ def start_composed_services(
     elif plan.messaging_configured:
         logger.info("messaging credentials are present but inbound intake is disabled")
     if plan.web_ui_enabled:
-        supervisor.start_service("agent-webui", run_web_ui, session)
+        if web_ui_runner is None:
+            raise RuntimeError("served WebUI runner is required")
+        supervisor.start_service("agent-webui", web_ui_runner, session)
     return supervisor

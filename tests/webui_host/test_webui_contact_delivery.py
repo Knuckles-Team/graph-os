@@ -13,7 +13,6 @@ from typing import Any, cast
 # replaces agent_utilities / agent_webui with synthetic modules: importing them
 # afterwards would resolve their own imports against the stubs.
 from graph_os.browser_control import browser_control_service
-from graph_os.identity import serving
 from graph_os.mcp_server import runtime
 
 
@@ -235,16 +234,22 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     async def prepare_identity(identity: object, bind_hosts: list[str]) -> None:
         calls["identity_prepared"] = (identity, bind_hosts)
 
-    monkeypatch.setattr(
-        serving, "served_identity_runtime", lambda client_for: "identity-runtime"
-    )
-    monkeypatch.setattr(
-        serving, "webui_session_boundary", lambda identity: ("boundary", identity)
-    )
-    monkeypatch.setattr(serving, "prepare_identity", prepare_identity)
+    class ServedIdentity:
+        async def prepare(self, bind_hosts: list[str]) -> None:
+            await prepare_identity("identity-runtime", bind_hosts)
+
+        def webui_session_boundary(self) -> tuple[str, str]:
+            return ("boundary", "identity-runtime")
 
     monkeypatch.delenv(module.ACCESS_LOG_POLICY_ENV, raising=False)
-    module.run_web_ui(stop_event, host="0.0.0.0", port=8181)
+    module.run_web_ui(
+        stop_event,
+        identity_factory=lambda client_for: ServedIdentity(),
+        graph_client=runtime.graph_client,
+        engine_factory=runtime._get_engine,
+        host="0.0.0.0",
+        port=8181,
+    )
 
     assert os.environ[module.ACCESS_LOG_POLICY_ENV] == "disabled"
     assert calls["engine_getter"] == "bounded-engine"
