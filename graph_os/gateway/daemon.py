@@ -20,9 +20,9 @@ import time
 from dataclasses import replace
 from typing import Any
 
+from agent_utilities.api.security import redact_for_log
 from agent_utilities.core.config import setting
 from agent_utilities.security.error_surface import public_error_payload
-from agent_utilities.security.log_redaction import redact_for_log
 
 logger = logging.getLogger(__name__)
 

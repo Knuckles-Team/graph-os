@@ -63,13 +63,13 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import anyio
+from agent_utilities.api.security import redact_for_log
 from agent_utilities.observability.gateway_metrics import (
     MCP_CHILD_BREAKER_STATE,
     MCP_CHILD_CALLS,
     MCP_CHILD_QUEUE_DEPTH,
     MCP_CHILD_RESTARTS,
 )
-from agent_utilities.security.log_redaction import redact_for_log
 
 from graph_os.fleet.protocol_compat import mcp_protocol_error
 from graph_os.fleet.throttle_limiter import ResizableLimiter

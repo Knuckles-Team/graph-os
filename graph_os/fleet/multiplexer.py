@@ -93,10 +93,10 @@ ToolResult = _fastmcp_tools.ToolResult
 # streamablehttp_client` on EVERY remote child, which is the whole deployed
 # fleet — `deploy/mcp-fleet.registry.yml` defaults to `streamable-http`).
 import agent_utilities.api.runtime as _resource_priority
+from agent_utilities.api.security import redact_for_log
 from agent_utilities.core.capability_contract import Capability
 from agent_utilities.core.config import setting
 from agent_utilities.security.error_surface import public_error_text
-from agent_utilities.security.log_redaction import redact_for_log
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamable_http_client
 
