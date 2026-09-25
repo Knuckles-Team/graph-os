@@ -322,6 +322,9 @@ async def test_explicit_issuer_rotation_records_kid_as_caller() -> None:
             events.append("signer")
             return "kid-2"
 
+        def ring(self) -> Any:
+            return SimpleNamespace(kid="kid-2")
+
     class Broker:
         issuer = Issuer()
 
@@ -389,3 +392,61 @@ async def test_issuer_rotation_refusal_does_not_report_success() -> None:
             context, {}, SimpleNamespace(id="identity.issuer.rotate")
         )
     assert invalidated == [True]
+
+
+@pytest.mark.asyncio
+async def test_issuer_rotation_refuses_newer_signer_race() -> None:
+    class Broker:
+        issuer = SimpleNamespace(
+            rotate=lambda _retirement: "kid-2",
+            ring=lambda: SimpleNamespace(kid="kid-3"),
+        )
+
+        async def config(self, *, fresh: bool) -> dict[str, int]:
+            return {"epoch": 1}
+
+        def forget_config(self) -> None:
+            pass
+
+        class engine:
+            @staticmethod
+            async def as_caller(_session: Any, _call: IdentityCall) -> IdentityReply:
+                return IdentityReply("config", {"epoch": 2})
+
+    context = SimpleNamespace(
+        services={"identity": Broker()}, caller=SimpleNamespace(session=object())
+    )
+    with pytest.raises(IdentityUnavailable, match="rotated concurrently"):
+        await admin_service.execute_identity_op(
+            context, {}, SimpleNamespace(id="identity.issuer.rotate")
+        )
+
+
+@pytest.mark.asyncio
+async def test_admin_reset_issues_token_as_verified_caller(monkeypatch: Any) -> None:
+    monkeypatch.setattr(admin_service, "new_token", lambda: "one-time-token")
+    engine = Engine()
+    engine.answers["token", "issue_admin_reset"] = IdentityReply(
+        "done", {"changed": True}
+    )
+    service = IdentityAdminService(engine)
+    with pytest.raises(IdentityUnavailable, match="verified caller"):
+        await service.admin_reset(None, "usr:2")
+    assert engine.calls == []
+    caller = object()
+    result = await service.admin_reset(caller, "usr:2")
+    assert result == {"reset_token": "one-time-token", "expires_in_minutes": 30}
+    assert engine.calls == [
+        (
+            caller,
+            IdentityCall(
+                "token",
+                "issue_admin_reset",
+                {
+                    "principal_id": "usr:2",
+                    "token": "one-time-token",
+                    "ttl_ms": 1_800_000,
+                },
+            ),
+        )
+    ]

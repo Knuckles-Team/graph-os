@@ -20,6 +20,7 @@ from .engine import (
 )
 from .idp_common import dry_run
 from .issuer import Retirement
+from .material import new_token
 
 __all__ = [
     "AdminAction",
@@ -168,6 +169,30 @@ class IdentityAdminService:
     def __init__(self, engine: IdentityEngine) -> None:
         self._engine = engine
 
+    async def admin_reset(
+        self, caller_session: Any, principal_id: str
+    ) -> dict[str, Any]:
+        """Issue one caller-authorized reset token, returned exactly once."""
+        if caller_session is None:
+            raise IdentityUnavailable(
+                "identity administration requires a verified caller"
+            )
+        token = new_token()
+        reply = await self._engine.as_caller(
+            caller_session,
+            IdentityCall(
+                "token",
+                "issue_admin_reset",
+                {
+                    "principal_id": principal_id,
+                    "token": token,
+                    "ttl_ms": 30 * 60 * 1000,
+                },
+            ),
+        )
+        reply.expect("done")
+        return {"reset_token": token, "expires_in_minutes": 30}
+
     async def execute(
         self, op_id: str, caller_session: Any, params: Mapping[str, Any]
     ) -> Any:
@@ -241,6 +266,8 @@ async def execute_identity_op(context: Any, params: Mapping[str, Any], op: Any) 
         )
     engine = EngineIdentityPort(lambda _tenant: context.client, lambda: None)
     service = IdentityAdminService(engine)
+    if op.id == "identity.users.admin_reset":
+        return await service.admin_reset(context.caller.session, params["principal_id"])
     if op.id == "identity.idps.mapping_dry_run":
         return await service.mapping_dry_run(
             context.caller.session, params["idp_id"], params["claims"]
@@ -266,6 +293,8 @@ async def _rotate_issuer(broker: Any, caller_session: Any) -> Any:
                 {"expected_epoch": config["epoch"], "issuer_kid": kid},
             ),
         )
+        if broker.issuer.ring().kid != kid:
+            raise IdentityUnavailable("issuer rotated concurrently; retry")
     finally:
         broker.forget_config()
     return reply.expect("config")

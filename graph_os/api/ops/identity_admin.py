@@ -142,6 +142,11 @@ class Created(StrictModel):
     principal_id: str
 
 
+class AdminResetToken(StrictModel):
+    reset_token: str
+    expires_in_minutes: int
+
+
 _HANDLER = "graph_os.identity.admin_service.execute_identity_op"
 
 # Search, per-session revoke and key listing depend on the EG identity-ops lane.
@@ -160,6 +165,7 @@ _OPERATIONS: tuple[tuple[str, type[BaseModel], type[BaseModel], bool], ...] = (
     ("identity.users.deprovision", Principal, Result, False),
     ("identity.users.unlock", Principal, Result, False),
     ("identity.users.force_logout", Principal, Result, False),
+    ("identity.users.admin_reset", Principal, AdminResetToken, False),
     ("identity.sessions.list", Principal, Collection, True),
     ("identity.sessions.revoke", ObjectId, Result, False),
     ("identity.api_keys.list", ApiKeyPage, Collection, True),
