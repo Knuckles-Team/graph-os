@@ -1,6 +1,9 @@
 """Focused contract tests for the generated-descriptor intent resolver."""
 
+from importlib import import_module
+
 from graph_os.api.mcp.resolve import IntentResolver
+from graph_os.api.ops import CURATED_SOURCES
 
 
 def _items() -> list[dict[str, object]]:
@@ -32,6 +35,30 @@ def _items() -> list[dict[str, object]]:
             "examples": ["run the calendar agent"],
         },
     ]
+
+
+def test_curated_first_examples_self_resolve_in_the_top_three() -> None:
+    """G8: each declared curated op is discoverable by its own example."""
+    descriptors = [
+        {
+            "op": spec.id,
+            "verb": spec.verb.value,
+            "summary": spec.summary,
+            "examples": spec.examples,
+        }
+        for module, factory in CURATED_SOURCES
+        for spec in getattr(import_module(f"graph_os.api.ops.{module}"), factory)()
+    ]
+    resolver = IntentResolver()
+    for descriptor in descriptors:
+        examples = descriptor["examples"]
+        assert examples, f"{descriptor['op']} has no routing example"
+        ranked = resolver.rank(
+            descriptor["verb"], examples[0], descriptors, scope_ref=None, top_k=3
+        )
+        assert descriptor["op"] in {item.descriptor.id for item in ranked}, (
+            f"{descriptor['op']} does not resolve from {examples[0]!r}"
+        )
 
 
 def test_generated_and_fleet_descriptors_rank_in_visible_verb() -> None:
