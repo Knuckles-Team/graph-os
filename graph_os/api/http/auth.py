@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hmac
+import time
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
@@ -25,8 +26,37 @@ class AmbientHTTPAuthenticator:
     session store. A cookie by itself never grants authority.
     """
 
-    def __init__(self, *, cookie_verifier: CookieVerifier | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        cookie_verifier: CookieVerifier | None = None,
+        console_origin: str | None = None,
+    ) -> None:
         self.cookie_verifier = cookie_verifier
+        # This is configured by the server, never supplied by the caller.
+        self.console_origin = console_origin
+
+    def is_console_request(self, request: Request, caller: VerifiedCaller) -> bool:
+        """Classify a verified, attended browser request as the console surface."""
+
+        if (
+            not self.console_origin
+            or request.headers.get("origin") != self.console_origin
+        ):
+            return False
+        if not request.cookies.get("__Host-graphos-session"):
+            return False
+        if request.headers.get("authorization"):
+            return False
+        if (
+            caller.credential_kind != "session"
+            or caller.principal_kind != "human"
+            or caller.delegated
+            or caller.mfa_at_ms is None
+        ):
+            return False
+        age_ms = int(time.time() * 1000) - caller.mfa_at_ms
+        return 0 <= age_ms <= 900_000
 
     async def authenticate(self, request: Request) -> VerifiedCaller:
         authorization = request.headers.get("authorization", "")

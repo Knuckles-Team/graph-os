@@ -66,7 +66,8 @@ def create_api_application(
     from graph_os.api.registry import Surface, canonical_op
 
     registry = services.registry
-    authenticate = (authenticator or AmbientHTTPAuthenticator()).authenticate
+    auth = authenticator or AmbientHTTPAuthenticator()
+    authenticate = auth.authenticate
     app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
 
     async def visible(request: Request) -> tuple[Any, ...] | JSONResponse:
@@ -82,7 +83,11 @@ def create_api_application(
                 allowed[op.id] = False
         return registry.find(
             caller,
-            surface=Surface.HTTP,
+            surface=(
+                Surface.CONSOLE
+                if auth.is_console_request(request, caller)
+                else Surface.HTTP
+            ),
             policy=lambda op, _: allowed.get(op.id, False),
         )
 
@@ -133,7 +138,7 @@ def create_api_application(
         )
 
     for op in registry:
-        if Surface.HTTP not in op.surfaces:
+        if Surface.HTTP not in op.surfaces and Surface.CONSOLE not in op.surfaces:
             continue
         app.add_api_route(
             f"/ops/{op.id}",
@@ -145,6 +150,7 @@ def create_api_application(
                     result, current_op, digest=registry.digest, request_id=request_id
                 ),
                 generic=True,
+                is_console_request=auth.is_console_request,
             ),
             methods=["POST"],
             include_in_schema=False,
@@ -163,6 +169,7 @@ def create_api_application(
                         request_id=request_id,
                     ),
                     generic=False,
+                    is_console_request=auth.is_console_request,
                 ),
                 methods=[str(op.http.method).upper()],
                 include_in_schema=False,
