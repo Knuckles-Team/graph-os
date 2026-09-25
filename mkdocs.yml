@@ -32,8 +32,10 @@ nav:
   - How it fits: architecture.md
   - Components:
       - MCP server: mcp-server.md
+      - Operation API: api.md
       - REST gateway: gateway.md
       - Fleet gateway: fleet.md
+      - Dynamic multiplexer: fleet-multiplexer.md
       - Unary A2A: a2a.md
       - Policy evolution: policy-evolution.md
       - Access elevation and guardrails: guardrails.md

@@ -21,6 +21,16 @@ MCP and REST handlers meet at the same application boundary. Connector widgets
 delegate through admitted fleet tools. The WebUI co-service submits work to the
 same multiplexer owned by the serving loop.
 
+## Operation API cutover
+
+The approved [operation API](api.md) and [dynamic multiplexer](fleet-multiplexer.md)
+are being implemented. The current release does not yet mount generated
+`/api/v1` routes or serve the exact set of six intent verbs plus four resident
+fleet tools. Existing MCP and REST routes remain the current served surface.
+Operation descriptors and projections are source work until serving composition,
+policy parity, and the combined release gate pass. Discover available tools
+from the running server instead of assuming the planned surface is live.
+
 ## Composition requirements
 
 | Capability | Required runtime state | Behavior when absent |
