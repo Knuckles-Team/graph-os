@@ -20,7 +20,11 @@ from graph_os.api.registry import Surface
 
 
 def request(
-    method: str, path: str, headers: list[tuple[bytes, bytes]] = (), body: bytes = b""
+    method: str,
+    path: str,
+    headers: list[tuple[bytes, bytes]] = (),
+    body: bytes = b"",
+    state: dict | None = None,
 ) -> Request:
     sent = False
 
@@ -38,6 +42,7 @@ def request(
             "path": path,
             "headers": headers,
             "query_string": b"",
+            "state": state or {},
         },
         receive,
     )
@@ -52,21 +57,108 @@ async def test_missing_authority_fails_closed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_cookie_mutation_requires_verified_csrf() -> None:
-    caller = SimpleNamespace(authenticated=True)
+async def test_cookie_requires_gate_admission_csrf_and_signed_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from agent_utilities.knowledge_graph.core import session as session_module
 
-    async def verify(value: str):
-        assert value == "opaque"
-        return caller, "secret"
+    from graph_os.api import invoke as invoke_module
 
-    auth = AmbientHTTPAuthenticator(cookie_verifier=verify)
-    cookie = (b"cookie", b"__Host-graphos-session=opaque")
-    with pytest.raises(HTTPAuthenticationError):
-        await auth.authenticate(request("POST", "/api/v1/ops/example", [cookie]))
-    good = request(
-        "POST", "/api/v1/ops/example", [cookie, (b"x-csrf-token", b"secret")]
+    session = SimpleNamespace(
+        tenant="tenant-a", actor=SimpleNamespace(actor_id="alice")
     )
-    assert await auth.authenticate(good) is caller
+    monkeypatch.setattr(session_module, "resolve_session", lambda: session)
+
+    def from_session(value, *, request_id, mfa_at_ms=None):
+        assert value is session
+        return SimpleNamespace(
+            principal="alice",
+            tenant="tenant-a",
+            request_id=request_id,
+            mfa_at_ms=mfa_at_ms,
+            credential_kind="session",
+            principal_kind="human",
+            delegated=False,
+        )
+
+    monkeypatch.setattr(invoke_module.VerifiedCaller, "from_session", from_session)
+    identity_module = ModuleType("graph_os.identity")
+    identity_module.__path__ = []  # type: ignore[attr-defined]
+    browser = ModuleType("graph_os.identity.browser")
+    browser.session_from_scope = (  # type: ignore[attr-defined]
+        lambda scope: (
+            "opaque"
+            if [v for k, v in scope["headers"] if k == b"cookie"]
+            == [b"__Host-graphos_session=opaque"]
+            else None
+        )
+    )
+    browser.csrf_refusal = (  # type: ignore[attr-defined]
+        lambda scope, token: (
+            None
+            if token == "opaque"
+            and (b"origin", b"https://console.example.test") in scope["headers"]
+            and (b"x-csrf-token", b"secret") in scope["headers"]
+            else "csrf_refused"
+        )
+    )
+    monkeypatch.setitem(sys.modules, "graph_os.identity", identity_module)
+    monkeypatch.setitem(sys.modules, "graph_os.identity.browser", browser)
+    auth = AmbientHTTPAuthenticator(console_origin="https://console.example.test")
+    cookie = (b"cookie", b"__Host-graphos_session=opaque")
+    bearer = (b"authorization", b"Bearer gate-minted")
+    with pytest.raises(HTTPAuthenticationError):
+        await auth.authenticate(
+            request("POST", "/api/v1/ops/example", [cookie, bearer])
+        )
+    common = [
+        cookie,
+        bearer,
+        (b"origin", b"https://console.example.test"),
+        (b"x-csrf-token", b"secret"),
+    ]
+    with pytest.raises(HTTPAuthenticationError):
+        await auth.authenticate(
+            request(
+                "POST",
+                "/api/v1/ops/example",
+                common,
+                state={
+                    "graphos_session_admitted": True,
+                    "user_claims": {"sub": "bob", "tenant_id": "tenant-a"},
+                },
+            )
+        )
+    now = int(time.time() * 1000)
+    good = request(
+        "POST",
+        "/api/v1/ops/example",
+        common,
+        state={
+            "graphos_session_admitted": True,
+            "user_claims": {"sub": "alice", "tenant_id": "tenant-a"},
+            "graphos_console_mfa_at_ms": now,
+        },
+    )
+    caller = await auth.authenticate(good)
+    assert caller.principal == "alice"
+    assert caller.mfa_at_ms == now
+    assert auth.is_console_request(good, caller)
+    plain_bearer = request("GET", "/api/v1/registry", [bearer])
+    bearer_caller = await auth.authenticate(plain_bearer)
+    assert bearer_caller.principal == "alice"
+    assert not auth.is_console_request(plain_bearer, bearer_caller)
+    stale = request(
+        "POST",
+        "/api/v1/ops/example",
+        common,
+        state={
+            "graphos_session_admitted": True,
+            "user_claims": {"sub": "alice", "tenant_id": "tenant-a"},
+            "graphos_console_mfa_at_ms": now - 16 * 60 * 1000,
+        },
+    )
+    assert (await auth.authenticate(stale)).mfa_at_ms is None
 
 
 @pytest.mark.asyncio
@@ -157,23 +249,20 @@ async def test_console_requires_verified_cookie_origin_human_and_fresh_mfa() -> 
         mfa_at_ms=now,
     )
 
-    async def verify(_: str):
-        return caller, "csrf-secret"
-
-    auth = AmbientHTTPAuthenticator(
-        cookie_verifier=verify, console_origin="https://console.example.test"
-    )
+    auth = AmbientHTTPAuthenticator(console_origin="https://console.example.test")
     headers = [
-        (b"cookie", b"__Host-graphos-session=opaque"),
+        (b"cookie", b"__Host-graphos_session=opaque"),
         (b"origin", b"https://console.example.test"),
         (b"x-csrf-token", b"csrf-secret"),
     ]
-    attended = request("POST", "/api/v1/ops/identity.users.disable", headers)
-    assert await auth.authenticate(attended) is caller
-    assert auth.is_console_request(attended, caller)
-    assert not AmbientHTTPAuthenticator(cookie_verifier=verify).is_console_request(
-        attended, caller
+    attended = request(
+        "POST",
+        "/api/v1/ops/identity.users.disable",
+        headers,
+        state={"graphos_session_admitted": True},
     )
+    assert auth.is_console_request(attended, caller)
+    assert not AmbientHTTPAuthenticator().is_console_request(attended, caller)
     for changed in (
         {"credential_kind": "bearer"},
         {"principal_kind": "service"},
@@ -188,10 +277,12 @@ async def test_console_requires_verified_cookie_origin_human_and_fresh_mfa() -> 
         "POST",
         "/api/v1/ops/identity.users.disable",
         [headers[0], (b"origin", b"https://other.example.test"), headers[2]],
+        state={"graphos_session_admitted": True},
     )
     assert not auth.is_console_request(foreign, caller)
-    with pytest.raises(HTTPAuthenticationError):
-        await auth.authenticate(request("POST", "/api/v1/ops/example", headers[:2]))
+    assert not auth.is_console_request(
+        request("POST", "/api/v1/ops/identity.users.disable", headers), caller
+    )
 
 
 @pytest.mark.asyncio
@@ -214,8 +305,9 @@ async def test_console_projection_passes_only_verified_surface(monkeypatch) -> N
             outcome=outcome, op=op, request_id=request_id
         ),
         generic=True,
-        is_console_request=lambda req, _: req.headers.get("origin")
-        == "https://console.example.test",
+        is_console_request=lambda req, _: (
+            req.headers.get("origin") == "https://console.example.test"
+        ),
     )
     common = [
         (b"content-type", b"application/json"),
