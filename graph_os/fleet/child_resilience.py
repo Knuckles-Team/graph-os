@@ -964,7 +964,25 @@ class ChildRuntime:
                 raise
         raise AssertionError("unreachable")  # pragma: no cover
 
-    async def _call_once(self, original_name: str, arguments: dict[str, Any]) -> Any:
+    async def call_tool_once(
+        self, original_name: str, arguments: dict[str, Any], *, meta: dict[str, Any]
+    ) -> Any:
+        """Make one bounded child attempt with no reconnect replay.
+
+        A service child effect may have happened when its connection dies. The
+        durable caller journal owns recovery; this runtime must never retry it.
+        """
+
+        await self._recycle_if_stale()
+        return await self._call_once(original_name, arguments, meta=meta)
+
+    async def _call_once(
+        self,
+        original_name: str,
+        arguments: dict[str, Any],
+        *,
+        meta: dict[str, Any] | None = None,
+    ) -> Any:
         """One forwarding attempt (the body the retry loop wraps)."""
         try:
             self.breaker.before_call()
@@ -992,7 +1010,11 @@ class ChildRuntime:
                 self.breaker.record_failure()
             raise
         self._in_flight += 1
-        inner = asyncio.ensure_future(session.call_tool(original_name, arguments))
+        if meta is None:
+            call = session.call_tool(original_name, arguments)
+        else:
+            call = session.call_tool(original_name, arguments, meta=meta)
+        inner = asyncio.ensure_future(call)
         inner.add_done_callback(self._finish_call)
         try:
             if self.call_timeout > 0:

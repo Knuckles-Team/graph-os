@@ -28,6 +28,7 @@ from graph_os.fleet.gateway_ops import (
     oauth_delegated_call_for_mux,
     tool_for_multiplexer_ops,
 )
+from graph_os.fleet.service_child import ServiceChildOutcomeUnknown
 
 
 def test_annotations_default_to_write_and_destructive_wins() -> None:
@@ -208,6 +209,36 @@ async def test_fleet_operation_handler_uses_only_bound_gateway() -> None:
 
 
 @pytest.mark.asyncio
+async def test_uncertain_service_child_maps_to_indeterminate_with_recovery_ref() -> (
+    None
+):
+    from graph_os.api.invoke.pipeline import OperationRefused
+
+    class Gateway:
+        async def call(self, *_args: object, **_kwargs: object) -> object:
+            raise ServiceChildOutcomeUnknown(
+                "child response lost", recovery_ref="recovery:42"
+            )
+
+    context = SimpleNamespace(
+        caller=object(),
+        services={"fleet_gateway": Gateway()},
+        service_identity=True,
+        owner="alice",
+        owner_ref="principal:sha256:" + hashlib.sha256(b"alice").hexdigest(),
+        fleet_decision=object(),
+        registry_digest="a" * 64,
+    )
+    operation = next(op for op in fleet.specs() if op.id == "fleet.call")
+    with pytest.raises(OperationRefused) as refused:
+        await fleet.handle_fleet_call(
+            context, {"server": "s", "tool": "run", "arguments": {}}, operation
+        )
+    assert refused.value.code == "INDETERMINATE"
+    assert refused.value.details == {"recovery_ref": "recovery:42"}
+
+
+@pytest.mark.asyncio
 async def test_oauth_callback_uses_matching_verified_actor(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -320,9 +351,15 @@ async def test_service_child_requires_resolved_decision_and_owner(
     stamped: list[str] = []
 
     async def service(
-        _server: str, _tool: str, _args: object, _caller: object, owner_ref: str
+        _server: str,
+        _tool: str,
+        _args: object,
+        _caller: object,
+        owner_ref: str,
+        registry_digest: str,
     ) -> str:
         stamped.append(owner_ref)
+        assert registry_digest == "a" * 64
         return "ok"
 
     gateway = FleetGateway(
@@ -374,6 +411,7 @@ async def test_service_child_requires_resolved_decision_and_owner(
             owner="alice",
             owner_ref=owner_ref,
             fleet_decision=decision,
+            registry_digest="a" * 64,
         )
         == "ok"
     )

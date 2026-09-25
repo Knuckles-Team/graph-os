@@ -141,6 +141,7 @@ _ENGINE_CONFIG_FIELDS = frozenset(
         "pool_size",
         "enabledTools",
         "disabledTools",
+        "credential_mode",
     }
 )
 _MAX_DELEGATED_VALUE_BYTES = 4 * 1024 * 1024
@@ -3377,6 +3378,64 @@ class MCPMultiplexer:
             self.call_proxied_tool(public_name, arguments), timeout=timeout
         )
         return _child_result_payload(result)
+
+    async def call_service_child_once(
+        self, record: _typing.Any, arguments: _collections_abc.Mapping[str, _typing.Any]
+    ) -> dict[str, _typing.Any]:
+        """Send one journaled service-child call without the normal retry path.
+
+        The caller must have durably reserved ``record`` before entering here.
+        A transport failure is ambiguous and is handled by that journal, never
+        by replaying the call on a replacement child session.
+        """
+
+        from graph_os.fleet.service_child import ServiceChildRecord, _digest
+
+        if (
+            not isinstance(record, ServiceChildRecord)
+            or not isinstance(arguments, _collections_abc.Mapping)
+            or _digest(arguments) != record.argument_digest
+        ):
+            raise ValueError("service child record does not match arguments")
+        _require_fleet_capability("delegate")
+        cfg = self.load_catalog().get(record.server)
+        if (
+            not isinstance(cfg, dict)
+            or cfg.get("credential_mode") != "service"
+            or _oauth_gated(cfg)
+        ):
+            raise PermissionError("service child transport is not admitted")
+        _assert_bounded_delegated_value(arguments)
+        await self.mount_child(record.server)
+        public_name = next(
+            (
+                name
+                for name, target in self.tool_to_server.items()
+                if target == (record.server, record.tool)
+            ),
+            None,
+        )
+        if public_name is None:
+            raise RuntimeError("service child tool is unavailable")
+        server, tool, current_cfg, runtime = self._admit_proxied_call(public_name)
+        if (
+            server != record.server
+            or tool != record.tool
+            or current_cfg.get("credential_mode") != "service"
+            or not callable(getattr(runtime, "call_tool_once", None))
+        ):
+            raise PermissionError("service child authority changed before dispatch")
+        result = await runtime.call_tool_once(
+            tool,
+            dict(arguments),
+            meta={
+                "graphos_service_child_record": record.record_id,
+                "graphos_owner_ref": record.owner_ref,
+            },
+        )
+        body = result.model_dump(mode="json", by_alias=True)
+        _assert_bounded_delegated_value(body)
+        return body
 
     async def read_server_resource(
         self, *, server_name: str, uri: str, timeout: float

@@ -15,6 +15,7 @@ from graph_os.api.registry import (
     Surface,
     Verb,
 )
+from graph_os.fleet.service_child import ServiceChildOutcomeUnknown
 
 
 class _Params(BaseModel):
@@ -88,17 +89,25 @@ async def handle_fleet_call(
     gateway = context.services.get("fleet_gateway")
     if gateway is None:
         raise RuntimeError("fleet gateway is not bound")
-    result = await gateway.call(
-        context.caller,
-        params["server"],
-        params["tool"],
-        params["arguments"],
-        expected_effect=op.effect,
-        service_identity=context.service_identity,
-        owner=context.owner,
-        owner_ref=getattr(context, "owner_ref", None),
-        fleet_decision=context.fleet_decision,
-    )
+    try:
+        result = await gateway.call(
+            context.caller,
+            params["server"],
+            params["tool"],
+            params["arguments"],
+            expected_effect=op.effect,
+            service_identity=context.service_identity,
+            owner=context.owner,
+            owner_ref=getattr(context, "owner_ref", None),
+            fleet_decision=context.fleet_decision,
+            registry_digest=context.registry_digest,
+        )
+    except ServiceChildOutcomeUnknown as exc:
+        from graph_os.api.invoke.pipeline import OperationRefused
+
+        raise OperationRefused(
+            "INDETERMINATE", {"recovery_ref": exc.recovery_ref}
+        ) from exc
     return {"value": result}
 
 

@@ -259,14 +259,24 @@ async def _dispatch(
     async def guarded() -> Any:
         if caller.session is None:
             async with execution_context(
-                op, caller, services.runtime, idempotency_key, fleet_decision
+                op,
+                caller,
+                services.runtime,
+                idempotency_key,
+                fleet_decision,
+                services.registry.digest,
             ) as context:
                 return await services.runtime.dispatch(op, params, context)
         from graph_os.mcp_server.bootstrap import authority_keepalive_scope
 
         async with authority_keepalive_scope(caller.session):
             async with execution_context(
-                op, caller, services.runtime, idempotency_key, fleet_decision
+                op,
+                caller,
+                services.runtime,
+                idempotency_key,
+                fleet_decision,
+                services.registry.digest,
             ) as context:
                 return await services.runtime.dispatch(op, params, context)
 
@@ -378,7 +388,9 @@ async def invoke(
         if audit_ref:
             try:
                 await services.audit_write(
-                    audit_event(op, arguments, caller, surface, decision.code, audit_ref),
+                    audit_event(
+                        op, arguments, caller, surface, decision.code, audit_ref
+                    ),
                     op.audit,
                     caller,
                 )

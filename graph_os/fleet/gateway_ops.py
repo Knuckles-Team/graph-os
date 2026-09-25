@@ -78,7 +78,7 @@ DelegatedCall = Callable[[str, str, Mapping[str, Any], Any], Awaitable[Any]]
 # A service callback must stamp every durable child record with the verified
 # owner's canonical principal reference. The generic multiplexer dispatcher
 # cannot prove that property and must not be bound here.
-ServiceCall = Callable[[str, str, Mapping[str, Any], Any, str], Awaitable[Any]]
+ServiceCall = Callable[[str, str, Mapping[str, Any], Any, str, str], Awaitable[Any]]
 
 
 def tool_for_multiplexer_ops(ops: Any) -> ToolFor:
@@ -262,6 +262,7 @@ class FleetGateway:
         owner: str | None = None,
         owner_ref: str | None = None,
         fleet_decision: Any = None,
+        registry_digest: str = "",
     ) -> Any:
         descriptor = await self._admitted_tool(caller, server, tool)
         current_effect, _, _ = annotation_effect(
@@ -285,9 +286,12 @@ class FleetGateway:
                 or fleet_decision.executor_scopes != descriptor.executor_scopes
                 or fleet_decision.required_scopes != descriptor.required_scopes
                 or self._service_call is None
+                or not registry_digest
             ):
                 raise PermissionError("service child authority changed before dispatch")
-            return await self._service_call(server, tool, arguments, caller, owner_ref)
+            return await self._service_call(
+                server, tool, arguments, caller, owner_ref, registry_digest
+            )
         if service_identity is True:
             raise PermissionError("delegated child cannot use service identity")
         return await self._delegated_call(server, tool, arguments, caller)
