@@ -181,6 +181,7 @@ def start_composed_services(
     engine: Any,
     *,
     messaging_intake_enabled: bool | None = None,
+    web_ui_runner: Callable[[threading.Event], None] | None = None,
 ) -> CoServiceSupervisor:
     """Start GraphOS messaging intake and the WebUI host."""
 
@@ -191,5 +192,7 @@ def start_composed_services(
     elif plan.messaging_configured:
         logger.info("messaging credentials are present but inbound intake is disabled")
     if plan.web_ui_enabled:
-        supervisor.start_service("agent-webui", run_web_ui, session)
+        if web_ui_runner is None:
+            raise RuntimeError("served WebUI runner is required")
+        supervisor.start_service("agent-webui", web_ui_runner, session)
     return supervisor

@@ -20,13 +20,20 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from typing import Any
 
 from .composition import IdentityDeployment, IdentityRuntime, build_identity_runtime
 from .modes import NONE_MODE_BANNER
+from .ports import ServedIdentityPort
 from .setup_gate import seed_first_boot
 
-__all__ = ["prepare_identity", "served_identity_runtime", "webui_session_boundary"]
+__all__ = [
+    "prepare_identity",
+    "served_identity_runtime",
+    "served_webui_identity",
+    "webui_session_boundary",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +61,22 @@ def served_identity_runtime(client_for: Callable[[str], Any]) -> IdentityRuntime
         secrets=create_secrets_client(),
         client_for=client_for,
     )
+
+
+@dataclass(frozen=True)
+class _WebUIIdentity:
+    runtime: IdentityRuntime
+
+    async def prepare(self, bind_hosts: Iterable[str]) -> str | None:
+        return await prepare_identity(self.runtime, bind_hosts)
+
+    def webui_session_boundary(self) -> Callable[[Any], None]:
+        return webui_session_boundary(self.runtime)
+
+
+def served_webui_identity(client_for: Callable[[str], Any]) -> ServedIdentityPort:
+    """Adapt the concrete broker once at the serving composition root."""
+    return _WebUIIdentity(served_identity_runtime(client_for))
 
 
 async def prepare_identity(
