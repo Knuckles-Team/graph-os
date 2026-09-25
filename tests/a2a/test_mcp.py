@@ -1,29 +1,18 @@
-"""A2A MCP registration, discovery, and REST-parity contract."""
+"""A2A keeps native protocol routes after the intent-tool cutover."""
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 import pytest
 
 from graph_os.a2a import mcp as a2a_mcp
-from graph_os.a2a.models import A2ATask, A2ATaskStatus
-from graph_os.a2a.service import A2AService
 from graph_os.mcp_server import runtime
 
 
 class _Mcp:
     def __init__(self) -> None:
-        self.tools: dict[str, Any] = {}
         self.routes: dict[tuple[str, tuple[str, ...]], Any] = {}
-
-    def tool(self, *, name: str, **_kwargs: Any) -> Any:
-        def decorate(function: Any) -> Any:
-            self.tools[name] = function
-            return function
-
-        return decorate
 
     def custom_route(self, path: str, *, methods: list[str]) -> Any:
         def decorate(function: Any) -> Any:
@@ -33,42 +22,26 @@ class _Mcp:
         return decorate
 
 
-@pytest.mark.asyncio
-async def test_registration_exposes_exact_mcp_rest_and_native_subset(
+def test_registration_keeps_native_protocol_without_granular_tool(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    task = A2ATask(
-        id="a2a-" + "1" * 64,
-        context_id="a2a-context-" + "2" * 64,
-        status=A2ATaskStatus(state="working"),
-    )
-
-    class Authority:
-        async def get(self, task_id: str) -> A2ATask | None:
-            return task if task_id == task.id else None
-
-    service = A2AService(authority=Authority(), router=object())  # type: ignore[arg-type]
+    card = object()
+    rpc = object()
+    service = object()
     monkeypatch.setattr(a2a_mcp, "_service", lambda: service)
+    monkeypatch.setattr(
+        a2a_mcp,
+        "create_a2a_handlers",
+        lambda *, service, authenticator: (card, rpc),
+    )
     mcp = _Mcp()
     prior = runtime.REGISTERED_TOOLS.get("graph_a2a")
-    try:
-        a2a_mcp.register_a2a_tools(mcp)
-        assert runtime.REGISTERED_TOOLS["graph_a2a"] is mcp.tools["graph_a2a"]
-        from graph_os.api.ops.agents import operations
+    a2a_mcp.register_a2a_protocol_routes(mcp)
+    assert mcp.routes == {
+        ("/.well-known/agent-card.json", ("GET",)): card,
+        ("/a2a", ("POST",)): rpc,
+    }
+    assert runtime.REGISTERED_TOOLS.get("graph_a2a") is prior
+    from graph_os.api.ops.agents import operations
 
-        assert "agents.tasks.get" in {op.id for op in operations()}
-        assert set(mcp.routes) == {
-            ("/.well-known/agent-card.json", ("GET",)),
-            ("/a2a", ("POST",)),
-        }
-        payload = json.loads(
-            await mcp.tools["graph_a2a"](action="get", task_id=task.id)
-        )
-        assert payload["id"] == task.id
-        card = json.loads(await mcp.tools["graph_a2a"](action="card"))
-        assert card["capabilities"]["streaming"] is True
-    finally:
-        if prior is None:
-            runtime.REGISTERED_TOOLS.pop("graph_a2a", None)
-        else:
-            runtime.REGISTERED_TOOLS["graph_a2a"] = prior
+    assert "agents.tasks.get" in {op.id for op in operations()}
