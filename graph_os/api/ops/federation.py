@@ -1,7 +1,8 @@
-"""Owner-scoped foreign-source operations backed by EG's federation contract.
+"""Foreign-source operations backed by EG's served federation contract.
 
-The five methods beyond registration require corresponding served EG methods and
-wheel schemas before this domain may be mounted in the generated registry.
+EH-607: List/Get/Share/Unshare/ProbeForeignSource are not wire-callable EG
+methods in the Train 5 contract. Do not advertise their intent IDs until EG
+supplies those methods, schemas and owner-scoped authorization semantics.
 """
 
 from graph_os.api.registry import (
@@ -49,7 +50,7 @@ def _op(
 
 
 def specs() -> tuple[OpSpec, ...]:
-    """Declare the six intent IDs; absent EG methods must fail contract generation."""
+    """Publish only the foreign-source method backed by the current EG wire."""
     return (
         _op(
             "register",
@@ -57,40 +58,5 @@ def specs() -> tuple[OpSpec, ...]:
             Verb.MANAGE,
             "Register a foreign source under the verified caller's owner identity.",
             Effect.WRITE,
-        ),
-        _op(
-            "list",
-            "ListForeignSources",
-            Verb.ASK,
-            "List foreign sources owned by the verified caller.",
-            Effect.READ,
-        ),
-        _op(
-            "get",
-            "GetForeignSource",
-            Verb.ASK,
-            "Get one foreign source owned by the verified caller.",
-            Effect.READ,
-        ),
-        _op(
-            "share",
-            "ShareForeignSource",
-            Verb.MANAGE,
-            "Grant one principal use of an owned foreign source.",
-            Effect.ADMIN,
-        ),
-        _op(
-            "unshare",
-            "UnshareForeignSource",
-            Verb.MANAGE,
-            "Revoke one principal's foreign-source use grant.",
-            Effect.ADMIN,
-        ),
-        _op(
-            "probe",
-            "ProbeForeignSource",
-            Verb.ASK,
-            "Probe an owned foreign source within its SSRF and network budget.",
-            Effect.READ,
         ),
     )
