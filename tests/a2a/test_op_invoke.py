@@ -78,7 +78,56 @@ async def test_preview_requires_input_and_console_step_up_stays_out_of_band() ->
         "code": "STEP_UP_REQUIRED",
         "plan_ref": "p2",
         "preview": {"plan_ref": "p2", "console_url": "/console/confirm/p2"},
+        "status": {
+            "state": "input-required",
+            "message": {
+                "role": "agent",
+                "parts": [{"kind": "text", "text": "Open the console to confirm"}],
+                "messageId": "p2",
+                "metadata": {"graphOsConsoleUrl": "/console/confirm/p2"},
+            },
+        },
     }
+
+
+@pytest.mark.asyncio
+async def test_plan_preview_carries_exact_authenticated_confirmation_input() -> None:
+    async def invoke(*_args: Any, **_kwargs: Any) -> Any:
+        return SimpleNamespace(
+            code="CONFIRMATION_REQUIRED",
+            details={"plan_ref": "p3", "op": "finance.orders.submit"},
+        )
+
+    projection = OperationProjection(
+        services="services", caller=lambda: "verified-caller", invoke_fn=invoke
+    )
+    params = {"order_id": "one", "limits": {"quantity": 3}}
+    answer = await projection.invoke(
+        "graphos.op/invoke", {"op": "finance.orders.submit", "params": params}
+    )
+    assert answer.value["status"]["message"]["metadata"] == {
+        "graphOsPlan": {
+            "plan_ref": "p3",
+            "op": "finance.orders.submit",
+            "params": params,
+            "confirm": "plan",
+        }
+    }
+
+
+@pytest.mark.asyncio
+async def test_missing_plan_binding_fails_closed() -> None:
+    async def invoke(*_args: Any, **_kwargs: Any) -> Any:
+        return SimpleNamespace(code="CONFIRMATION_REQUIRED", details={})
+
+    projection = OperationProjection(
+        services="services", caller=lambda: "verified-caller", invoke_fn=invoke
+    )
+    answer = await projection.invoke(
+        "graphos.op/invoke", {"op": "finance.orders.submit", "params": {}}
+    )
+    assert answer.refused is True
+    assert answer.code == "UNAVAILABLE"
 
 
 @pytest.mark.asyncio
