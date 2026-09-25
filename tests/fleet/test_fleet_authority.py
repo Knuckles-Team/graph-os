@@ -72,17 +72,23 @@ def test_local_call_without_a_bound_session_is_refused() -> None:
 
 
 def test_stdio_runs_with_its_own_minted_process_scopes() -> None:
-    """The tiny local process authority holds kg:write + fleet:events only, so a
-    stdio process without fleet scopes gets no fleet access (no early return)."""
+    """A stdio process runs fleet calls with its own minted process principal
+    (no early return): AU's ambient local grant holds exactly mcp:discover +
+    mcp:delegate, so it passes the fleet gates on those scopes alone, and a
+    child's extra required scope is still refused."""
     from agent_utilities.api import use_session
     from agent_utilities.security.request_identity import mint_local_process_session
 
     with use_session(mint_local_process_session()):
         caller = resolve_fleet_caller()
         assert caller is not None and caller.transport == "local"
-        assert FleetKind.DISCOVER.scope not in caller.capabilities
-        with pytest.raises(ToolError, match="fleet discover capability"):
-            require_fleet_capability("discover")
+        assert {FleetKind.DISCOVER.scope, FleetKind.DELEGATE.scope} <= (
+            caller.capabilities
+        )
+        require_fleet_capability("discover")
+        require_fleet_capability("delegate")
+        with pytest.raises(ToolError, match="Child MCP capability scope"):
+            require_fleet_capability("delegate", ["svc:read"])
     with fleet_session(*FLEET_SCOPES):
         require_fleet_capability("discover")
         require_fleet_capability("delegate")
