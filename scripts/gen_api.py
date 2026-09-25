@@ -79,10 +79,10 @@ def _engine_errors(path: Path) -> bytes:
         "from __future__ import annotations",
         "",
         f"SOURCE_CONTRACT_VERSION = {version!r}",
-        f"SOURCE_SHA256 = {hashlib.sha256(raw).hexdigest()!r}",
+        f"SOURCE_SHA256 = {json.dumps(hashlib.sha256(raw).hexdigest())}",
         "ENGINE_ERRORS: dict[str, tuple[int, bool]] = {",
     ]
-    lines.extend(f"    {code!r}: {rows[code]!r}," for code in sorted(rows))
+    lines.extend(f"    {json.dumps(code)}: {rows[code]!r}," for code in sorted(rows))
     return ("\n".join([*lines, "}", ""])).encode()
 
 

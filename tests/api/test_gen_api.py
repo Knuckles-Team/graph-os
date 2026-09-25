@@ -48,7 +48,7 @@ def test_generator_emits_deterministic_artifacts_and_engine_map(tmp_path: Path) 
     )
     first = gen_api.generate(_registry(), catalog)
     assert first == gen_api.generate(_registry(), catalog)
-    assert b"'REDIRECTED': (307, True)" in first[gen_api.GENERATED / "engine_errors.py"]
+    assert b'"REDIRECTED": (307, True)' in first[gen_api.GENERATED / "engine_errors.py"]
     openapi = json.loads(first[gen_api.ROOT / "docs/api/openapi.json"])
     assert (
         openapi["paths"]["/api/v1/ops/query.uql"]["post"]["operationId"] == "query.uql"
