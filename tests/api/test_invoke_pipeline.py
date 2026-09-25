@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from contextlib import asynccontextmanager, contextmanager
 from typing import Any
 
 import pytest
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from graph_os.api.invoke import InvokeServices, OpError, VerifiedCaller, invoke
 from graph_os.api.invoke.executor import BoundOperationRuntime
+from graph_os.api.invoke.pipeline import FleetCallDecision
 from graph_os.api.invoke.plan import EgPlanStore
 from graph_os.api.registry import (
     AuditClass,
@@ -36,6 +38,13 @@ class Params(BaseModel):
 
 class TenantParams(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class FleetParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    server: str
+    tool: str
+    arguments: dict[str, Any] = Field(default_factory=dict)
 
 
 class Result(BaseModel):
@@ -347,6 +356,94 @@ async def test_fleet_effect_resolver_is_required_and_can_elevate_to_plan() -> No
     preview = await invoke("fleet.call", args, caller(), Surface.MCP, services=app)
     assert preview.code == "CONFIRMATION_REQUIRED"
     assert engine.calls == []
+
+
+@pytest.mark.asyncio
+async def test_service_fleet_call_checks_domain_subject_grants_and_audits_owner() -> (
+    None
+):
+    class FleetRuntime(FakeRuntime):
+        async def check_subject_access(
+            self, caller: VerifiedCaller, subject: str
+        ) -> bool:
+            self.checked_subjects.append(subject)
+            return subject == "component:1"
+
+        async def dispatch(
+            self, op: OpSpec, params: dict[str, Any], context: Any
+        ) -> dict[str, bool]:
+            assert context.service_identity
+            assert context.fleet_decision.subject_id == "component:1"
+            assert context.fleet_decision.credential_mode == "service"
+            assert context.owner_ref == (
+                "principal:sha256:" + hashlib.sha256(b"user:1").hexdigest()
+            )
+            return await super().dispatch(op, params, context)
+
+    fleet = op(
+        id="fleet.call",
+        params=FleetParams,
+        effect=Effect.WRITE,
+        scopes=frozenset({"mcp:delegate"}),
+        idempotency=Idempotency.NATURAL,
+    )
+    app, engine, events = services(fleet, FleetRuntime())
+
+    async def decision(op: OpSpec, params: dict[str, Any], who: VerifiedCaller):
+        return FleetCallDecision(
+            Effect.READ,
+            Confirm.NONE,
+            PrincipalRule.ANY,
+            Executor.SERVICE,
+            frozenset({"finance:alerts"}),
+            frozenset({"node:write"}),
+            "component:1",
+            "service",
+        )
+
+    app = InvokeServices(
+        app.registry,
+        app.runtime,
+        app.plans,
+        "off",
+        None,
+        app.audit_write,
+        fleet_effect=decision,
+        audit_preflight=app.audit_preflight,
+    )
+    args = {"server": "finance", "tool": "alerts", "arguments": {}}
+    denied = await invoke(
+        "fleet.call",
+        args,
+        caller(scopes=frozenset({"mcp:delegate"})),
+        Surface.MCP,
+        services=app,
+    )
+    assert denied == OpError("SCOPE_REQUIRED", {"missing_scopes": ["finance:alerts"]})
+    assert engine.checked_subjects == []
+    engine.service_scopes = frozenset()
+    absent_grant = await invoke(
+        "fleet.call",
+        args,
+        caller(scopes=frozenset({"mcp:delegate", "finance:alerts"})),
+        Surface.MCP,
+        services=app,
+    )
+    assert absent_grant.code == "UNAVAILABLE"
+    assert engine.calls == []
+    engine.service_scopes = frozenset({"node:write"})
+    approved = await invoke(
+        "fleet.call",
+        args,
+        caller(scopes=frozenset({"mcp:delegate", "finance:alerts"})),
+        Surface.MCP,
+        services=app,
+    )
+    assert approved.value == {"ok": True}
+    assert engine.checked_subjects == ["component:1"]
+    assert engine.calls == [("svc:graph-os", "user:1")]
+    assert events[0]["target"] == "finance/alerts"
+    assert events[0]["owner"] == "user:1"
 
 
 @pytest.mark.asyncio
