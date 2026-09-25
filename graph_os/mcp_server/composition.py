@@ -13,6 +13,7 @@ from typing import Any
 from graph_os.gateway.ports import configure_gateway_application
 from graph_os.mcp_server import runtime
 from graph_os.mcp_server.routes import mount_rest_routes
+from graph_os.messaging.intake import start_messaging_intake
 from graph_os.webui_host import run_web_ui
 
 logger = logging.getLogger(__name__)
@@ -181,25 +182,12 @@ def start_composed_services(
     *,
     messaging_intake_enabled: bool | None = None,
 ) -> CoServiceSupervisor:
-    """Start AU agent-plane messaging and the graph-os-owned WebUI host."""
+    """Start GraphOS messaging intake and the WebUI host."""
 
     plan = detect_composition(engine, messaging_intake_enabled=messaging_intake_enabled)
     supervisor = CoServiceSupervisor()
     if plan.messaging_intake_configured:
-        from agent_utilities.messaging.daemon import run_forever
-
-        platforms = list(plan.messaging_platforms)
-
-        def run_messaging(stop_event: threading.Event) -> None:
-            run_forever(
-                engine,
-                platforms,
-                stop_event,
-                session=session,
-                intake_intent=True,
-            )
-
-        supervisor.start_service("messaging", run_messaging, session)
+        start_messaging_intake(supervisor, engine, session, plan.messaging_platforms)
     elif plan.messaging_configured:
         logger.info("messaging credentials are present but inbound intake is disabled")
     if plan.web_ui_enabled:
