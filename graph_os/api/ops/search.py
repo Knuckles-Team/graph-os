@@ -7,6 +7,7 @@ from graph_os.api.registry import (
     EgSchemaRef,
     Idempotency,
     OpSpec,
+    PrincipalRule,
     Verb,
 )
 
@@ -22,6 +23,7 @@ def specs() -> tuple[OpSpec, ...]:
             result=EgSchemaRef(path="contract/schemas/result.ingestion.json#/methods/SemanticSearch"),
             binding=EgMethod(service="SemanticSearch", op="SemanticSearch"),
             scopes=frozenset({"compute:semantic"}),
+            principals=PrincipalRule.SERVICE_ONLY,
             effect=Effect.READ,
             idempotency=Idempotency.NATURAL,
         ),

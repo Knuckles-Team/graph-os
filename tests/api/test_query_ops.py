@@ -5,7 +5,14 @@ import pytest
 pytest.importorskip("graph_os.api.registry")
 
 from graph_os.api.ops import analytics, ontology, query, search  # noqa: E402
-from graph_os.api.registry import Effect, EgMethod, Verb  # noqa: E402
+from graph_os.api.registry import (  # noqa: E402
+    Effect,
+    EgMethod,
+    Executor,
+    PrincipalRule,
+    Verb,
+    authorized,
+)
 
 
 def test_curated_ops_bind_unique_eg_methods_with_exact_scopes() -> None:
@@ -40,6 +47,21 @@ def test_sql_and_index_mutations_do_not_enter_read_only_verbs() -> None:
     assert ops["indexes.semantic.manage"].verb is Verb.MANAGE
     assert ops["indexes.semantic.manage"].effect is Effect.WRITE
     assert ops["analytics.series.drop"].effect is Effect.DESTRUCTIVE
+
+
+def test_semantic_search_is_service_only_under_caller_authority() -> None:
+    class Caller:
+        effective_scopes = frozenset({"compute:semantic"})
+        delegated = False
+
+        def __init__(self, kind: str) -> None:
+            self.principal_kind = kind
+
+    op = next(op for op in search.specs() if op.id == "search.semantic")
+    assert op.executor is Executor.CALLER
+    assert op.principals is PrincipalRule.SERVICE_ONLY
+    assert not authorized(op, Caller("human"), policy=lambda *_: True)
+    assert authorized(op, Caller("service"), policy=lambda *_: True)
 
 
 @pytest.mark.asyncio
