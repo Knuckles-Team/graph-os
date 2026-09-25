@@ -83,7 +83,10 @@ def verify_resident_tools(mcp: Any) -> None:
         "unload_tools",
         "multiplexer_status",
     }
-    actual = {tool.name for tool in asyncio.run(mcp.list_tools())}
+    # This is a boot inventory check, before any request has a verified caller.
+    # Per-caller middleware would correctly hide everything here; bypass only
+    # that middleware for this local registration assertion.
+    actual = {tool.name for tool in asyncio.run(mcp.list_tools(run_middleware=False))}
     if actual != expected:
         raise RuntimeError(
             "GraphOS resident MCP surface differs from the ten-tool contract: "
