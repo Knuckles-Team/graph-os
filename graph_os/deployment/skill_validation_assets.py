@@ -13,9 +13,9 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from agent_utilities.core._env import setting
-from agent_utilities.release_catalogs import prebundled_skill_catalog_digest
 from jsonschema import Draft202012Validator
 
+from graph_os.deployment.skill_catalog import prebundled_skill_catalog_digest
 from graph_os.deployment.skill_validation_assets_core import (
     _CASE_COUNT,
     _MAX_EVIDENCE_BYTES,
@@ -38,6 +38,7 @@ from graph_os.deployment.skill_validation_assets_core import (
     verify_release_bindings,
 )
 from graph_os.deployment.skill_validation_core import SkillValidationDeployment
+from graph_os.deployment.skills import BUNDLED_SKILLS
 
 SKILLS_ROOT = Path(__file__).resolve().parent / "skills"
 
@@ -389,7 +390,9 @@ def _verify_validation_catalog_binding(
 ) -> None:
     expected_catalog = {
         "skillCount": _SKILL_COUNT,
-        "skillCatalogDigest": prebundled_skill_catalog_digest(SKILLS_ROOT),
+        "skillCatalogDigest": prebundled_skill_catalog_digest(
+            SKILLS_ROOT, skill_names=BUNDLED_SKILLS
+        ),
         "testCaseCount": _CASE_COUNT,
         "testCatalogDigest": catalogs["testCatalogDigest"],
         "caseCatalogDigest": catalogs["caseCatalogDigest"],
