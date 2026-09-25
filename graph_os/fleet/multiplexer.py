@@ -46,6 +46,15 @@ import fastmcp.tools as _fastmcp_tools
 import mcp as _mcp
 from mcp.client.session import ClientSession
 
+from graph_os.fleet.fleet_authority import (
+    FLEET_META_TOOL_KINDS,
+    FleetKind,
+    missing_fleet_scopes,
+    resolve_fleet_caller,
+)
+from graph_os.fleet.fleet_authority import (
+    require_fleet_capability as _require_fleet_capability,
+)
 from graph_os.fleet.protocol_compat import mcp_types_module
 
 # Public transport seams are kept as module attributes so tests and embedders can
@@ -1094,72 +1103,6 @@ def _failed_probe_info(error: str) -> dict:
         "catalog_family_errors": {},
         "error": error,
     }
-
-
-def _request_capabilities() -> frozenset[str] | None:
-    """Return verified remote capabilities, or ``None`` for local stdio."""
-    try:
-        from fastmcp.server.dependencies import get_access_token, get_http_request
-
-        get_http_request()
-    except RuntimeError:
-        return None
-    except Exception:
-        raise _fastmcp_exceptions.ToolError(
-            "Authenticated HTTP context required"
-        ) from None
-    token = get_access_token()
-    if token is None:
-        raise _fastmcp_exceptions.ToolError("Authenticated HTTP context required")
-    capabilities = {
-        str(scope).strip()
-        for scope in (getattr(token, "scopes", None) or [])
-        if str(scope).strip()
-    }
-    claims = getattr(token, "claims", None)
-    if isinstance(claims, dict):
-        try:
-            import agent_utilities.security.identity as _identity
-            from agent_utilities.core.config import config
-
-            capabilities.update(
-                _identity.base_capabilities(
-                    _identity.normalize_identity(claims),
-                    config.identity_group_capability_map,
-                )
-            )
-        except Exception:
-            raise _fastmcp_exceptions.ToolError(
-                "Verified capability mapping unavailable"
-            ) from None
-    return frozenset(capabilities)
-
-
-def _fleet_required_capabilities(kind: str) -> set[str]:
-    """Capability alternatives for one bounded fleet operation kind."""
-    administrative = {"admin", "kg:admin", "mcp:admin"}
-    return {
-        "discover": {"mcp:discover", "mcp:delegate", *administrative},
-        "manage": administrative,
-        "delegate": {"mcp:delegate", *administrative},
-    }.get(kind, {"mcp:delegate", *administrative})
-
-
-def _require_fleet_capability(kind: str, extra_scopes: list[str] | None = None) -> None:
-    """Authorize remote fleet discovery/delegation; local stdio is trusted."""
-    capabilities = _request_capabilities()
-    if capabilities is None:
-        return
-    administrative = {"admin", "kg:admin", "mcp:admin"}
-    required = _fleet_required_capabilities(kind)
-    if not capabilities.intersection(required):
-        raise _fastmcp_exceptions.ToolError(f"MCP fleet {kind} capability required")
-    if (
-        extra_scopes
-        and not capabilities.intersection(administrative)
-        and not set(extra_scopes).issubset(capabilities)
-    ):
-        raise _fastmcp_exceptions.ToolError("Child MCP capability scope required")
 
 
 # Prefixes are derived 100% algorithmically (no per-server lookup table), so any
@@ -4741,19 +4684,10 @@ class MCPMultiplexer:
         truthfulness bug this exists to close: a caller must never be told a
         tool is usable when the dispatch gate would reject it.
 
-        D-SH-6 (``reports/deferred/lane-skill-harvest.md``): on a
-        freshly-constructed instance that never loaded a catalog
-        (:meth:`is_serving` is ``False``), ``_global_visible``/
-        ``_local_gated``/``_server_for_prefixed`` all resolve nothing for
-        EVERY name — including an invented one — so this used to fall
-        through to the final "unknown to our bookkeeping" branch
-        unconditionally, re-creating the exact mounted-vs-callable lie the
-        reconciliation gate exists to close, one layer up. That final
-        branch's premise (an out-of-band native host tool the real dispatch
-        middleware would also allow through) only holds for an instance
-        that is actually serving; a non-serving instance has no dispatch
-        middleware running at all, so there is nothing to defer to — refuse
-        rather than default-open.
+        A name unknown to the multiplexer's bookkeeping is denied (EH-629;
+        D-SH-6 already refused it on a non-serving instance). The host admits
+        its own native tools explicitly through :meth:`admit_native_tools`;
+        there is no default-open branch.
         """
         if prefixed_name in self._global_visible:
             return True
@@ -4777,14 +4711,53 @@ class MCPMultiplexer:
                 return False
             key = session_key if session_key is not None else _session_key()
             return prefixed_name in self._session_loaded.get(key, set())
-        if not self.is_serving():
+        # Unknown to the multiplexer's bookkeeping: denied (EH-629). Native
+        # host tools are admitted explicitly into ``_global_visible`` by
+        # :meth:`admit_native_tools`; nothing is callable by default.
+        return False
+
+    def admit_native_tools(self, mcp: _typing.Any) -> None:
+        """Admit the host's natively registered, ungated tools as always visible.
+
+        Called once at attach and again by the host after any later native
+        registration (``graph_rlm`` is registered once the engine session
+        exists). Fleet forwarders and catalogued fleet names are never
+        admitted here: they stay per-session.
+        """
+        native = set(_provider_tools(mcp)) - self._local_gated - self._exposed
+        self._global_visible |= {
+            name for name in native if self._server_for_prefixed(name) is None
+        }
+
+    def tool_usable(self, name: str, capabilities: frozenset[str]) -> bool:
+        """Dispatchable for this session AND within the caller's fleet scopes."""
+        return self.tool_dispatchable(name) and self.tool_scope_allowed(
+            name, capabilities
+        )
+
+    def tool_scope_allowed(self, name: str, capabilities: frozenset[str]) -> bool:
+        """Whether ``capabilities`` hold the exact fleet scopes ``name`` needs.
+
+        Meta-tools need their kind's scope; a fleet tool needs ``mcp:delegate``
+        plus its child's ``required_scopes``. Native host tools declare no
+        fleet scope here (EG enforces their authority at execution).
+        """
+        kind = FLEET_META_TOOL_KINDS.get(name)
+        if kind is not None:
+            return not missing_fleet_scopes(kind, capabilities=capabilities)
+        server = self._server_for_prefixed(name)
+        if server is None:
+            return True
+        child_config = self.load_catalog().get(server)
+        if child_config is None:
             return False
-        # Unknown to the multiplexer's own bookkeeping entirely — e.g. a
-        # native host tool registered directly on the FastMCP server outside
-        # the progressive-disclosure surface. Nothing here can gate it, so it
-        # is unconditionally callable, matching how the dispatch middleware
-        # (which only ever sees already-registered tool names) treats it.
-        return True
+        try:
+            extra = _child_required_scopes(child_config)
+        except _fastmcp_exceptions.ToolError:
+            return False
+        return not missing_fleet_scopes(
+            FleetKind.DELEGATE, tuple(extra), capabilities=capabilities
+        )
 
     def prune_session_visibility(self, session_key: str) -> None:
         """Drop empty per-session visibility state after explicit retraction."""
@@ -5243,26 +5216,54 @@ def _session_key() -> str:
     return _token_session_key(token)
 
 
+def _caller_capabilities() -> frozenset[str]:
+    """The resolved caller's capabilities; none when there is no verified caller."""
+    try:
+        caller = resolve_fleet_caller()
+    except _fastmcp_exceptions.ToolError:
+        return frozenset()
+    return caller.capabilities if caller is not None else frozenset()
+
+
+def _refuse_unusable_call(mux: MCPMultiplexer, name: str | None) -> None:
+    """The tools/call half of the list predicate: refuse what list would hide."""
+    if not name:
+        return
+    # A tool this session hasn't loaded behaves as "unknown" until load_tools.
+    if not mux.tool_dispatchable(name):
+        raise _fastmcp_exceptions.ToolError(
+            f"_fastmcp_tools.Tool '{name}' is not loaded in this session. "
+            f"Call load_tools(tools=['{name}']) first."
+        )
+    if not mux.tool_scope_allowed(name, _caller_capabilities()):
+        raise _fastmcp_exceptions.ToolError(
+            f"Tool '{name}' requires MCP fleet scopes the caller does not hold"
+        )
+
+
 class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
     """Per-session progressive disclosure (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog, plan Phase 5).
 
     Child forwarders are registered process-globally (once) but a shared server
     must not leak one session's ``load_tools`` to another. This middleware scopes
     ``tools/list`` — and gates ``tools/call`` — to each session's loaded set, plus
-    the always-visible meta/always-on tools (``mux._global_visible``). Composes
-    with the Eunomia principal filter (both must allow a tool to appear).
+    the always-visible meta/always-on tools (``mux._global_visible``), and
+    hides any tool whose exact fleet scopes the caller lacks, so ``tools/list``
+    and ``tools/call`` apply the same predicate (EH-629). When Eunomia is on,
+    ``graph_os.mcp_server.policy_filter`` narrows the result further; with
+    Eunomia off the surface is still scope-filtered, never unfiltered.
     """
 
     def __init__(self, mux: MCPMultiplexer, mcp: _typing.Any = None) -> None:
         self.mux = mux
         self._mcp = mcp
 
-    def _visible(self, name: str) -> bool:
-        # Delegates to the SAME single-source-of-truth predicate every
-        # status-reporting tool now uses (:meth:`MCPMultiplexer.tool_dispatchable`)
-        # so what a session is TOLD it can call and what it can ACTUALLY call
-        # are structurally the same computation, never two that can drift.
-        return self.mux.tool_dispatchable(name)
+    def _visible(self, name: str, capabilities: frozenset[str]) -> bool:
+        # The SAME predicate gates tools/list and tools/call: dispatchability
+        # (:meth:`MCPMultiplexer.tool_dispatchable`, which every status tool
+        # also uses) and the caller's exact fleet scopes. What a session is
+        # TOLD it can call and what it can ACTUALLY call never drift.
+        return self.mux.tool_usable(name, capabilities)
 
     async def _ensure_always_loaded(self) -> None:
         """Eagerly mount the configured always-load set for this session
@@ -5304,7 +5305,8 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
         # mounted it.  Its schema update is queued until this real client
         # request can safely carry MCP's standard list-changed notification.
         await self.mux.notify_pending_tools_changed()
-        return [t for t in tools if self._visible(t.name)]
+        capabilities = _caller_capabilities()
+        return [t for t in tools if self._visible(t.name, capabilities)]
 
     async def on_call_tool(self, context, call_next):
         # Before the dispatch gate: a client that calls an always-load tool
@@ -5317,12 +5319,7 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
         # strand the client on the obsolete catalog indefinitely.
         await self.mux.notify_pending_tools_changed()
         name = getattr(context.message, "name", None)
-        # A tool this session hasn't loaded behaves as "unknown" until load_tools.
-        if name and not self.mux.tool_dispatchable(name):
-            raise _fastmcp_exceptions.ToolError(
-                f"_fastmcp_tools.Tool '{name}' is not loaded in this session. "
-                f"Call load_tools(tools=['{name}']) first."
-            )
+        _refuse_unusable_call(self.mux, name)
         result = await call_next(context)
         # CONCEPT:AU-ECO.mcp.intent-surface-tool-lifecycle — a tool loaded with
         # auto_unload=True is retracted right after this (successful) call so a
@@ -6176,6 +6173,8 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
         )
     )
     _register_status_tool(mcp, mux)
+    # The resident meta-tools are always visible (their scopes still gate them).
+    mux._global_visible.update(FLEET_META_TOOL_KINDS)
 
 
 def _always_load_raw_setting(field: str, alias: str) -> _typing.Any:
@@ -6336,23 +6335,13 @@ def attach_fleet_loader(
     # load_tools reveals them exactly like a fleet tool (no mounting needed —
     # they are already registered local FastMCP tools, just hidden by default).
     mux._local_gated = _gated_tool_names(mcp)
-    # The always-visible surface: the meta-tools just registered above, PLUS
-    # every other tool graph-os already registered natively on this server
-    # (the intent verbs, the MCP Apps entry points, and — outside intent/
-    # has-own-verbose mode — the condensed/verbose surface itself) that is
-    # NOT held back by the intent gate. "graph-os's own tools ... are always
-    # on" (see below) previously only listed the fleet meta-tool names
-    # literally, so every OTHER natively-registered, ungated tool fell
-    # through to tool_dispatchable()'s final "unknown to our bookkeeping"
-    # branch — which itself refuses everything whenever is_serving() is
-    # False (an empty/lazily-loaded external fleet catalog, a perfectly
-    # normal deployment shape, e.g. a zero-dependency profile). That silently
-    # hid the entire intent-verb surface (ask/find/act/why/write/manage) and
-    # the MCP Apps tools on any server with no external fleet servers
-    # configured yet. Deriving the set from what is actually registered (and
-    # not gated) keeps it always on regardless of external fleet state, as
-    # documented, instead of depending on a hardcoded name list going stale.
-    mux._global_visible = set(_provider_tools(mcp).keys()) - mux._local_gated
+    # The always-visible surface: the meta-tools just registered above plus
+    # every other tool graph-os registered natively and did not gate. It is
+    # derived from what is registered, so it is always on regardless of
+    # external fleet state; a tool the host registers later is admitted by
+    # the host calling admit_native_tools again. Anything else is denied by
+    # tool_dispatchable (EH-629).
+    mux.admit_native_tools(mcp)
     # Stash the mux on the server so a local tool (e.g. the ``find`` intent verb,
     # CONCEPT:AU-ECO.mcp.intent-surface-condensed-collapse) can best-effort widen its search to the
     # whole fleet catalog without a second multiplexer instance.
