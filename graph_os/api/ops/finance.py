@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from collections.abc import Mapping
 from typing import Any
@@ -121,6 +122,22 @@ def specs() -> tuple[OpSpec, ...]:
                 audit=AuditClass.EVENT,
             )
         )
+    for name in ("positions.list", "paper.positions.list"):
+        items.append(
+            OpSpec(
+                id=f"finance.{name}",
+                verb=Verb.ASK,
+                summary=f"Read {name.replace('.', ' ')} from the admitted venue connector",
+                examples=(f"Show {name.replace('.', ' ')}",),
+                params=FinanceParams,
+                result=FinanceResult,
+                binding=Composite(handler="graph_os.api.ops.finance.positions"),
+                executor=Executor.SERVICE,
+                scopes=frozenset({"finance:read"}),
+                executor_scopes=frozenset({"broker:read"}),
+                subject=SubjectRef(path="$caller.tenant"),
+            )
+        )
     return tuple(items)
 
 
@@ -164,3 +181,38 @@ async def decide(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
         decision,
         time.time_ns() // 1_000_000,
     )
+
+
+async def positions(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
+    """Read venue or paper positions through the admitted fleet tool only."""
+    from graph_os.finance.sources import EMERALD_SERVER
+    from graph_os.fleet.shared_multiplexer import run_on_served_multiplexer
+
+    if (
+        not context.service_identity
+        or "finance:read" not in context.caller.effective_scopes
+    ):
+        raise PermissionError("finance read authority is unavailable")
+    if op.id not in {"finance.positions.list", "finance.paper.positions.list"}:
+        raise ValueError("unknown positions operation")
+
+    async def read(multiplexer: Any) -> Any:
+        return await multiplexer.delegate_server_tool(
+            server_name=EMERALD_SERVER,
+            tool_name="emerald_positions_snapshot",
+            arguments={},
+            timeout=30.0,
+        )
+
+    raw = await run_on_served_multiplexer(read)
+    snapshot = json.loads(raw) if isinstance(raw, (str, bytes)) else raw
+    if not isinstance(snapshot, dict) or not isinstance(snapshot.get("venue"), dict):
+        raise RuntimeError("positions snapshot is unavailable")
+    if not isinstance(snapshot.get("paper"), dict):
+        raise RuntimeError("paper snapshot is unavailable")
+    key = "paper" if op.id == "finance.paper.positions.list" else "venue"
+    return {
+        "mode": snapshot.get("mode"),
+        "account": snapshot[key],
+        "informational_only": True,
+    }
