@@ -250,3 +250,24 @@ async def test_service_account_create_fixes_kind_server_side() -> None:
             IdentityCall("user", "create", {"username": "sync-bot", "kind": "service"}),
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_policy_update_carries_session_bounds_as_caller() -> None:
+    engine = Engine()
+    engine.answers["config", "update_policy"] = IdentityReply(
+        "config", {"epoch": 3, "idle_ms": 600_000}
+    )
+    caller = object()
+    result = await IdentityAdminService(engine).execute(
+        "identity.policy.set", caller, {"expected_epoch": 2, "idle_ms": 600_000}
+    )
+    assert result["idle_ms"] == 600_000
+    assert engine.calls == [
+        (
+            caller,
+            IdentityCall(
+                "config", "update_policy", {"expected_epoch": 2, "idle_ms": 600_000}
+            ),
+        )
+    ]

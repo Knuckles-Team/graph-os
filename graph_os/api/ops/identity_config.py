@@ -24,6 +24,12 @@ class PolicySet(StrictModel):
     )
     local_fallback: Literal["off", "break_glass", "full"] | None = None
     password_min_chars: int | None = Field(default=None, ge=8, le=256)
+    idle_ms: int | None = Field(default=None, ge=60_000, le=2_592_000_000)
+    absolute_ms: int | None = Field(default=None, ge=60_000, le=2_592_000_000)
+    privileged_idle_ms: int | None = Field(default=None, ge=60_000, le=2_592_000_000)
+    privileged_absolute_ms: int | None = Field(
+        default=None, ge=60_000, le=2_592_000_000
+    )
 
 
 class AuditPage(StrictModel):
@@ -64,7 +70,7 @@ def specs() -> tuple[Any, ...]:
         Verb,
     )
 
-    all_surfaces = frozenset({Surface.MCP, Surface.HTTP, Surface.A2A})
+    all_surfaces = frozenset({Surface.MCP, Surface.HTTP, Surface.A2A, Surface.CONSOLE})
     definitions: tuple[tuple[str, type[BaseModel], type[BaseModel], bool], ...] = (
         ("identity.policy.get", Empty, ConfigValue, True),
         ("identity.policy.set", PolicySet, ConfigValue, False),
