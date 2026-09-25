@@ -269,6 +269,118 @@ async def test_harness_endpoint_invokes_only_for_scoped_service_caller(
     assert missing_scope.code == "SCOPE_REQUIRED"
 
 
+def test_harness_export_bootstrap_serves_http_reference_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from agent_utilities.layers.contracts import McpEndpoint
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from graph_os.api.harness_context import ContextCapabilityProof
+    from graph_os.api.http import create_api_application
+    from graph_os.api.ops.harness import specs
+
+    monkeypatch.setattr(serving, "_SERVED_PORTS", None)
+    monkeypatch.setattr(serving, "get_registry", lambda: Registry(specs()))
+    calls: list[str] = []
+
+    async def resolve_bearer(reference: str) -> str:
+        calls.append(f"resolve:{reference}")
+        return "secret-value-never-exported"
+
+    async def configured_export(
+        *, bearer_ref: str, resolve_bearer: Any
+    ) -> tuple[McpEndpoint, ContextCapabilityProof]:
+        calls.append(f"probe:{bearer_ref}")
+        assert await resolve_bearer(bearer_ref) == "secret-value-never-exported"
+        url = "https://graph.example/mcp"
+        return (
+            McpEndpoint(
+                name="epistemic-graph-context",
+                url=url,
+                bearer_ref=bearer_ref,
+            ),
+            ContextCapabilityProof(
+                endpoint_url=url,
+                registry_digest="a" * 64,
+                tools=frozenset({"ask", "find"}),
+                operations=frozenset({"context.view", "query.uql"}),
+            ),
+        )
+
+    monkeypatch.setattr(serving, "configured_eg_context_endpoint", configured_export)
+    caller = VerifiedCaller(
+        principal="svc:agent-utilities",
+        tenant="t1",
+        principal_kind="service",
+        effective_scopes=frozenset({"mcp:discover", "mcp:delegate"}),
+        engine_claims={
+            "principal": "svc:agent-utilities",
+            "tenant": "t1",
+            "scopes": ["mcp:discover", "mcp:delegate"],
+        },
+    )
+
+    class Auth:
+        async def authenticate(self, request: Any) -> VerifiedCaller:
+            return caller
+
+        def is_console_request(self, request: Any, actor: Any) -> bool:
+            return False
+
+    async def visible(operation: Any, actor: Any) -> bool:
+        return True
+
+    bundle = serving.ServedApiPorts(
+        serving=ports([]),
+        caller_for_request=lambda: caller,
+        fleet_search=lambda *args: (),
+        fleet_ops_factory=lambda *args: None,
+        resolver=IntentResolver(),
+    )
+    with pytest.raises(ValueError, match="both required"):
+        serving.configure_served_api_ports(
+            bundle, context_bearer_ref="env://GRAPHOS_CONTEXT_TOKEN"
+        )
+    with pytest.raises(ValueError, match="bearer reference"):
+        serving.configure_served_api_ports(
+            bundle,
+            context_bearer_ref="raw-secret",
+            resolve_bearer=resolve_bearer,
+        )
+    serving.configure_served_api_ports(
+        bundle,
+        context_bearer_ref="env://GRAPHOS_CONTEXT_TOKEN",
+        resolve_bearer=resolve_bearer,
+    )
+    configured = serving.configured_served_api_ports()
+    services = serving.build_invoke_services(configured.serving)
+    parent = FastAPI()
+    parent.mount(
+        "/api/v1",
+        create_api_application(
+            services=services,
+            visibility=visible,
+            authenticator=Auth(),  # type: ignore[arg-type]
+        ),
+    )
+    with TestClient(parent) as client:
+        response = client.post(
+            "/api/v1/ops/harness.context_endpoint",
+            headers={"Authorization": "Bearer verified-process-token"},
+            json={},
+        )
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert result["endpoint"]["bearer_ref"] == "env://GRAPHOS_CONTEXT_TOKEN"
+    assert result["proof"]["endpoint_url"] == result["endpoint"]["url"]
+    assert "secret-value-never-exported" not in response.text
+    assert calls == [
+        "probe:env://GRAPHOS_CONTEXT_TOKEN",
+        "resolve:env://GRAPHOS_CONTEXT_TOKEN",
+    ]
+
+
 def test_missing_generated_registry_stops_assembly(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
