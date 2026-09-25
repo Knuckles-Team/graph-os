@@ -27,7 +27,7 @@ import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, cast
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlencode
 
 import anyio
 import httpx
@@ -61,7 +61,9 @@ from graph_os.identity.idp_common import (
     UnknownIdp,
     flatten_claims,
     identity_op,
+    login_error,
     new_session_token,
+    require_https,
 )
 
 __all__ = [
@@ -90,19 +92,23 @@ _JWKS_TTL_S = 600.0
 _JWKS_REFRESH_FLOOR_S = 60.0
 _MAX_PARAM_CHARS = 2048
 _ASYMMETRIC_ALGS = frozenset(
-    {"RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512", "EdDSA"}
+    {
+        "RS256",
+        "RS384",
+        "RS512",
+        "PS256",
+        "PS384",
+        "PS512",
+        "ES256",
+        "ES384",
+        "ES512",
+        "EdDSA",
+    }
 )
 
 
 class IdTokenError(ValueError):
     """The ID token failed a signature or claim check (never shown to a user)."""
-
-
-def _require_https(value: str) -> str:
-    parsed = urlsplit(value)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.fragment:
-        raise ValueError("must be an absolute https URL without a fragment")
-    return value
 
 
 class OidcSettings(BaseModel):
@@ -126,12 +132,12 @@ class OidcSettings(BaseModel):
     clock_skew_s: int = Field(default=60, ge=0, le=300)
     post_logout_redirect_uri: str | None = None
 
-    _https = field_validator("issuer", "redirect_uri")(_require_https)
+    _https = field_validator("issuer", "redirect_uri")(require_https)
 
     @field_validator("post_logout_redirect_uri")
     @classmethod
     def _optional_https(cls, value: str | None) -> str | None:
-        return None if value is None else _require_https(value)
+        return None if value is None else require_https(value)
 
     @field_validator("scopes")
     @classmethod
@@ -164,7 +170,7 @@ def _endpoint(payload: Mapping[str, Any], name: str) -> str:
     if not isinstance(value, str):
         raise OAuthDiscoveryError(f"provider metadata lacks {name}")
     try:
-        return _require_https(value)
+        return require_https(value)
     except ValueError:
         raise OAuthDiscoveryError(f"provider {name} must be https") from None
 
@@ -179,7 +185,9 @@ def parse_provider_metadata(
     methods must list ``S256``.
     """
     if payload.get("issuer") != expected_issuer:
-        raise OAuthDiscoveryError("provider issuer does not match the configured issuer")
+        raise OAuthDiscoveryError(
+            "provider issuer does not match the configured issuer"
+        )
     methods = payload.get("code_challenge_methods_supported")
     if methods is not None and "S256" not in methods:
         raise OAuthDiscoveryError("provider does not support PKCE S256")
@@ -253,7 +261,9 @@ class ProviderCache:
         self._jwks[metadata.jwks_uri] = (self._clock(), keyset)
         return keyset
 
-    def exchange_code(self, token_endpoint: str, form: dict[str, str]) -> dict[str, Any]:
+    def exchange_code(
+        self, token_endpoint: str, form: dict[str, str]
+    ) -> dict[str, Any]:
         with self._http() as client:
             return _bounded_token_post(client, token_endpoint, form)
 
@@ -328,10 +338,6 @@ def _query_param(request: Request, name: str) -> str | None:
     return value
 
 
-def _login_error(code: str) -> Response:
-    return RedirectResponse(f"/auth/login?error={code}", status_code=303, headers=NO_STORE)
-
-
 def _sets_session(response: Response) -> bool:
     prefix = f"{SESSION_COOKIE}="
     return any(
@@ -363,18 +369,24 @@ class OidcBroker:
         self._providers = providers or ProviderCache()
         self._clock = clock
 
-    async def _provider(self, record: IdpRecord) -> tuple[OidcSettings, ProviderMetadata]:
+    async def _provider(
+        self, record: IdpRecord
+    ) -> tuple[OidcSettings, ProviderMetadata]:
         settings = _settings(record)
-        metadata = await anyio.to_thread.run_sync(self._providers.metadata, settings.issuer)
+        metadata = await anyio.to_thread.run_sync(
+            self._providers.metadata, settings.issuer
+        )
         return settings, metadata
 
     async def begin(self, request: Request) -> Response:
         """``GET /auth/oidc/{idp_id}/login``: redirect to the IdP."""
         try:
-            record = await self._directory.enabled(request.path_params["idp_id"], "oidc")
+            record = await self._directory.enabled(
+                request.path_params["idp_id"], "oidc"
+            )
             settings, metadata = await self._provider(record)
         except (UnknownIdp, OAuthDiscoveryError):
-            return _login_error("idp_unavailable")
+            return login_error("idp_unavailable")
         state, nonce = new_session_token(), new_session_token()
         verifier, challenge = _generate_pkce()
         tx = {"idp_id": record.idp_id, "nonce": nonce, "verifier": verifier}
@@ -392,7 +404,9 @@ class OidcBroker:
             }
         )
         response = RedirectResponse(
-            f"{metadata.authorization_endpoint}?{query}", status_code=303, headers=NO_STORE
+            f"{metadata.authorization_endpoint}?{query}",
+            status_code=303,
+            headers=NO_STORE,
         )
         response.set_cookie(
             TX_COOKIE,
@@ -413,7 +427,9 @@ class OidcBroker:
         tx = self._transactions.take(state)
         return (code, tx) if tx is not None else None
 
-    def _token_form(self, record: IdpRecord, settings: OidcSettings, code: str, verifier: str) -> dict[str, str]:
+    def _token_form(
+        self, record: IdpRecord, settings: OidcSettings, code: str, verifier: str
+    ) -> dict[str, str]:
         form = {
             "grant_type": "authorization_code",
             "code": code,
@@ -429,13 +445,21 @@ class OidcBroker:
         return form
 
     def _verify(
-        self, metadata: ProviderMetadata, settings: OidcSettings, id_token: str, nonce: str
+        self,
+        metadata: ProviderMetadata,
+        settings: OidcSettings,
+        id_token: str,
+        nonce: str,
     ) -> dict[str, Any]:
         keys = self._providers.keys(metadata, _unverified_kid(id_token))
         now = int(self._clock())
-        return verify_id_token(id_token, settings=settings, keys=keys, nonce=nonce, now=now)
+        return verify_id_token(
+            id_token, settings=settings, keys=keys, nonce=nonce, now=now
+        )
 
-    async def _assert(self, code: str, tx: Mapping[str, Any]) -> tuple[ExternalAssertion, str]:
+    async def _assert(
+        self, code: str, tx: Mapping[str, Any]
+    ) -> tuple[ExternalAssertion, str]:
         record = await self._directory.enabled(str(tx["idp_id"]), "oidc")
         settings, metadata = await self._provider(record)
         form = self._token_form(record, settings, code, str(tx["verifier"]))
@@ -452,7 +476,9 @@ class OidcBroker:
         assertion = ExternalAssertion(
             idp_id=record.idp_id,
             subject=str(claims["sub"]),
-            claims=flatten_claims(claims, settings.claim_paths, group_paths=settings.group_paths),
+            claims=flatten_claims(
+                claims, settings.claim_paths, group_paths=settings.group_paths
+            ),
             username_hint=username if isinstance(username, str) else None,
         )
         return assertion, id_token
@@ -460,16 +486,18 @@ class OidcBroker:
     async def callback(self, request: Request) -> Response:
         """``GET /auth/oidc/callback``: verify, then hand the engine the subject."""
         if request.query_params.get("error"):
-            return _login_error("idp_refused")
+            return login_error("idp_refused")
         claimed = self._claim_transaction(request)
         if claimed is None:
-            return _login_error("stale_login")
+            return login_error("stale_login")
         try:
             assertion, id_token = await self._assert(*claimed)
         except (UnknownIdp, OAuthDiscoveryError, IdTokenError):
-            return _login_error("idp_unverified")
+            return login_error("idp_unverified")
         response = await self._completer.complete(request, assertion)
-        response.delete_cookie(TX_COOKIE, path=CALLBACK_PATH, secure=True, httponly=True)
+        response.delete_cookie(
+            TX_COOKIE, path=CALLBACK_PATH, secure=True, httponly=True
+        )
         if _sets_session(response):
             response.set_cookie(
                 IDT_COOKIE,
@@ -486,7 +514,9 @@ class OidcBroker:
         if not id_token:
             return None
         try:
-            settings, metadata = await self._provider(await self._directory.enabled(idp_id, "oidc"))
+            settings, metadata = await self._provider(
+                await self._directory.enabled(idp_id, "oidc")
+            )
         except (UnknownIdp, OAuthDiscoveryError):
             return None
         if metadata.end_session_endpoint is None:
@@ -507,7 +537,9 @@ class OidcBroker:
             except IdentityRefused:
                 pass
         target = await self._end_session_url(request.cookies.get(IDT_COOKIE))
-        response = RedirectResponse(target or "/auth/login", status_code=303, headers=NO_STORE)
+        response = RedirectResponse(
+            target or "/auth/login", status_code=303, headers=NO_STORE
+        )
         response.delete_cookie(SESSION_COOKIE, path="/", secure=True, httponly=True)
         response.delete_cookie(IDT_COOKIE, path=LOGOUT_PATH, secure=True, httponly=True)
         return response
@@ -518,4 +550,3 @@ class OidcBroker:
             Route(CALLBACK_PATH, self.callback, methods=["GET"]),
             Route(LOGOUT_PATH, self.logout, methods=["POST"]),
         ]
-

@@ -102,15 +102,17 @@ def assertion(request_id: str, now: datetime, **over: Any) -> etree._Element:
         "audience": SP_ENTITY,
         "groups": ("staff", "admins"),
     } | over
-    groups = "".join(f"<saml:AttributeValue>{g}</saml:AttributeValue>" for g in f["groups"])
-    xml = f"""<saml:Assertion xmlns:saml="{NS['saml']}" ID="{f['id']}" Version="2.0" IssueInstant="{_iso(now)}">
-<saml:Issuer>{f['issuer']}</saml:Issuer>
-<saml:Subject><saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent">{f['name_id']}</saml:NameID>
+    groups = "".join(
+        f"<saml:AttributeValue>{g}</saml:AttributeValue>" for g in f["groups"]
+    )
+    xml = f"""<saml:Assertion xmlns:saml="{NS["saml"]}" ID="{f["id"]}" Version="2.0" IssueInstant="{_iso(now)}">
+<saml:Issuer>{f["issuer"]}</saml:Issuer>
+<saml:Subject><saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent">{f["name_id"]}</saml:NameID>
 <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
-<saml:SubjectConfirmationData Recipient="{f['recipient']}" InResponseTo="{f['in_response_to']}" NotOnOrAfter="{f['confirm_until']}"/>
+<saml:SubjectConfirmationData Recipient="{f["recipient"]}" InResponseTo="{f["in_response_to"]}" NotOnOrAfter="{f["confirm_until"]}"/>
 </saml:SubjectConfirmation></saml:Subject>
-<saml:Conditions NotBefore="{f['not_before']}" NotOnOrAfter="{f['not_on_or_after']}">
-<saml:AudienceRestriction><saml:Audience>{f['audience']}</saml:Audience></saml:AudienceRestriction>
+<saml:Conditions NotBefore="{f["not_before"]}" NotOnOrAfter="{f["not_on_or_after"]}">
+<saml:AudienceRestriction><saml:Audience>{f["audience"]}</saml:Audience></saml:AudienceRestriction>
 </saml:Conditions>
 <saml:AuthnStatement AuthnInstant="{_iso(now)}"/>
 <saml:AttributeStatement>
@@ -128,7 +130,7 @@ def response(
     status: str = "urn:oasis:names:tc:SAML:2.0:status:Success",
     response_id: str = "_r1",
 ) -> etree._Element:
-    xml = f"""<samlp:Response xmlns:samlp="{NS['samlp']}" xmlns:saml="{NS['saml']}" ID="{response_id}" Version="2.0" IssueInstant="2026-09-24T00:00:00Z" Destination="{destination}" InResponseTo="{request_id}">
+    xml = f"""<samlp:Response xmlns:samlp="{NS["samlp"]}" xmlns:saml="{NS["saml"]}" ID="{response_id}" Version="2.0" IssueInstant="2026-09-24T00:00:00Z" Destination="{destination}" InResponseTo="{request_id}">
 <saml:Issuer>{IDP_ENTITY}</saml:Issuer>
 <samlp:Status><samlp:StatusCode Value="{status}"/></samlp:Status>
 </samlp:Response>"""

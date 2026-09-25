@@ -20,7 +20,11 @@ from ldap3 import MOCK_SYNC, OFFLINE_AD_2012_R2, OFFLINE_SLAPD_2_4, Connection, 
 from starlette.applications import Starlette
 from starlette.testclient import TestClient
 
-from graph_os.identity.idp_common import SESSION_COOKIE, EngineLoginCompleter, IdpDirectory
+from graph_os.identity.idp_common import (
+    SESSION_COOKIE,
+    EngineLoginCompleter,
+    IdpDirectory,
+)
 from graph_os.identity.ldap import (
     IN_CHAIN_RULE,
     DirectoryEntry,
@@ -53,22 +57,37 @@ AD = {
 STARTTLS_CALLS: list[str] = []
 
 
-def _mock_directory(settings: dict[str, Any], info: Any, entries: dict[str, dict[str, Any]]) -> Ldap3Directory:
+def _mock_directory(
+    settings: dict[str, Any], info: Any, entries: dict[str, dict[str, Any]]
+) -> Ldap3Directory:
     """The real adapter over ldap3's in-memory server. The mock speaks no TLS,
     so StartTLS is recorded (it must precede every bind) instead of run."""
     server = Server("mock", get_info=info)
-    seed = Connection(server, user=settings["bind_dn"], password="svc-pw", client_strategy=MOCK_SYNC)
-    seed.strategy.add_entry(settings["bind_dn"], {"userPassword": "svc-pw", "objectClass": "person"})
+    seed = Connection(
+        server, user=settings["bind_dn"], password="svc-pw", client_strategy=MOCK_SYNC
+    )
+    seed.strategy.add_entry(
+        settings["bind_dn"], {"userPassword": "svc-pw", "objectClass": "person"}
+    )
     for dn, attributes in entries.items():
         seed.strategy.add_entry(dn, attributes)
 
     def connect(user: str, password: str) -> Connection:
-        connection = Connection(server, user=user, password=password, client_strategy=MOCK_SYNC)
+        connection = Connection(
+            server, user=user, password=password, client_strategy=MOCK_SYNC
+        )
         connection.strategy.entries = seed.strategy.entries
-        connection.start_tls = lambda: STARTTLS_CALLS.append(user) or True
+
+        def start_tls() -> bool:
+            STARTTLS_CALLS.append(user)
+            return True
+
+        connection.start_tls = start_tls
         return connection
 
-    return Ldap3Directory(LdapSettings.model_validate(settings), "svc-pw", connection_factory=connect)
+    return Ldap3Directory(
+        LdapSettings.model_validate(settings), "svc-pw", connection_factory=connect
+    )
 
 
 def _person(uid: str, password: str, *, groups: tuple[str, ...] = ()) -> dict[str, Any]:
@@ -88,7 +107,9 @@ def generic() -> Ldap3Directory:
         GENERIC,
         OFFLINE_SLAPD_2_4,
         {
-            f"uid=alice,{BASE}": _person("alice", "alice-pw", groups=("Finance", "admins")),
+            f"uid=alice,{BASE}": _person(
+                "alice", "alice-pw", groups=("Finance", "admins")
+            ),
             f"uid=bob,{BASE}": _person("bob", "bob-pw"),
             f"uid=a*,{BASE}": _person("a*", "star-pw"),
         },
@@ -116,7 +137,8 @@ def test_filter_values_are_escaped(raw: str, escaped: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "probe", ["*", "a*", "alice)(uid=*", "*)(|(uid=*", "alice)(|(uid=bob", "ALICE*", "\\2a"]
+    "probe",
+    ["*", "a*", "alice)(uid=*", "*)(|(uid=*", "alice)(|(uid=bob", "ALICE*", "\\2a"],
 )
 def test_injection_corpus_finds_nobody(generic: Ldap3Directory, probe: str) -> None:
     assert generic.find_user("alice") is not None  # the baseline twin
@@ -131,7 +153,10 @@ def test_a_literal_star_username_is_matched_literally(generic: Ldap3Directory) -
 
 def test_lookup_filter_wraps_the_admin_filter() -> None:
     settings = LdapSettings.model_validate(GENERIC)
-    assert user_lookup_filter(settings, "x)(y") == "(&(objectClass=person)(uid=x\\29\\28y))"
+    assert (
+        user_lookup_filter(settings, "x)(y")
+        == "(&(objectClass=person)(uid=x\\29\\28y))"
+    )
 
 
 def test_nested_group_filter_uses_in_chain_and_escapes_the_dn() -> None:
@@ -161,7 +186,9 @@ def test_unsafe_settings_are_refused(overrides: dict[str, Any]) -> None:
 
 
 def test_starttls_and_ad_defaults_are_accepted() -> None:
-    settings = LdapSettings.model_validate(AD | {"group_mode": "ad_nested", "group_base_dn": "OU=Groups,DC=corp,DC=ex"})
+    settings = LdapSettings.model_validate(
+        AD | {"group_mode": "ad_nested", "group_base_dn": "OU=Groups,DC=corp,DC=ex"}
+    )
     assert settings.username_attribute == "sAMAccountName"
     assert settings.subject_attribute == "objectGUID"
 
@@ -270,12 +297,18 @@ def _world(directory: Any, config: dict[str, Any]) -> SimpleNamespace:
         completer=EngineLoginCompleter(port),
         throttle=FailureThrottle(secrets),
     )
-    client = TestClient(Starlette(routes=broker.routes()), base_url="https://graphos.example", follow_redirects=False)
+    client = TestClient(
+        Starlette(routes=broker.routes()),
+        base_url="https://graphos.example",
+        follow_redirects=False,
+    )
     return SimpleNamespace(port=port, client=client)
 
 
 def _login(world: SimpleNamespace, username: str, password: str) -> Any:
-    return world.client.post("/auth/ldap/corp/login", data={"username": username, "password": password})
+    return world.client.post(
+        "/auth/ldap/corp/login", data={"username": username, "password": password}
+    )
 
 
 def test_bind_sign_in_reaches_the_engine(generic: Ldap3Directory) -> None:
@@ -291,9 +324,17 @@ def test_bind_sign_in_reaches_the_engine(generic: Ldap3Directory) -> None:
 
 @pytest.mark.parametrize(
     ("username", "password"),
-    [("alice", "wrong"), ("alice", ""), ("nobody", "x"), ("*", "alice-pw"), ("alice)(uid=*", "alice-pw")],
+    [
+        ("alice", "wrong"),
+        ("alice", ""),
+        ("nobody", "x"),
+        ("*", "alice-pw"),
+        ("alice)(uid=*", "alice-pw"),
+    ],
 )
-def test_bad_credentials_never_reach_the_engine(generic: Ldap3Directory, username: str, password: str) -> None:
+def test_bad_credentials_never_reach_the_engine(
+    generic: Ldap3Directory, username: str, password: str
+) -> None:
     world = _world(generic, GENERIC)
     response = _login(world, username, password)
     assert response.headers["location"] == "/auth/login?error=denied"
@@ -303,7 +344,10 @@ def test_bad_credentials_never_reach_the_engine(generic: Ldap3Directory, usernam
 def test_disabled_ad_account_cannot_sign_in(active_directory: Ldap3Directory) -> None:
     world = _world(active_directory, AD)
     assert _login(world, "carol", "carol-pw").headers["location"] == "/"
-    assert _login(world, "dave", "dave-pw").headers["location"] == "/auth/login?error=denied"
+    assert (
+        _login(world, "dave", "dave-pw").headers["location"]
+        == "/auth/login?error=denied"
+    )
 
 
 def test_repeated_failures_are_throttled(generic: Ldap3Directory) -> None:
@@ -316,7 +360,9 @@ def test_repeated_failures_are_throttled(generic: Ldap3Directory) -> None:
 
 def test_unknown_idp_is_unavailable(generic: Ldap3Directory) -> None:
     world = _world(generic, GENERIC)
-    response = world.client.post("/auth/ldap/other/login", data={"username": "alice", "password": "alice-pw"})
+    response = world.client.post(
+        "/auth/ldap/other/login", data={"username": "alice", "password": "alice-pw"}
+    )
     assert response.headers["location"] == "/auth/login?error=idp_unavailable"
 
 
@@ -324,9 +370,17 @@ def test_unknown_idp_is_unavailable(generic: Ldap3Directory) -> None:
 # Scheduled sync
 # ---------------------------------------------------------------------------
 class ListDirectory:
+    """A directory that only lists (the sync never looks users up or binds)."""
+
     def __init__(self, entries: list[DirectoryEntry], *, broken: bool = False) -> None:
         self.entries = entries
         self.broken = broken
+
+    def find_user(self, username: str) -> DirectoryEntry | None:
+        raise AssertionError("the sync never looks a user up")
+
+    def verify_password(self, dn: str, password: str) -> bool:
+        raise AssertionError("the sync never binds as a user")
 
     def users(self) -> Iterator[DirectoryEntry]:
         if self.broken:
@@ -334,17 +388,44 @@ class ListDirectory:
         return iter(self.entries)
 
 
-def _entry(name: str, *, active: bool = True, groups: tuple[str, ...] = ()) -> DirectoryEntry:
-    return DirectoryEntry(dn=f"uid={name},{BASE}", subject=f"s-{name}", username=name, active=active, groups=groups)
+def _entry(
+    name: str, *, active: bool = True, groups: tuple[str, ...] = ()
+) -> DirectoryEntry:
+    return DirectoryEntry(
+        dn=f"uid={name},{BASE}",
+        subject=f"s-{name}",
+        username=name,
+        active=active,
+        groups=groups,
+    )
 
 
-def _sync_world(entries: list[DirectoryEntry], provisioned: list[str], **kw: Any) -> SimpleNamespace:
-    port = FakeIdentityPort([idp_wire("corp", "ldap", GENERIC | kw.pop("config", {}), secret_ref="ldap/bind")])
-    rows = [{"subject": f"s-{n}", "user": {"principal_id": f"usr:{n}", "username": n, "status": "active"}} for n in provisioned]
-    port.handlers[("idp", "list_provisioned")] = lambda op: {"kind": "provisioned", "value": rows}
+def _sync_world(
+    entries: list[DirectoryEntry], provisioned: list[str], **kw: Any
+) -> SimpleNamespace:
+    port = FakeIdentityPort(
+        [
+            idp_wire(
+                "corp", "ldap", GENERIC | kw.pop("config", {}), secret_ref="ldap/bind"
+            )
+        ]
+    )
+    rows = [
+        {
+            "subject": f"s-{n}",
+            "user": {"principal_id": f"usr:{n}", "username": n, "status": "active"},
+        }
+        for n in provisioned
+    ]
+    port.handlers[("idp", "list_provisioned")] = lambda op: {
+        "kind": "provisioned",
+        "value": rows,
+    }
     port.handlers[("idp", "provision")] = lambda op: {"kind": "user", "value": {}}
     directory = ListDirectory(entries, **kw)
-    sync = LdapSync(port=port, directory=IdpDirectory(port), directories=lambda record: directory)
+    sync = LdapSync(
+        port=port, directory=IdpDirectory(port), directories=lambda record: directory
+    )
     return SimpleNamespace(port=port, sync=sync)
 
 
@@ -354,10 +435,18 @@ async def _run(world: SimpleNamespace) -> Any:
 
 
 async def test_sync_provisions_groups_and_deprovisions_disabled() -> None:
-    world = _sync_world([_entry("alice", groups=("Finance",)), _entry("dave", active=False)], ["alice", "dave"])
+    world = _sync_world(
+        [_entry("alice", groups=("Finance",)), _entry("dave", active=False)],
+        ["alice", "dave"],
+    )
     report = await _run(world)
-    sent = {op["request"]["subject"]: op["request"] for op in world.port.ops("idp", "provision")}
-    assert sent["s-alice"]["active"] and sent["s-alice"]["claims"]["groups"] == ["Finance"]
+    sent = {
+        op["request"]["subject"]: op["request"]
+        for op in world.port.ops("idp", "provision")
+    }
+    assert sent["s-alice"]["active"] and sent["s-alice"]["claims"]["groups"] == [
+        "Finance"
+    ]
     assert sent["s-dave"]["active"] is False
     assert (report.provisioned, report.deprovisioned, report.aborted) == (1, 1, None)
 
@@ -373,8 +462,20 @@ async def test_user_gone_from_directory_is_deprovisioned() -> None:
     names = [f"u{i}" for i in range(8)]
     world = _sync_world([_entry(n) for n in names[:-1]], names)
     report = await _run(world)
-    gone = [op["request"] for op in world.port.ops("idp", "provision") if op["request"]["subject"] == "s-u7"]
-    assert gone == [{"idp_id": "corp", "subject": "s-u7", "username": "u7", "active": False, "claims": {}}]
+    gone = [
+        op["request"]
+        for op in world.port.ops("idp", "provision")
+        if op["request"]["subject"] == "s-u7"
+    ]
+    assert gone == [
+        {
+            "idp_id": "corp",
+            "subject": "s-u7",
+            "username": "u7",
+            "active": False,
+            "claims": {},
+        }
+    ]
     assert report.deprovisioned == 1
 
 
@@ -398,4 +499,3 @@ async def test_sync_due_respects_the_interval() -> None:
     records = await IdpDirectory(world.port).records()
     assert len(await world.sync.sync_due(records)) == 1
     assert await world.sync.sync_due(records) == []
-

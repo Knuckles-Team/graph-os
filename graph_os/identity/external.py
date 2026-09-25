@@ -34,7 +34,12 @@ from graph_os.identity.idp_common import (
     OneShotStore,
     login_options,
 )
-from graph_os.identity.ldap import DirectoryFactory, FailureThrottle, LdapBroker, ldap3_directory_factory
+from graph_os.identity.ldap import (
+    DirectoryFactory,
+    FailureThrottle,
+    LdapBroker,
+    ldap3_directory_factory,
+)
 from graph_os.identity.ldap_sync import LdapSync
 from graph_os.identity.oidc import OidcBroker, ProviderCache
 from graph_os.identity.saml import SamlBroker
@@ -116,7 +121,8 @@ class ExternalAuthorities:
             ldap_sync=LdapSync(port=port, directory=directory, directories=directories),
             scim=ScimServer(auth=provisioners, directory=directory),
             notifier=notifier_from_settings(
-                mail_settings_from_env() if mail_settings is None else mail_settings, secrets
+                mail_settings_from_env() if mail_settings is None else mail_settings,
+                secrets,
             ),
         )
 
@@ -130,7 +136,9 @@ class ExternalAuthorities:
         email = request.query_params.get("email")
         records = await self.directory.records()
         body = {
-            "idps": login_options(records, email if email and len(email) <= 320 else None),
+            "idps": login_options(
+                records, email if email and len(email) <= 320 else None
+            ),
             "features": self.features(),
         }
         return JSONResponse(body, headers=NO_STORE)

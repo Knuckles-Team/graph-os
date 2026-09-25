@@ -34,7 +34,9 @@ class FakeSecrets:
         self.values[key] = value
         return True
 
-    def compare_and_set(self, key: str, expected: str, value: str, **metadata: Any) -> bool:
+    def compare_and_set(
+        self, key: str, expected: str, value: str, **metadata: Any
+    ) -> bool:
         if self.values.get(key) != expected:
             return False
         self.values[key] = value
@@ -44,7 +46,9 @@ class FakeSecrets:
         return self.values.pop(key, None) is not None
 
 
-def idp_wire(idp_id: str, kind: str, config: Mapping[str, Any], **extra: Any) -> dict[str, Any]:
+def idp_wire(
+    idp_id: str, kind: str, config: Mapping[str, Any], **extra: Any
+) -> dict[str, Any]:
     """One engine ``IdpConfig`` as ``idp.list`` answers it."""
     record = {
         "idp_id": idp_id,
@@ -89,5 +93,130 @@ class FakeIdentityPort:
             return handler(op)
         if key == ("credential", "external_login"):
             principal = f"usr:{op['request']['subject']}"
-            return {"kind": "authenticate", "value": {"outcome": "ok", "principal_id": principal}}
+            return {
+                "kind": "authenticate",
+                "value": {"outcome": "ok", "principal_id": principal},
+            }
         return {"kind": "done", "value": {"changed": True}}
+
+
+class ProvisioningEngine:
+    """The engine side of ``idp.provision`` / ``list_provisioned`` and the
+    directory-group ops (``CONTRACT-REQUEST.md`` A2-A4), in memory, including
+    the provisioner binding: a port acts as one principal, and only the SCIM
+    IdP whose ``config.provisioner`` names it answers."""
+
+    def __init__(self, idps: list[dict[str, Any]]) -> None:
+        self.idps = idps
+        self.users: dict[str, dict[str, Any]] = {}
+        self.links: dict[tuple[str, str], str] = {}
+        self.groups: dict[tuple[str, str], dict[str, Any]] = {}
+        self.revoked: list[str] = []
+        self.claims: dict[str, dict[str, list[str]]] = {}
+
+    def port_for(self, principal: str) -> FakeIdentityPort:
+        port = FakeIdentityPort(self.idps)
+        for op, handler in (
+            ("provision", self._provision),
+            ("list_provisioned", self._list_provisioned),
+            ("provision_group", self._provision_group),
+            ("remove_directory_group", self._remove_group),
+            ("list_directory_groups", self._list_groups),
+        ):
+            port.handlers[("idp", op)] = self._bound(principal, handler)
+        return port
+
+    def _bound(self, principal: str, handler: Handler) -> Handler:
+        def guarded(op: Mapping[str, Any]) -> Mapping[str, Any]:
+            idp_id = op["request"]["idp_id"]
+            idp = next((i for i in self.idps if i["idp_id"] == idp_id), None)
+            if (
+                idp is None
+                or json.loads(idp["config_json"]).get("provisioner") != principal
+            ):
+                raise IdentityRefused("IDENTITY_NOT_AUTHORIZED")
+            return handler(op["request"])
+
+        return guarded
+
+    def _view(self, principal: str) -> dict[str, Any]:
+        return dict(self.users[principal])
+
+    def _provision(self, request: Mapping[str, Any]) -> Mapping[str, Any]:
+        key = (request["idp_id"], request["subject"])
+        principal = self.links.get(key)
+        taken = {u["username"]: p for p, u in self.users.items()}
+        if taken.get(request["username"], principal) != principal:
+            raise IdentityRefused("IDENTITY_COLLISION")
+        if principal is None:
+            if not request["active"]:
+                return {"kind": "done", "value": {"changed": False}}
+            principal = f"usr:{len(self.users) + 1:04d}"
+            self.links[key] = principal
+            self.users[principal] = {
+                "principal_id": principal,
+                "source": f"scim:{key[0]}",
+            }
+        user = self.users[principal]
+        user.update(
+            username=request["username"], display_name=request.get("display_name")
+        )
+        user.update(
+            email=request.get("email"),
+            status="active" if request["active"] else "deprovisioned",
+        )
+        if not request["active"]:
+            self.revoked.append(principal)
+        self.claims[principal] = dict(request.get("claims", {}))
+        return {"kind": "user", "value": self._view(principal)}
+
+    def _list_provisioned(self, query: Mapping[str, Any]) -> Mapping[str, Any]:
+        links = [(s, p) for (i, s), p in self.links.items() if i == query["idp_id"]]
+        rows = [
+            {"subject": s, "user": self._view(p)}
+            for s, p in sorted(links, key=lambda sp: sp[1])
+        ]
+        rows = [r for r in rows if _row_matches(r, query)]
+        return {
+            "kind": "provisioned",
+            "value": _page(rows, query, lambda r: r["user"]["principal_id"]),
+        }
+
+    def _provision_group(self, request: Mapping[str, Any]) -> Mapping[str, Any]:
+        linked = {p for (i, _), p in self.links.items() if i == request["idp_id"]}
+        if not set(request["members"]) <= linked:
+            raise IdentityRefused("IDENTITY_NOT_FOUND")
+        self.groups[(request["idp_id"], request["group_id"])] = dict(request)
+        return {"kind": "directory_group", "value": dict(request)}
+
+    def _remove_group(self, request: Mapping[str, Any]) -> Mapping[str, Any]:
+        removed = self.groups.pop((request["idp_id"], request["group_id"]), None)
+        return {"kind": "done", "value": {"changed": removed is not None}}
+
+    def _list_groups(self, query: Mapping[str, Any]) -> Mapping[str, Any]:
+        rows = [g for (i, _), g in sorted(self.groups.items()) if i == query["idp_id"]]
+        wanted = {
+            k: query[k]
+            for k in ("group_id", "display_name", "external_id")
+            if query.get(k)
+        }
+        rows = [g for g in rows if all(g.get(k) == v for k, v in wanted.items())]
+        return {
+            "kind": "directory_groups",
+            "value": _page(rows, query, lambda g: g["group_id"]),
+        }
+
+
+def _row_matches(row: Mapping[str, Any], query: Mapping[str, Any]) -> bool:
+    fields = {"subject": row["subject"], **row["user"]}
+    wanted = {
+        k: query[k] for k in ("subject", "principal_id", "username") if query.get(k)
+    }
+    return all(fields.get(k) == v for k, v in wanted.items())
+
+
+def _page(
+    rows: list[Any], query: Mapping[str, Any], key: Callable[[Any], str]
+) -> list[Any]:
+    after = query.get("after")
+    return [r for r in rows if not after or key(r) > after][: query["limit"]]

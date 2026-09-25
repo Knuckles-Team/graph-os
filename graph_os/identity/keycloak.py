@@ -59,7 +59,12 @@ __all__ = [
 ]
 
 BUILTIN_GROUPS = frozenset(
-    {"administrators", "elevation-approvers", "live-order-approvers", "schema-approvers"}
+    {
+        "administrators",
+        "elevation-approvers",
+        "live-order-approvers",
+        "schema-approvers",
+    }
 )
 """Engine built-in groups; a rule into one is always ``privileged``."""
 
@@ -107,12 +112,16 @@ def _group_rule(group: str) -> dict[str, Any]:
 
 
 def _map_roles(
-    realm_roles: Iterable[str], scope_classes: Mapping[str, str], skipped: dict[str, str]
+    realm_roles: Iterable[str],
+    scope_classes: Mapping[str, str],
+    skipped: dict[str, str],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     rules: list[dict[str, Any]] = []
     roles: list[dict[str, Any]] = []
     for role in sorted(set(realm_roles)):
-        treatment = _ROLE_TREATMENT.get(scope_classes.get(role, ""), "not in the scope registry")
+        treatment = _ROLE_TREATMENT.get(
+            scope_classes.get(role, ""), "not in the scope registry"
+        )
         if not _IDENTIFIER.match(role):
             treatment = "not an engine identifier"
         if treatment not in ("map", "privileged"):
@@ -130,7 +139,9 @@ def _map_groups(
     upserts: list[dict[str, Any]] = []
     for group in sorted({g.removeprefix("/") for g in groups}):
         if not _IDENTIFIER.match(group):
-            skipped[f"group:{group}"] = "not an engine identifier (nested or mixed-case path)"
+            skipped[f"group:{group}"] = (
+                "not an engine identifier (nested or mixed-case path)"
+            )
             continue
         rules.append(_group_rule(group))
         if group not in BUILTIN_GROUPS:
@@ -240,7 +251,10 @@ def _create_request(user: KeycloakUser) -> dict[str, Any]:
 
 
 def _skip_reason(
-    owner: str, user: KeycloakUser | None, names: Mapping[str, str], existing: Mapping[str, Any]
+    owner: str,
+    user: KeycloakUser | None,
+    names: Mapping[str, str],
+    existing: Mapping[str, Any],
 ) -> str | None:
     if user is None:
         return "not a Keycloak user of this realm (left to its own authority)"
@@ -309,7 +323,9 @@ async def _send_idempotent(port: IdentityPort, op: dict[str, Any]) -> bool:
     return True
 
 
-async def apply_link_migration(port: IdentityPort, plan: LinkMigrationPlan) -> MigrationReport:
+async def apply_link_migration(
+    port: IdentityPort, plan: LinkMigrationPlan
+) -> MigrationReport:
     """Send the plan. Re-running it changes nothing (collisions are counted)."""
     report = MigrationReport()
     for request in plan.create:
@@ -340,7 +356,10 @@ class KeycloakAdminUsers:
         if urlsplit(base_url).scheme != "https":
             raise ValueError("the Keycloak admin API must be reached over https")
         self._url = f"{base_url.rstrip('/')}/admin/realms/{realm}/users"
-        self._headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+        self._headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        }
         self._http = http_client_factory
         self._page = page_size
 
