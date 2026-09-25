@@ -182,7 +182,7 @@ def specs() -> tuple[Any, ...]:
         Verb,
     )
 
-    all_surfaces = frozenset({Surface.MCP, Surface.HTTP, Surface.A2A})
+    all_surfaces = frozenset({Surface.MCP, Surface.HTTP, Surface.A2A, Surface.CONSOLE})
     return tuple(
         OpSpec(
             id=op_id,
