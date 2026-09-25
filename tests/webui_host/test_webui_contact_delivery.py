@@ -241,6 +241,9 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         def webui_session_boundary(self) -> tuple[str, str]:
             return ("boundary", "identity-runtime")
 
+        def console_origin(self) -> str | None:
+            return None
+
     monkeypatch.delenv(module.ACCESS_LOG_POLICY_ENV, raising=False)
     module.run_web_ui(
         stop_event,
@@ -254,6 +257,8 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     assert os.environ[module.ACCESS_LOG_POLICY_ENV] == "disabled"
     assert calls["engine_getter"] == "bounded-engine"
     assert calls["agent_model"] == "orchestrator-model"
+    composer = calls["app"].pop("application_composer")
+    assert callable(composer)
     assert calls["app"] == {
         "agent": "context-agent",
         "workspace_helpers": {
@@ -261,7 +266,6 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
             "transcribe_voice": "voice-helper",
         },
         "listener_host": "0.0.0.0",
-        "application_composer": module.compose_web_application,
         "session_boundary": ("boundary", "identity-runtime"),
         "contact_delivery": "governed-contact-delivery",
         "browser_control": service,
