@@ -228,6 +228,17 @@ def mcp_server() -> None:
     # authority, reported the goal store `unavailable`, and held /health/ready
     # at 503 forever on every served deployment.
     readiness_authority_owner = runtime._set_readiness_authority(bootstrap_session)
+    # Error-budget throttling of fleet children (EH-406) and guardrail-profile
+    # evolution (EH-407), on the serving loop under the process authority.
+    from graph_os.fleet.throttle_controller import attach_throttle_controller
+
+    attach_throttle_controller(
+        mcp,
+        fleet_mux,
+        bootstrap_session,
+        client_for=runtime.graph_client,
+        engine_for=runtime._get_engine,
+    )
 
     co_service_supervisor = None
     try:
