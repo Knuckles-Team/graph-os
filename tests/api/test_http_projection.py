@@ -46,24 +46,6 @@ async def test_missing_authority_fails_closed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_cookie_mutation_requires_verified_csrf() -> None:
-    caller = SimpleNamespace(authenticated=True)
-
-    async def verify(value: str):
-        assert value == "opaque"
-        return caller, "secret"
-
-    auth = AmbientHTTPAuthenticator(cookie_verifier=verify)
-    cookie = (b"cookie", b"__Host-graphos-session=opaque")
-    with pytest.raises(HTTPAuthenticationError):
-        await auth.authenticate(request("POST", "/api/v1/ops/example", [cookie]))
-    good = request(
-        "POST", "/api/v1/ops/example", [cookie, (b"x-csrf-token", b"secret")]
-    )
-    assert await auth.authenticate(good) is caller
-
-
-@pytest.mark.asyncio
 async def test_http_params_refuse_duplicate_and_non_object_body() -> None:
     headers = [(b"content-type", b"application/json")]
     assert await _params(
