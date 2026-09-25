@@ -17,7 +17,7 @@ def specs() -> tuple[OpSpec, ...]:
                 path="contract/schemas/result.coordination.json#/methods/ResourceStatsPage"
             ),
             binding=EgMethod(service="ResourceStatsPage", op="ResourceStatsPage"),
-            scopes=frozenset({"ops:read", "service:control"}),
+            scopes=frozenset({"service:control"}),
             idempotency=Idempotency.NATURAL,
         ),
     )
