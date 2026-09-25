@@ -114,22 +114,31 @@ Provide a custom document with `EUNOMIA_POLICY_FILE`.
 
 ## Scopes
 
-Scope classes are enforced by the identity store:
+The scopes a verified identity can carry into a session are exactly the scopes
+the engine registers (its contract's scope list; the orchestration library's
+session allowlist is generated from it — **from train 7**). A role the registry
+does not list is dropped at the session boundary: adding a scope needs an
+engine release, not a configuration edit. Scope classes are enforced by the
+identity store:
 
 - **user** (`kg:read` < `kg:write` < `kg:admin`, hierarchical) and **domain**
   scopes (e.g. `finance:alerts`, `finance:track`) — assignable to people;
 - **service-only** (`capacity:*`, `lease:*`, `broker:*`, `timeseries:write`,
-  `compute:*`, `security:check`, telemetry-write) — refused on any human;
+  `compute:*`, `security:check`, `fleet:events`, `admin:cluster-read` for
+  placement resolution, `identity:authenticate` for the graph-os identity
+  broker, telemetry-write) — refused on any human;
 - **approver** (`rbac:approve-elevation`, `finance:approve-live-order`) — only
   through the built-in groups `elevation-approvers` / `live-order-approvers`,
   human, direct membership; never a service account or API key; with no
   members every such request is refused;
-- **admin** (`kg:admin`, `webui:admin`, `identity:admin`) — human only.
-  `webui:admin` opens UI admin surfaces and grants nothing graph-side.
+- **admin** (`kg:admin`, `webui:admin`, `identity:admin`, `identity:read`) —
+  human only. `webui:admin` opens UI admin surfaces and grants nothing
+  graph-side; `kg:admin` implies neither the identity scopes nor
+  `graph:admin` (the exact graph-lifecycle scope for create/delete/clear graph).
 
 **graph-os's own service identity** holds exactly `capacity:throttle`,
 `capacity:admin`, `capacity:lease`, `capacity:read`, `node:read`, `node:write`,
-`fleet:events`, and `lease:read`/`lease:write` restricted by the engine's
+`fleet:events`, `identity:authenticate` (train 7), and `lease:read`/`lease:write` restricted by the engine's
 principal-scoped **lease-kind allowlist** to the kinds graph-os writes
 (`EPISTEMIC_GRAPH_CONTROL_LEASE_KIND_POLICY_JSON`; any other kind is refused).
 Never `kg:admin`, never an approver scope. A telemetry collector gets its own
@@ -152,9 +161,11 @@ subject (the confused-deputy rule).
   to one never flows to the other — always name which one you grant.
 - People: `kg:read`/`kg:write`/`kg:admin` for graph access, plus `webui:admin`
   for UI admin surfaces.
-- The web UI backend service client: `kg:write` (or `kg:read` for read-only).
-  Grant only scopes the session allowlist accepts; a role outside it is
-  silently dropped.
+- The web UI backend service client: `kg:write` (or `kg:read` for read-only)
+  **and** `admin:cluster-read` — every placement resolution needs it and fails
+  closed with `ACCESS_DENIED: ... lacks required scope 'admin:cluster-read'`
+  without it. Grant only scopes the session allowlist accepts; a role outside it
+  is silently dropped.
 - After any role change, sign out (`/auth/logout`) and in again: a token minted
   before a grant never carries it.
 
