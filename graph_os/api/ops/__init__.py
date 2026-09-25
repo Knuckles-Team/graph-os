@@ -8,24 +8,26 @@ from graph_os.api.registry import OpSpec, Registry
 
 # Each module is an explicit source of public operations. Missing declarations
 # are a build error, not a reason to publish an incomplete registry.
+# Identity administration joins this list with the Train 7 broker and its
+# scoped operation modules; Train 5 cannot advertise those operations early.
 CURATED_SOURCES = (
     ("agents", "operations"),
     ("analytics", "specs"),
+    ("atlas", "specs"),
     ("browser", "operations"),
     ("capacity", "specs"),
     ("decide", "specs"),
+    ("decisions", "specs"),
     ("evolution", "specs"),
     ("federation", "specs"),
     ("finance", "specs"),
     ("fleet", "operations"),
     ("graph", "specs"),
-    ("identity_admin", "specs"),
-    ("identity_config", "specs"),
-    ("identity_self", "specs"),
     ("ingest", "specs"),
     ("markets", "specs"),
     ("memory", "specs"),
     ("ontology", "specs"),
+    ("object_sets", "specs"),
     ("ops", "specs"),
     ("policy", "specs"),
     ("query", "specs"),
