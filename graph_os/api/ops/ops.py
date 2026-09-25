@@ -28,11 +28,15 @@ def _engine(
             path=f"contract/schemas/result.{result}.json#/methods/{method}"
         ),
         binding=EgMethod(service=method, op=method),
-        scopes=frozenset({"ops:admin" if destructive else "ops:read", engine_scope}),
+        scopes=frozenset({engine_scope}),
         effect=Effect.DESTRUCTIVE if destructive else Effect.READ,
-        principals=PrincipalRule.HUMAN_UNDELEGATED
-        if destructive
-        else PrincipalRule.ANY,
+        principals=(
+            PrincipalRule.SERVICE_ONLY
+            if engine_scope == "admin:cluster-read"
+            else PrincipalRule.HUMAN_UNDELEGATED
+            if destructive
+            else PrincipalRule.ANY
+        ),
         confirm=Confirm.CONSOLE if destructive else None,
         idempotency=Idempotency.KEY_REQUIRED if destructive else Idempotency.NATURAL,
         audit=AuditClass.EVENT if destructive else AuditClass.NONE,
