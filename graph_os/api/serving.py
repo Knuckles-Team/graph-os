@@ -7,6 +7,7 @@ InvokeServices and must never construct an alternate registry or executor.
 from __future__ import annotations
 
 import re
+import uuid
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
 from typing import Any
@@ -76,7 +77,93 @@ class ServedApiPorts:
     resolver: IntentResolver
 
 
+@dataclass(frozen=True, slots=True)
+class RuntimeAuthorities:
+    """Process-owned authorities needed to construct every served API port.
+
+    The host supplies verified identity, policy, fleet and EG clients. The
+    assembler below binds the public EG contract and its durable audit client;
+    it never manufactures grants or replaces a missing authority.
+    """
+
+    caller_client: ClientFactory
+    service_client: ClientFactory
+    service_claims: ServiceClaims
+    check_access: SubjectCheck
+    service_scopes: frozenset[str]
+    plan_client: Any
+    plan_seal_key: bytes
+    policy_gate: PolicyGate
+    fleet_gateway: Any
+    fleet_search: FleetSearch
+    fleet_ops_factory: Callable[..., Any]
+    resolver: IntentResolver
+    bearer_ref: str
+    resolve_bearer: BearerResolver
+    bindings: Mapping[str, Any]
+
+
 _SERVED_PORTS: ServedApiPorts | None = None
+
+
+def assemble_runtime_authorities(authorities: RuntimeAuthorities) -> ServedApiPorts:
+    """Construct one complete served bundle from explicit process authorities.
+
+    EG schema validation and dispatch use its packaged public contract. Audit
+    preflight and outcome append use the caller-bound durable EG adapter.
+    Invalid or incomplete input fails before the process registers any ports.
+    """
+
+    if not isinstance(authorities, RuntimeAuthorities):
+        raise TypeError("complete runtime authorities are required")
+    if not isinstance(authorities.bindings, Mapping):
+        raise ValueError("runtime bindings are unavailable")
+    if "fleet_gateway" in authorities.bindings:
+        raise ValueError("fleet_gateway is reserved for the serving root")
+    from graph_os.fleet.gateway_ops import FleetGateway
+
+    if not isinstance(authorities.fleet_gateway, FleetGateway):
+        raise ValueError("governed fleet gateway is unavailable")
+    audit = bind_eg_audit(authorities.caller_client)
+    serving = bind_context_endpoint_export(
+        ServingPorts(
+            caller_client=authorities.caller_client,
+            service_client=authorities.service_client,
+            service_claims=authorities.service_claims,
+            check_access=authorities.check_access,
+            eg_dispatch=dispatch_public_eg_method,
+            service_scopes=authorities.service_scopes,
+            plan_client=authorities.plan_client,
+            plan_seal_key=authorities.plan_seal_key,
+            policy_gate=authorities.policy_gate,
+            audit_preflight=audit.preflight,
+            audit_write=audit.write,
+            schema_validate=validate_public_eg_params,
+            fleet_effect=authorities.fleet_gateway.effect,
+            bindings={
+                **authorities.bindings,
+                "fleet_gateway": authorities.fleet_gateway,
+            },
+        ),
+        bearer_ref=authorities.bearer_ref,
+        resolve_bearer=authorities.resolve_bearer,
+    )
+    ports = ServedApiPorts(
+        serving=serving,
+        caller_for_request=caller_from_verified_session,
+        fleet_search=authorities.fleet_search,
+        fleet_ops_factory=authorities.fleet_ops_factory,
+        resolver=authorities.resolver,
+    )
+    assemble_served_api(ports)
+    return ports
+
+
+def configure_runtime_authorities(authorities: RuntimeAuthorities) -> None:
+    """Validate and register the production bundle before server startup."""
+
+    ports = assemble_runtime_authorities(authorities)
+    configure_served_api_ports(ports)
 
 
 def bind_context_endpoint_export(
@@ -149,7 +236,7 @@ def caller_from_verified_session() -> VerifiedCaller:
     from graph_os.mcp_server.runtime import verified_tool_session_scope
 
     with verified_tool_session_scope() as session:
-        return VerifiedCaller.from_session(session)
+        return VerifiedCaller.from_session(session, request_id=str(uuid.uuid4()))
 
 
 _EG_REQUEST_REF = re.compile(
