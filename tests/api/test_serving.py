@@ -445,6 +445,68 @@ def test_served_ports_provider_requires_explicit_registration(
         serving.configure_served_api_ports(None)
 
 
+def test_runtime_assembler_binds_public_eg_audit_and_one_fleet_gateway(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from graph_os.api.ops.harness import specs
+    from graph_os.fleet.gateway_ops import FleetGateway
+
+    monkeypatch.setattr(serving, "_SERVED_PORTS", None)
+    monkeypatch.setattr(serving, "get_registry", lambda: Registry(specs()))
+    basic = ports([])
+
+    gateway = FleetGateway(
+        tool_for=lambda *args: None,
+        policy_check=lambda *args: None,
+        delegated_call=lambda *args: None,
+    )
+    audit = SimpleNamespace(preflight=basic.audit_preflight, write=basic.audit_write)
+    monkeypatch.setattr(serving, "bind_eg_audit", lambda client: audit)
+
+    async def resolve(reference: str) -> str:
+        return "verified-secret"
+
+    def authorities(**changes: Any) -> serving.RuntimeAuthorities:
+        fields = dict(
+            caller_client=basic.caller_client,
+            service_client=basic.service_client,
+            service_claims=basic.service_claims,
+            check_access=basic.check_access,
+            service_scopes=basic.service_scopes,
+            plan_client=basic.plan_client,
+            plan_seal_key=basic.plan_seal_key,
+            policy_gate=basic.policy_gate,
+            fleet_gateway=gateway,
+            fleet_search=lambda *args: (),
+            fleet_ops_factory=lambda *args: None,
+            resolver=IntentResolver(),
+            bearer_ref="env://GRAPHOS_CONTEXT_TOKEN",
+            resolve_bearer=resolve,
+            bindings={},
+        )
+        fields.update(changes)
+        return serving.RuntimeAuthorities(**fields)
+
+    with pytest.raises(ValueError, match="governed fleet gateway"):
+        serving.configure_runtime_authorities(authorities(fleet_gateway=object()))
+    with pytest.raises(ValueError, match="bearer reference"):
+        serving.configure_runtime_authorities(authorities(bearer_ref="raw-token"))
+    with pytest.raises(ValueError, match="policy_gate"):
+        serving.configure_runtime_authorities(authorities(policy_gate=None))
+    assert serving._SERVED_PORTS is None
+
+    serving.configure_runtime_authorities(authorities())
+    bound = serving.configured_served_api_ports()
+    services = serving.build_invoke_services(bound.serving)
+    assert bound.serving.eg_dispatch is serving.dispatch_public_eg_method
+    assert bound.serving.schema_validate is serving.validate_public_eg_params
+    assert bound.serving.audit_preflight is audit.preflight
+    assert bound.serving.audit_write is audit.write
+    assert bound.serving.fleet_effect == gateway.effect
+    assert services.runtime.bindings["fleet_gateway"] is gateway
+    assert callable(bound.serving.context_endpoint_export)
+
+
 def test_mcp_caller_comes_from_verified_session(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -482,6 +544,7 @@ def test_mcp_caller_comes_from_verified_session(
     caller = serving.caller_from_verified_session()
     assert caller.principal == "user:1"
     assert caller.tenant == "t1"
+    assert caller.request_id
     assert caller.session is not None
 
 
