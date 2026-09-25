@@ -7,11 +7,12 @@ confirm the effect before any child can be reached.
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from graph_os.api.registry import Confirm, Effect, PrincipalRule
+from graph_os.api.registry import Confirm, Effect, Executor, PrincipalRule
 
 
 def _hint(annotations: Any, snake: str, camel: str) -> bool | None:
@@ -74,6 +75,10 @@ class AdmittedTool:
 ToolFor = Callable[[str, str, Any], Awaitable[AdmittedTool]]
 PolicyCheck = Callable[[str, str, Any], Awaitable[bool]]
 DelegatedCall = Callable[[str, str, Mapping[str, Any], Any], Awaitable[Any]]
+# A service callback must stamp every durable child record with the verified
+# owner's canonical principal reference. The generic multiplexer dispatcher
+# cannot prove that property and must not be bound here.
+ServiceCall = Callable[[str, str, Mapping[str, Any], Any, str], Awaitable[Any]]
 
 
 def tool_for_multiplexer_ops(ops: Any) -> ToolFor:
@@ -164,11 +169,13 @@ class FleetGateway:
         policy_check: PolicyCheck,
         delegated_call: DelegatedCall,
         catalog_ops: Any | None = None,
+        service_call: ServiceCall | None = None,
     ) -> None:
         self._tool_for = tool_for
         self._policy_check = policy_check
         self._delegated_call = delegated_call
         self._catalog_ops = catalog_ops
+        self._service_call = service_call
 
     def _catalog(
         self, caller: Any, scope: str, *, session_required: bool = False
@@ -209,15 +216,27 @@ class FleetGateway:
             caller, "mcp:delegate", session_required=True
         ).unload(caller, **params)
 
-    async def effect(
-        self, _op: Any, params: Mapping[str, Any], caller: Any
-    ) -> tuple[Effect, Confirm, PrincipalRule]:
+    async def effect(self, _op: Any, params: Mapping[str, Any], caller: Any) -> Any:
         descriptor = await self._admitted_tool(caller, params["server"], params["tool"])
-        if descriptor.credential_mode == "service":
-            raise PermissionError("service-credential child needs SERVICE binding")
-        return annotation_effect(
+        effect, confirm, principal = annotation_effect(
             descriptor.annotations, override=descriptor.effect_override
         )
+        if descriptor.credential_mode == "service":
+            if self._service_call is None:
+                raise RuntimeError("owner-stamped service child adapter is unavailable")
+            from graph_os.api.invoke import FleetCallDecision
+
+            return FleetCallDecision(
+                effect=effect,
+                confirm=confirm,
+                principals=principal,
+                executor=Executor.SERVICE,
+                required_scopes=descriptor.required_scopes,
+                executor_scopes=descriptor.executor_scopes,
+                subject_id=descriptor.subject_id,
+                credential_mode="service",
+            )
+        return effect, confirm, principal
 
     async def _admitted_tool(self, caller: Any, server: str, tool: str) -> AdmittedTool:
         if "mcp:delegate" not in caller.effective_scopes:
@@ -239,20 +258,47 @@ class FleetGateway:
         arguments: Mapping[str, Any],
         *,
         expected_effect: Effect,
+        service_identity: bool = False,
+        owner: str | None = None,
+        owner_ref: str | None = None,
+        fleet_decision: Any = None,
     ) -> Any:
         descriptor = await self._admitted_tool(caller, server, tool)
-        if descriptor.credential_mode != "delegated":
-            raise PermissionError("service-credential child needs SERVICE binding")
         current_effect, _, _ = annotation_effect(
             descriptor.annotations, override=descriptor.effect_override
         )
         if current_effect is not expected_effect:
             raise RuntimeError("fleet effect changed before dispatch")
+        if descriptor.credential_mode == "service":
+            expected_owner_ref = (
+                "principal:sha256:"
+                + hashlib.sha256(caller.principal.encode()).hexdigest()
+            )
+            if (
+                service_identity is not True
+                or owner != caller.principal
+                or owner_ref != expected_owner_ref
+                or fleet_decision is None
+                or fleet_decision.credential_mode != "service"
+                or fleet_decision.executor is not Executor.SERVICE
+                or fleet_decision.subject_id != descriptor.subject_id
+                or fleet_decision.executor_scopes != descriptor.executor_scopes
+                or fleet_decision.required_scopes != descriptor.required_scopes
+                or self._service_call is None
+            ):
+                raise PermissionError("service child authority changed before dispatch")
+            return await self._service_call(server, tool, arguments, caller, owner_ref)
+        if service_identity is True:
+            raise PermissionError("delegated child cannot use service identity")
         return await self._delegated_call(server, tool, arguments, caller)
 
 
 def compose_fleet_gateway(
-    *, ops: Any, mux: Any, policy_check: PolicyCheck
+    *,
+    ops: Any,
+    mux: Any,
+    policy_check: PolicyCheck,
+    service_call: ServiceCall | None = None,
 ) -> FleetGateway:
     """Assemble the only supported caller-credential fleet boundary.
 
@@ -267,6 +313,9 @@ def compose_fleet_gateway(
         policy_check=policy_check,
         delegated_call=oauth_delegated_call_for_mux(mux),
         catalog_ops=ops,
+        # Static child credentials stay unavailable until an owner-stamped,
+        # typed service-child adapter is explicitly supplied.
+        service_call=service_call,
     )
 
 
