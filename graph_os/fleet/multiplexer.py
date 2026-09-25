@@ -1643,6 +1643,7 @@ class MCPMultiplexer:
         # session id -> the prefixed names that session has loaded; meta-tools and
         # always-on tools live in ``_global_visible`` and are shown to everyone.
         self._exposed: set[str] = set()
+        self._exposed_items: set[str] = set()
         self._session_loaded: dict[str, set[str]] = {}
         self._global_visible: set[str] = set()
         # CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog — self-catalog: per-server {"tools": [...], "error": str|None}
@@ -4713,7 +4714,10 @@ class MCPMultiplexer:
             key = session_key if session_key is not None else _session_key()
             return (
                 key not in self._policy_blocked_sessions
-                and prefixed_name in self._exposed
+                and (
+                    prefixed_name in self._exposed
+                    or prefixed_name in self._exposed_items
+                )
                 and self._multiplexer_ops.dispatchable(key, prefixed_name)
             )
         if prefixed_name in self._local_gated:
@@ -5378,7 +5382,11 @@ class SessionVisibilityMiddleware(_fastmcp_middleware.Middleware):
             template
             for template in await call_next(context)
             if self._component_visible(
-                str(getattr(template, "uri_template", getattr(template, "uriTemplate", "")))
+                str(
+                    getattr(
+                        template, "uri_template", getattr(template, "uriTemplate", "")
+                    )
+                )
             )
         ]
 
@@ -6236,7 +6244,7 @@ def attach_fleet_loader(
     async def mount(item, forwarder) -> None:
         """Register a native component with a caller-bound governed body."""
         name = native_name(item)
-        if name in mux._exposed:
+        if name in mux._exposed or name in mux._exposed_items:
             return
 
         if item.kind == "prompt":
@@ -6249,7 +6257,7 @@ def attach_fleet_loader(
                     _ops_caller(), _session_key(), item.id, {}
                 )
 
-            mux._exposed.add(name)
+            mux._exposed_items.add(name)
             return
 
         if item.kind == "resource":
@@ -6260,7 +6268,7 @@ def attach_fleet_loader(
                     _ops_caller(), _session_key(), item.id, {}
                 )
 
-            mux._exposed.add(name)
+            mux._exposed_items.add(name)
             return
 
         if item.kind != "tool" or forwarder is None:
