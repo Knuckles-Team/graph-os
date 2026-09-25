@@ -42,6 +42,7 @@ class StoredUser:
     totp: str | None = None
     totp_confirmed: bool = False
     recovery: list[str] = field(default_factory=list)
+    webauthn: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def resolution(self, *, pending: bool = False) -> dict[str, Any]:
         return {
@@ -54,7 +55,7 @@ class StoredUser:
             "groups": [],
             "scopes": sorted(self.scopes),
             "mfa_required": False,
-            "mfa_enrolled": self.totp_confirmed,
+            "mfa_enrolled": self.totp_confirmed or bool(self.webauthn),
             "session_mfa_pending": pending,
         }
 
@@ -109,6 +110,9 @@ class StoreDouble:
             ("mfa", "verify_totp"): self._verify_totp,
             ("mfa", "set_recovery_codes"): self._set_recovery,
             ("mfa", "consume_recovery_code"): self._consume_recovery,
+            ("mfa", "webauthn_credentials"): self._webauthn_credentials,
+            ("mfa", "register_webauthn"): self._register_webauthn,
+            ("mfa", "verify_webauthn"): self._verify_webauthn,
         }
 
     # -- the port --------------------------------------------------------
@@ -215,7 +219,7 @@ class StoreDouble:
             or user.password != request["password"]
         ):
             return IdentityReply("authenticate", {"outcome": "bad"})
-        pending = user.totp_confirmed
+        pending = user.totp_confirmed or bool(user.webauthn)
         self.sessions[str(request["session_token"])] = _Session(
             user.principal_id, pending
         )
@@ -368,3 +372,39 @@ class StoreDouble:
         if accepted:
             user.recovery.remove(code)
         return self._second_factor(request, accepted)
+
+    def _webauthn_credentials(self, request: Mapping[str, Any]) -> IdentityReply:
+        _, user = self._session_user(request)
+        return IdentityReply("webauthn_credentials", list(user.webauthn.values()))
+
+    def _register_webauthn(self, request: Mapping[str, Any]) -> IdentityReply:
+        session, user = self._session_user(request)
+        if session.mfa_pending:
+            raise _refuse("IDENTITY_NOT_AUTHORIZED")
+        credential_id = str(request["credential_id"])
+        if credential_id in user.webauthn:
+            raise _refuse("IDENTITY_COLLISION")
+        user.webauthn[credential_id] = {
+            key: request[key]
+            for key in (
+                "credential_id",
+                "public_key_cose",
+                "sign_count",
+                "transports",
+                "name",
+            )
+        }
+        return IdentityReply("done", {"changed": True})
+
+    def _verify_webauthn(self, request: Mapping[str, Any]) -> IdentityReply:
+        session, user = self._session_user(request)
+        if not session.mfa_pending:
+            raise _refuse("IDENTITY_NOT_AUTHORIZED")
+        row = user.webauthn.get(str(request["credential_id"]))
+        if row is None:
+            return self._second_factor(request, False)
+        count = int(request["new_sign_count"])
+        if count <= row["sign_count"] and (count != 0 or row["sign_count"] != 0):
+            raise _refuse("IDENTITY_REPLAY")
+        row["sign_count"] = count
+        return self._second_factor(request, True)

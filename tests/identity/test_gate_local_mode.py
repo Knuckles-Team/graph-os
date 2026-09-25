@@ -241,11 +241,6 @@ def test_recovery_codes_are_single_use() -> None:
         assert response.status_code == expected
 
 
-def test_webauthn_fails_closed() -> None:
-    served = _with_admin()
-    assert served.post("/auth/mfa/webauthn/register").status_code == 501
-
-
 def test_registration_is_administrator_only() -> None:
     served = _with_admin()
     stolen_csrf = served.csrf
