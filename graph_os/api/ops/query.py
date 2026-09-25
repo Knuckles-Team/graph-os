@@ -1,7 +1,12 @@
 """Curated query operations over the caller's EG authority."""
 
+from typing import Any, Mapping
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from graph_os.api.registry import (
     AuditClass,
+    Composite,
     Effect,
     EgMethod,
     EgSchemaRef,
@@ -9,6 +14,27 @@ from graph_os.api.registry import (
     OpSpec,
     Verb,
 )
+
+
+class SqlSchemaParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_name: str | None = Field(default=None, alias="schema")
+
+
+class SqlSchemaResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: str
+    catalogs: list[dict[str, Any]]
+    capabilities: dict[str, bool]
+    counts: dict[str, int]
+
+
+async def sql_schema_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> dict[str, Any]:
+    """Project the SQL catalog using the invoke layer's caller-bound EG client."""
+    from graph_os.gateway.sql_catalog import sql_schema
+
+    request = SqlSchemaParams.model_validate(params)
+    return await sql_schema(context.client, schema=request.schema_name)
 
 
 def specs() -> tuple[OpSpec, ...]:
@@ -35,6 +61,18 @@ def specs() -> tuple[OpSpec, ...]:
             result=EgSchemaRef(path="contract/schemas/result.reasoning.json#/methods/Sparql"),
             binding=EgMethod(service="Sparql", op="Sparql"),
             scopes=frozenset({"sparql:read"}),
+            effect=Effect.READ,
+            idempotency=Idempotency.NATURAL,
+        ),
+        OpSpec(
+            id="query.sql_schema",
+            verb=Verb.FIND,
+            summary="Inspect readable SQL catalogs, tables, and columns.",
+            examples=("Show the SQL tables available in this graph",),
+            params=SqlSchemaParams,
+            result=SqlSchemaResult,
+            binding=Composite(handler="graph_os.api.ops.query.sql_schema_handler"),
+            scopes=frozenset({"query:sql"}),
             effect=Effect.READ,
             idempotency=Idempotency.NATURAL,
         ),
