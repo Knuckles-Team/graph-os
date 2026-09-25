@@ -80,19 +80,6 @@ class IdentityDeployment:
     @classmethod
     def from_settings(cls, config: Any) -> IdentityDeployment:
         profile = str(getattr(config, "deployment_profile", None) or "tiny")
-        tiny = profile == "tiny"
-        issuer = _setting("GRAPHOS_IDENTITY_ISSUER") or (_TINY_ISSUER if tiny else None)
-        tenant = _setting("GRAPHOS_IDENTITY_TENANT") or (_TINY_TENANT if tiny else None)
-        if not issuer or not tenant:
-            raise RuntimeError(
-                "GRAPHOS_IDENTITY_ISSUER and GRAPHOS_IDENTITY_TENANT are required "
-                f"on the {profile!r} profile"
-            )
-        audience = str(
-            getattr(config, "auth_jwt_audience", None)
-            or getattr(config, "mcp_jwt_audience", None)
-            or _DEFAULT_AUDIENCE
-        )
         return cls(
             profile=profile,
             seed_mode=_setting("GRAPHOS_AUTH_MODE")
@@ -100,8 +87,26 @@ class IdentityDeployment:
             none_ack=_setting("GRAPHOS_AUTH_NONE_EXPOSE"),
             none_hostname=_setting("GRAPHOS_AUTH_NONE_HOSTNAME"),
             setup_code=_setting("GRAPHOS_SETUP_CODE"),
-            issuer=IssuerSettings(issuer=issuer, audience=audience, tenant=tenant),
+            issuer=_issuer_settings(profile, config),
         )
+
+
+def _issuer_settings(profile: str, config: Any) -> IssuerSettings:
+    """Issuer URL and tenant (tiny defaults to loopback); audience from config."""
+    tiny = profile == "tiny"
+    issuer = _setting("GRAPHOS_IDENTITY_ISSUER") or (_TINY_ISSUER if tiny else None)
+    tenant = _setting("GRAPHOS_IDENTITY_TENANT") or (_TINY_TENANT if tiny else None)
+    if not issuer or not tenant:
+        raise RuntimeError(
+            "GRAPHOS_IDENTITY_ISSUER and GRAPHOS_IDENTITY_TENANT are required "
+            f"on the {profile!r} profile"
+        )
+    audience = str(
+        getattr(config, "auth_jwt_audience", None)
+        or getattr(config, "mcp_jwt_audience", None)
+        or _DEFAULT_AUDIENCE
+    )
+    return IssuerSettings(issuer=issuer, audience=audience, tenant=tenant)
 
 
 @dataclass(frozen=True)

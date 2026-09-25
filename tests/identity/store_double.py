@@ -16,7 +16,12 @@ from typing import Any
 
 from graph_os.identity.engine import IdentityCall, IdentityRefused, IdentityReply
 
+from .fakes import FakeSecrets
+
 __all__ = ["SecretsDouble", "StoreDouble", "StoredUser", "TOTP_GOOD_CODE"]
+
+#: The secrets backend double is shared with the external-authority tests.
+SecretsDouble = FakeSecrets
 
 #: The one TOTP code the double accepts (the engine checks RFC 6238).
 TOTP_GOOD_CODE = "123456"
@@ -363,33 +368,3 @@ class StoreDouble:
         if accepted:
             user.recovery.remove(code)
         return self._second_factor(request, accepted)
-
-
-class SecretsDouble:
-    """The issuer's secrets-backend slice, with a real compare-and-set."""
-
-    def __init__(self) -> None:
-        self.values: dict[str, str] = {}
-
-    def get(self, key: str) -> str | None:
-        return self.values.get(key)
-
-    def set_if_absent(self, key: str, value: str, **metadata: Any) -> bool:
-        if key in self.values:
-            return False
-        self.values[key] = value
-        return True
-
-    def compare_and_set(
-        self, key: str, expected: str, value: str, **metadata: Any
-    ) -> bool:
-        if self.values.get(key) != expected:
-            return False
-        self.values[key] = value
-        return True
-
-    def set(self, key: str, value: str, **metadata: Any) -> None:
-        self.values[key] = value
-
-    def delete(self, key: str) -> bool:
-        return self.values.pop(key, None) is not None
