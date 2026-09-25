@@ -52,6 +52,7 @@ def test_every_graphos_code_has_one_envelope() -> None:
         (GraphOSErrorCode.SCOPE_REQUIRED, 403, False),
         (GraphOSErrorCode.CONFIRMATION_REQUIRED, 428, False),
         (GraphOSErrorCode.POLICY_UNAVAILABLE, 503, True),
+        (GraphOSErrorCode.INDETERMINATE, 500, False),
         (GraphOSErrorCode.RATE_LIMITED, 429, True),
         (GraphOSErrorCode.INTERNAL, 500, False),
     ],
@@ -76,9 +77,30 @@ def test_invoke_error_uses_the_same_closed_code_mapping() -> None:
         to_envelope(InvokeError("NOT_IN_CONTRACT"), **CONTEXT)
 
 
+def test_indeterminate_outcome_keeps_only_fixed_audit_reason() -> None:
+    status, envelope = to_envelope(
+        InvokeError(
+            "INDETERMINATE",
+            {"reason": "audit outcome unavailable", "backend": "tenant-secret"},
+        ),
+        **CONTEXT,
+    )
+    assert status == 500
+    assert envelope["error"]["code"] == "INDETERMINATE"
+    assert envelope["error"]["retryable"] is False
+    assert envelope["error"]["details"] == {"reason": "audit outcome unavailable"}
+    assert "tenant-secret" not in str(envelope)
+
+    _, unknown_reason = to_envelope(
+        InvokeError("INDETERMINATE", {"reason": "tenant-secret"}), **CONTEXT
+    )
+    assert unknown_reason["error"]["details"] == {}
+
+
 def test_a2a_uses_the_closed_mapping_and_confirmation_is_a_result() -> None:
     assert a2a_error_status("SCOPE_REQUIRED") == (-32003, 403)
     assert a2a_error_status("UNKNOWN_OP") == (-32601, 404)
+    assert a2a_error_status("INDETERMINATE") == (-32052, 500)
     with pytest.raises(KeyError):
         a2a_error_status("CONFIRMATION_REQUIRED")
 

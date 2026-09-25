@@ -31,6 +31,7 @@ class GraphOSErrorCode(StrEnum):
     UNKNOWN_TOOL = "UNKNOWN_TOOL"
     UNAVAILABLE = "UNAVAILABLE"
     TIMEOUT = "TIMEOUT"
+    INDETERMINATE = "INDETERMINATE"
     RATE_LIMITED = "RATE_LIMITED"
     INTERNAL = "INTERNAL"
 
@@ -56,6 +57,7 @@ _GRAPHOS_STATUS: dict[GraphOSErrorCode, int] = {
     GraphOSErrorCode.UNKNOWN_TOOL: 404,
     GraphOSErrorCode.UNAVAILABLE: 503,
     GraphOSErrorCode.TIMEOUT: 504,
+    GraphOSErrorCode.INDETERMINATE: 500,
     GraphOSErrorCode.RATE_LIMITED: 429,
     GraphOSErrorCode.INTERNAL: 500,
 }
@@ -134,6 +136,14 @@ def _public_details(
         GraphOSErrorCode.STEP_UP_REQUIRED,
     }:
         return _confirmation_details(code, details)
+    if code == GraphOSErrorCode.INDETERMINATE:
+        # The audit adapter emits this fixed reason when it cannot record the
+        # outcome of an effect. Never reflect an arbitrary backend message.
+        return (
+            {"reason": "audit outcome unavailable"}
+            if details.get("reason") == "audit outcome unavailable"
+            else {}
+        )
     allowed = {
         GraphOSErrorCode.SCOPE_REQUIRED: "missing_scopes",
         GraphOSErrorCode.LOAD_CAP_EXCEEDED: "loaded_items",
@@ -233,6 +243,7 @@ _RPC_CODES: dict[GraphOSErrorCode, int] = {
     GraphOSErrorCode.UNKNOWN_TOOL: -32601,
     GraphOSErrorCode.UNAVAILABLE: -32050,
     GraphOSErrorCode.TIMEOUT: -32051,
+    GraphOSErrorCode.INDETERMINATE: -32052,
     GraphOSErrorCode.RATE_LIMITED: -32029,
     GraphOSErrorCode.INTERNAL: -32603,
 }
