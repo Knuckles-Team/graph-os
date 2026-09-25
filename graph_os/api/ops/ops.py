@@ -46,7 +46,6 @@ def _engine(
 def specs() -> tuple[OpSpec, ...]:
     return (
         _engine("health", "Health", "cluster", "service:control"),
-        _engine("resources", "ResourceStatsPage", "coordination", "service:control"),
         _engine("graphs.list", "ListGraphs", "cluster", "graph:read"),
         _engine("shards.plan", "RebalancePlan", "cluster", "admin:cluster-read"),
         _engine("backup", "Backup", "storage", "admin:backup", destructive=True),

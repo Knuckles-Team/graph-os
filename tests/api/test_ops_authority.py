@@ -1,13 +1,12 @@
 """Exact EG authority for curated operator operations."""
 
-from graph_os.api.ops import analytics, ops
-from graph_os.api.registry import Executor, PrincipalRule
+from graph_os.api.ops import analytics, ops, usage
+from graph_os.api.registry import EgMethod, Executor, PrincipalRule
 
 
 def test_curated_operator_methods_use_exact_eg_scope() -> None:
     expected = {
         "Health": "service:control",
-        "ResourceStatsPage": "service:control",
         "ListGraphs": "graph:read",
         "RebalancePlan": "admin:cluster-read",
         "Backup": "admin:backup",
@@ -35,3 +34,14 @@ def test_timeseries_mutations_are_service_only_under_caller_authority() -> None:
         assert op.principals is PrincipalRule.SERVICE_ONLY
         assert op.executor is Executor.CALLER
     assert items["analytics.series.list"].principals is PrincipalRule.ANY
+
+
+def test_resource_stats_page_has_one_direct_owner() -> None:
+    bound = [
+        op.id
+        for module in (ops, usage)
+        for op in module.specs()
+        if isinstance(op.binding, EgMethod)
+        and op.binding.service == "ResourceStatsPage"
+    ]
+    assert bound == ["usage.resources"]
