@@ -9,17 +9,31 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from graph_os.api.registry import Composite, Idempotency, OpSpec, Verb
 
 
 class SearchParams(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    query: str = Field(default="", max_length=8192)
-    filters: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
-    kind: str | None = Field(default=None, max_length=256)
-    limit: int = Field(default=100, ge=1, le=256)
+    query: str = ""
+    filters: list[dict[str, Any]] = Field(default_factory=list, max_length=256)
+    kind: str | None = None
+    limit: int = Field(default=50, ge=1, le=256)
+
+    @field_validator("query")
+    @classmethod
+    def bounded_query(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 8192:
+            raise ValueError("query exceeds the WebUI byte bound")
+        return value
+
+    @field_validator("kind")
+    @classmethod
+    def bounded_kind(cls, value: str | None) -> str | None:
+        if value is not None and len(value.encode("utf-8")) > 128:
+            raise ValueError("kind exceeds the WebUI byte bound")
+        return value
 
 
 class SearchResult(BaseModel):
