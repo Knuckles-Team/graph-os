@@ -23,6 +23,7 @@ SdkRead = Callable[[], Awaitable[Iterable[Mapping[str, Any]]]]
 @dataclass(frozen=True, slots=True)
 class _ServerPolicy:
     required_scopes: frozenset[str]
+    executor_scopes: frozenset[str]
     credential_mode: CredentialMode
     fleet_effects: Mapping[str, str]
 
@@ -40,18 +41,15 @@ def _verified_server_policy(body: bytes) -> _ServerPolicy:
     nested = decoded.get("config", decoded.get("mcpServer", decoded))
     if not isinstance(nested, dict):
         raise ValueError("fleet manifest config must be an object")
-    raw_scopes = nested.get("required_scopes", ())
-    if isinstance(raw_scopes, str):
-        raw_scopes = raw_scopes.split()
-    if not isinstance(raw_scopes, list | tuple) or any(
-        not isinstance(scope, str) or not 1 <= len(scope) <= 128 for scope in raw_scopes
-    ):
-        raise ValueError("fleet required_scopes are invalid")
+    raw_scopes = _scopes(nested.get("required_scopes", ()), "required_scopes")
+    executor_scopes = _scopes(nested.get("executor_scopes", ()), "executor_scopes")
     mode = nested.get("credential_mode", "delegated")
     if not isinstance(mode, str) or mode not in {"delegated", "service"}:
         raise ValueError("fleet credential_mode is invalid")
     if mode == "service" and not raw_scopes:
         raise ValueError("service child requires declared domain scopes")
+    if mode == "service" and not executor_scopes:
+        raise ValueError("service child requires executor_scopes")
     effects = nested.get("fleet_effects", {})
     if (
         not isinstance(effects, dict)
@@ -65,7 +63,19 @@ def _verified_server_policy(body: bytes) -> _ServerPolicy:
         )
     ):
         raise ValueError("fleet_effects are invalid")
-    return _ServerPolicy(frozenset(raw_scopes), cast(CredentialMode, mode), effects)
+    return _ServerPolicy(
+        raw_scopes, executor_scopes, cast(CredentialMode, mode), effects
+    )
+
+
+def _scopes(value: Any, field_name: str) -> frozenset[str]:
+    if isinstance(value, str):
+        value = value.split()
+    if not isinstance(value, list | tuple) or any(
+        not isinstance(scope, str) or not 1 <= len(scope) <= 128 for scope in value
+    ):
+        raise ValueError(f"fleet {field_name} are invalid")
+    return frozenset(value)
 
 
 class CombinedFleetSource:
@@ -89,11 +99,26 @@ class CombinedFleetSource:
             for server in snapshot.servers
             if server.registration is not None
         }
+        subjects = {
+            server.component.server_name: getattr(
+                server.component, "component_id", None
+            )
+            for server in snapshot.servers
+            if server.registration is not None
+        }
+        if any(
+            not isinstance(subjects[name], str) or not subjects[name]
+            for name, policy in admitted.items()
+            if policy.credential_mode == "service"
+        ):
+            raise ValueError("service child lacks verified EG subject_id")
         merged = {
             item.id: replace(
                 item,
                 required_scopes=admitted[item.server].required_scopes,
                 credential_mode=admitted[item.server].credential_mode,
+                executor_scopes=admitted[item.server].executor_scopes,
+                subject_id=subjects[item.server],
                 effect_override=admitted[item.server].fleet_effects.get(item.name),
             )
             for item in items_from_eg_catalog(snapshot)
@@ -109,6 +134,8 @@ class CombinedFleetSource:
                         item,
                         required_scopes=policy.required_scopes,
                         credential_mode=policy.credential_mode,
+                        executor_scopes=policy.executor_scopes,
+                        subject_id=subjects[server],
                         effect_override=policy.fleet_effects.get(item.name),
                     )
                 elif item.kind == "tool":

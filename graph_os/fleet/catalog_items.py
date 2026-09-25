@@ -30,6 +30,8 @@ class CatalogItem:
     annotations: Mapping[str, Any] | None = field(default=None, repr=False)
     effect_override: str | None = field(default=None, repr=False)
     credential_mode: CredentialMode = field(default="delegated", repr=False)
+    executor_scopes: frozenset[str] = field(default=frozenset(), repr=False)
+    subject_id: str | None = field(default=None, repr=False)
 
     def public(self) -> dict[str, Any]:
         result: dict[str, Any] = {
