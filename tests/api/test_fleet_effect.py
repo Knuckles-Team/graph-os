@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from types import SimpleNamespace
 
 import pytest
@@ -13,6 +14,7 @@ from graph_os.fleet.gateway_ops import (
     FleetGateway,
     annotation_effect,
     fleet_effect_for,
+    oauth_delegated_call_for_mux,
 )
 
 
@@ -187,3 +189,45 @@ async def test_fleet_operation_handler_uses_only_bound_gateway() -> None:
         await fleet.handle_fleet_operation(
             SimpleNamespace(caller=caller, services={}), {"query": "test"}, op
         )
+
+
+@pytest.mark.asyncio
+async def test_oauth_callback_uses_matching_verified_actor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import agent_utilities.api
+    import agent_utilities.security.brain_context as brain_context
+
+    bound: list[object] = []
+    monkeypatch.setattr(
+        agent_utilities.api,
+        "use_session",
+        lambda session: (bound.append(session), nullcontext())[1],
+    )
+    monkeypatch.setattr(
+        brain_context,
+        "use_actor",
+        lambda actor: (bound.append(actor), nullcontext())[1],
+    )
+
+    class Mux:
+        async def call_oauth_gated_tool(self, server: str, tool: str, arguments: dict):
+            assert (server, tool, arguments) == ("s", "t", {"x": 1})
+            return SimpleNamespace(
+                is_error=False,
+                model_dump=lambda **_kwargs: {
+                    "content": [{"type": "text", "text": "ok"}]
+                },
+            )
+
+    actor = SimpleNamespace(authenticated=True, actor_id="alice", tenant_id="acme")
+    session = SimpleNamespace(actor=actor)
+    caller = SimpleNamespace(session=session, principal="alice", tenant="acme")
+    dispatch = oauth_delegated_call_for_mux(Mux())
+    assert await dispatch("s", "t", {"x": 1}, caller) == {
+        "content": [{"type": "text", "text": "ok"}]
+    }
+    assert bound == [actor, session]
+    caller.principal = "bob"
+    with pytest.raises(PermissionError, match="does not match"):
+        await dispatch("s", "t", {}, caller)
