@@ -42,6 +42,8 @@ import threading
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
+from graph_os.identity.ports import ServedIdentityFactory
+
 __all__ = ["compose_web_application", "run_web_ui"]
 
 logger = logging.getLogger(__name__)
@@ -109,6 +111,9 @@ async def _serve_until_stopped(
 def run_web_ui(
     stop_event: threading.Event,
     *,
+    identity_factory: ServedIdentityFactory,
+    graph_client: Callable[[str], Any],
+    engine_factory: Callable[[], Any],
     host: str | None = None,
     port: int | None = None,
 ) -> None:
@@ -188,12 +193,6 @@ def run_web_ui(
     from graph_os.browser_control.browser_control_service import (
         browser_control_factory_kwargs,
     )
-    from graph_os.identity.serving import (
-        prepare_identity,
-        served_identity_runtime,
-        webui_session_boundary,
-    )
-    from graph_os.mcp_server import runtime as mcp_runtime
     from graph_os.webui_host.mcp_delegation import webui_mcp_delegation_helpers
 
     # Assemble exactly what agent-webui's own entrypoint assembles.
@@ -217,19 +216,19 @@ def run_web_ui(
     )
     browser_control_kwargs = browser_control_factory_kwargs(
         create_agent_web_app,
-        mcp_runtime._get_engine(),
+        engine_factory(),
         lambda operation: invoke_governed_helper(operation, deadline=10.0),
         session_revalidator=revalidate_browser_control_session,
     )
     # The identity broker owns every browser credential: /auth/*, sessions,
     # API keys and the none-mode bootstrap principal (graph_os.identity).
-    identity = served_identity_runtime(mcp_runtime.graph_client)
+    identity = identity_factory(graph_client)
     app = create_agent_web_app(
         agent,
         workspace_helpers=helpers,
         listener_host=bind_host,
         application_composer=compose_web_application,
-        session_boundary=webui_session_boundary(identity),
+        session_boundary=identity.webui_session_boundary(),
         **contact_kwargs,
         **browser_control_kwargs,
     )
@@ -259,6 +258,6 @@ def run_web_ui(
             browser_control_service,
             register_browser_control_service,
             unregister_browser_control_service,
-            lambda: prepare_identity(identity, [bind_host]),
+            lambda: identity.prepare([bind_host]),
         )
     )
