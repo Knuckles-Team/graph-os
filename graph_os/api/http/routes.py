@@ -73,6 +73,7 @@ def make_endpoint(
     authenticate: Callable[[Request], Awaitable[Any]],
     response: Callable[[Any, Any, str], JSONResponse],
     generic: bool,
+    is_console_request: Callable[[Request, Any], bool] | None = None,
 ) -> Callable[[Request], Awaitable[JSONResponse]]:
     """Return the single handler used by every registered HTTP operation."""
 
@@ -95,11 +96,16 @@ def make_endpoint(
         from graph_os.api.invoke import invoke
         from graph_os.api.registry import Surface
 
+        surface = (
+            Surface.CONSOLE
+            if is_console_request is not None and is_console_request(request, caller)
+            else Surface.HTTP
+        )
         outcome = await invoke(
             op.id,
             params,
             caller,
-            Surface.HTTP,
+            surface,
             services=services,
             plan_ref=plan_ref,
             idempotency_key=key,
