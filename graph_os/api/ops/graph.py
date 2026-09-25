@@ -1,4 +1,4 @@
-"""Caller-authorized graph operations and the node property codec."""
+"""Caller-authorized graph operations and property codecs."""
 
 from __future__ import annotations
 
@@ -37,6 +37,25 @@ class NodePropertiesResult(RootModel[dict[str, Any] | None]):
     """Decoded node properties, or null when the node is absent."""
 
 
+class _EdgeParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_id: str = Field(min_length=1)
+    target_id: str = Field(min_length=1)
+
+
+class EdgeAddParams(_EdgeParams):
+    properties: dict[str, Any] = Field(default_factory=dict)
+
+
+class EdgeAddResult(RootModel[None]):
+    """The legacy edge add call returns no value on success."""
+
+
+class EdgePropertiesResult(RootModel[list[dict[str, Any]]]):
+    """Property objects of all parallel edges between two nodes."""
+
+
 async def node_add_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> None:
     """Pack a property object and write it to the verified session graph."""
     from graph_os.api.serving import dispatch_public_eg_method
@@ -69,6 +88,46 @@ async def node_properties_handler(
         value = msgpack.unpackb(value, raw=False)
     if value is not None and not isinstance(value, dict):
         raise ValueError("EG node properties result is not an object")
+    return value
+
+
+async def edge_add_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> None:
+    """Pack edge properties and write to the verified session graph."""
+    from graph_os.api.serving import dispatch_public_eg_method
+
+    request = EdgeAddParams.model_validate(params)
+    await dispatch_public_eg_method(
+        EgMethod(service="AddEdge", op="AddEdge"),
+        {
+            "source_id": request.source_id,
+            "target_id": request.target_id,
+            "properties_msgpack": msgpack.packb(request.properties, use_bin_type=True),
+        },
+        context,
+    )
+
+
+async def edge_properties_handler(
+    context: Any, params: Mapping[str, Any], op: OpSpec
+) -> list[dict[str, Any]]:
+    """Decode all parallel edge properties from the verified session graph."""
+    from graph_os.api.serving import dispatch_public_eg_method
+
+    request = _EdgeParams.model_validate(params)
+    result = await dispatch_public_eg_method(
+        EgMethod(service="GetEdgeProperties", op="GetEdgeProperties"),
+        {"source_id": request.source_id, "target_id": request.target_id},
+        context,
+    )
+    value = getattr(result, "payload", result)
+    if value is None:
+        return []
+    if isinstance(value, bytes):
+        value = msgpack.unpackb(value, raw=False)
+    if not isinstance(value, list) or any(
+        not isinstance(properties, dict) for properties in value
+    ):
+        raise ValueError("EG edge properties result is not a list of objects")
     return value
 
 
@@ -121,7 +180,29 @@ def specs() -> tuple[OpSpec, ...]:
         ),
         _graph("nodes.remove", "RemoveNode", "node:write", write=True),
         _graph("edges.list", "GetEdgesPage", "edge:read"),
-        _graph("edges.get", "GetEdgeProperties", "edge:read"),
-        _graph("edges.add", "AddEdge", "edge:write", write=True),
+        OpSpec(
+            id="graph.edges.get",
+            verb=Verb.ASK,
+            summary="Read decoded properties of parallel edges in the verified graph.",
+            examples=("Show properties of these edges",),
+            params=_EdgeParams,
+            result=EdgePropertiesResult,
+            binding=Composite(handler="graph_os.api.ops.graph.edge_properties_handler"),
+            scopes=frozenset({"edge:read"}),
+            idempotency=Idempotency.NATURAL,
+        ),
+        OpSpec(
+            id="graph.edges.add",
+            verb=Verb.WRITE,
+            summary="Add an edge with an object of properties in the verified graph.",
+            examples=("Add this edge with its properties",),
+            params=EdgeAddParams,
+            result=EdgeAddResult,
+            binding=Composite(handler="graph_os.api.ops.graph.edge_add_handler"),
+            scopes=frozenset({"edge:write"}),
+            effect=Effect.WRITE,
+            idempotency=Idempotency.KEY_REQUIRED,
+            audit=AuditClass.EVENT,
+        ),
         _graph("edges.remove", "RemoveEdge", "edge:write", write=True),
     )
