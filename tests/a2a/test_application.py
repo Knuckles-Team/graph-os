@@ -15,6 +15,7 @@ from graph_os.a2a.models import (
     A2ATaskState,
     A2ATaskStatus,
 )
+from graph_os.a2a.op_invoke import OperationReply
 from graph_os.a2a.service import A2AService
 
 
@@ -159,6 +160,55 @@ def test_json_rpc_rejects_missing_idempotency_invalid_shape_and_unknown_task() -
     )
     assert unknown.status_code == 404
     assert unknown.json()["error"]["code"] == -32601
+
+
+def test_operation_extension_uses_verified_authenticator_and_projection() -> None:
+    class Projection:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, dict[str, Any]]] = []
+
+        async def invoke(self, method: str, params: dict[str, Any]) -> OperationReply:
+            self.calls.append((method, params))
+            return OperationReply(value={"state": "input-required", "plan_ref": "p1"})
+
+    auth = Authenticator()
+    projection = Projection()
+    app = create_a2a_application(
+        service=A2AService(authority=Authority(), router=Router()),
+        authenticator=auth,
+        operation_projection=projection,
+    )
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 11,
+        "method": "graphos.op/invoke",
+        "params": {"op": "query.uql", "params": {"query": "a"}},
+    }
+    client = TestClient(app)
+    assert client.post("/a2a", json=payload).status_code == 401
+    answer = client.post(
+        "/a2a", json=payload, headers={"Authorization": "Bearer verified"}
+    )
+    assert answer.status_code == 200
+    assert answer.json()["result"] == {"state": "input-required", "plan_ref": "p1"}
+    assert projection.calls == [("graphos.op/invoke", payload["params"])]
+    assert auth.scopes == ["", ""]
+
+
+def test_operation_extension_is_not_advertised_without_composed_projection() -> None:
+    app, _auth, _authority = _app()
+    answer = TestClient(app).post(
+        "/a2a",
+        headers={"Authorization": "Bearer verified"},
+        json={
+            "jsonrpc": "2.0",
+            "id": 12,
+            "method": "graphos.plan/confirm",
+            "params": {"plan_ref": "p1", "op": "query.uql", "params": {}},
+        },
+    )
+    assert answer.status_code == 404
+    assert answer.json()["error"]["code"] == -32601
 
 
 def test_json_rpc_preserves_service_error_translation() -> None:

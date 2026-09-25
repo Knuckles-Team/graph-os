@@ -8,12 +8,14 @@ from typing import Any, Protocol, runtime_checkable
 
 from agent_utilities.security.elevation import ElevationRefused
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .authority import A2AIdempotencyConflict, A2ATaskNotCancelable
 from .elevation import ELEVATION_METHODS, ELEVATION_WRITE_METHODS, invoke_elevation
 from .models import A2AMessage, A2ATask, A2ATaskArtifactUpdateEvent
+from .op_invoke import OPERATION_METHODS, OperationProjection, OperationReply
 from .routing import A2AAssemblyUnavailable
 from .service import A2AService, state_fence
 
@@ -37,7 +39,7 @@ class AmbientA2AAuthenticator:
     async def authenticate(self, request: Request, *, scope: str) -> None:  # noqa: ARG002
         from agent_utilities.api.session import resolve_session
 
-        resolve_session(required_scope=scope)
+        resolve_session(required_scope=scope or None)
 
 
 class _Params(BaseModel):
@@ -96,6 +98,7 @@ async def _invoke_method(
     method: str,
     raw_params: dict[str, Any],
     request_id: Any,
+    operation_projection: OperationProjection | None,
 ) -> Any:
     """Validate and invoke one unary method on the shared service."""
     if method == "message/send":
@@ -120,13 +123,20 @@ async def _invoke_method(
     if method == "tasks/cancel":
         cancel_params = _TaskParams.model_validate(raw_params)
         return await service.cancel_task(cancel_params.id)
-    return await _extension_method(method, raw_params, request_id)
+    return await _extension_method(method, raw_params, request_id, operation_projection)
 
 
 async def _extension_method(
-    method: str, raw_params: dict[str, Any], request_id: Any
+    method: str,
+    raw_params: dict[str, Any],
+    request_id: Any,
+    operation_projection: OperationProjection | None,
 ) -> Any:
-    """GraphOS extension methods beyond core A2A (today: ``elevation/*``)."""
+    """GraphOS extension methods beyond core A2A."""
+    if method in OPERATION_METHODS:
+        if operation_projection is None:
+            return _error(request_id, -32601, "Method not found", 404)
+        return await operation_projection.invoke(method, raw_params)
     if method in ELEVATION_METHODS:
         return await invoke_elevation(method, raw_params)
     return _error(request_id, -32601, "Method not found", 404)
@@ -223,7 +233,10 @@ def _application_error(request_id: Any, error: Exception) -> JSONResponse:
 
 
 def create_a2a_handlers(
-    *, service: A2AService, authenticator: A2AAuthenticator
+    *,
+    service: A2AService,
+    authenticator: A2AAuthenticator,
+    operation_projection: OperationProjection | None = None,
 ) -> tuple[Any, Any]:
     """Create route handlers reusable by standalone FastAPI and FastMCP."""
     if not isinstance(authenticator, A2AAuthenticator):
@@ -242,7 +255,13 @@ def create_a2a_handlers(
         if isinstance(envelope, JSONResponse):
             return envelope
         request_id, method, raw_params = envelope
-        scope = "kg:write" if method in _WRITE_METHODS else "kg:read"
+        scope = (
+            ""
+            if method in OPERATION_METHODS and operation_projection is not None
+            else "kg:write"
+            if method in _WRITE_METHODS
+            else "kg:read"
+        )
         await authenticator.authenticate(request, scope=scope)
         try:
             if method in _STREAM_METHODS:
@@ -253,12 +272,43 @@ def create_a2a_handlers(
                     headers={"Cache-Control": "no-store"},
                 )
             result = await _invoke_method(
-                service, request, method, raw_params, request_id
+                service,
+                request,
+                method,
+                raw_params,
+                request_id,
+                operation_projection,
             )
         except _KNOWN_ERRORS as error:
             return _application_error(request_id, error)
         if isinstance(result, JSONResponse):
             return result
+        if isinstance(result, OperationReply):
+            if result.refused:
+                from graph_os.api.errors import a2a_error_status
+
+                rpc_code, http_status = a2a_error_status(result.code)
+                return JSONResponse(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "error": {
+                            "code": rpc_code,
+                            "message": "Request refused",
+                            "data": {"code": result.code},
+                        },
+                    },
+                    status_code=http_status,
+                    headers={"Cache-Control": "no-store"},
+                )
+            return JSONResponse(
+                {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": jsonable_encoder(result.value),
+                },
+                headers={"Cache-Control": "no-store"},
+            )
         payload = result.model_dump(mode="json", by_alias=True)
         return JSONResponse(
             {"jsonrpc": "2.0", "id": request_id, "result": payload},
@@ -269,12 +319,17 @@ def create_a2a_handlers(
 
 
 def create_a2a_application(
-    *, service: A2AService, authenticator: A2AAuthenticator
+    *,
+    service: A2AService,
+    authenticator: A2AAuthenticator,
+    operation_projection: OperationProjection | None = None,
 ) -> FastAPI:
     metadata = service.card_metadata
     app = FastAPI(title=f"{metadata.name} A2A", version=metadata.version)
     card_handler, rpc_handler = create_a2a_handlers(
-        service=service, authenticator=authenticator
+        service=service,
+        authenticator=authenticator,
+        operation_projection=operation_projection,
     )
     app.add_api_route("/.well-known/agent-card.json", card_handler, methods=["GET"])
     app.add_api_route("/a2a", rpc_handler, methods=["POST"])
