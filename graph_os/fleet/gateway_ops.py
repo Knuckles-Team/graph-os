@@ -74,6 +74,38 @@ PolicyCheck = Callable[[str, str, Any], Awaitable[bool]]
 DelegatedCall = Callable[[str, str, Mapping[str, Any], Any], Awaitable[Any]]
 
 
+def oauth_delegated_call_for_mux(mux: Any) -> DelegatedCall:
+    """Use only the per-principal OAuth child path; never the shared pool.
+
+    ``call_oauth_gated_tool`` opens an ephemeral caller-grant session. A static
+    service child or malformed OAuth declaration fails inside that path.
+    """
+
+    async def delegated(
+        server: str, tool: str, arguments: Mapping[str, Any], caller: Any
+    ) -> Any:
+        from agent_utilities.api import use_session
+        from agent_utilities.security.brain_context import use_actor
+
+        session = caller.session
+        if session is None:
+            raise PermissionError("verified delegated session is required")
+        actor = session.actor
+        if (
+            actor.authenticated is not True
+            or str(actor.actor_id) != caller.principal
+            or str(actor.tenant_id) != caller.tenant
+        ):
+            raise PermissionError("delegated caller does not match verified session")
+        with use_actor(actor), use_session(session):
+            result = await mux.call_oauth_gated_tool(server, tool, dict(arguments))
+        if bool(getattr(result, "is_error", getattr(result, "isError", False))):
+            raise RuntimeError("delegated child tool failed")
+        return result.model_dump(mode="json", by_alias=True)
+
+    return delegated
+
+
 class FleetGateway:
     """One direct-call authority boundary around an injected child dispatcher.
 
