@@ -30,4 +30,10 @@ def audit_event(
     }
     if audit_ref:
         event["audit_ref"] = audit_ref
+    if op.id == "fleet.call":
+        server, tool = params.get("server"), params.get("tool")
+        if isinstance(server, str) and isinstance(tool, str):
+            event["target"] = f"{server}/{tool}"
+    if getattr(op.executor, "value", None) == "service":
+        event["owner"] = caller.principal
     return event

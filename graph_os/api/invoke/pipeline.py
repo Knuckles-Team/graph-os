@@ -11,6 +11,7 @@ from graph_os.api.registry import (
     AuditClass,
     Confirm,
     Effect,
+    Executor,
     Idempotency,
     PrincipalRule,
     Surface,
@@ -41,9 +42,25 @@ MFA_FRESH_SECONDS = 900
 PolicyCheck = Callable[[Any, VerifiedCaller], Awaitable[bool]]
 AuditWrite = Callable[[Mapping[str, str], AuditClass], Awaitable[None]]
 AuditPreflight = Callable[[Mapping[str, str], AuditClass], Awaitable[str]]
+
+
+@dataclass(frozen=True, slots=True)
+class FleetCallDecision:
+    """Trusted live catalog authority for one exact child call."""
+
+    effect: Effect
+    confirm: Confirm
+    principals: PrincipalRule
+    executor: Executor
+    required_scopes: frozenset[str]
+    executor_scopes: frozenset[str]
+    subject_id: str | None
+    credential_mode: str
+
+
 FleetEffect = Callable[
     [Any, Mapping[str, Any], VerifiedCaller],
-    Awaitable[tuple[Effect, Confirm, PrincipalRule]],
+    Awaitable[FleetCallDecision | tuple[Effect, Confirm, PrincipalRule]],
 ]
 
 
@@ -129,15 +146,32 @@ async def _effective_op(
     params: Mapping[str, Any],
     caller: VerifiedCaller,
     services: InvokeServices,
-) -> Any | OpError:
+) -> tuple[Any, FleetCallDecision | None] | OpError:
     if op.id != "fleet.call":
-        return op
+        return op, None
     if services.fleet_effect is None:
         return OpError("UNAVAILABLE", {"reason": "fleet effect authority unavailable"})
     try:
-        effect, confirm, principal = await services.fleet_effect(op, params, caller)
+        resolved = await services.fleet_effect(op, params, caller)
     except Exception:
         return OpError("UNAVAILABLE", {"reason": "fleet effect authority unavailable"})
+    if isinstance(resolved, FleetCallDecision):
+        if not _valid_fleet_decision(op, resolved):
+            return OpError("UNAVAILABLE", {"reason": "invalid fleet authority"})
+        updated = op.model_copy(
+            update={
+                "effect": resolved.effect,
+                "confirm": resolved.confirm,
+                "principals": resolved.principals,
+                "executor": resolved.executor,
+                "scopes": op.scopes | resolved.required_scopes,
+                "executor_scopes": resolved.executor_scopes,
+            }
+        )
+        return updated, resolved
+    if not isinstance(resolved, tuple) or len(resolved) != 3:
+        return OpError("UNAVAILABLE", {"reason": "invalid fleet effect authority"})
+    effect, confirm, principal = resolved
     if not all(
         isinstance(value, expected)
         for value, expected in (
@@ -149,6 +183,51 @@ async def _effective_op(
         return OpError("UNAVAILABLE", {"reason": "invalid fleet effect authority"})
     return op.model_copy(
         update={"effect": effect, "confirm": confirm, "principals": principal}
+    ), None
+
+
+def _valid_fleet_decision(op: Any, decision: FleetCallDecision) -> bool:
+    if not isinstance(decision.required_scopes, frozenset) or not isinstance(
+        decision.executor_scopes, frozenset
+    ):
+        return False
+    if not all(
+        isinstance(value, expected)
+        for value, expected in (
+            (decision.effect, Effect),
+            (decision.confirm, Confirm),
+            (decision.principals, PrincipalRule),
+            (decision.executor, Executor),
+        )
+    ):
+        return False
+    if any(
+        not scope or "*" in scope
+        for scope in decision.required_scopes | decision.executor_scopes
+    ):
+        return False
+    if decision.effect == Effect.ADMIN and decision.confirm != Confirm.CONSOLE:
+        return False
+    if (
+        decision.effect == Effect.ADMIN
+        and decision.principals != PrincipalRule.HUMAN_UNDELEGATED
+    ):
+        return False
+    if decision.effect == Effect.DESTRUCTIVE and decision.confirm != Confirm.PLAN:
+        return False
+    if decision.executor == Executor.CALLER:
+        return (
+            decision.credential_mode == "delegated"
+            and not decision.executor_scopes
+            and decision.subject_id is None
+        )
+    return (
+        decision.credential_mode == "service"
+        and bool(decision.required_scopes)
+        and bool(decision.executor_scopes)
+        and isinstance(decision.subject_id, str)
+        and 1 <= len(decision.subject_id) <= 256
+        and op.audit != AuditClass.NONE
     )
 
 
@@ -158,6 +237,7 @@ async def _dispatch(
     caller: VerifiedCaller,
     services: InvokeServices,
     idempotency_key: str | None,
+    fleet_decision: FleetCallDecision | None,
 ) -> Any:
     from agent_utilities.core.resource_priority import (
         PriorityClass,
@@ -168,14 +248,14 @@ async def _dispatch(
     async def guarded() -> Any:
         if caller.session is None:
             async with execution_context(
-                op, caller, services.runtime, idempotency_key
+                op, caller, services.runtime, idempotency_key, fleet_decision
             ) as context:
                 return await services.runtime.dispatch(op, params, context)
         from graph_os.mcp_server.bootstrap import authority_keepalive_scope
 
         async with authority_keepalive_scope(caller.session):
             async with execution_context(
-                op, caller, services.runtime, idempotency_key
+                op, caller, services.runtime, idempotency_key, fleet_decision
             ) as context:
                 return await services.runtime.dispatch(op, params, context)
 
@@ -222,13 +302,20 @@ async def invoke(
         if isinstance(validated, BaseModel)
         else dict(validated)
     )
-    op = await _effective_op(op, arguments, caller, services)
-    if isinstance(op, OpError):
-        return op
+    effective = await _effective_op(op, arguments, caller, services)
+    if isinstance(effective, OpError):
+        return effective
+    op, fleet_decision = effective
     refused = principal_rule(op, caller)
     if refused is not None:
         return refused
-    refused = await prepare_executor(op, arguments, caller, services.runtime)
+    refused = require_scopes(op, caller)
+    if refused is not None:
+        return refused
+    subject_id = fleet_decision.subject_id if fleet_decision is not None else None
+    refused = await prepare_executor(
+        op, arguments, caller, services.runtime, verified_subject=subject_id
+    )
     if refused is not None:
         return refused
     if not _requires_plan(op, resolved_from_intent):
@@ -236,7 +323,7 @@ async def invoke(
             return OpError("PLAN_MISMATCH")
         if (
             op.effect == Effect.WRITE
-            and op.idempotency == Idempotency.KEY_REQUIRED
+            and op.idempotency != Idempotency.NATURAL
             and not idempotency_key
         ):
             return OpError("INVALID_ARGUMENT", {"field": "idempotency_key"})
@@ -253,7 +340,8 @@ async def invoke(
             return refused
     audit_ref = ""
     will_execute = not _requires_plan(op, resolved_from_intent) or plan_ref is not None
-    if op.effect != Effect.READ and will_execute:
+    needs_audit = op.effect != Effect.READ or op.id == "fleet.call"
+    if needs_audit and will_execute:
         if op.audit == AuditClass.NONE:
             return OpError("UNAVAILABLE", {"reason": "mutation audit class absent"})
         if services.audit_preflight is None:
@@ -285,7 +373,7 @@ async def invoke(
     status = "OK"
     try:
         value = await asyncio.wait_for(
-            _dispatch(op, arguments, caller, services, idempotency_key),
+            _dispatch(op, arguments, caller, services, idempotency_key, fleet_decision),
             timeout=DISPATCH_TIMEOUT_SECONDS,
         )
         return OpResult(value=value)
