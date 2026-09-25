@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import Any, TypeGuard
 
 from agent_utilities.core._env import setting
-from agent_utilities.release_catalogs import prebundled_skill_catalog_digest
 from agent_utilities.security.persistence_privacy import PersistencePrivacyGuard
 
+from graph_os.deployment.skill_catalog import prebundled_skill_catalog_digest
 from graph_os.deployment.skills.validation import SKILLS_ROOT
 
 from .runtime_validation_core import (
