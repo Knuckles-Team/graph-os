@@ -49,6 +49,13 @@ class CreateUser(StrictModel):
     groups: list[str] = []
 
 
+class CreateServiceAccount(StrictModel):
+    username: str
+    display_name: str | None = None
+    roles: list[str] = []
+    groups: list[str] = []
+
+
 class UpdateUser(Principal):
     username: str | None = None
     display_name: str | None = None
@@ -131,6 +138,8 @@ _OPERATIONS: tuple[tuple[str, type[BaseModel], type[BaseModel], bool], ...] = (
     ("identity.users.list", Page, Collection, True),
     ("identity.users.search", Search, Collection, True),
     ("identity.service_accounts.list", Page, Collection, True),
+    ("identity.service_accounts.create", CreateServiceAccount, Created, False),
+    ("identity.service_accounts.deprovision", Principal, Result, False),
     ("identity.users.get", Principal, UserValue, True),
     ("identity.users.create", CreateUser, Created, False),
     ("identity.users.update", UpdateUser, Result, False),
