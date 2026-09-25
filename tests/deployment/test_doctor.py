@@ -429,6 +429,7 @@ def test_individual_checks_never_raise():
 def test_permission_governance_doctor_reports_missing_reference_redacted(
     monkeypatch,
 ):
+    monkeypatch.setenv("APP_PROFILE", "dev")
     monkeypatch.setattr(
         "agent_utilities.core.config.AgentConfig",
         lambda: SimpleNamespace(
@@ -443,6 +444,22 @@ def test_permission_governance_doctor_reports_missing_reference_redacted(
     assert result["status"] == "warn"
     assert result["data"]["redacted"] is True
     assert result["data"]["signing_reference_configured"] is False
+
+
+def test_permission_governance_production_posture_comes_from_graphos(monkeypatch):
+    monkeypatch.setenv("APP_PROFILE", "production")
+    monkeypatch.setattr(
+        "agent_utilities.core.config.AgentConfig",
+        lambda: SimpleNamespace(
+            permissions_signing_key_ref=None,
+            agent_policies_path=None,
+            app_profile="dev",
+        ),
+    )
+
+    result = D._check_permission_governance()
+
+    assert result["status"] == "fail"
 
 
 def test_permission_governance_doctor_verifies_authority(monkeypatch):

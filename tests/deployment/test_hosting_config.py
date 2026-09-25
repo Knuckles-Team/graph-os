@@ -2,7 +2,21 @@
 
 import pytest
 
-from graph_os.deployment.config import HostingProfileError, resolve_deployment_profile
+from graph_os.deployment.config import (
+    HostingProfileError,
+    app_profile,
+    configured_profiles,
+    is_production_posture,
+    resolve_deployment_profile,
+)
+
+
+def test_posture_reads_graphos_projection(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_PROFILE", " Production ")
+    monkeypatch.setenv("DEPLOYMENT_PROFILE", "enterprise")
+    assert configured_profiles() == ("enterprise", "production")
+    assert is_production_posture(configured_profiles()[1])
+    assert app_profile(None) == "dev"
 
 
 def test_development_uses_tiny_when_topology_is_unset() -> None:
