@@ -46,6 +46,8 @@ ADMIN_ACTIONS: dict[str, AdminAction] = {
     "identity.service_accounts.list": AdminAction(
         "user", "list_service_accounts", "users", True, True
     ),
+    "identity.service_accounts.create": AdminAction("user", "create", "principal"),
+    "identity.service_accounts.deprovision": AdminAction("user", "set_status", "done"),
     "identity.users.get": AdminAction("user", "get", "user", True),
     "identity.users.create": AdminAction("user", "create", "principal"),
     "identity.users.update": AdminAction("user", "update", "done"),
@@ -93,13 +95,17 @@ def _request(op_id: str, params: Mapping[str, Any]) -> dict[str, Any] | None:
         "identity.users.disable",
         "identity.users.enable",
         "identity.users.deprovision",
+        "identity.service_accounts.deprovision",
     }:
         status = {
             "identity.users.disable": "disabled",
             "identity.users.enable": "active",
             "identity.users.deprovision": "deprovisioned",
+            "identity.service_accounts.deprovision": "deprovisioned",
         }[op_id]
         return {"principal_id": body["principal_id"], "status": status}
+    if op_id == "identity.service_accounts.create":
+        return {**body, "kind": "service"}
     if op_id == "identity.users.force_logout":
         return {"id": body["principal_id"]}
     if op_id in {"identity.users.get", "identity.users.unlock"}:

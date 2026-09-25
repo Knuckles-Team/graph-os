@@ -229,3 +229,24 @@ async def test_audit_export_verify_and_service_account_list() -> None:
     assert verified["valid"] is True
     assert accounts["items"][0]["kind"] == "service"
     assert all(session is caller for session, _ in engine.calls)
+
+
+@pytest.mark.asyncio
+async def test_service_account_create_fixes_kind_server_side() -> None:
+    engine = Engine()
+    engine.answers["user", "create"] = IdentityReply(
+        "principal", {"principal_id": "svc:two"}
+    )
+    caller = object()
+    result = await IdentityAdminService(engine).execute(
+        "identity.service_accounts.create",
+        caller,
+        {"username": "sync-bot", "kind": "human"},
+    )
+    assert result == {"principal_id": "svc:two"}
+    assert engine.calls == [
+        (
+            caller,
+            IdentityCall("user", "create", {"username": "sync-bot", "kind": "service"}),
+        )
+    ]
