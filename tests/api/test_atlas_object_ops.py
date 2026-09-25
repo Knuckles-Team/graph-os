@@ -103,9 +103,10 @@ def test_object_search_enforces_legacy_byte_bounds() -> None:
 
 
 def test_unbound_atlas_and_object_sets_are_not_in_served_registry() -> None:
-    names = {name for name, _factory in CURATED_SOURCES}
-    assert "atlas" not in names
-    assert "object_sets" not in names
+    sources = dict(CURATED_SOURCES)
+    assert "atlas" not in sources
+    assert sources["object_sets"] == "served_specs"
+    assert {op.id for op in object_sets.served_specs()} == {"objects.by_label"}
 
 
 @pytest.mark.asyncio

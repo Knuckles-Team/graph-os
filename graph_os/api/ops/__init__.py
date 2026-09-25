@@ -13,7 +13,6 @@ from graph_os.api.registry import OpSpec, Registry
 CURATED_SOURCES = (
     ("agents", "operations"),
     ("analytics", "specs"),
-    ("atlas", "specs"),
     ("browser", "operations"),
     ("capacity", "specs"),
     ("decide", "specs"),
@@ -27,7 +26,7 @@ CURATED_SOURCES = (
     ("markets", "specs"),
     ("memory", "specs"),
     ("ontology", "specs"),
-    ("object_sets", "specs"),
+    ("object_sets", "served_specs"),
     ("ops", "specs"),
     ("plan", "specs"),
     ("policy", "specs"),
