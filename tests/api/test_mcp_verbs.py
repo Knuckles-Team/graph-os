@@ -135,6 +135,32 @@ def test_find_merges_only_authorized_registry_and_filtered_fleet_entries() -> No
     assert found["items"][1]["op"] == "fleet.call"
 
 
+def test_real_resolver_keeps_distinct_fleet_items_when_merging_find() -> None:
+    from graph_os.api.mcp.resolve import IntentResolver
+
+    async def fleet(**_kwargs: Any) -> list[dict[str, Any]]:
+        return [
+            {"id": "alpha__search", "summary": "Search alpha records"},
+            {"id": "beta__search", "summary": "Search beta records"},
+        ]
+
+    result = asyncio.run(
+        find_visible(
+            registry=Registry(),
+            caller=Caller(),
+            policy=lambda _op, _caller: True,
+            resolver=IntentResolver(),
+            fleet_search=fleet,
+            intent="search",
+            scope_ref="verified-scope",
+        )
+    )
+    assert {item["id"] for item in result["items"]} == {
+        "alpha__search",
+        "beta__search",
+    }
+
+
 def test_direct_verb_mismatch_refuses_before_invocation() -> None:
     registry = Registry(_op("things.update", Verb.WRITE, "write"))
     result = asyncio.run(
