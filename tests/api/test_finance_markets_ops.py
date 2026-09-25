@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -147,6 +148,44 @@ async def test_markets_catalog_reads_service_engine_and_preserves_series_timefra
     assert result["total"] == 1
     assert result["listings"][0]["timeframes"] == ["1D"]
     assert calls == [("Listing", 5000), ("BarSeries", 20000)]
+
+
+@pytest.mark.asyncio
+async def test_positions_reads_admitted_fleet_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    snapshot = {
+        "mode": "paper",
+        "venue": {"positions": [{"symbol": "SOL"}]},
+        "paper": {"positions": [{"symbol": "BTC"}]},
+    }
+
+    class Mux:
+        async def delegate_server_tool(self, **kwargs: object) -> str:
+            assert kwargs["server_name"] == "emerald-exchange-mcp"
+            assert kwargs["tool_name"] == "emerald_positions_snapshot"
+            return json.dumps(snapshot)
+
+    async def on_served(operation: object) -> object:
+        return await operation(Mux())
+
+    monkeypatch.setitem(
+        sys.modules,
+        "graph_os.fleet.shared_multiplexer",
+        SimpleNamespace(run_on_served_multiplexer=on_served),
+    )
+    venue = next(op for op in finance.specs() if op.id == "finance.positions.list")
+    paper = next(
+        op for op in finance.specs() if op.id == "finance.paper.positions.list"
+    )
+    assert (await finance.positions(_context(), {}, venue))["account"] == snapshot[
+        "venue"
+    ]
+    assert (await finance.positions(_context(), {}, paper))["account"] == snapshot[
+        "paper"
+    ]
+    with pytest.raises(PermissionError):
+        await finance.positions(_context(service_identity=False), {}, venue)
 
 
 class LeaseStore:
