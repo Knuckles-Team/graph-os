@@ -30,8 +30,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-# Recognized deployment profiles (rungs of docs/guides/deployment-configurations.md).
-PROFILES = ("tiny", "single-node-prod", "enterprise")
+from graph_os.deployment.config import (
+    PROFILES,
+    HostingProfileError,
+    resolve_deployment_profile,
+)
 
 # Suffixes that mark a key as a credential VALUE holder — blanked in generated
 # templates so a committed/shared config.json never carries a secret. Suffix-precise
@@ -826,33 +829,19 @@ def _config_doctor_load_live(
 def _config_doctor_profile_check(
     prof: str | None, app_profile: str
 ) -> str | dict[str, Any]:
-    """APP_PROFILE is a runtime posture, not a deployment-topology identity. A
-    production posture is deliberately ambiguous between single-node and
-    enterprise and therefore requires DEPLOYMENT_PROFILE (or an explicit
-    function argument). The zero-configuration development posture remains tiny.
-    """
-    if not prof and app_profile in {"prod", "production"}:
+    """Project the GraphOS-owned topology decision into doctor diagnostics."""
+    try:
+        return resolve_deployment_profile(prof, app_profile)
+    except HostingProfileError as exc:
+        check: dict[str, Any] = {"check": "deployment_profile", "ok": False}
+        if exc.code == "deployment_profile_required":
+            check["reason"] = "production_posture_is_ambiguous"
         return {
             "status": "error",
             "healthy": False,
-            "error": "deployment_profile_required",
-            "checks": [
-                {
-                    "check": "deployment_profile",
-                    "ok": False,
-                    "reason": "production_posture_is_ambiguous",
-                }
-            ],
+            "error": exc.code,
+            "checks": [check],
         }
-    norm = str(prof or "tiny").strip()
-    if norm not in PROFILES:
-        return {
-            "status": "error",
-            "healthy": False,
-            "error": "deployment_profile_invalid",
-            "checks": [{"check": "deployment_profile", "ok": False}],
-        }
-    return norm
 
 
 def _config_doctor_check_required_keys(cfg: Any, norm: str) -> dict[str, Any]:
