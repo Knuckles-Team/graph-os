@@ -1131,11 +1131,18 @@ def _check_eunomia() -> dict[str, Any]:
         if mode == "none":
             return _result(
                 "eunomia",
-                "ok",
-                "native MCP policy authorization is explicitly disabled",
-                data={"mode": "none", "ready": True},
+                "warn",
+                "per-item policy filtering is off; exact caller scopes still apply",
+                remediation="Enable an embedded or remote Eunomia policy for per-item filtering.",
+                data={"mode": "none", "ready": True, "scope_filtered": True},
             )
         if mode == "embedded":
+            if not cfg.eunomia_policy_file:
+                from graph_os.api.policy.defaults import default_policy_file
+
+                cfg = cfg.model_copy(
+                    update={"eunomia_policy_file": str(default_policy_file())}
+                )
             return _eunomia_embedded_result(cfg)
         return _eunomia_remote_result(cfg, private_hosts)
     except Exception as exc:  # noqa: BLE001 - doctor is a defensive boundary
