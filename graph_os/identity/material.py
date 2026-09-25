@@ -85,7 +85,9 @@ def totp_provisioning_uri(secret: str, account: str, issuer_label: str) -> str:
 
 def _recovery_code() -> str:
     groups = (
-        "".join(secrets.choice(_RECOVERY_ALPHABET) for _ in range(_RECOVERY_GROUP_CHARS))
+        "".join(
+            secrets.choice(_RECOVERY_ALPHABET) for _ in range(_RECOVERY_GROUP_CHARS)
+        )
         for _ in range(_RECOVERY_GROUPS)
     )
     return "-".join(groups)

@@ -68,7 +68,9 @@ def _secret_request(**fields: Any) -> dict[str, Any]:
     return {name: value for name, value in fields.items() if value is not None}
 
 
-async def _resolution_or_none(engine: IdentityEngine, call: IdentityCall) -> Resolution | None:
+async def _resolution_or_none(
+    engine: IdentityEngine, call: IdentityCall
+) -> Resolution | None:
     """A credential lookup: an unknown or malformed credential is ``None``."""
     try:
         reply = await engine.broker(call)
@@ -123,7 +125,10 @@ class IdentityBroker:
         self._config = None
 
     async def initialize(
-        self, mode: str, admin_username: str | None = None, admin_password: str | None = None
+        self,
+        mode: str,
+        admin_username: str | None = None,
+        admin_password: str | None = None,
     ) -> str:
         """First-run seeding; ``local`` requires the first administrator."""
         request = _secret_request(
@@ -134,7 +139,12 @@ class IdentityBroker:
         return str(reply.expect("principal")["principal_id"])
 
     async def transition(
-        self, caller: Any, to: str, *, ack: str | None = None, local_fallback: str | None = None
+        self,
+        caller: Any,
+        to: str,
+        *,
+        ack: str | None = None,
+        local_fallback: str | None = None,
     ) -> Mapping[str, Any]:
         """Move the mode one edge, rotating the issuer key first.
 
@@ -205,16 +215,24 @@ class IdentityBroker:
         )
 
     def access_token(
-        self, resolution: Resolution, methods: Sequence[str], *, scopes: frozenset[str] | None = None
+        self,
+        resolution: Resolution,
+        methods: Sequence[str],
+        *,
+        scopes: frozenset[str] | None = None,
     ) -> str:
         grant = TokenGrant(tuple(methods), int(self._clock()), scopes)
         return self._issuer.mint(resolution, grant)
 
     # -- second factors ----------------------------------------------------
 
-    async def second_factor(self, session_token: str, code: str, *, recovery: bool) -> SignIn:
+    async def second_factor(
+        self, session_token: str, code: str, *, recovery: bool
+    ) -> SignIn:
         """Complete a pending session with a TOTP code or a recovery code."""
-        family_op = ("mfa", "consume_recovery_code") if recovery else ("mfa", "verify_totp")
+        family_op = (
+            ("mfa", "consume_recovery_code") if recovery else ("mfa", "verify_totp")
+        )
         reply = await self._engine.broker(
             IdentityCall(*family_op, {"session_token": session_token, "code": code})
         )
@@ -224,28 +242,38 @@ class IdentityBroker:
         secret = new_totp_secret()
         await self._engine.broker(
             IdentityCall(
-                "mfa", "enroll_totp", {"session_token": session_token, "secret_base32": secret}
+                "mfa",
+                "enroll_totp",
+                {"session_token": session_token, "secret_base32": secret},
             )
         )
-        return TotpEnrollment(secret, totp_provisioning_uri(secret, account, self._label))
+        return TotpEnrollment(
+            secret, totp_provisioning_uri(secret, account, self._label)
+        )
 
     async def confirm_totp(self, session_token: str, code: str) -> None:
         await self._engine.broker(
-            IdentityCall("mfa", "confirm_totp", {"session_token": session_token, "code": code})
+            IdentityCall(
+                "mfa", "confirm_totp", {"session_token": session_token, "code": code}
+            )
         )
 
     async def regenerate_recovery_codes(self, session_token: str) -> list[str]:
         codes = new_recovery_codes()
         await self._engine.broker(
             IdentityCall(
-                "mfa", "set_recovery_codes", {"session_token": session_token, "codes": codes}
+                "mfa",
+                "set_recovery_codes",
+                {"session_token": session_token, "codes": codes},
             )
         )
         return codes
 
     # -- passwords and one-time tokens -------------------------------------
 
-    async def issue_admin_reset(self, admin_session_token: str, principal_id: str) -> str:
+    async def issue_admin_reset(
+        self, admin_session_token: str, principal_id: str
+    ) -> str:
         """A single-use reset token for ``principal_id``, shown to the admin once."""
         token = new_token()
         request = {
@@ -260,13 +288,17 @@ class IdentityBroker:
 
     async def redeem_reset(self, purpose: str, token: str, new_password: str) -> str:
         request = {"purpose": purpose, "token": token, "new_password": new_password}
-        reply = await self._engine.broker(IdentityCall("token", "redeem_one_time", request))
+        reply = await self._engine.broker(
+            IdentityCall("token", "redeem_one_time", request)
+        )
         return str(reply.expect("principal")["principal_id"])
 
     async def change_password(self, caller: Any, current: str, new: str) -> None:
         await self._engine.as_caller(
             caller,
-            IdentityCall("credential", "change_password", {"current": current, "new": new}),
+            IdentityCall(
+                "credential", "change_password", {"current": current, "new": new}
+            ),
         )
 
     # -- API keys ------------------------------------------------------------
@@ -297,7 +329,9 @@ class IdentityBroker:
             return None
         return await _resolution_or_none(
             self._engine,
-            IdentityCall("token", "verify_api_key", {"key_id": key.key_id, "secret": key.secret}),
+            IdentityCall(
+                "token", "verify_api_key", {"key_id": key.key_id, "secret": key.secret}
+            ),
         )
 
     async def revoke_api_key(self, caller: Any, key_id: str) -> None:
