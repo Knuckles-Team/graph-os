@@ -22,7 +22,7 @@ from graph_os.api.invoke.pipeline import (
     InvokeServices,
 )
 from graph_os.api.invoke.plan import EgPlanStore
-from graph_os.api.invoke.steps import SchemaValidate
+from graph_os.api.invoke.steps import SchemaValidate, VerifiedCaller
 from graph_os.api.mcp.discovery import FleetSearch
 from graph_os.api.mcp.resolve import IntentResolver
 from graph_os.api.mcp.verbs import MCPProjection
@@ -79,6 +79,15 @@ def configured_served_api_ports() -> ServedApiPorts:
     if _SERVED_PORTS is None:
         raise RuntimeError("served API authority ports are not configured")
     return _SERVED_PORTS
+
+
+def caller_from_verified_session() -> VerifiedCaller:
+    """Snapshot the middleware or stdio process session, never request hints."""
+
+    from graph_os.mcp_server.runtime import verified_tool_session_scope
+
+    with verified_tool_session_scope() as session:
+        return VerifiedCaller.from_session(session)
 
 
 def _require_callable(value: Any, name: str) -> None:
