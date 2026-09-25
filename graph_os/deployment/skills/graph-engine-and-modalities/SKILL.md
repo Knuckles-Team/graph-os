@@ -12,6 +12,16 @@ description: >-
 
 # Graph engine and modalities
 
+> **T5 API migration:** The `graph_*`, `engine_*`, `ontology_*`, and
+> `object_*` names in this skill describe legacy capabilities; they are not
+> resident GraphOS MCP tools. Discover an authorized exact operation and its
+> schema with `find` or `graphos://registry`, then invoke it through `ask`,
+> `why`, `write`, `act`, or `manage` as declared by the registry. Use
+> `find_tools` and `load_tools` only for authorized dynamic fleet tools. The
+> legacy action-to-operation examples below remain pending EH-624 parity; do
+> not assume a name or its old arguments map directly to an operation.
+
+
 Select the native engine domain, keep Python orchestration thin, and verify the
 result through the served Graph-OS contract.
 

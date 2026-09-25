@@ -119,6 +119,32 @@ class TestDetectsBrokenFileReference:
 
 
 class TestDetectsUnresolvableGraphosTool:
+    def test_graphos_bundle_labels_are_warned_not_certified(self):
+        skill_md = (
+            Path(__file__).resolve().parents[3]
+            / "graph_os/deployment/skills/agent-utilities-evolution/SKILL.md"
+        )
+        record = SkillRecord(
+            skill_md=skill_md,
+            skill_dir=skill_md.parent,
+            repo_root=Path(__file__).resolve().parents[3],
+            repo_name="graph-os",
+        )
+        report = validate_skill(record)
+        verdicts = {check.rule: check for check in report.checks}
+        check = verdicts["tools.graphos_references_resolve"]
+        assert check.status == "WARN"
+        assert "EH-624" in check.message
+
+    def test_graphos_bundle_unlabelled_legacy_name_fails(self):
+        record = _record_for("bad_unresolvable_graphos_tool", repo_name="graph-os")
+        report = validate_skill(record)
+        rules = {check.rule: check.message for check in report.failures}
+        assert (
+            "graph_this_tool_does_not_exist"
+            in rules["tools.graphos_references_resolve"]
+        )
+
     def test_fails_for_au_repo_skill_referencing_unknown_tool(self):
         record = _record_for(
             "bad_unresolvable_graphos_tool", repo_name="agent-utilities"

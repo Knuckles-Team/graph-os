@@ -21,6 +21,21 @@ approved implementation and diff review to `agent-utilities-development`.
 
 ## Workflow
 
+### T5 API migration and operation entry point
+
+The resident MCP tools are `find`, `ask`, `why`, `write`, `act`, and `manage`;
+`find_tools` and `load_tools` expose authorized dynamic fleet tools. An exact
+operation can be called through its matching intent verb. For example, read a
+loop's status with
+`ask(op="evolution.loops.status", params={"loop_id": "<loop-id>"})`.
+The `evolution.loops.status` ID and its `loop_id` parameter are declared in the
+T5 operation registry. For another capability, use `find` or the authorized
+`graphos://registry` resource to resolve an exact operation and schema before
+calling it. The legacy names below describe requested capabilities; their
+action-to-operation parity is still being verified under EH-624. Do not invoke
+them as resident MCP tool names or assume that similarly named operations have
+the same parameters or effects.
+
 ### 1. Select the signal
 
 Start from one concrete signal: a research result, evaluation gap, repeated

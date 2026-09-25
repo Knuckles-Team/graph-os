@@ -139,12 +139,12 @@ _ASSET_PREFIXES = (
 
 
 def resolvable_graphos_tool_names() -> frozenset[str]:
-    """The canonical graph-os tool surface (import kept lazy/optional).
+    """The historical AU granular tool catalog (import kept lazy/optional).
 
-    Only consulted for skills that live under an ``agent-utilities`` or
-    ``epistemic-graph`` repo root (the two repos that own the graph-os
-    surface) — fleet ``agents/*`` skills wrap their own package's MCP tools
-    and are resolved via :func:`_resolve_package_tool` instead.
+    Only consulted for legacy AU/EG skills while EH-624 records action parity.
+    Bundled GraphOS skills must use the new T5 API and cannot use this catalog
+    as evidence that an operation exists. Fleet ``agents/*`` skills wrap their
+    own package's MCP tools and use :func:`_resolve_package_tool` instead.
     """
     from agent_utilities.mcp.tool_specs import INTENT_VERBS, TOOL_VERBS
 
@@ -456,6 +456,24 @@ def _check_graphos_tool_references(
     record: SkillRecord, body: str
 ) -> CheckResult | None:
     graphos_refs = sorted(graphos_tool_reference_occurrences(body))
+    if record.repo_name == "graph-os" and graphos_refs:
+        # EH-624 has not verified the legacy action-to-operation map. These
+        # names are capability labels in the bundled skills, not resident
+        # GraphOS tools. Require that distinction to be explicit, and never
+        # treat AU's retired tool catalog as proof of a T5 operation.
+        if "T5 API migration" not in body or "EH-624" not in body:
+            return CheckResult(
+                "tools.graphos_references_resolve",
+                "FAIL",
+                "legacy tool-shaped references require an explicit T5 API "
+                f"migration notice and EH-624 mapping: {graphos_refs}",
+            )
+        return CheckResult(
+            "tools.graphos_references_resolve",
+            "WARN",
+            f"{len(graphos_refs)} legacy capability name(s) await EH-624 "
+            "operation mapping; none is certified as a resident MCP tool",
+        )
     if not (
         record.repo_name in {"agent-utilities", "epistemic-graph"} and graphos_refs
     ):
@@ -466,8 +484,8 @@ def _check_graphos_tool_references(
         return CheckResult(
             "tools.graphos_references_resolve",
             "FAIL",
-            f"referenced graph-os tool(s) not in the canonical {len(known)}-tool "
-            f"surface (`agent_utilities.mcp.tool_specs`): {unknown}",
+            f"referenced legacy AU tool(s) not in its {len(known)}-tool "
+            f"catalog (`agent_utilities.mcp.tool_specs`): {unknown}",
         )
     return CheckResult(
         "tools.graphos_references_resolve",
