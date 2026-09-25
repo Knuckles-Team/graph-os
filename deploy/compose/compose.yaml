@@ -42,7 +42,6 @@ services:
       EUNOMIA_TYPE: ${EUNOMIA_TYPE:-embedded}
       # Tiny installs keep secrets in the engine's encrypted secrets graph.
       SECRETS_BACKEND: ${SECRETS_BACKEND:-engine}
-      MCP_TOOL_MODE: intent
       ALLOWED_HOSTS: ${GRAPHOS_ALLOWED_HOSTS:-localhost,127.0.0.1}
       ENABLE_WEB_UI: "true"
       GRAPH_OS_WEBUI_PORT: "8080"

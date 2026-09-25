@@ -45,7 +45,6 @@ services:
       EUNOMIA_TYPE: ${EUNOMIA_TYPE:-embedded}
       SECRETS_BACKEND: ${SECRETS_BACKEND:-engine}
       SECRETS_VAULT_URL: ${SECRETS_VAULT_URL:-}
-      MCP_TOOL_MODE: intent
       ALLOWED_HOSTS: ${GRAPHOS_ALLOWED_HOSTS:-localhost,127.0.0.1}
       ENABLE_WEB_UI: "true"
       GRAPH_OS_WEBUI_PORT: "8080"

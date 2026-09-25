@@ -117,7 +117,6 @@ graphos:
   config:
     APP_PROFILE: production
     DEPLOYMENT_PROFILE: enterprise
-    MCP_TOOL_MODE: intent
     ALLOWED_HOSTS: localhost
   resources:
     requests: {cpu: 500m, memory: 2Gi}

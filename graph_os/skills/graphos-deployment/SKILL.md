@@ -64,6 +64,13 @@ infrastructure or rotate credentials.
 | `single-node-prod` | Compose, Docker Swarm or bare metal | `local` | on (`embedded`, shipped policy) | engine secrets graph, or OpenBao |
 | `enterprise` | Kubernetes | `local`, then usually `external` | on (`embedded` or `remote`) | OpenBao / Vault-compatible |
 
+After the operation-API cutover, GraphOS has no `MCP_TOOL_MODE` setting: the
+six intent verbs and four multiplexer tools are the resident MCP surface in
+all profiles. Standalone connector children may have their own mode setting.
+Select `EUNOMIA_TYPE` by identity mode as shown above; an enabled but
+unavailable policy evaluator fails closed. With Eunomia off, exact scopes and
+principal rules still filter discovery and calls.
+
 Rules that hold in every profile:
 
 - the identity mode seeds durable engine state on first boot only; afterwards

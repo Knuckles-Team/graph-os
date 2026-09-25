@@ -5,8 +5,8 @@
 graph-os exposes one backend through three projections that must agree:
 
 - **MCP** (`streamable-http` on the API port, or `stdio` for a local client):
-  the intent verbs (`MCP_TOOL_MODE=intent`, default) plus the fleet
-  multiplexer meta-tools;
+  the six intent verbs plus four resident fleet multiplexer meta-tools
+  after the operation-API cutover;
 - **REST/A2A control plane** on the same port;
 - **web UI** on its own port, served in-process (`ENABLE_WEB_UI=true`,
   `GRAPH_OS_WEBUI_PORT`). Never deploy the UI as a second workload: it would
