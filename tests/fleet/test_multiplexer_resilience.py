@@ -500,6 +500,26 @@ class SessionTerminatedSession:
         raise _session_terminated_error()
 
 
+async def test_service_call_once_never_retries_after_session_death():
+    class FailedSession:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def call_tool(self, name, arguments, *, meta):
+            self.calls += 1
+            assert meta == {"graphos_service_child_record": "record-1"}
+            raise _session_terminated_error()
+
+    session = FailedSession()
+    runtime = ChildRuntime("service", {"max_concurrency": 1})
+    runtime.adopt_sessions([session])
+    with pytest.raises(MCPError):
+        await runtime.call_tool_once(
+            "effect", {}, meta={"graphos_service_child_record": "record-1"}
+        )
+    assert session.calls == 1
+
+
 async def test_terminated_session_auto_reconnects_and_retries(monkeypatch):
     # A backend redeploy drops the session; the next call must transparently
     # reconnect and retry on the fresh generation — no manual reconnect, no

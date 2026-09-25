@@ -48,6 +48,7 @@ class ExecutionContext:
     services: Mapping[str, Any]
     idempotency_key: str | None = None
     fleet_decision: Any = None
+    registry_digest: str = ""
 
     @property
     def owner_ref(self) -> str:
@@ -119,6 +120,7 @@ async def execution_context(
     runtime: OperationRuntime,
     idempotency_key: str | None = None,
     fleet_decision: Any = None,
+    registry_digest: str = "",
 ) -> AsyncIterator[ExecutionContext]:
     """The dispatcher receives exactly one validated EG identity context."""
 
@@ -132,6 +134,7 @@ async def execution_context(
                 getattr(runtime, "bindings", {}),
                 idempotency_key,
                 fleet_decision,
+                registry_digest,
             )
     else:
         async with runtime.as_caller(caller) as client:
@@ -143,6 +146,7 @@ async def execution_context(
                 getattr(runtime, "bindings", {}),
                 idempotency_key,
                 fleet_decision,
+                registry_digest,
             )
 
 
