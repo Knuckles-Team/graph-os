@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from graph_os.api.ops import atlas, object_sets
+from graph_os.api.ops import CURATED_SOURCES, atlas, object_sets
 from graph_os.api.registry import Composite, Effect
 
 
@@ -89,6 +89,20 @@ def test_object_search_rejects_inconsistent_rows() -> None:
 
 
 def test_object_search_preserves_legacy_limit_ceiling() -> None:
+    assert object_sets.SearchParams().limit == 50
     assert object_sets.SearchParams.model_validate({"limit": 256}).limit == 256
     with pytest.raises(ValidationError):
         object_sets.SearchParams.model_validate({"limit": 257})
+
+
+def test_object_search_enforces_legacy_byte_bounds() -> None:
+    with pytest.raises(ValidationError):
+        object_sets.SearchParams.model_validate({"query": "é" * 4097})
+    with pytest.raises(ValidationError):
+        object_sets.SearchParams.model_validate({"kind": "é" * 65})
+
+
+def test_unbound_atlas_and_object_sets_are_not_in_served_registry() -> None:
+    names = {name for name, _factory in CURATED_SOURCES}
+    assert "atlas" not in names
+    assert "object_sets" not in names
