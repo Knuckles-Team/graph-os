@@ -5,8 +5,7 @@ CONCEPT:AU-OS.config.gateway-service-dashboard — Gateway Service Dashboard
 Loads dashboard layout from ``~/.config/agent-utilities/services.yaml``
 and auto-discovers available services from ``mcp_config.json``.
 
-Uses ``agent_utilities.core.paths`` for all path resolution — no
-duplicate XDG logic.
+Uses the GraphOS deployment path contract for host-owned files.
 """
 
 from __future__ import annotations
@@ -21,8 +20,8 @@ from typing import Any
 
 import yaml
 from agent_utilities.core.config import setting
-from agent_utilities.core.paths import config_dir, data_dir, mcp_config_path
 
+from graph_os.deployment.paths import config_dir, data_dir, mcp_config_path
 from graph_os.gateway.models import (
     DashboardLayout,
     ServiceCategory,
@@ -438,7 +437,7 @@ class ConfigManager:
     """Manages service dashboard configuration.
 
     Loads from YAML and can auto-discover services from mcp_config.json.
-    Uses ``agent_utilities.core.paths`` for all path resolution.
+    Uses the GraphOS deployment path contract for all path resolution.
     """
 
     def __init__(self, config_path: Path | str | None = None):

@@ -45,7 +45,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from agent_utilities.core.paths import config_dir
+
+from graph_os.deployment.paths import config_dir
 
 from .config_generator import _is_secret
 
@@ -57,9 +58,7 @@ BUILTIN_ENVIRONMENTS_DIR = (
 #: ``deploy/genesis.yaml`` — read as data (not imported) so this module has no dependency
 #: on the generator and no circular-import risk; see design doc "reuses genesis.yaml
 #: instead of redeclaring its enums".
-_GENESIS_MANIFEST_PATH = (
-    Path(__file__).resolve().parents[2] / "deploy" / "genesis.yaml"
-)
+_GENESIS_MANIFEST_PATH = Path(__file__).resolve().parents[2] / "deploy" / "genesis.yaml"
 
 _SECRET_REF_RE = re.compile(
     r"^(?:"

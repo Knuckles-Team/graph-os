@@ -55,8 +55,6 @@ def _validate_skill_certification_profile(
     configuration_path: Any, configuration: bytes, profile: bytes
 ) -> None:
     """Bind the runtime profile to the *active* configuration; raise otherwise."""
-    from agent_utilities.core.paths import config_dir
-
     # Skill certification remains AU-owned product tooling; graph-os only
     # consumes its validation helpers while reporting host readiness.
     from agent_utilities.deployment.skill_validation_assets import (
@@ -65,6 +63,8 @@ def _validate_skill_certification_profile(
         _json_without_duplicates,
         _validate_profile,
     )
+
+    from graph_os.deployment.paths import config_dir
 
     if not configuration_path.samefile(config_dir() / "config.json"):
         raise RuntimeError("runtime_configuration_not_active")
