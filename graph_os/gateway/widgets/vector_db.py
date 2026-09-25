@@ -31,32 +31,9 @@ class Widget(BaseWidget):
         ]
 
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
-        # RF-ADR-009: agent-utilities (workspace phase 4) must not import a
-        # sibling connector package (the vector-database connector is phase
-        # 7) — no in-process package import here, ever again. Reach it over
-        # its MCP server instead, the same fleet transport every mcp_tool source
-        # connector already uses for the ~58-server fleet
-        # (protocols/source_connectors/connectors/mcp_tool.call_tool_once):
-        # a FastMCP client against vector-mcp's `streamable-http` endpoint,
-        # never a package import. `VECTOR_URL` keeps its prior meaning (the
-        # service's base host:port); the MCP endpoint is that base + FastMCP's
-        # default `/mcp` mount path.
-        from agent_utilities.protocols.source_connectors.connectors.mcp_package import (
-            _run_async,
-        )
-        from agent_utilities.protocols.source_connectors.connectors.mcp_tool import (
-            call_tool_once,
-        )
-
         try:
-            base_url = self._resolve_url(config).rstrip("/")
-            result = _run_async(
-                call_tool_once(
-                    url=f"{base_url}/mcp",
-                    tool="vector_collection_management",
-                    action="list_collections",
-                    timeout=10.0,
-                )
+            result = self._fleet_client().vector_collection_management(
+                action="list_collections"
             )
         except Exception as e:
             logger.warning("Vector DB fetch: %s", e)

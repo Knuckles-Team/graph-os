@@ -61,6 +61,7 @@ _SERVER_OVERRIDES = {
     "technitium": "technitium-dns-mcp",
     "tunnel_manager": "tunnel-manager",
     "uptime_kuma": "uptime-kuma-agent",
+    "vector_db": "vector-mcp",
     "wger": "wger-agent",
 }
 
