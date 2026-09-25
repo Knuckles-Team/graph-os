@@ -58,9 +58,7 @@ def verified_a2a_caller() -> Any:
         tenant=session.tenant,
         effective_scopes=frozenset(session.scopes),
         engine_claims={"principal": str(actor.actor_id), "tenant": session.tenant},
-        principal_kind=(
-            "service" if actor_type in {"automated_service", "system"} else "human"
-        ),
+        principal_kind="human" if actor_type == "human" else "service",
         delegated=actor_type == "ai_agent",
         policy_revision=str(session.policy_version),
         request_id=session.trace_context or "",

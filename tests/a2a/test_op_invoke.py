@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from graph_os.a2a.op_invoke import OperationProjection
+from graph_os.a2a.op_invoke import OperationProjection, verified_a2a_caller
 
 
 class Surface(StrEnum):
@@ -90,3 +90,30 @@ async def test_confirm_rejects_missing_op_and_params() -> None:
     )
     with pytest.raises(ValidationError):
         await projection.invoke("graphos.plan/confirm", {"plan_ref": "p1"})
+
+
+def test_nonhuman_ambient_actor_never_projects_as_human(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from agent_utilities.api.session import GraphSession, use_session
+    from agent_utilities.security.actor_identity import ActorType
+    from agent_utilities.security.brain_context import ActorContext
+
+    invoke_module = ModuleType("graph_os.api.invoke")
+    invoke_module.VerifiedCaller = SimpleNamespace  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "graph_os.api.invoke", invoke_module)
+    session = GraphSession(
+        actor=ActorContext(
+            actor_id="agent:one",
+            actor_type=ActorType.AI_AGENT,
+            tenant_id="tenant-one",
+            authenticated=True,
+        ),
+        tenant="tenant-one",
+        scopes=frozenset({"kg:read"}),
+    )
+    with use_session(session):
+        caller = verified_a2a_caller()
+    assert caller.principal_kind == "service"
+    assert caller.delegated is True
+    assert caller.session is session
