@@ -271,3 +271,37 @@ async def test_policy_update_carries_session_bounds_as_caller() -> None:
             ),
         )
     ]
+
+
+@pytest.mark.asyncio
+async def test_scim_client_binding_is_typed_and_caller_bound() -> None:
+    engine = Engine()
+    engine.answers["idp", "upsert_scim_client"] = IdentityReply(
+        "done", {"changed": True}
+    )
+    engine.answers["idp", "get_scim_client"] = IdentityReply(
+        "scim_client",
+        {"idp_id": "corp-scim", "principal_id": "svc:provision", "enabled": True},
+    )
+    caller = object()
+    service = IdentityAdminService(engine)
+    await service.execute(
+        "identity.scim_clients.upsert",
+        caller,
+        {"idp_id": "corp-scim", "principal_id": "svc:provision"},
+    )
+    found = await service.execute(
+        "identity.scim_clients.get", caller, {"idp_id": "corp-scim"}
+    )
+    assert found["principal_id"] == "svc:provision"
+    assert engine.calls == [
+        (
+            caller,
+            IdentityCall(
+                "idp",
+                "upsert_scim_client",
+                {"idp_id": "corp-scim", "principal_id": "svc:provision"},
+            ),
+        ),
+        (caller, IdentityCall("idp", "get_scim_client", {"id": "corp-scim"})),
+    ]

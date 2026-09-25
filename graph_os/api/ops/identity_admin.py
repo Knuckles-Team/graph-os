@@ -105,6 +105,18 @@ class MappingDryRun(StrictModel):
     claims: dict[str, list[str]]
 
 
+class ScimIdp(StrictModel):
+    idp_id: str
+
+
+class ScimBinding(ScimIdp):
+    principal_id: str
+
+
+class ScimClient(ScimBinding):
+    enabled: bool
+
+
 class MappingPreview(StrictModel):
     matched_rules: list[str]
     roles: list[str]
@@ -164,6 +176,10 @@ _OPERATIONS: tuple[tuple[str, type[BaseModel], type[BaseModel], bool], ...] = (
     ("identity.idps.upsert", IdpUpsert, Result, False),
     ("identity.idps.remove", ObjectId, Result, False),
     ("identity.idps.mapping_dry_run", MappingDryRun, MappingPreview, True),
+    ("identity.scim_clients.list", Empty, Collection, True),
+    ("identity.scim_clients.get", ScimIdp, ScimClient, True),
+    ("identity.scim_clients.upsert", ScimBinding, Result, False),
+    ("identity.scim_clients.remove", ScimIdp, Result, False),
 )
 
 
