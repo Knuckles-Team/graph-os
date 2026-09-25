@@ -107,7 +107,14 @@ async def dispatch_verb(
     if not isinstance(arguments, Mapping):
         return _refusal("INVALID_ARGUMENT", projection, caller, op or verb)
     scope_ref = _scope_ref(projection, caller)
-    if verb == "find":
+    # `find` is both the discovery tool and an operation verb. An exact
+    # `find` op with execute=true uses the same governed invoke path as the
+    # other five verbs; discovery and exact schema previews stay read-only.
+    selected_for_find = projection.registry.get(op) if op and verb == "find" else None
+    exact_find = (
+        selected_for_find is not None and selected_for_find.verb.value == "find"
+    )
+    if verb == "find" and (not exact_find or not execute):
         try:
             found = await find_visible(
                 registry=projection.registry,
@@ -199,7 +206,6 @@ def make_verb(name: str, projection: MCPProjection) -> Any:
     """Construct a FastMCP tool with the same stable schema for every verb."""
 
     from fastmcp.tools import FunctionTool, ToolResult
-
     from mcp.types import TextContent
 
     if name not in VERBS:
