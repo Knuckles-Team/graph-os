@@ -1,0 +1,4 @@
+# Explicit, reviewed exceptions to the EG wire-method coverage gate.
+# Each entry: method: <Method ID>; reason: engine-internal | service-only |
+#   superseded-by:<registered operation ID>.
+exclusions: []
