@@ -45,6 +45,7 @@ class ServingPorts:
     eg_dispatch: EgDispatch
     service_scopes: frozenset[str]
     plan_client: Any
+    plan_seal_key: bytes
     policy_gate: PolicyGate
     audit_preflight: AuditPreflight
     audit_write: AuditWrite
@@ -155,6 +156,8 @@ def _validate_ports(ports: ServingPorts, registry: Registry) -> None:
         raise ValueError("serving port bindings is unavailable")
     if not isinstance(ports.service_scopes, frozenset):
         raise ValueError("serving port service_scopes is unavailable")
+    if not isinstance(ports.plan_seal_key, bytes) or len(ports.plan_seal_key) != 32:
+        raise ValueError("serving port plan_seal_key is unavailable")
     leases = getattr(ports.plan_client, "control_leases", None)
     if leases is None or not all(
         callable(getattr(leases, method, None))
@@ -179,6 +182,10 @@ def build_invoke_services(ports: ServingPorts) -> InvokeServices:
     if not isinstance(registry, Registry) or not len(registry):
         raise ValueError("operation registry is unavailable")
     _validate_ports(ports, registry)
+    bindings = dict(ports.bindings)
+    if "invoke_services" in bindings:
+        raise ValueError("invoke_services is reserved for the serving root")
+    bindings["invoke_services"] = None
     runtime = BoundOperationRuntime(
         caller_client=ports.caller_client,
         service_client=ports.service_client,
@@ -186,12 +193,12 @@ def build_invoke_services(ports: ServingPorts) -> InvokeServices:
         check_access=ports.check_access,
         eg_dispatch=ports.eg_dispatch,
         service_scopes=ports.service_scopes,
-        bindings=ports.bindings,
+        bindings=bindings,
     )
-    return InvokeServices(
+    services = InvokeServices(
         registry=registry,
         runtime=runtime,
-        plans=EgPlanStore(ports.plan_client),
+        plans=EgPlanStore(ports.plan_client, seal_key=ports.plan_seal_key),
         policy_mode="off" if ports.policy_gate.mode == "none" else "on",
         policy_check=ports.policy_gate.check_op,
         audit_preflight=ports.audit_preflight,
@@ -199,6 +206,8 @@ def build_invoke_services(ports: ServingPorts) -> InvokeServices:
         fleet_effect=ports.fleet_effect,
         schema_validate=ports.schema_validate,
     )
+    bindings["invoke_services"] = services
+    return services
 
 
 Visibility = Callable[[Any, Any], Awaitable[bool]]

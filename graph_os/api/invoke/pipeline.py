@@ -7,14 +7,6 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from graph_os.api.registry import (
-    AuditClass,
-    Confirm,
-    Effect,
-    Idempotency,
-    PrincipalRule,
-    Surface,
-)
 from pydantic import BaseModel
 
 from graph_os.api.invoke.audit import audit_event
@@ -34,6 +26,14 @@ from graph_os.api.invoke.steps import (
     require_scopes,
     validate_params,
 )
+from graph_os.api.registry import (
+    AuditClass,
+    Confirm,
+    Effect,
+    Idempotency,
+    PrincipalRule,
+    Surface,
+)
 
 DISPATCH_TIMEOUT_SECONDS = 320
 MFA_FRESH_SECONDS = 900
@@ -45,6 +45,15 @@ FleetEffect = Callable[
     [Any, Mapping[str, Any], VerifiedCaller],
     Awaitable[tuple[Effect, Confirm, PrincipalRule]],
 ]
+
+
+class OperationRefused(Exception):
+    """A composite handler refusal retained by the shared invoke boundary."""
+
+    def __init__(self, code: str, details: Mapping[str, Any] | None = None) -> None:
+        self.code = code
+        self.details = details or {}
+        super().__init__(code)
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,7 +101,7 @@ async def _effect(
     binding = bind_plan(op, params, caller, services.registry.digest)
     if plan_ref is None:
         try:
-            reference = await services.plans.issue(binding)
+            reference = await services.plans.issue(binding, params)
         except Exception:
             return OpError("UNAVAILABLE", {"reason": "plan lease unavailable"})
         details = {"plan_ref": reference, "op": op.id, "effect": op.effect.value}
@@ -295,6 +304,9 @@ async def invoke(
     except asyncio.CancelledError:
         status = "INDETERMINATE"
         raise
+    except OperationRefused as exc:
+        status = exc.code
+        return OpError(exc.code, exc.details)
     except Exception:
         status = "INTERNAL"
         return OpError(status)

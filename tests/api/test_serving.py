@@ -111,6 +111,7 @@ def ports(calls: list[tuple[str, str]]) -> serving.ServingPorts:
         eg_dispatch=dispatch,
         service_scopes=frozenset({"items:service"}),
         plan_client=PlanClient(),
+        plan_seal_key=b"k" * 32,
         policy_gate=PolicyGate("none"),
         audit_preflight=audit_preflight,
         audit_write=audit,
@@ -130,6 +131,7 @@ async def test_serving_factory_dispatches_under_verified_caller(
     services = serving.build_invoke_services(bound_ports)
     assert services.audit_preflight is bound_ports.audit_preflight
     assert services.runtime._service_claims is bound_ports.service_claims
+    assert services.runtime.bindings["invoke_services"] is services
     caller = VerifiedCaller(
         principal="user:1",
         tenant="t1",
@@ -155,6 +157,8 @@ def test_missing_ports_and_service_grants_fail_before_serving(
     basic = ports([])
     with pytest.raises(ValueError, match="plan_client"):
         serving.build_invoke_services(replace(basic, plan_client=object()))
+    with pytest.raises(ValueError, match="plan_seal_key"):
+        serving.build_invoke_services(replace(basic, plan_seal_key=b"short"))
     with pytest.raises(ValueError, match="policy_gate"):
         serving.build_invoke_services(replace(basic, policy_gate=None))
     with pytest.raises(ValueError, match="eg_dispatch"):

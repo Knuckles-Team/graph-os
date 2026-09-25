@@ -31,6 +31,7 @@ dependencies = [
     # directly; keep these first-party runtime requirements explicit rather
     # than relying on AU's optional extra to expose them transitively.
     "anyio>=4.13.0",
+    "cryptography>=50.0.1",
     # Production operations and the canary call the public client/numeric
     # surface directly; AU's transitive requirement is not enough for this
     # package's own imports.  The local AU binding supplies the workspace EG
