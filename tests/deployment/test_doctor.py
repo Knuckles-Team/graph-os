@@ -907,7 +907,7 @@ def _production_certification_config(
     executable = root / "certification-command"
     from scripts.release import check_compatibility
 
-    matrix_path = Path(__file__).resolve().parents[3] / (
+    matrix_path = Path(check_compatibility.__file__).resolve().parents[2] / (
         "deploy/release/compatibility-matrix.yml"
     )
     if release_document is None:
@@ -997,7 +997,6 @@ def _patch_valid_release_verification(monkeypatch) -> MagicMock:
     return verifier
 
 
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_production_certification_doctor_skips_only_when_wholly_unconfigured(
     tmp_path, monkeypatch
 ):
@@ -1020,7 +1019,6 @@ def test_production_certification_doctor_skips_only_when_wholly_unconfigured(
     }
 
 
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_production_certification_doctor_rejects_partial_configuration(
     tmp_path, monkeypatch
 ):
@@ -1037,7 +1035,6 @@ def test_production_certification_doctor_rejects_partial_configuration(
     assert str(tmp_path) not in json.dumps(result, sort_keys=True)
 
 
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_production_certification_doctor_proves_complete_redacted_authority(
     tmp_path, monkeypatch
 ):
@@ -1072,14 +1069,13 @@ def test_production_certification_doctor_proves_complete_redacted_authority(
 
 
 @pytest.mark.parametrize("release_state", ("invalid", "unsigned", "wrong-matrix"))
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_production_certification_doctor_rejects_untrusted_release_redacted(
     tmp_path, monkeypatch, release_state
 ):
     from agent_utilities.core import config as config_module
     from scripts.release import check_compatibility
 
-    matrix_path = Path(__file__).resolve().parents[3] / (
+    matrix_path = Path(check_compatibility.__file__).resolve().parents[2] / (
         "deploy/release/compatibility-matrix.yml"
     )
     document = _signed_release_fixture(
@@ -1113,7 +1109,6 @@ def test_production_certification_doctor_rejects_untrusted_release_redacted(
     assert "fixture-signature-value" not in rendered
 
 
-@pytest.mark.skip(reason="certification tooling remains AU-owned")
 def test_production_certification_doctor_rejects_nonempty_artifacts_redacted(
     tmp_path, monkeypatch
 ):
