@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from typing import Any
 
 import pytest
@@ -23,6 +23,7 @@ from graph_os.api.registry import (
 from pydantic import BaseModel, ConfigDict
 
 from graph_os.api.invoke import InvokeServices, OpError, VerifiedCaller, invoke
+from graph_os.api.invoke.executor import BoundOperationRuntime
 from graph_os.api.invoke.plan import EgPlanStore
 
 
@@ -70,6 +71,7 @@ class FakeRuntime:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
         self.checked_subjects: list[str] = []
+        self.audit_preflights: list[dict[str, str]] = []
         self.readable = True
 
     @asynccontextmanager
@@ -143,9 +145,19 @@ def services(
     async def audit(event: dict[str, str], audit_class: AuditClass) -> None:
         events.append(event)
 
+    async def preflight(event: dict[str, str], audit_class: AuditClass) -> str:
+        engine.audit_preflights.append(event)
+        return "audit:1"
+
     return (
         InvokeServices(
-            Registry([spec]), engine, EgPlanStore(client), "off", None, audit
+            Registry([spec]),
+            engine,
+            EgPlanStore(client),
+            "off",
+            None,
+            audit,
+            audit_preflight=preflight,
         ),
         engine,
         events,
@@ -171,6 +183,8 @@ async def test_preview_resubmit_consumes_once_and_audits_digest_only() -> None:
     )
     assert replay == OpError("PLAN_EXPIRED")
     assert len(events) == 1 and "item:1" not in str(events)
+    assert engine.audit_preflights[0]["result_status"] == "PENDING"
+    assert events[0]["audit_ref"] == "audit:1"
 
 
 @pytest.mark.asyncio
@@ -331,3 +345,72 @@ async def test_fleet_effect_resolver_is_required_and_can_elevate_to_plan() -> No
     preview = await invoke("fleet.call", args, caller(), Surface.MCP, services=app)
     assert preview.code == "CONFIRMATION_REQUIRED"
     assert engine.calls == []
+
+
+@pytest.mark.asyncio
+async def test_audit_preflight_fails_before_plan_consumption_or_dispatch() -> None:
+    app, engine, _ = services(op())
+    args = {"subject": "item:1"}
+    preview = await invoke("items.change", args, caller(), Surface.MCP, services=app)
+    ref = preview.details["plan_ref"]
+    app = InvokeServices(
+        app.registry, app.runtime, app.plans, "off", None, app.audit_write
+    )
+    refused = await invoke(
+        "items.change", args, caller(), Surface.MCP, services=app, plan_ref=ref
+    )
+    assert refused.code == "UNAVAILABLE"
+    assert engine.calls == []
+    assert app.plans._leases.rows[ref]["status"] == "active"
+
+
+@pytest.mark.asyncio
+async def test_service_client_binds_verified_service_claims() -> None:
+    bound: list[dict[str, Any]] = []
+
+    class Client:
+        @contextmanager
+        def use_verified_context(self, claims: dict[str, Any]):
+            bound.append(claims)
+            yield self
+
+    async def get_client(tenant: str) -> Client:
+        return Client()
+
+    async def check_access(
+        client: Client, caller: VerifiedCaller, subject: str
+    ) -> bool:
+        return True
+
+    async def eg_dispatch(binding: Any, params: dict[str, Any], context: Any) -> Any:
+        return {"ok": True}
+
+    runtime = BoundOperationRuntime(
+        caller_client=get_client,
+        service_client=get_client,
+        service_claims=lambda tenant: {
+            "principal": "svc:graph-os",
+            "tenant": tenant,
+            "scopes": ["node:write"],
+        },
+        check_access=check_access,
+        eg_dispatch=eg_dispatch,
+        service_scopes=frozenset({"node:write"}),
+    )
+    async with runtime.as_service("t1"):
+        assert bound[-1]["principal"] == "svc:graph-os"
+    with pytest.raises(PermissionError):
+        bad = BoundOperationRuntime(
+            caller_client=get_client,
+            service_client=get_client,
+            service_claims=lambda tenant: {
+                "principal": "user:1",
+                "tenant": tenant,
+                "scopes": ["node:write"],
+            },
+            check_access=check_access,
+            eg_dispatch=eg_dispatch,
+            service_scopes=frozenset({"node:write"}),
+        )
+        async with bad.as_service("t1"):
+            pass

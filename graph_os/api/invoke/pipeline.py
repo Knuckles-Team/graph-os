@@ -40,6 +40,7 @@ MFA_FRESH_SECONDS = 900
 
 PolicyCheck = Callable[[Any, VerifiedCaller], Awaitable[bool]]
 AuditWrite = Callable[[Mapping[str, str], AuditClass], Awaitable[None]]
+AuditPreflight = Callable[[Mapping[str, str], AuditClass], Awaitable[str]]
 FleetEffect = Callable[
     [Any, Mapping[str, Any], VerifiedCaller],
     Awaitable[tuple[Effect, Confirm, PrincipalRule]],
@@ -56,6 +57,7 @@ class InvokeServices:
     audit_write: AuditWrite
     fleet_effect: FleetEffect | None = None
     schema_validate: SchemaValidate | None = None
+    audit_preflight: AuditPreflight | None = None
 
 
 async def _policy(
@@ -80,21 +82,12 @@ async def _effect(
     services: InvokeServices,
     *,
     plan_ref: str | None,
-    idempotency_key: str | None,
     resolved_from_intent: bool,
 ) -> OpError | OpResult | None:
-    needs_plan = op.confirm in {Confirm.PLAN, Confirm.CONSOLE} or (
-        op.effect == Effect.WRITE and resolved_from_intent
-    )
+    needs_plan = _requires_plan(op, resolved_from_intent)
     if not needs_plan:
         if plan_ref is not None:
             return OpError("PLAN_MISMATCH")
-        if (
-            op.effect == Effect.WRITE
-            and op.idempotency == Idempotency.KEY_REQUIRED
-            and not idempotency_key
-        ):
-            return OpError("INVALID_ARGUMENT", {"field": "idempotency_key"})
         return None
     binding = bind_plan(op, params, caller, services.registry.digest)
     if plan_ref is None:
@@ -108,17 +101,27 @@ async def _effect(
             return OpResult(code="STEP_UP_REQUIRED", details=details)
         return OpResult(code="CONFIRMATION_REQUIRED", details=details)
     if op.confirm == Confirm.CONSOLE:
-        if surface != Surface.CONSOLE or caller.delegated or caller.mfa_at_ms is None:
-            return OpError("PRINCIPAL_NOT_ALLOWED")
-        import time
-
-        age_ms = int(time.time() * 1000) - caller.mfa_at_ms
-        if not 0 <= age_ms <= MFA_FRESH_SECONDS * 1000:
+        if not _console_ready(caller, surface):
             return OpError("PRINCIPAL_NOT_ALLOWED")
     try:
         return await services.plans.consume(plan_ref, binding)
     except Exception:
         return OpError("UNAVAILABLE", {"reason": "plan lease unavailable"})
+
+
+def _requires_plan(op: Any, resolved_from_intent: bool) -> bool:
+    return op.confirm in {Confirm.PLAN, Confirm.CONSOLE} or (
+        op.effect == Effect.WRITE and resolved_from_intent
+    )
+
+
+def _console_ready(caller: VerifiedCaller, surface: Surface) -> bool:
+    if surface != Surface.CONSOLE or caller.delegated or caller.mfa_at_ms is None:
+        return False
+    import time
+
+    age_ms = int(time.time() * 1000) - caller.mfa_at_ms
+    return 0 <= age_ms <= MFA_FRESH_SECONDS * 1000
 
 
 async def _effective_op(
@@ -228,6 +231,41 @@ async def invoke(
     refused = await prepare_executor(op, arguments, caller, services.runtime)
     if refused is not None:
         return refused
+    if not _requires_plan(op, resolved_from_intent):
+        if plan_ref is not None:
+            return OpError("PLAN_MISMATCH")
+        if (
+            op.effect == Effect.WRITE
+            and op.idempotency == Idempotency.KEY_REQUIRED
+            and not idempotency_key
+        ):
+            return OpError("INVALID_ARGUMENT", {"field": "idempotency_key"})
+    if plan_ref is not None and _requires_plan(op, resolved_from_intent):
+        if op.confirm == Confirm.CONSOLE and not _console_ready(caller, surface):
+            return OpError("PRINCIPAL_NOT_ALLOWED")
+        try:
+            _, refused = await services.plans.validate(
+                plan_ref, bind_plan(op, arguments, caller, services.registry.digest)
+            )
+        except Exception:
+            return OpError("UNAVAILABLE", {"reason": "plan lease unavailable"})
+        if refused is not None:
+            return refused
+    audit_ref = ""
+    will_execute = not _requires_plan(op, resolved_from_intent) or plan_ref is not None
+    if op.effect != Effect.READ and will_execute:
+        if op.audit == AuditClass.NONE:
+            return OpError("UNAVAILABLE", {"reason": "mutation audit class absent"})
+        if services.audit_preflight is None:
+            return OpError("UNAVAILABLE", {"reason": "audit preflight unavailable"})
+        try:
+            audit_ref = await services.audit_preflight(
+                audit_event(op, arguments, caller, surface, "PENDING"), op.audit
+            )
+        except Exception:
+            return OpError("UNAVAILABLE", {"reason": "audit preflight unavailable"})
+        if not isinstance(audit_ref, str) or not audit_ref:
+            return OpError("UNAVAILABLE", {"reason": "audit preflight unavailable"})
     decision = await _effect(
         op,
         arguments,
@@ -235,10 +273,14 @@ async def invoke(
         surface,
         services,
         plan_ref=plan_ref,
-        idempotency_key=idempotency_key,
         resolved_from_intent=resolved_from_intent,
     )
     if decision is not None:
+        if audit_ref:
+            await services.audit_write(
+                audit_event(op, arguments, caller, surface, decision.code, audit_ref),
+                op.audit,
+            )
         return decision
     status = "OK"
     try:
@@ -254,7 +296,7 @@ async def invoke(
         status = "INTERNAL"
         return OpError(status)
     finally:
-        if op.effect != Effect.READ and op.audit != AuditClass.NONE:
+        if audit_ref:
             await services.audit_write(
-                audit_event(op, arguments, caller, surface, status), op.audit
+                audit_event(op, arguments, caller, surface, status, audit_ref), op.audit
             )
