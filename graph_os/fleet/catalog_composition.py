@@ -12,7 +12,9 @@ from graph_os.fleet.multiplexer_ops import (
     Loadable,
     Mount,
     MultiplexerOps,
+    NativeName,
     Notify,
+    ReadItem,
 )
 from graph_os.fleet.session_loads import SessionLoads
 
@@ -42,6 +44,8 @@ def compose_multiplexer_ops(
     mount: Mount,
     notify: Notify,
     invoke: Invoke,
+    native_name: NativeName | None = None,
+    read_item: ReadItem | None = None,
     cap: int = 64,
     idle_ttl_seconds: int = 3600,
 ) -> MultiplexerOps:
@@ -70,4 +74,6 @@ def compose_multiplexer_ops(
         notify=notify,
         invoke=invoke,
         health=health,
+        native_name=native_name,
+        read_item=read_item,
     )
