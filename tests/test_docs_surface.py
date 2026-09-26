@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-PIPELINES_REVISION = "444b232c7975e125a24b17d53ff615f5ad26a4cd"
+PIPELINES_REVISION = "fe4d11323d0b94c044c38f5257a15576c076500e"
 
 
 def test_readme_uses_the_public_title_and_exact_section_order() -> None:
