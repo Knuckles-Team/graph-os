@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Any, Mapping
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from graph_os.api.registry import (
     AuditClass,
+    Composite,
     Effect,
     EgMethod,
     EgSchemaRef,
@@ -12,6 +17,39 @@ from graph_os.api.registry import (
     PrincipalRule,
     Verb,
 )
+
+
+class _ReceiptParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ReceiptParams(_ReceiptParams):
+    receipt_digest: str = Field(pattern=r"^sha256:[0-9a-fA-F]{64}$")
+
+
+class ReceiptPageParams(_ReceiptParams):
+    after: str | None = Field(default=None, pattern=r"^sha256:[0-9a-fA-F]{64}$")
+    limit: int = Field(default=20, ge=1, le=50)
+
+
+async def _receipt_read(context: Any, variant: str, request: Mapping[str, Any]) -> Any:
+    from epistemic_graph.generated.coordination import send_decision_eval
+
+    result = await send_decision_eval(
+        context.client._client,
+        {"op": {"op": variant, "request": {"tenant_id": context.caller.tenant, **request}}},
+    )
+    return result.payload
+
+
+async def receipt_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
+    request = ReceiptParams.model_validate(params)
+    return await _receipt_read(context, "receipt", request.model_dump())
+
+
+async def receipts_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
+    request = ReceiptPageParams.model_validate(params)
+    return await _receipt_read(context, "receipts", request.model_dump())
 
 
 def _method(name: str, result_domain: str) -> tuple[EgSchemaRef, EgSchemaRef, EgMethod]:
@@ -96,5 +134,27 @@ def specs() -> tuple[OpSpec, ...]:
             principals=PrincipalRule.HUMAN_UNDELEGATED,
             idempotency=Idempotency.KEY_REQUIRED,
             audit=AuditClass.EVENT,
+        ),
+        OpSpec(
+            id="decide.eval.receipt",
+            verb=Verb.ASK,
+            summary="Read one tenant-bound decision evaluation receipt by digest.",
+            examples=("Show the calibrated evaluation receipt",),
+            params=ReceiptParams,
+            result=eval_result,
+            binding=Composite(handler="graph_os.api.ops.decide.receipt_handler"),
+            scopes=frozenset({"admin:decision-eval"}),
+            idempotency=Idempotency.NATURAL,
+        ),
+        OpSpec(
+            id="decide.eval.receipts",
+            verb=Verb.ASK,
+            summary="List a bounded page of tenant-bound evaluation receipts.",
+            examples=("Show evaluation receipts for the calibration dashboard",),
+            params=ReceiptPageParams,
+            result=eval_result,
+            binding=Composite(handler="graph_os.api.ops.decide.receipts_handler"),
+            scopes=frozenset({"admin:decision-eval"}),
+            idempotency=Idempotency.NATURAL,
         ),
     )
