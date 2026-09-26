@@ -6,7 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from graph_os.api.fleet_host import compose_fleet_host_ports
+from graph_os.api.errors import EngineRefusal, FleetRefusal
+from graph_os.api.fleet_host import _native_refusal, compose_fleet_host_ports
+from graph_os.api.generated.engine_errors import ENGINE_ERRORS
 from graph_os.api.policy import PolicyGate
 
 
@@ -71,3 +73,28 @@ def test_fleet_host_requires_real_reader_sdk_and_policy() -> None:
             sdk_entries=None,
             policy_gate=PolicyGate("none"),
         )
+
+
+@pytest.mark.parametrize(
+    ("refusal", "source", "code"),
+    (
+        (
+            FleetRefusal("CHILD_REFUSED", "server-one", "tool-one"),
+            "fleet",
+            "CHILD_REFUSED",
+        ),
+        (EngineRefusal(sorted(ENGINE_ERRORS)[0]), "engine", sorted(ENGINE_ERRORS)[0]),
+    ),
+)
+def test_native_refusal_preserves_mcp_error_and_structured_code(
+    refusal, source: str, code: str
+) -> None:
+    result = _native_refusal(
+        refusal,
+        caller=SimpleNamespace(request_id="request-one"),
+        registry_digest="a" * 64,
+    ).to_mcp_result()
+    assert result.isError is True
+    assert result.structuredContent["error"]["source"] == source
+    assert result.structuredContent["error"]["code"] == code
+    assert result.content[0].text == "GraphOS operation refused"
