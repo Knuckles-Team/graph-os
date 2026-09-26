@@ -1,7 +1,7 @@
 # Graph OS
 
 <p align="center">
-  <img src="docs/assets/brands/graph-os-logo-v1.png" alt="Graph OS logo" width="176">
+  <img src="pages/assets/brands/graph-os-logo-v1.png" alt="Graph OS logo" width="176">
 </p>
 
 <p align="center">
@@ -90,7 +90,7 @@ The boundary is deliberate: Graph OS authenticates, composes, routes,
 supervises, and projects. Each sibling remains the source of truth for its own
 domain.
 
-![Knuckles platform runtime architecture](docs/assets/runtime-architecture.svg)
+![Knuckles platform runtime architecture](pages/assets/runtime-architecture.svg)
 
 ## Quick Start
 
