@@ -11,11 +11,12 @@ from typing import Any, cast
 
 from graph_os.webui_host.webui_co_service import _list_webui_skills
 
-# The host modules the run_web_ui test patches are imported before that test
-# replaces agent_utilities / agent_webui with synthetic modules: importing them
-# afterwards would resolve their own imports against the stubs.
-from graph_os.browser_control import browser_control_service
-from graph_os.mcp_server import runtime
+# Import before the test installs synthetic AU/WebUI modules, so these host
+# modules resolve their real dependencies once and cannot bind the stubs.
+_PRELOADED_HOST_MODULES = (
+    importlib.import_module("graph_os.browser_control.browser_control_service"),
+    importlib.import_module("graph_os.mcp_server.runtime"),
+)
 
 
 def _package(name: str) -> types.ModuleType:
