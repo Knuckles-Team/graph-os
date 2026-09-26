@@ -94,7 +94,7 @@ def run_poll_loop(
     lease helper. It must not be called by an entrypoint directly.
 
     ``platform_stop_events`` (one ``threading.Event`` per platform, set by the
-    lease renewal loop in :mod:`agent_utilities.messaging.intake_lease` the
+    lease renewal loop in :mod:`graph_os.messaging.lease` the
     moment that platform's lease is lost) lets exactly ONE platform's listener
     be torn down without touching the others: a task on the owning event loop
     cancels only that platform's supervise task inside the single shared

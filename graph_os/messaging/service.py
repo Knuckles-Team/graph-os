@@ -160,6 +160,42 @@ class MessagingService:
         ]
         return {"configured": configured, "connected": connected}
 
+    def persist_inbound(
+        self,
+        engine: Any,
+        *,
+        platform: Any,
+        channel_id: Any,
+        message_id: Any,
+        text: str,
+        session: str,
+        status: str = "pending",
+        received_at: str | None = None,
+    ) -> str | None:
+        """Record a transport inbox row before AU begins reply generation."""
+        from graph_os.messaging.inbox import record_inbound
+
+        if engine is None or engine is not self._resolve_engine():
+            raise PermissionError("messaging inbox requires the bound host engine")
+        return record_inbound(
+            engine,
+            platform=platform,
+            channel_id=channel_id,
+            message_id=message_id,
+            text=text,
+            session=session,
+            status=status,
+            received_at=received_at,
+        )
+
+    def mark_inbound_answered(self, engine: Any, inbox_id: str | None) -> None:
+        """Close a transport inbox row only after the reply is delivered."""
+        from graph_os.messaging.inbox import mark_answered
+
+        if engine is None or engine is not self._resolve_engine():
+            raise PermissionError("messaging inbox requires the bound host engine")
+        mark_answered(engine, inbox_id)
+
     # ── Outbound (governed) ──────────────────────────────────────────
     async def send(
         self,

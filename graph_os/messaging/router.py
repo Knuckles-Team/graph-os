@@ -171,8 +171,8 @@ class InboundRouter:
         (CONCEPT:AU-ECO.messaging.durable-inbound-pending). Uses this router's own backends + the universal reply path, so a
         turn that failed while the engine was down is answered once the system recovers."""
         from agent_utilities.core.config import setting
-        from agent_utilities.messaging.inbox import retry_unanswered
 
+        from graph_os.messaging.inbox import retry_unanswered
         from graph_os.messaging.service import MessagingService
 
         interval = float(setting("MESSAGING_INBOX_RETRY_S", "120"))

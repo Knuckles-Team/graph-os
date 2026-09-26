@@ -41,8 +41,7 @@ def run_owned_intake(
     if not platforms:
         raise ValueError("messaging intake requires configured platforms")
 
-    from agent_utilities.messaging.intake_lease import run_owned_intake as run_leased
-
+    from graph_os.messaging.lease import run_owned_intake as run_leased
     from graph_os.messaging.polling import run_poll_loop
 
     run_leased(
@@ -64,8 +63,7 @@ def start_messaging_intake(
 ) -> None:
     """Admit the configured channels to the verified GraphOS host.
 
-    GraphOS owns the process lifecycle and invokes the engine-native lease
-    boundary. The AU poll loop remains the transport executor for this slice.
+    GraphOS owns the process lifecycle, engine-native lease boundary, and poll loop.
     """
     if session is None:
         raise PermissionError("verified messaging session is required")

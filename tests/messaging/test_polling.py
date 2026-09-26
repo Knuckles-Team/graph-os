@@ -4,7 +4,7 @@ inbound listener.
 Previously the AU daemon ran EVERY backend's
 listener under the ONE ``_serve`` asyncio task and cancelled that whole task
 off the single shared ``stop_event`` — so
-``messaging/intake_lease.py::run_with_intake_leases`` setting that event on
+``graph_os/messaging/lease.py::run_with_intake_leases`` setting that event on
 ANY platform's lease loss silently killed every OTHER healthy platform's
 inbound polling too (this is what took Telegram inbound down in production
 when only the Mattermost lease was lost).

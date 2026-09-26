@@ -87,9 +87,7 @@ def test_graphos_intake_passes_only_leased_channels_to_poller(
     ) -> None:
         seen.append((served_engine, channels, stop, channel_stops))
 
-    monkeypatch.setattr(
-        "agent_utilities.messaging.intake_lease.run_owned_intake", run_leased
-    )
+    monkeypatch.setattr("graph_os.messaging.lease.run_owned_intake", run_leased)
     monkeypatch.setattr("graph_os.messaging.polling.run_poll_loop", poll)
     intake.run_owned_intake(
         engine, ("telegram", "mattermost"), stop_event, session, intake_intent=True

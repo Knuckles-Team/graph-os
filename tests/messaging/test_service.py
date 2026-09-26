@@ -23,6 +23,44 @@ from graph_os.messaging import service as service_module
 from graph_os.messaging.service import MessagingService
 
 
+def test_inbound_inbox_uses_only_bound_host_engine() -> None:
+    class Engine:
+        def __init__(self) -> None:
+            self.nodes: dict[str, dict[str, object]] = {}
+
+        def add_node(
+            self, *, node_id: str, node_type: str, properties: dict[str, object]
+        ) -> None:
+            self.nodes[node_id] = properties
+
+    bound = Engine()
+    other = Engine()
+    service = service_module.MessagingService(bound)
+    with pytest.raises(PermissionError, match="bound host engine"):
+        service.persist_inbound(
+            other,
+            platform="telegram",
+            channel_id="42",
+            message_id="1",
+            text="hello",
+            session="messaging:telegram:42",
+        )
+    inbox_id = service.persist_inbound(
+        bound,
+        platform="telegram",
+        channel_id="42",
+        message_id="1",
+        text="hello",
+        session="messaging:telegram:42",
+    )
+    assert inbox_id in bound.nodes
+    assert not other.nodes
+    with pytest.raises(PermissionError, match="bound host engine"):
+        service.mark_inbound_answered(other, inbox_id)
+    service.mark_inbound_answered(bound, inbox_id)
+    assert bound.nodes[inbox_id]["status"] == "answered"
+
+
 async def _immediate_policy(operation: Any) -> Any:
     return operation()
 
