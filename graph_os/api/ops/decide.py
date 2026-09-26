@@ -32,6 +32,13 @@ class ReceiptPageParams(_ReceiptParams):
     limit: int = Field(default=20, ge=1, le=50)
 
 
+class ReceiptTimelineParams(_ReceiptParams):
+    after: str | None = Field(
+        default=None, pattern=r"^[0-9]{20}:sha256:[0-9a-fA-F]{64}$"
+    )
+    limit: int = Field(default=20, ge=1, le=50)
+
+
 async def _receipt_read(context: Any, variant: str, request: Mapping[str, Any]) -> Any:
     from epistemic_graph.generated.coordination import send_decision_eval
 
@@ -50,6 +57,11 @@ async def receipt_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -
 async def receipts_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
     request = ReceiptPageParams.model_validate(params)
     return await _receipt_read(context, "receipts", request.model_dump())
+
+
+async def timeline_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
+    request = ReceiptTimelineParams.model_validate(params)
+    return await _receipt_read(context, "timeline", request.model_dump())
 
 
 def _method(name: str, result_domain: str) -> tuple[EgSchemaRef, EgSchemaRef, EgMethod]:
@@ -154,6 +166,17 @@ def specs() -> tuple[OpSpec, ...]:
             params=ReceiptPageParams,
             result=eval_result,
             binding=Composite(handler="graph_os.api.ops.decide.receipts_handler"),
+            scopes=frozenset({"admin:decision-eval"}),
+            idempotency=Idempotency.NATURAL,
+        ),
+        OpSpec(
+            id="decide.eval.timeline",
+            verb=Verb.ASK,
+            summary="List time-ordered non-synthetic full-label evaluation receipts.",
+            examples=("Show the calibration history",),
+            params=ReceiptTimelineParams,
+            result=eval_result,
+            binding=Composite(handler="graph_os.api.ops.decide.timeline_handler"),
             scopes=frozenset({"admin:decision-eval"}),
             idempotency=Idempotency.NATURAL,
         ),

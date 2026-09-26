@@ -15,7 +15,7 @@ DIGEST = "sha256:" + "a" * 64
 
 def test_receipt_ops_are_admin_scoped_reads() -> None:
     ops = {op.id: op for op in decide.specs()}
-    for name in ("decide.eval.receipt", "decide.eval.receipts"):
+    for name in ("decide.eval.receipt", "decide.eval.receipts", "decide.eval.timeline"):
         op = ops[name]
         assert op.scopes == frozenset({"admin:decision-eval"})
         assert isinstance(op.binding, Composite)
@@ -33,9 +33,11 @@ async def test_handlers_fix_variant_and_tenant(monkeypatch) -> None:
     monkeypatch.setattr(decide, "_receipt_read", capture)
     await decide.receipt_handler(context, {"receipt_digest": DIGEST}, None)
     await decide.receipts_handler(context, {"after": DIGEST, "limit": 2}, None)
+    await decide.timeline_handler(context, {"limit": 2}, None)
     assert calls == [
         ("receipt", {"receipt_digest": DIGEST}),
         ("receipts", {"after": DIGEST, "limit": 2}),
+        ("timeline", {"after": None, "limit": 2}),
     ]
     with pytest.raises(ValueError):
         await decide.receipt_handler(
@@ -43,6 +45,8 @@ async def test_handlers_fix_variant_and_tenant(monkeypatch) -> None:
         )
     with pytest.raises(ValueError):
         await decide.receipts_handler(context, {"limit": 51}, None)
+    with pytest.raises(ValueError):
+        await decide.timeline_handler(context, {"after": DIGEST}, None)
 
 
 @pytest.mark.asyncio
