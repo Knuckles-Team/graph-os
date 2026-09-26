@@ -93,6 +93,12 @@ from mcp.client.streamable_http import streamable_http_client
 
 import graph_os.fleet.catalog_reader as _catalog_reader
 import graph_os.fleet.child_resilience as _child_resilience
+from graph_os.fleet.catalog_snapshot import (
+    CatalogSnapshotUnavailable,
+    ChildCatalogSnapshot,
+    McpCatalogAttestation,
+    registration_config_digest,
+)
 from graph_os.fleet.session_notifications import SessionCatalogNotifications
 
 # Direct all logs to stderr so stdout remains perfectly clean for stdio JSON-RPC
@@ -735,7 +741,18 @@ def _bounded_tool_entry(tool: _typing.Any) -> dict[str, _typing.Any]:
     }
     if annotations is not None:
         item["annotations"] = annotations
+    item.update(_bounded_tool_output_schema(tool))
     return item
+
+
+def _bounded_tool_output_schema(tool: _typing.Any) -> dict[str, dict]:
+    """Preserve a declared native output schema without widening the descriptor."""
+    schema = getattr(tool, "output_schema", None)
+    if schema is None:
+        return {}
+    if not isinstance(schema, dict):
+        raise RuntimeError("MCP child tool catalog is invalid")
+    return {"outputSchema": schema}
 
 
 def _bounded_tool_catalog(raw_tools: _typing.Any) -> list[dict[str, _typing.Any]]:
@@ -2247,6 +2264,12 @@ class MCPMultiplexer:
         # a late callback from an old generation can never repopulate fresh
         # routing state with a stale declaration.
         self._catalog_epoch = 0
+        # Complete, immutable native observations from mounted child sessions.
+        # An ephemeral probe cannot supply a stable connection generation.
+        self._child_catalog_snapshots: dict[str, ChildCatalogSnapshot] = {}
+        self._catalog_authority_writer: _typing.Any | None = None
+        self._connector_pack_authority: _typing.Any | None = None
+        self._remote_connector_pack_authority: _typing.Any | None = None
         # Set by ``attach_fleet_loader``.  Keeping this optional preserves the
         # standalone probe and unit-test paths, which do not own a FastMCP
         # server or live forwarders.
@@ -2435,6 +2458,7 @@ class MCPMultiplexer:
         self._prefix_map = None
         self._prefix_reverse.clear()
         self._catalog_epoch += 1
+        self._child_catalog_snapshots.clear()
         return self._catalog
 
     def _admit_proxied_call(
@@ -3534,6 +3558,9 @@ class MCPMultiplexer:
             rebuilds every transport of the generation."""
             generation_secret = secrets.token_urlsafe(48) if not is_remote else None
             runtime._task_generation_secret = generation_secret
+            # A new opaque identity is minted for each mounted transport
+            # generation, including remote children with no task secret.
+            runtime._catalog_child_id = secrets.token_hex(24)
             sessions = [
                 await _connect_one(stack, generation_secret) for _ in range(pool_size)
             ]
@@ -3964,6 +3991,7 @@ class MCPMultiplexer:
     def _drop_stale_child_caches(self, server_name: str) -> None:
         """Invalidate every derived cache keyed on one server's old catalog."""
         self._probe_cache.pop(server_name, None)
+        self._child_catalog_snapshots.pop(server_name, None)
         self._drop_discovery_bindings_for_server(server_name)
         embedding_prefix = f"{server_name}::"
         for key in [
@@ -4651,6 +4679,10 @@ class MCPMultiplexer:
         """The probe answer for an ALREADY-MOUNTED child — read from its live
         session rather than paying a fresh connect."""
         session = self._live_primary_session(server_name)
+        runtime = self.children[server_name]
+        connection_generation = runtime.generation
+        catalog_epoch = self._catalog_epoch
+        native_tools = await self._native_tools_for_snapshot(session)
         (
             resources,
             templates,
@@ -4659,6 +4691,9 @@ class MCPMultiplexer:
             prompts,
             family_errors,
         ) = await self._probe_protocol_families(server_name, session)
+        self._assert_probe_generation(
+            server_name, session, catalog_epoch, connection_generation
+        )
         info: dict[str, _typing.Any] = {
             "tools": self._live_tools_for_server(server_name),
             "resources": resources,
@@ -4670,10 +4705,260 @@ class MCPMultiplexer:
             "error": None,
         }
         result = self._cache_probe(server_name, info)
-        self._record_discovery_binding(
-            server_name, result, _tenant_local_discovery_binding()
+        discovery_binding = _tenant_local_discovery_binding()
+        self._publish_child_catalog_snapshot(
+            server_name,
+            native_tools,
+            info,
+            catalog_epoch,
+            connection_generation,
+            discovery_binding,
         )
+        self._record_discovery_binding(server_name, result, discovery_binding)
         return result
+
+    @staticmethod
+    async def _native_tools_for_snapshot(
+        session: _typing.Any,
+    ) -> list[dict[str, _typing.Any]] | None:
+        """Read native tools without changing the existing admitted-tool probe."""
+        try:
+            return _bounded_tool_catalog((await session.list_tools()).tools)
+        except Exception:
+            # A complete native snapshot cannot be published without tools/list.
+            return None
+
+    def _assert_probe_generation(
+        self,
+        server_name: str,
+        session: _typing.Any,
+        catalog_epoch: int,
+        connection_generation: int,
+    ) -> None:
+        """Reject a discovery that crossed a catalog or transport swap."""
+        if (
+            self.children[server_name].generation != connection_generation
+            or self._catalog_epoch != catalog_epoch
+            or self.sessions.get(server_name) is not session
+        ):
+            self._child_catalog_snapshots.pop(server_name, None)
+            raise CatalogSnapshotUnavailable(
+                "child connection or fleet catalog changed during discovery"
+            )
+
+    def _publish_child_catalog_snapshot(
+        self,
+        server_name: str,
+        native_tools: list[dict[str, _typing.Any]] | None,
+        info: dict[str, _typing.Any],
+        catalog_epoch: int,
+        connection_generation: int,
+        discovery_binding: _typing.Any,
+    ) -> None:
+        """Atomically replace one complete observation or revoke an old one."""
+        fleet = self._fleet_catalog
+        try:
+            if native_tools is None:
+                raise CatalogSnapshotUnavailable("native tools/list is unavailable")
+            from agent_utilities.knowledge_graph.core.fleet_catalog_tables import (
+                TenantLocalDiscoveryBinding,
+            )
+
+            server = (
+                next(
+                    (
+                        item
+                        for item in fleet.servers
+                        if item.registration is not None
+                        and item.registration.name == server_name
+                    ),
+                    None,
+                )
+                if fleet
+                else None
+            )
+            if (
+                fleet is None
+                or server is None
+                or not isinstance(discovery_binding, TenantLocalDiscoveryBinding)
+                or discovery_binding.tenant_id != fleet.context.tenant_id
+            ):
+                raise CatalogSnapshotUnavailable(
+                    "verified fleet configuration and discovery authority are unavailable"
+                )
+            snapshot = ChildCatalogSnapshot.from_observation(
+                server_name=server_name,
+                component_id=server.component.component_id,
+                registry_revision=fleet.registry_revision if fleet else None,
+                registry_digest=fleet.registry_digest if fleet else None,
+                registration_config_digest=registration_config_digest(
+                    server.registration.url, server.registration.resources
+                ),
+                component_revision=server.component.entry_revision,
+                component_digest=server.content.content_digest,
+                discovery_tenant=discovery_binding.tenant_id,
+                local_catalog_epoch=catalog_epoch,
+                child_id=getattr(self.children[server_name], "_catalog_child_id", ""),
+                child_connection_generation=connection_generation,
+                tools=native_tools,
+                resources=info["resources"],
+                resource_templates=info["resource_templates"],
+                prompts=info["native_prompts"],
+                family_errors=info["catalog_family_errors"],
+            )
+        except (CatalogSnapshotUnavailable, ImportError):
+            self._child_catalog_snapshots.pop(server_name, None)
+        else:
+            self._child_catalog_snapshots[server_name] = snapshot
+
+    def child_catalog_snapshot(self, server_name: str) -> ChildCatalogSnapshot:
+        """Return one current mounted-child observation on the served loop."""
+        self._claim_serving_loop()
+        snapshot = self._child_catalog_snapshots.get(server_name)
+        runtime = self.children.get(server_name)
+        fleet = self._fleet_catalog
+        server = (
+            next(
+                (
+                    item
+                    for item in fleet.servers
+                    if item.registration is not None
+                    and item.registration.name == server_name
+                ),
+                None,
+            )
+            if fleet
+            else None
+        )
+        if (
+            snapshot is None
+            or runtime is None
+            or fleet is None
+            or server is None
+            or fleet.registry_revision is None
+            or fleet.registry_digest is None
+            or not snapshot.matches_source(
+                component_id=server.component.component_id,
+                registry_revision=fleet.registry_revision,
+                registry_digest=fleet.registry_digest,
+                registration_config_digest=registration_config_digest(
+                    server.registration.url, server.registration.resources
+                ),
+                component_revision=server.component.entry_revision,
+                component_digest=server.content.content_digest,
+                discovery_tenant=fleet.context.tenant_id,
+                local_catalog_epoch=self._catalog_epoch,
+                child_id=getattr(runtime, "_catalog_child_id", ""),
+                child_connection_generation=runtime.generation,
+            )
+        ):
+            raise CatalogSnapshotUnavailable("current child catalog is unavailable")
+        return snapshot
+
+    def catalog_attestation(self, server_name: str) -> McpCatalogAttestation:
+        """Capture one currently mounted child for the verified EG writer.
+
+        The writer must bind its own verified principal and mutation context;
+        this object contains observations only and is never a pack binding.
+        """
+        snapshot = self.child_catalog_snapshot(server_name)
+        fleet = self._fleet_catalog
+        if fleet is None or not fleet.context.principal_id:
+            raise CatalogSnapshotUnavailable("verified fleet authority is unavailable")
+        server = next(
+            (
+                item
+                for item in fleet.servers
+                if item.registration is not None
+                and item.registration.name == server_name
+            ),
+            None,
+        )
+        if server is None or server.component.component_id != snapshot.component_id:
+            raise CatalogSnapshotUnavailable("served component identity is unavailable")
+        return McpCatalogAttestation(
+            server_name=server_name,
+            attester_principal_id=fleet.context.principal_id,
+            component_id=snapshot.component_id,
+            component_revision=snapshot.component_revision,
+            component_digest=snapshot.component_digest,
+            registry_revision=snapshot.registry_revision,
+            registry_digest=snapshot.registry_digest,
+            registration_config_digest=snapshot.registration_config_digest,
+            four_family_digest=snapshot.content_digest,
+            child_id=snapshot.child_id,
+            discovery_tenant=snapshot.discovery_tenant,
+            local_catalog_epoch=snapshot.local_catalog_epoch,
+            child_connection_generation=snapshot.child_connection_generation,
+        )
+
+    def pack_catalog_binding(self, server_name: str) -> _typing.NoReturn:
+        """Refuse an EG pack binding until the served authority owns all fields."""
+        self.child_catalog_snapshot(server_name)
+        raise CatalogSnapshotUnavailable(
+            "configuration revision, catalog generation, and authorization scope digest are unavailable"
+        )
+
+    def install_catalog_authority_writer(self, writer: _typing.Any) -> None:
+        """Install exactly one verified writer after the native fleet read."""
+        if writer is None or self._catalog_authority_writer is not None:
+            raise CatalogSnapshotUnavailable("catalog authority writer is unavailable")
+        self._catalog_authority_writer = writer
+
+    def install_connector_pack_authority(self, resolver: _typing.Any) -> None:
+        """Install the AU-gated pack resolver for this mounted fleet owner."""
+        if not callable(resolver) or self._connector_pack_authority is not None:
+            raise CatalogSnapshotUnavailable("connector pack authority is unavailable")
+        self._connector_pack_authority = resolver
+
+    def install_remote_connector_pack_authority(self, resolver: _typing.Any) -> None:
+        """Install one request-authenticated authority for remote runner pods."""
+        if not callable(resolver) or self._remote_connector_pack_authority is not None:
+            raise CatalogSnapshotUnavailable("remote pack authority is unavailable")
+        self._remote_connector_pack_authority = resolver
+
+    async def resolve_remote_connector_pack_authority(
+        self, server_name: str
+    ) -> dict[str, _typing.Any]:
+        """Resolve only a currently mounted child; the adapter validates the bearer."""
+        resolver = self._remote_connector_pack_authority
+        if resolver is None:
+            raise CatalogSnapshotUnavailable("remote pack authority is unavailable")
+        self.child_catalog_snapshot(server_name)
+        result = await resolver(server_name)
+        self.child_catalog_snapshot(server_name)
+        return result
+
+    def connector_pack_authority_ready(self) -> bool:
+        """Whether the mounted fleet has its verified pack authority port."""
+        return self._connector_pack_authority is not None
+
+    async def resolve_connector_pack_authority(self, server_name: str) -> _typing.Any:
+        """Resolve one mounted child under the caller's ambient session."""
+        resolver = self._connector_pack_authority
+        if resolver is None:
+            raise CatalogSnapshotUnavailable("connector pack authority is unavailable")
+        self.child_catalog_snapshot(server_name)
+        result = await resolver(server_name)
+        self.child_catalog_snapshot(server_name)
+        return result
+
+    async def reconcile_pack_catalog_binding(self, server_name: str) -> _typing.Any:
+        """Ask EG to issue a binding for the current mounted child.
+
+        The writer reads EG's persisted scoped generation before the CAS, so
+        a process restart never substitutes a local epoch for owner state.
+        """
+        self.child_catalog_snapshot(server_name)
+        writer = self._catalog_authority_writer
+        if writer is None:
+            raise CatalogSnapshotUnavailable("catalog authority writer is unavailable")
+        binding = await writer.reconcile(
+            server_name,
+            expected_catalog_generation=None,
+        )
+        self.child_catalog_snapshot(server_name)
+        return binding
 
     def _live_primary_session(self, server_name: str) -> _typing.Any:
         session = self.sessions.get(server_name)
@@ -4817,8 +5102,11 @@ class MCPMultiplexer:
             resource_result = await session.list_resources()
             raw_resources = resource_result.resources
         except Exception as exc:  # noqa: BLE001 - optional protocol method
-            if not self._optional_method_missing(exc):
-                errors["resources"] = type(exc).__name__
+            errors["resources"] = (
+                "unsupported"
+                if self._optional_method_missing(exc)
+                else type(exc).__name__
+            )
             raw_resources = []
         try:
             resources = _bounded_descriptor_catalog(
@@ -4838,8 +5126,11 @@ class MCPMultiplexer:
                 family="resource-template",
             )
         except Exception as exc:  # noqa: BLE001 - optional protocol method
-            if not self._optional_method_missing(exc):
-                errors["resource_templates"] = type(exc).__name__
+            errors["resource_templates"] = (
+                "unsupported"
+                if self._optional_method_missing(exc)
+                else type(exc).__name__
+            )
             templates = []
 
         try:
@@ -4848,8 +5139,11 @@ class MCPMultiplexer:
                 prompt_result.prompts, key="name", family="prompt"
             )
         except Exception as exc:  # noqa: BLE001 - optional protocol method
-            if not self._optional_method_missing(exc):
-                errors["prompts"] = type(exc).__name__
+            errors["prompts"] = (
+                "unsupported"
+                if self._optional_method_missing(exc)
+                else type(exc).__name__
+            )
             native_prompts = []
 
         await self._harvest_resource_bodies(
@@ -7477,6 +7771,27 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
                 },
             },
             fn=_unload_tools,
+        )
+    )
+    async def _connector_pack_authority(connector: str) -> _fastmcp_tools.ToolResult:
+        if not isinstance(connector, str) or not connector.strip():
+            raise _fastmcp_exceptions.ToolError("connector is required")
+        payload = await mux.resolve_remote_connector_pack_authority(connector.strip())
+        # This response carries a scoped mutation context. Keep it out of the
+        # human-readable content channel and all discovery/log output.
+        return _fastmcp_tools.ToolResult(content=[], structured_content=payload)
+
+    mcp.add_tool(
+        _fastmcp_tools.FunctionTool(
+            name="connector_pack_authority",
+            description="Resolve one authenticated connector pack catalog binding.",
+            parameters={
+                "type": "object",
+                "properties": {"connector": {"type": "string", "minLength": 1}},
+                "required": ["connector"],
+                "additionalProperties": False,
+            },
+            fn=_connector_pack_authority,
         )
     )
     _register_status_tool(mcp, mux)

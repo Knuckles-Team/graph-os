@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,11 +12,20 @@ import pytest
 from agent_connector_sdk.credentials.references import SecretReference
 from agent_connector_sdk.runner.descriptors import RunnerSettings
 from agent_connector_sdk.sinks.epistemic_graph import PackImportAuthorityResolver
+from agent_utilities.knowledge_graph.core.session import GraphSession, use_session
+from agent_utilities.security.actor_identity import ActorType
+from agent_utilities.security.brain_context import ActorContext
+from epistemic_graph.generated.connector_pack import (
+    AgentLibraryMutationContext,
+    McpCatalogSnapshotBinding,
+)
 
 from graph_os.connector_runner import (
     ConnectorRunnerComposition,
     ConnectorRunnerConfig,
     ConnectorRunnerNotReadyError,
+    compose_mounted_connector_runner,
+    run_connector_sync,
 )
 from graph_os.epistemic import AuthorityError, ClientContext, ConnectClient
 
@@ -63,7 +73,18 @@ def config(tmp_path: Path, **overrides: object) -> ConnectorRunnerConfig:
     return ConnectorRunnerConfig(**values)  # type: ignore[arg-type]
 
 
-def context(*, scopes: tuple[str, ...] = ("source:ingest",)) -> ClientContext:
+def context(
+    *,
+    scopes: tuple[str, ...] = (
+        "source:ingest",
+        "agent:pack-control",
+        "agent:pack-read",
+        "blob:write",
+        "blob:read",
+        "connector:catalog-attest",
+        "admin:connector-pack",
+    ),
+) -> ClientContext:
     return ClientContext(
         principal="service:graph-os",
         tenant="tenant-a",
@@ -80,6 +101,72 @@ async def pack_import_authority(_connector: str) -> Any:
 
 
 PACK_AUTHORITY = cast(PackImportAuthorityResolver, pack_import_authority)
+
+
+def graph_session() -> GraphSession:
+    return GraphSession(
+        actor=ActorContext(
+            actor_id="service:graph-os",
+            actor_type=ActorType.AUTOMATED_SERVICE,
+            tenant_id="tenant-a",
+            authenticated=True,
+        ),
+        tenant="tenant-a",
+        scopes=frozenset(context().scopes),
+        graph="tenant-a:connectors",
+        audience="graph-os",
+        policy_version="policy-7",
+    )
+
+
+def test_mounted_runner_factory_requires_same_verified_session_and_authority(
+    tmp_path: Path,
+) -> None:
+    class Mounted:
+        def __init__(self, *, ready: bool) -> None:
+            self.ready = ready
+
+        def connector_pack_authority_ready(self) -> bool:
+            return self.ready
+
+        async def resolve_connector_pack_authority(self, connector: str) -> Any:
+            return await pack_import_authority(connector)
+
+    session = graph_session()
+    mounted = Mounted(ready=True)
+    with use_session(session):
+        composition = compose_mounted_connector_runner(
+            config(tmp_path),
+            session=session,
+            context=context(),
+            multiplexer=mounted,
+            credential_resolver=Resolver(),
+        )
+        assert composition._pack_import_authority.__self__ is mounted
+        with pytest.raises(ConnectorRunnerNotReadyError, match="mounted"):
+            compose_mounted_connector_runner(
+                config(tmp_path),
+                session=session,
+                context=context(),
+                multiplexer=Mounted(ready=False),
+                credential_resolver=Resolver(),
+            )
+        with pytest.raises(ConnectorRunnerNotReadyError, match="identity"):
+            compose_mounted_connector_runner(
+                config(tmp_path),
+                session=session,
+                context=ClientContext(
+                    principal="service:other",
+                    tenant="tenant-a",
+                    audience="epistemic-graph",
+                    agent_id="service:other",
+                    roles=("connector-runner",),
+                    scopes=context().scopes,
+                    policy_version="policy-7",
+                ),
+                multiplexer=mounted,
+                credential_resolver=Resolver(),
+            )
 
 
 @pytest.mark.parametrize(
@@ -149,16 +236,13 @@ async def test_injects_exact_authenticated_client_and_verified_context(
         }
     ]
     assert client.contexts == [verified.to_claims()]
-    assert built == [
-        {
-            "settings": settings,
-            "state_dir": tmp_path,
-            "sink_name": "epistemic_graph",
-            "sink_client": client,
-            "pack_import_authority": PACK_AUTHORITY,
-            "policy": None,
-        }
-    ]
+    assert len(built) == 1
+    assert built[0]["settings"] == settings
+    assert built[0]["state_dir"] == tmp_path
+    assert built[0]["sink_name"] == "epistemic_graph"
+    assert built[0]["sink_client"] is client
+    assert callable(built[0]["pack_import_authority"])
+    assert built[0]["policy"] is None
     await composition.close()
     assert client.closed is True
 
@@ -190,6 +274,23 @@ async def test_refuses_raw_claims_and_missing_ingest_scope_before_connect(
             context(scopes=("graph:read",)), RunnerSettings()
         ):
             pass
+    with pytest.raises(AuthorityError, match="agent:pack-control"):
+        async with composition.services(
+            context(scopes=("source:ingest",)), RunnerSettings()
+        ):
+            pass
+    # The remote runner is an importer. Catalog attestation belongs only to
+    # the mounted GraphOS process, never to this separate request principal.
+    authorized = context(
+        scopes=(
+            "source:ingest",
+            "agent:pack-control",
+            "agent:pack-read",
+            "blob:write",
+            "blob:read",
+        )
+    )
+    assert composition._verified_claims(authorized)["tenant"] == "tenant-a"
     assert calls == 0
 
 
@@ -243,9 +344,119 @@ async def test_tenant_graph_binding_is_not_reused_across_tenants(
         audience="epistemic-graph",
         agent_id="service:graph-os",
         roles=("connector-runner",),
-        scopes=("source:ingest",),
+        scopes=context().scopes,
         policy_version="policy-7",
     )
     with pytest.raises(AuthorityError, match="another tenant"):
         async with composition.services(other, RunnerSettings()):
             pass
+
+
+@pytest.mark.asyncio
+async def test_runner_entry_uses_verified_client_and_closes_pool(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import graph_os.connector_runner as module
+
+    runner_config = tmp_path / "runner.yml"
+    runner_config.write_text("connectors: []\n")
+    client = Client()
+    built: list[dict[str, Any]] = []
+
+    async def connect(**_kwargs: Any) -> Client:
+        return client
+
+    def services_factory(_settings: RunnerSettings, **kwargs: Any) -> Any:
+        built.append(kwargs)
+        return SimpleNamespace(sink=Sink())
+
+    async def run(argv: list[str], services: Any) -> int:
+        assert argv == ["--config", str(runner_config), "--log-format", "json", "--once"]
+        assert services.sink is not None
+        assert client.closed is False
+        return 0
+
+    monkeypatch.setattr(module, "run_with_services", run)
+    composition = ConnectorRunnerComposition(
+        config(tmp_path),
+        credential_resolver=Resolver(),
+        pack_import_authority=PACK_AUTHORITY,
+        connect=cast(ConnectClient, connect),
+        services_factory=services_factory,
+    )
+    assert (
+        await run_connector_sync(
+            runner_config, composition=composition, context=context(), once=True
+        )
+        == 0
+    )
+    assert built[0]["sink_client"] is client
+    assert callable(built[0]["pack_import_authority"])
+    assert client.closed is True
+
+
+def _binding(**changes: object) -> McpCatalogSnapshotBinding:
+    values: dict[str, object] = {
+        "configuration_revision": 7,
+        "catalog_generation": 11,
+        "child_connection_generation": 3,
+        "snapshot_digest": "a" * 64,
+        "authorization_scope_digest": "b" * 64,
+    }
+    values.update(changes)
+    return McpCatalogSnapshotBinding.model_validate(values)
+
+
+def _mutation(**changes: object) -> AgentLibraryMutationContext:
+    opaque_caller = (
+        "principal:sha256:" + hashlib.sha256(b"service:graph-os").hexdigest()
+    )
+    values: dict[str, object] = {
+        "request_id": 1,
+        "principal": "service:graph-os",
+        "caller_principal": opaque_caller,
+        "attempt_nonce": "07" * 32,
+        "tenant_id": "tenant-a",
+        "actor_scope": "agent:pack-control",
+        "purpose_id": "connector-import",
+        "policy_revision": "policy-7",
+        "policy_digest": "sha256:" + "c" * 64,
+        "policy_decision_id": "decision-1",
+        "idempotency_key": "connector-import-1",
+        "created_at_ms": 1_700_000_000_000,
+    }
+    values.update(changes)
+    return AgentLibraryMutationContext.model_validate(values)
+
+
+@pytest.mark.asyncio
+async def test_pack_authority_requires_exact_live_catalog_fields_and_identity(
+    tmp_path: Path,
+) -> None:
+    offered: list[object] = [(_binding(), _mutation())]
+
+    async def authority(_connector: str) -> Any:
+        return offered[0]
+
+    composition = ConnectorRunnerComposition(
+        config(tmp_path),
+        credential_resolver=Resolver(),
+        pack_import_authority=cast(PackImportAuthorityResolver, authority),
+    )
+    resolver = composition._bound_pack_authority(context())
+    assert await resolver("demo-agent") == offered[0]
+    for wrong in (
+        (_binding(configuration_revision=0), _mutation()),
+        (_binding(catalog_generation=0), _mutation()),
+        (_binding(child_connection_generation=0), _mutation()),
+        (_binding(snapshot_digest="0" * 64), _mutation()),
+        (_binding(authorization_scope_digest="0" * 64), _mutation()),
+        (_binding(), _mutation(tenant_id="other")),
+        (_binding(), _mutation(caller_principal="other")),
+        (_binding(), _mutation(caller_principal="service:graph-os")),
+        None,
+    ):
+        offered[0] = wrong
+        with pytest.raises(ConnectorRunnerNotReadyError, match="pack authority"):
+            await resolver("demo-agent")
+    await composition.close()
