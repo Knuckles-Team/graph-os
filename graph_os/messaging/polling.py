@@ -51,8 +51,8 @@ async def _serve(engine: Any, platforms: list[str], router_box: dict[str, Any]) 
     listener task later — without this coroutine needing to know anything
     about leases itself.
     """
+    from agent_utilities.api.messaging import create_planner_handler
     from agent_utilities.messaging.commands import command_specs
-    from agent_utilities.messaging.router import create_planner_handler
 
     from graph_os.messaging.router import InboundRouter
     from graph_os.messaging.service import MessagingService

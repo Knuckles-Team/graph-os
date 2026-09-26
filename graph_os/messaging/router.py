@@ -185,15 +185,15 @@ class InboundRouter:
                     backend = self._backend_for(str(m.get("platform", "")))
                     if backend is None:
                         return False
-                    from agent_utilities.messaging.router import _graph_agent_reply
+                    from agent_utilities.api.messaging import graph_agent_reply
 
-                    reply = await _graph_agent_reply(
+                    reply = await graph_agent_reply(
                         _eng, m.get("text", ""), session=m.get("session", "")
                     )
                     if not reply:
                         return False
-                    await backend.send_message(m.get("channel_id", ""), reply)
-                    return True
+                    result = await backend.send_message(m.get("channel_id", ""), reply)
+                    return bool(result.success)
 
                 await retry_unanswered(engine, _reply_send)
             except Exception as e:  # noqa: BLE001 — the reaper must survive any single pass

@@ -303,8 +303,8 @@ async def test_au_planner_reply_uses_graphos_service_port(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A pending elicitation reply reaches the one GraphOS service instance."""
+    from agent_utilities.api.messaging import create_planner_handler
     from agent_utilities.messaging import reach_port
-    from agent_utilities.messaging.router import create_planner_handler
 
     engine = _FakeEngine()
     service = MessagingService(engine)
