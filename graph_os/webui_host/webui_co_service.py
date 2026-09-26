@@ -42,7 +42,7 @@ import threading
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
-from graph_os.identity.ports import ServedIdentityFactory
+from graph_os.identity.ports import ServedIdentityPort
 
 __all__ = ["compose_web_application", "run_web_ui"]
 
@@ -111,8 +111,7 @@ async def _serve_until_stopped(
 def run_web_ui(
     stop_event: threading.Event,
     *,
-    identity_factory: ServedIdentityFactory,
-    graph_client: Callable[[str], Any],
+    identity: ServedIdentityPort,
     engine_factory: Callable[[], Any],
     host: str | None = None,
     port: int | None = None,
@@ -222,7 +221,6 @@ def run_web_ui(
     )
     # The identity broker owns every browser credential: /auth/*, sessions,
     # API keys and the none-mode bootstrap principal (graph_os.identity).
-    identity = identity_factory(graph_client)
     app = create_agent_web_app(
         agent,
         workspace_helpers=helpers,

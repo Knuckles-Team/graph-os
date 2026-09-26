@@ -149,8 +149,8 @@ class AdminResetToken(StrictModel):
 
 _HANDLER = "graph_os.identity.admin_service.execute_identity_op"
 
-# Search, per-session revoke and key listing depend on the EG identity-ops lane.
-# SCIM-client management remains unavailable until EG defines a real operation.
+# These declarations stay dormant until the EG identity-ops contract and the
+# MCPI-01/03 registry and invoke path are composed into the served runtime.
 _OPERATIONS: tuple[tuple[str, type[BaseModel], type[BaseModel], bool], ...] = (
     ("identity.users.list", Page, Collection, True),
     ("identity.users.search", Search, Collection, True),
@@ -190,7 +190,7 @@ _OPERATIONS: tuple[tuple[str, type[BaseModel], type[BaseModel], bool], ...] = (
 
 
 def specs() -> tuple[Any, ...]:
-    """Build OpSpec records when the shared MCPI-03 registry is present."""
+    """Build OpSpec records when the shared MCPI-01 registry is present."""
     from graph_os.api.registry import (
         AuditClass,
         Composite,

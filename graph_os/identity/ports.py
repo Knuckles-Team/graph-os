@@ -10,6 +10,3 @@ class ServedIdentityPort(Protocol):
     async def prepare(self, bind_hosts: Iterable[str]) -> str | None: ...
 
     def webui_session_boundary(self) -> Callable[[Any], None]: ...
-
-
-ServedIdentityFactory = Callable[[Callable[[str], Any]], ServedIdentityPort]

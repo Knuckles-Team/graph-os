@@ -91,7 +91,11 @@ def specs() -> tuple[Any, ...]:
             result=result,
             binding=Composite(handler=_HANDLER),
             executor=Executor.CALLER,
-            scopes=frozenset({"identity:read" if read else "identity:admin"}),
+            scopes=(
+                frozenset({"identity:read", "security:audit"})
+                if op_id.startswith("identity.audit.")
+                else frozenset({"identity:read" if read else "identity:admin"})
+            ),
             effect=Effect.READ if read else Effect.ADMIN,
             principals=PrincipalRule.ANY if read else PrincipalRule.HUMAN_UNDELEGATED,
             confirm=Confirm.NONE if read else Confirm.CONSOLE,

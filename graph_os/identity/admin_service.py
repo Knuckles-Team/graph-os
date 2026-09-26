@@ -262,14 +262,17 @@ async def execute_identity_op(context: Any, params: Mapping[str, Any], op: Any) 
     tenant-bound EG client. Mode transitions and explicit issuer rotations use
     the identity broker to rotate signing keys before recording the EG change.
     """
+    caller_session = context.caller.session
+    if caller_session is None:
+        raise IdentityUnavailable("identity administration requires a verified caller")
     if op.id in {"identity.mode.transition", "identity.issuer.rotate"}:
         broker = context.services.get("identity")
         if broker is None:
             raise IdentityUnavailable("identity broker is unavailable")
         if op.id == "identity.issuer.rotate":
-            return await _rotate_issuer(broker, context.caller.session)
+            return await _rotate_issuer(broker, caller_session)
         return await broker.transition(
-            context.caller.session,
+            caller_session,
             params["to"],
             ack=params.get("ack"),
             local_fallback=params.get("local_fallback"),
@@ -277,12 +280,12 @@ async def execute_identity_op(context: Any, params: Mapping[str, Any], op: Any) 
     engine = EngineIdentityPort(lambda _tenant: context.client, lambda: None)
     service = IdentityAdminService(engine)
     if op.id == "identity.users.admin_reset":
-        return await service.admin_reset(context.caller.session, params["principal_id"])
+        return await service.admin_reset(caller_session, params["principal_id"])
     if op.id == "identity.idps.mapping_dry_run":
         return await service.mapping_dry_run(
-            context.caller.session, params["idp_id"], params["claims"]
+            caller_session, params["idp_id"], params["claims"]
         )
-    return await service.execute(op.id, context.caller.session, params)
+    return await service.execute(op.id, caller_session, params)
 
 
 async def _rotate_issuer(broker: Any, caller_session: Any) -> Any:

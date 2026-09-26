@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
+import sys
+from types import ModuleType, SimpleNamespace
 from typing import Any
 
 import pytest
@@ -10,11 +11,28 @@ import pytest
 from graph_os.identity import admin_service
 from graph_os.identity.admin_service import IdentityAdminService
 from graph_os.identity.engine import (
+    EngineIdentityPort,
     IdentityCall,
     IdentityRefused,
     IdentityReply,
     IdentityUnavailable,
 )
+
+
+@pytest.mark.asyncio
+async def test_missing_generated_identity_contract_refuses_before_client_use(
+    monkeypatch: Any,
+) -> None:
+    monkeypatch.setitem(
+        sys.modules, "epistemic_graph.generated.security", ModuleType("security")
+    )
+    port = EngineIdentityPort(
+        lambda _tenant: pytest.fail("missing contract must not open a client"),
+        lambda: None,
+    )
+    session = SimpleNamespace(tenant="tenant-a")
+    with pytest.raises(IdentityUnavailable, match="no identity operation"):
+        await port.as_caller(session, IdentityCall("user", "list"))
 
 
 class Engine:
@@ -184,6 +202,38 @@ async def test_mode_transition_uses_broker_for_issuer_rotation() -> None:
     )
     assert result["mode"] == "local"
     assert broker.calls == [(caller_session, "local", None, "break_glass")]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "op_id", ["identity.mode.transition", "identity.issuer.rotate"]
+)
+async def test_broker_operations_refuse_missing_verified_caller_before_side_effects(
+    op_id: str,
+) -> None:
+    events: list[str] = []
+
+    class Broker:
+        issuer = SimpleNamespace(rotate=lambda _retirement: events.append("rotate"))
+
+        async def config(self, *, fresh: bool) -> dict[str, int]:
+            events.append("config")
+            return {"epoch": 1}
+
+        async def transition(self, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            events.append("transition")
+            return {"mode": "local"}
+
+    context = SimpleNamespace(
+        services={"identity": Broker()}, caller=SimpleNamespace(session=None)
+    )
+    with pytest.raises(IdentityUnavailable, match="verified caller"):
+        await admin_service.execute_identity_op(
+            context,
+            {"to": "local"},
+            SimpleNamespace(id=op_id),
+        )
+    assert events == []
 
 
 @pytest.mark.asyncio

@@ -244,8 +244,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     monkeypatch.delenv(module.ACCESS_LOG_POLICY_ENV, raising=False)
     module.run_web_ui(
         stop_event,
-        identity_factory=lambda client_for: ServedIdentity(),
-        graph_client=runtime.graph_client,
+        identity=ServedIdentity(),
         engine_factory=runtime._get_engine,
         host="0.0.0.0",
         port=8181,

@@ -194,10 +194,14 @@ class EngineIdentityPort:
         return await self._send(session, call)
 
     async def _send(self, session: Any, call: IdentityCall) -> IdentityReply:
-        from epistemic_graph.generated.security import send_identity
-
         if session is None:
             raise IdentityUnavailable("no verified session for the identity store")
+        try:
+            from epistemic_graph.generated.security import send_identity
+        except ImportError as exc:
+            raise IdentityUnavailable(
+                "the installed engine contract has no identity operation"
+            ) from exc
         client = self._client_for(str(session.tenant))
         try:
             with client.use_verified_context(session.engine_verified_context()):

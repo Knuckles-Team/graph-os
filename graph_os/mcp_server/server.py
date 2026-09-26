@@ -340,11 +340,12 @@ def mcp_server() -> None:
                 from graph_os.identity.serving import served_webui_identity
                 from graph_os.webui_host import run_web_ui
 
+                identity = served_webui_identity(runtime.graph_client)
+
                 def run_served_webui(stop_event: Any) -> None:
                     run_web_ui(
                         stop_event,
-                        identity_factory=served_webui_identity,
-                        graph_client=runtime.graph_client,
+                        identity=identity,
                         engine_factory=runtime._get_engine,
                     )
 
