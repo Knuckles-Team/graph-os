@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any, Literal, cast
+
+from pydantic import BaseModel, ValidationError
 
 from graph_os.api.registry import EgSchemaRef, PrincipalRule
-from pydantic import BaseModel, ValidationError
 
 FORBIDDEN_AUTHORITY = frozenset({"_actor", "_roles", "_tenant", "principal", "tenant"})
 FORBIDDEN_OWNER = frozenset({"owner", "owner_ref"})
@@ -61,6 +62,7 @@ class VerifiedCaller:
 class OpError:
     code: str
     details: Mapping[str, Any] = field(default_factory=dict)
+    source: Literal["graphos", "engine"] = "graphos"
 
 
 @dataclass(frozen=True, slots=True)

@@ -37,6 +37,7 @@ class OperationReply:
     code: str = "OK"
     details: Mapping[str, Any] | None = None
     refused: bool = False
+    source: str = "graphos"
 
 
 CallerResolver = Callable[[], Any]
@@ -173,5 +174,10 @@ class OperationProjection:
                 code=code,
             )
         if code != "OK":
-            return OperationReply(code=code, details=details, refused=True)
+            return OperationReply(
+                code=code,
+                details=details,
+                refused=True,
+                source=getattr(result, "source", "graphos"),
+            )
         return OperationReply(value=result.value)
