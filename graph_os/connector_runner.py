@@ -38,6 +38,17 @@ __all__ = [
 ]
 
 SOURCE_INGEST_SCOPE = "source:ingest"
+_PACK_SCOPES = (
+    "agent:pack-read",
+    "agent:pack-control",
+    "blob:write",
+    "blob:read",
+)
+
+
+def _require_pack_scopes(context: ClientContext) -> None:
+    for scope in _PACK_SCOPES:
+        context.require_scope(scope)
 
 
 class ConnectorRunnerNotReadyError(RuntimeError):
@@ -123,6 +134,7 @@ class ConnectorRunnerComposition:
         if not isinstance(context, ClientContext):
             raise TypeError("connector runner requires a verified ClientContext")
         context.require_scope(SOURCE_INGEST_SCOPE)
+        _require_pack_scopes(context)
         return validate_request_context(context.to_claims())
 
     @asynccontextmanager

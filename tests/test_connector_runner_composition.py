@@ -63,7 +63,16 @@ def config(tmp_path: Path, **overrides: object) -> ConnectorRunnerConfig:
     return ConnectorRunnerConfig(**values)  # type: ignore[arg-type]
 
 
-def context(*, scopes: tuple[str, ...] = ("source:ingest",)) -> ClientContext:
+def context(
+    *,
+    scopes: tuple[str, ...] = (
+        "source:ingest",
+        "agent:pack-read",
+        "agent:pack-control",
+        "blob:write",
+        "blob:read",
+    ),
+) -> ClientContext:
     return ClientContext(
         principal="service:graph-os",
         tenant="tenant-a",
@@ -194,6 +203,40 @@ async def test_refuses_raw_claims_and_missing_ingest_scope_before_connect(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "missing_scope",
+    (
+        "source:ingest",
+        "agent:pack-read",
+        "agent:pack-control",
+        "blob:write",
+        "blob:read",
+    ),
+)
+async def test_refuses_missing_pack_or_blob_scope_before_connect(
+    tmp_path: Path, missing_scope: str
+) -> None:
+    calls = 0
+
+    async def connect(**_kwargs: Any) -> Client:
+        nonlocal calls
+        calls += 1
+        return Client()
+
+    composition = ConnectorRunnerComposition(
+        config(tmp_path),
+        credential_resolver=Resolver(),
+        pack_import_authority=PACK_AUTHORITY,
+        connect=cast(ConnectClient, connect),
+    )
+    granted = tuple(scope for scope in context().scopes if scope != missing_scope)
+    with pytest.raises(AuthorityError, match=missing_scope):
+        async with composition.services(context(scopes=granted), RunnerSettings()):
+            pass
+    assert calls == 0
+
+
+@pytest.mark.asyncio
 async def test_refuses_unready_injected_sink_without_fallback(tmp_path: Path) -> None:
     async def connect(**_kwargs: Any) -> Client:
         return Client()
@@ -243,7 +286,7 @@ async def test_tenant_graph_binding_is_not_reused_across_tenants(
         audience="epistemic-graph",
         agent_id="service:graph-os",
         roles=("connector-runner",),
-        scopes=("source:ingest",),
+        scopes=context().scopes,
         policy_version="policy-7",
     )
     with pytest.raises(AuthorityError, match="another tenant"):
