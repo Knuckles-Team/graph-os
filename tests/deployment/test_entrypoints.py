@@ -20,6 +20,7 @@ def test_host_deployment_scripts_point_to_graph_os_modules() -> None:
         "agent-utilities-doctor": "graph_os.deployment.doctor:main",
         "agent-utilities-venv": "graph_os.deployment.venv_sync:main",
         "graph-os": "graph_os.mcp_server.server:mcp_server",
+        "graph-os-connector-sync": "graph_os.connector_sync_entrypoint:main",
         "graph-os-daemon": "graph_os.gateway.daemon:main",
         "graph-os-production-ops": "graph_os.deployment.production_ops:main",
         "graph-os-release-canary": "graph_os.deployment.release_canary:main",
@@ -30,6 +31,7 @@ def test_host_deployment_scripts_point_to_graph_os_modules() -> None:
 def test_release_canary_checks_the_same_direct_entrypoints() -> None:
     assert release_canary._ENTRY_POINTS == {
         "graph-os": "graph_os.mcp_server.server:mcp_server",
+        "graph-os-connector-sync": "graph_os.connector_sync_entrypoint:main",
         "agent-utilities-doctor": "graph_os.deployment.doctor:main",
     }
 
