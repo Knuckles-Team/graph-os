@@ -6080,6 +6080,14 @@ def _ops_caller() -> _typing.Any:
         or not caller.authenticated
     ):
         raise _fastmcp_exceptions.ToolError("MCP fleet caller identity mismatch")
+    from graph_os.api.host_bootstrap import require_process_tenant
+
+    try:
+        require_process_tenant(caller)
+    except PermissionError as exc:
+        raise _fastmcp_exceptions.ToolError(
+            "Verified GraphOS fleet caller unavailable"
+        ) from exc
     return caller
 
 

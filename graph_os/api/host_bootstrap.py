@@ -14,6 +14,14 @@ from graph_os.api.policy import PolicyGate
 from graph_os.api.serving import RuntimeAuthorities, configure_runtime_authorities
 from graph_os.fleet.catalog_sources import SdkRead
 
+_PROCESS_TENANT: str | None = None
+
+
+def require_process_tenant(caller: Any) -> None:
+    """Reject a caller outside the tenant of this process's catalog readers."""
+    if _PROCESS_TENANT is None or getattr(caller, "tenant", None) != _PROCESS_TENANT:
+        raise PermissionError("served catalog has no authority for caller tenant")
+
 
 @dataclass(frozen=True, slots=True)
 class HostRuntimeInputs:
@@ -37,6 +45,8 @@ class HostRuntimeInputs:
     bindings: Mapping[str, Any]
     policy_gate: PolicyGate | None = None
     fleet_reader: Any = None
+    process_session: Any = None
+    transport: str | None = None
 
 
 class _ProcessControlLeases:
@@ -85,6 +95,7 @@ def verified_process_inputs(
     bindings: Mapping[str, Any],
     policy_gate: PolicyGate | None = None,
     fleet_reader: Any = None,
+    transport: str | None = None,
 ) -> HostRuntimeInputs:
     """Derive service and EG ports only from a current process credential.
 
@@ -142,6 +153,8 @@ def verified_process_inputs(
         bindings=bindings,
         policy_gate=policy_gate,
         fleet_reader=fleet_reader,
+        process_session=session,
+        transport=transport,
     )
 
 
@@ -149,6 +162,7 @@ def compose_process_host_inputs(
     session: Any,
     *,
     identity_mode: str,
+    transport: str,
     fleet_reader: Any,
     sdk_entries: SdkRead,
     bindings: Mapping[str, Any],
@@ -172,7 +186,10 @@ def compose_process_host_inputs(
         config, identity_mode, configured_mode=setting("EUNOMIA_TYPE")
     )
     fleet = compose_fleet_host_ports(
-        reader=fleet_reader, sdk_entries=sdk_entries, policy_gate=policy
+        reader=fleet_reader,
+        sdk_entries=sdk_entries,
+        policy_gate=policy,
+        tenant_id=session.engine_verified_context()["tenant"],
     )
     return verified_process_inputs(
         session,
@@ -184,6 +201,7 @@ def compose_process_host_inputs(
         bindings=bindings,
         policy_gate=policy,
         fleet_reader=fleet_reader,
+        transport=transport,
     )
 
 
@@ -233,4 +251,9 @@ def host_runtime_authorities(inputs: HostRuntimeInputs) -> RuntimeAuthorities:
 def configure_host_runtime(inputs: HostRuntimeInputs) -> None:
     """Install one verified host bundle before ``mcp_server`` starts serving."""
 
+    claims = inputs.process_session.engine_verified_context()
+    if claims.get("principal") != "svc:graph-os" or not claims.get("tenant"):
+        raise PermissionError("verified graph-os process authority is required")
     configure_runtime_authorities(host_runtime_authorities(inputs))
+    global _PROCESS_TENANT
+    _PROCESS_TENANT = str(claims["tenant"])

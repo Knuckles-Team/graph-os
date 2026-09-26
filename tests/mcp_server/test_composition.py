@@ -107,7 +107,7 @@ def test_gateway_adapter_satisfies_runtime_protocol() -> None:
 
 def test_console_script_targets_native_serving_entrypoint() -> None:
     pyproject = Path(__file__).parents[2] / "pyproject.toml"
-    assert 'graph-os = "graph_os.mcp_server.server:mcp_server"' in pyproject.read_text()
+    assert 'graph-os = "graph_os.mcp_server.served:main"' in pyproject.read_text()
 
 
 def test_graphos_runtime_shapes_use_connector_content_contract() -> None:

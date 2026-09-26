@@ -202,6 +202,7 @@ def test_process_host_composition_shares_policy_and_verified_fleet(
     inputs = host_bootstrap.compose_process_host_inputs(
         session,
         identity_mode="oidc",
+        transport="streamable-http",
         fleet_reader=reader,
         sdk_entries=sdk_entries,
         bindings={},

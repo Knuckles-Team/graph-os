@@ -22,7 +22,10 @@ async def test_fleet_host_refuses_before_attach_and_binds_once() -> None:
         return ()
 
     ports = compose_fleet_host_ports(
-        reader=Reader(), sdk_entries=sdk_entries, policy_gate=PolicyGate("none")
+        reader=Reader(),
+        sdk_entries=sdk_entries,
+        policy_gate=PolicyGate("none"),
+        tenant_id="tenant-a",
     )
     caller = SimpleNamespace(
         effective_scopes=frozenset({"mcp:discover"}),
@@ -54,6 +57,11 @@ async def test_fleet_host_refuses_before_attach_and_binds_once() -> None:
         "items": [],
         "next_cursor": None,
     }
+    other_tenant = SimpleNamespace(**{**vars(caller), "tenant": "tenant-b"})
+    with pytest.raises(PermissionError, match="no authority"):
+        await ports.search(caller=other_tenant, query="check")
+    with pytest.raises(PermissionError, match="no authority"):
+        await ports.gateway.status(other_tenant)
     assert ops is not None
     with pytest.raises(RuntimeError, match="already attached"):
         ports.ops_factory(mux, mount, notify, lambda item: item.name)
@@ -65,13 +73,17 @@ def test_fleet_host_requires_real_reader_sdk_and_policy() -> None:
 
     with pytest.raises(ValueError, match="EG fleet catalog"):
         compose_fleet_host_ports(
-            reader=None, sdk_entries=sdk_entries, policy_gate=PolicyGate("none")
+            reader=None,
+            sdk_entries=sdk_entries,
+            policy_gate=PolicyGate("none"),
+            tenant_id="tenant-a",
         )
     with pytest.raises(ValueError, match="SDK pack reader"):
         compose_fleet_host_ports(
             reader=SimpleNamespace(read=lambda: None),
             sdk_entries=None,
             policy_gate=PolicyGate("none"),
+            tenant_id="tenant-a",
         )
 
 

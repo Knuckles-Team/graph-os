@@ -20,11 +20,13 @@ def test_resident_caller_keeps_verified_policy_claims(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Resident tools receive the same complete caller as governed op invoke."""
+    from graph_os.api import host_bootstrap
     from graph_os.fleet import multiplexer
     from graph_os.fleet.fleet_authority import FleetCaller
     from graph_os.mcp_server import runtime
 
     caller = _caller("admin")
+    monkeypatch.setattr(host_bootstrap, "_PROCESS_TENANT", caller.tenant)
     fleet_caller = FleetCaller(
         subject=caller.principal,
         client_id=caller.principal,
@@ -42,6 +44,11 @@ def test_resident_caller_keeps_verified_policy_claims(
     assert multiplexer._ops_caller() is caller
     assert multiplexer._ops_caller().policy_revision == "fixture-rev-1"
     assert multiplexer._ops_caller().engine_claims["principal"] == caller.principal
+
+    monkeypatch.setattr(host_bootstrap, "_PROCESS_TENANT", "different-tenant")
+    with pytest.raises(Exception, match="caller unavailable"):
+        multiplexer._ops_caller()
+    monkeypatch.setattr(host_bootstrap, "_PROCESS_TENANT", caller.tenant)
 
     mismatched = replace(caller, tenant="different-tenant")
     monkeypatch.setattr(
