@@ -191,9 +191,9 @@ class IdentityBroker:
             IdentityCall("credential", "authenticate", request)
         )
         sign_in = SignIn.parse(reply.expect("authenticate"))
-        # Only these outcomes open a session (``mfa_required`` opens one that
-        # still owes its second factor); every other outcome opened nothing.
-        opened = sign_in.outcome in {"ok", "mfa_required"}
+        # Enrollment-required also opens a restricted pending session in EG;
+        # the browser needs its cookie to register a factor before verifying it.
+        opened = sign_in.outcome in {"ok", "mfa_required", "mfa_enrollment_required"}
         return OpenedSession(sign_in, token if opened else None)
 
     async def bootstrap_session(self) -> str:
