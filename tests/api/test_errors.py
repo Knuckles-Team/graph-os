@@ -182,6 +182,15 @@ def test_invocation_preserves_typed_engine_code_across_surfaces() -> None:
         to_envelope(InvokeError("NOT_IN_CONTRACT", source="engine"), **CONTEXT)
 
 
+def test_stale_route_is_a_retryable_engine_refusal() -> None:
+    status, envelope = to_envelope(
+        InvokeError("STALE_ROUTE", source="engine"), **CONTEXT
+    )
+    assert status == 503
+    assert envelope["error"]["retryable"] is True
+    assert envelope["error"]["source"] == "engine"
+
+
 def test_graphos_details_are_allowlisted() -> None:
     _, envelope = to_envelope(
         GraphOSRefusal(
