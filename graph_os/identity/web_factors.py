@@ -1,10 +1,9 @@
 """Second factors, API keys, administrator resets and the issuer endpoints.
 
-MFA is OPTIONAL for every user (operator ruling 2026-09-24): enrolment is
-self-service from a signed-in session, and a sign-in only owes a second factor
-once the user confirmed one. A sign-in the engine answers with
-``mfa_enrollment_required`` opened no session. WebAuthn ceremonies verify
-browser evidence before passing public credentials to the engine.
+MFA is self-service for ordinary users. A privileged account whose group
+requires MFA gets a restricted pending session until it enrolls and verifies
+a factor. WebAuthn ceremonies verify browser evidence before passing public
+credentials to the engine.
 """
 
 from __future__ import annotations

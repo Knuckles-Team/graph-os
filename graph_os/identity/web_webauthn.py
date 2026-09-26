@@ -9,11 +9,13 @@ trusted. The issuer URL is the relying party's configured origin.
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import json
 import secrets
 import time
 from collections import OrderedDict
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
@@ -62,11 +64,42 @@ def _origin(issuer: str) -> tuple[str, str]:
     return f"{parsed.scheme}://{parsed.netloc}", hostname
 
 
+def _credential_row(value: Any) -> dict[str, Any]:
+    """Refuse malformed engine material before passing it to a WebAuthn helper."""
+    if not isinstance(value, Mapping):
+        raise RouteError(503, "webauthn_credentials_invalid")
+    credential_id = value.get("credential_id")
+    public_key = value.get("public_key_cose")
+    count = value.get("sign_count")
+    if (
+        not isinstance(credential_id, str)
+        or not 0 < len(credential_id) <= 1024
+        or not isinstance(public_key, str)
+        or not 0 < len(public_key) <= 16384
+        or isinstance(count, bool)
+        or not isinstance(count, int)
+        or not 0 <= count <= 0xFFFFFFFF
+    ):
+        raise RouteError(503, "webauthn_credentials_invalid")
+    library = _library()
+    try:
+        decoded_id = library.base64url_to_bytes(credential_id)
+        if not decoded_id or _b64(decoded_id) != credential_id:
+            raise ValueError("empty credential ID")
+        decoded_key = library.base64url_to_bytes(public_key)
+        if not decoded_key or _b64(decoded_key) != public_key:
+            raise ValueError("empty public key")
+    except (binascii.Error, ValueError, TypeError):
+        raise RouteError(503, "webauthn_credentials_invalid") from None
+    return dict(value)
+
+
 @dataclass(frozen=True)
 class _Challenge:
     value: bytes
     expires: float
     principal_id: str
+    origin: str
 
 
 class WebauthnCeremonies:
@@ -80,7 +113,9 @@ class WebauthnCeremonies:
     def _key(self, session: str, purpose: str) -> tuple[str, str]:
         return hashlib.sha256(session.encode()).hexdigest(), purpose
 
-    def _issue(self, session: str, purpose: str, principal_id: str) -> bytes:
+    def _issue(
+        self, session: str, purpose: str, principal_id: str, origin: str
+    ) -> bytes:
         now = time.monotonic()
         for key, state in tuple(self._challenges.items()):
             if state.expires <= now:
@@ -89,34 +124,55 @@ class WebauthnCeremonies:
             self._challenges.popitem(last=False)
         value = secrets.token_bytes(32)
         self._challenges[self._key(session, purpose)] = _Challenge(
-            value, now + _CHALLENGE_TTL, principal_id
+            value, now + _CHALLENGE_TTL, principal_id, origin
         )
         return value
 
-    def _consume(self, session: str, purpose: str, principal_id: str) -> bytes:
+    def _consume(
+        self, session: str, purpose: str, principal_id: str, origin: str
+    ) -> bytes:
         state = self._challenges.pop(self._key(session, purpose), None)
         if state is None or state.expires <= time.monotonic():
             raise RouteError(400, "webauthn_challenge_expired")
         if state.principal_id != principal_id:
             raise RouteError(403, "webauthn_principal_changed")
+        if state.origin != origin:
+            raise RouteError(409, "webauthn_origin_changed")
         return state.value
 
     async def _credentials(self, session: str) -> list[dict[str, Any]]:
         values = await self._broker.webauthn_credentials(session)
         if not isinstance(values, list):
             raise RouteError(503, "webauthn_credentials_invalid")
-        return values
+        credentials = []
+        seen = set()
+        for value in values:
+            credential = _credential_row(value)
+            if credential["credential_id"] in seen:
+                raise RouteError(503, "webauthn_credentials_invalid")
+            seen.add(credential["credential_id"])
+            credentials.append(credential)
+        return credentials
+
+    async def _registration_caller(self, request: Request) -> Any:
+        caller = await caller_of(self._admission, request, pending_ok=True)
+        resolution = caller.resolution
+        if resolution.session_mfa_pending and (
+            not resolution.mfa_required or resolution.mfa_enrolled
+        ):
+            raise RouteError(401, "second_factor_required")
+        return caller
 
     async def register(self, request: Request) -> Response:
-        caller = await caller_of(self._admission, request)
+        caller = await self._registration_caller(request)
         library = _library()
-        _, rp_id = _origin(self._broker.issuer.settings.issuer)
+        origin, rp_id = _origin(self._broker.issuer.settings.issuer)
         credentials = await self._credentials(caller.session_token)
         from webauthn.helpers import options_to_json
         from webauthn.helpers.structs import PublicKeyCredentialDescriptor
 
         challenge = self._issue(
-            caller.session_token, "register", caller.resolution.principal_id
+            caller.session_token, "register", caller.resolution.principal_id, origin
         )
         options = library.generate_registration_options(
             rp_id=rp_id,
@@ -136,19 +192,19 @@ class WebauthnCeremonies:
         )
 
     async def register_complete(self, request: Request) -> Response:
-        caller = await caller_of(self._admission, request)
+        caller = await self._registration_caller(request)
         body = await json_body(request)
         credential = body.get("credential")
         if not isinstance(credential, dict):
             raise RouteError(400, "credential_invalid")
         name = string_field(body, "name")
+        origin, rp_id = _origin(self._broker.issuer.settings.issuer)
         challenge = self._consume(
-            caller.session_token, "register", caller.resolution.principal_id
+            caller.session_token, "register", caller.resolution.principal_id, origin
         )
         library = _library()
         from webauthn.helpers.exceptions import WebAuthnException
 
-        origin, rp_id = _origin(self._broker.issuer.settings.issuer)
         try:
             result = library.verify_registration_response(
                 credential=credential,
@@ -185,7 +241,7 @@ class WebauthnCeremonies:
         if not caller.resolution.session_mfa_pending:
             raise RouteError(409, "webauthn_not_pending")
         library = _library()
-        _, rp_id = _origin(self._broker.issuer.settings.issuer)
+        origin, rp_id = _origin(self._broker.issuer.settings.issuer)
         credentials = await self._credentials(caller.session_token)
         if not credentials:
             raise RouteError(409, "webauthn_not_enrolled")
@@ -196,7 +252,10 @@ class WebauthnCeremonies:
         )
 
         challenge = self._issue(
-            caller.session_token, "authenticate", caller.resolution.principal_id
+            caller.session_token,
+            "authenticate",
+            caller.resolution.principal_id,
+            origin,
         )
         options = library.generate_authentication_options(
             rp_id=rp_id,
@@ -224,13 +283,13 @@ class WebauthnCeremonies:
         credential_id = credential.get("id")
         if not isinstance(credential_id, str):
             raise RouteError(400, "credential_invalid")
+        origin, rp_id = _origin(self._broker.issuer.settings.issuer)
         challenge = self._consume(
-            caller.session_token, "authenticate", caller.resolution.principal_id
+            caller.session_token, "authenticate", caller.resolution.principal_id, origin
         )
         library = _library()
         from webauthn.helpers.exceptions import WebAuthnException
 
-        origin, rp_id = _origin(self._broker.issuer.settings.issuer)
         credentials = await self._credentials(caller.session_token)
         stored = next(
             (row for row in credentials if row["credential_id"] == credential_id), None

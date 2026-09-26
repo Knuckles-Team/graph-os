@@ -213,3 +213,40 @@ def test_unknown_step_and_missing_session_refuse() -> None:
     assert served.post("/auth/mfa/webauthn/unknown").status_code == 404
     served.session = None
     assert served.post("/auth/mfa/webauthn/register").status_code == 401
+
+
+def test_malformed_engine_credentials_refuse_registration_options() -> None:
+    served = _served()
+    admin = next(
+        user for user in served.store.users.values() if user.username == "root"
+    )
+    admin.webauthn["broken"] = {"credential_id": "broken"}
+    response = served.post("/auth/mfa/webauthn/register")
+    assert response.status_code == 503
+    assert response.json()["error"] == "webauthn_credentials_invalid"
+
+
+def test_duplicate_engine_credentials_refuse_pending_authentication() -> None:
+    served = _served()
+    key = ec.generate_private_key(ec.SECP256R1())
+    begin = served.post("/auth/mfa/webauthn/register")
+    assert (
+        served.post(
+            "/auth/mfa/webauthn/register-complete",
+            {
+                "name": "test passkey",
+                "credential": _credential(key, begin.json()["challenge"]),
+            },
+        ).status_code
+        == 201
+    )
+    served.session = None
+    assert served.post("/auth/login", ADMIN).json()["outcome"] == "mfa_required"
+    admin = next(
+        user for user in served.store.users.values() if user.username == "root"
+    )
+    admin.webauthn["duplicate"] = dict(admin.webauthn[next(iter(admin.webauthn))])
+    response = served.post("/auth/mfa/webauthn/authenticate")
+    assert response.status_code == 503
+    assert response.json()["error"] == "webauthn_credentials_invalid"
+    assert served.get("/api/echo").status_code == 401
