@@ -130,7 +130,7 @@ class OperationProjection:
         if method == PLAN_CONFIRM and (
             caller.principal_kind != "human" or caller.delegated
         ):
-            return OperationReply(code="FORBIDDEN", refused=True)
+            return OperationReply(code="PRINCIPAL_NOT_ALLOWED", refused=True)
 
         if isinstance(parsed, _TaskConfirmParams):
             if task_service is None or getattr(caller, "session", None) is None:

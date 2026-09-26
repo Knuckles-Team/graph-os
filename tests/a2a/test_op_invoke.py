@@ -172,7 +172,7 @@ async def test_plan_confirm_rejects_nonhuman_or_delegated_caller(
         "graphos.plan/confirm", {"plan_ref": "p1", "op": "op", "params": {}}
     )
     assert answer.refused is True
-    assert answer.code == "FORBIDDEN"
+    assert answer.code == "PRINCIPAL_NOT_ALLOWED"
     assert calls == []
 
 
