@@ -167,6 +167,52 @@ def test_process_ports_reject_non_service_authority(
         )
 
 
+def test_process_host_composition_shares_policy_and_verified_fleet(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from agent_utilities.core import config as config_module
+
+    from graph_os.fleet.catalog_reader import DeferredFleetCatalogReader
+    from graph_os.fleet.gateway_ops import FleetGateway
+    from graph_os.mcp_server import runtime
+
+    gate = PolicyGate("none")
+    monkeypatch.setattr(
+        PolicyGate,
+        "from_config",
+        classmethod(lambda cls, *args, **kwargs: gate),
+    )
+    monkeypatch.setattr(config_module, "setting", lambda key: "none")
+    monkeypatch.setattr(
+        runtime,
+        "graph_client",
+        lambda tenant: SimpleNamespace(use_verified_context=lambda claims: None),
+    )
+    session = SimpleNamespace(
+        engine_verified_context=lambda: {
+            "principal": "svc:graph-os",
+            "tenant": "tenant-a",
+            "scopes": ["mcp:discover"],
+        }
+    )
+    reader = DeferredFleetCatalogReader()
+
+    async def sdk_entries():
+        return ()
+
+    inputs = host_bootstrap.compose_process_host_inputs(
+        session,
+        identity_mode="oidc",
+        fleet_reader=reader,
+        sdk_entries=sdk_entries,
+        bindings={},
+    )
+    assert inputs.policy_gate is gate
+    assert isinstance(inputs.fleet_gateway, FleetGateway)
+    assert callable(inputs.fleet_search)
+    assert callable(inputs.fleet_ops_factory)
+
+
 def test_mcp_entrypoint_registers_host_before_serving(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -204,3 +250,7 @@ def test_mcp_entrypoint_registers_host_before_serving(
     with pytest.raises(StopAfterComposition):
         server.mcp_server(host_runtime_inputs=marker)
     assert calls == ["config", "host", "bundle", "projection"]
+    calls.clear()
+    with pytest.raises(RuntimeError, match="host runtime inputs are required"):
+        server.mcp_server()
+    assert calls == ["config"]
