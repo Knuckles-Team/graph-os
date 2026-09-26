@@ -308,7 +308,9 @@ def create_a2a_handlers(
             if result.refused:
                 from graph_os.api.errors import a2a_error_status
 
-                rpc_code, http_status = a2a_error_status(result.code)
+                rpc_code, http_status = a2a_error_status(
+                    result.code, source=result.source
+                )
                 return JSONResponse(
                     {
                         "jsonrpc": "2.0",
@@ -316,7 +318,7 @@ def create_a2a_handlers(
                         "error": {
                             "code": rpc_code,
                             "message": "Request refused",
-                            "data": {"code": result.code},
+                            "data": {"code": result.code, "source": result.source},
                         },
                     },
                     status_code=http_status,

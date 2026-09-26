@@ -189,7 +189,15 @@ async def dispatch_verb(
         resolved_from_intent=resolution is not None,
     )
     if isinstance(outcome, OpError):
-        return _refusal(outcome.code, projection, caller, op, outcome.details)
+        from graph_os.api.errors import to_envelope
+
+        _, envelope = to_envelope(
+            outcome,
+            op=op,
+            request_id=getattr(caller, "request_id", "") or "unassigned",
+            registry_digest=projection.registry.digest,
+        )
+        return envelope
     meta = {}
     if resolution is not None:
         meta = {

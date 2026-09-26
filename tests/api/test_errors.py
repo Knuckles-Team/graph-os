@@ -28,6 +28,7 @@ CONTEXT = {
 class InvokeError:
     code: str
     details: dict[str, Any] = field(default_factory=dict)
+    source: str = "graphos"
 
 
 def test_every_graphos_code_has_one_envelope() -> None:
@@ -167,6 +168,18 @@ def test_unknown_engine_code_fails_closed() -> None:
         EngineRefusal.from_response({"code": "NOT_IN_CONTRACT"})
     with pytest.raises(ValueError, match="unknown engine error code"):
         to_envelope(EngineRefusal("NOT_IN_CONTRACT"), **CONTEXT)
+
+
+def test_invocation_preserves_typed_engine_code_across_surfaces() -> None:
+    refusal = InvokeError("AUTH_TENANT_MISMATCH", source="engine")
+    status, envelope = to_envelope(refusal, **CONTEXT)
+    assert (status, envelope["error"]["source"]) == (403, "engine")
+    assert envelope["error"]["code"] == "AUTH_TENANT_MISMATCH"
+    assert envelope["error"]["details"] == {}
+    assert a2a_error_status(refusal.code, source=refusal.source) == (-32000, 403)
+
+    with pytest.raises(ValueError, match="unknown engine error code"):
+        to_envelope(InvokeError("NOT_IN_CONTRACT", source="engine"), **CONTEXT)
 
 
 def test_graphos_details_are_allowlisted() -> None:

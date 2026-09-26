@@ -214,6 +214,14 @@ def _classified_error(
             {"server": error.server, "tool": error.tool},
         )
     if isinstance(error, OpErrorLike):
+        source = getattr(error, "source", "graphos")
+        if source == "engine":
+            metadata = ENGINE_ERRORS.get(error.code)
+            if metadata is None:
+                raise ValueError("unknown engine error code")
+            return error.code, "engine", metadata[0], metadata[1], {}
+        if source != "graphos":
+            raise ValueError("unknown operation error source")
         code = GraphOSErrorCode(error.code)
         return (
             code.value,
@@ -249,9 +257,18 @@ _RPC_CODES: dict[GraphOSErrorCode, int] = {
 }
 
 
-def a2a_error_status(code: GraphOSErrorCode | str) -> tuple[int, int]:
-    """Return JSON-RPC and HTTP status; confirmation is an A2A result."""
+def a2a_error_status(
+    code: GraphOSErrorCode | str, *, source: str = "graphos"
+) -> tuple[int, int]:
+    """Return JSON-RPC and HTTP status; preserve engine codes in error data."""
 
+    if source == "engine":
+        metadata = ENGINE_ERRORS.get(str(code))
+        if metadata is None:
+            raise ValueError("unknown engine error code")
+        return -32000, metadata[0]
+    if source != "graphos":
+        raise ValueError("unknown operation error source")
     typed = GraphOSErrorCode(code)
     return _RPC_CODES[typed], _GRAPHOS_STATUS[typed]
 

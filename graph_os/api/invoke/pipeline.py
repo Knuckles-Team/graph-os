@@ -10,8 +10,10 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
 from typing import Any
 
+from epistemic_graph import EngineResponseError
 from pydantic import BaseModel
 
+from graph_os.api.generated.engine_errors import ENGINE_ERRORS
 from graph_os.api.invoke.audit import audit_event
 from graph_os.api.invoke.executor import (
     OperationRuntime,
@@ -466,6 +468,14 @@ async def invoke(
     except OperationRefused as exc:
         status = exc.code
         result = OpError(exc.code, exc.details)
+    except EngineResponseError as exc:
+        # EG's wire code is typed; never infer authority from its private detail.
+        if exc.code in ENGINE_ERRORS:
+            status = exc.code
+            result = OpError(exc.code, source="engine")
+        else:
+            status = "INTERNAL"
+            result = OpError(status)
     except Exception:
         status = "INTERNAL"
         result = OpError(status)

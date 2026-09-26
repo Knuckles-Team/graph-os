@@ -59,6 +59,28 @@ async def test_plan_confirm_resubmits_exact_op_and_params_to_shared_invoke() -> 
 
 
 @pytest.mark.asyncio
+async def test_engine_refusal_keeps_source_for_a2a_transport() -> None:
+    async def invoke(*_args: Any, **_kwargs: Any) -> Any:
+        return SimpleNamespace(
+            code="AUTH_TENANT_MISMATCH",
+            source="engine",
+            details={},
+        )
+
+    projection = OperationProjection(
+        services="services",
+        caller=lambda: SimpleNamespace(principal_kind="human", delegated=False),
+        invoke_fn=invoke,
+    )
+    reply = await projection.invoke(
+        "graphos.op/invoke", {"op": "query.uql", "params": {}}
+    )
+    assert reply.refused is True
+    assert reply.code == "AUTH_TENANT_MISMATCH"
+    assert reply.source == "engine"
+
+
+@pytest.mark.asyncio
 async def test_preview_requires_input_and_console_step_up_stays_out_of_band() -> None:
     async def invoke(*_args: Any, **_kwargs: Any) -> Any:
         return SimpleNamespace(
