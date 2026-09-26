@@ -256,7 +256,8 @@ class LocalIssuer:
         scopes = resolution.scopes
         if grant.scopes is not None:
             scopes = scopes & grant.scopes
-        ordered = sorted(scopes)
+        ordered_scopes = sorted(scopes)
+        ordered_roles = sorted(resolution.roles)
         now = int(self._clock())
         return {
             "iss": self._settings.issuer,
@@ -266,9 +267,9 @@ class LocalIssuer:
             "nbf": now - 1,
             "exp": now + self._settings.access_ttl_seconds,
             "jti": secrets.token_hex(16),
-            "scope": " ".join(ordered),
-            "roles": ordered,
-            "realm_access": {"roles": ordered},
+            "scope": " ".join(ordered_scopes),
+            "roles": ordered_roles,
+            "realm_access": {"roles": ordered_roles},
             "tenant_id": self._settings.tenant,
             "preferred_username": resolution.username,
             "principal_kind": resolution.kind,

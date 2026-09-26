@@ -27,7 +27,7 @@ from .admission import AdmissionService
 from .broker import IdentityBroker
 from .engine import EngineIdentityPort, IdentityEngine, Resolution
 from .engine_ports import BrokerPort, CallerPort
-from .exchange import UpstreamVerifier, exchange_routes
+from .exchange import ConfiguredOidcVerifier, UpstreamVerifier, exchange_routes
 from .external import ExternalAuthorities
 from .gate import IdentityGate
 from .idp_common import OneShotBackend
@@ -133,7 +133,13 @@ class IdentityRuntime:
                 self.admission, self.setup, role_of, self.external.features
             ),
             *factor_routes(self.admission),
-            *exchange_routes(self.admission, upstream),
+            *exchange_routes(
+                self.admission,
+                upstream,
+                ConfiguredOidcVerifier(
+                    self.external.oidc, self.deployment.issuer.tenant
+                ),
+            ),
             *self.external.routes(),
         ]
 
@@ -145,10 +151,18 @@ class IdentityRuntime:
             ack=self.deployment.none_ack,
         )
 
-    def install(self, app: Any, role_of: Callable[[Iterable[str]], str | None]) -> None:
+    def install(
+        self,
+        app: Any,
+        role_of: Callable[[Iterable[str]], str | None],
+        *,
+        upstream: Mapping[str, UpstreamVerifier] | None = None,
+    ) -> None:
         """Install the identity gate as ``app``'s outermost identity layer."""
         app.add_middleware(
-            IdentityGate, admission=self.admission, routes=self.routes(role_of)
+            IdentityGate,
+            admission=self.admission,
+            routes=self.routes(role_of, upstream),
         )
 
 
@@ -173,7 +187,9 @@ def self_minted_broker_session(
 
     def session() -> Any:
         return session_for(
-            broker_ref(), service, ("process" if process_key else "service",),
+            broker_ref(),
+            service,
+            ("process" if process_key else "service",),
             process_key=process_key,
         )
 

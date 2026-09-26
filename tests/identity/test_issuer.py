@@ -8,7 +8,6 @@ import pytest
 from joserfc.errors import ExpiredTokenError, JoseError
 
 from graph_os.identity.engine import Resolution
-from graph_os.identity.composition import self_minted_broker_session
 from graph_os.identity.issuer import (
     ISSUER_KEYS_SECRET,
     IssuerSettings,
@@ -27,6 +26,7 @@ ALICE = Resolution(
     username="alice",
     kind="human",
     status="active",
+    roles=frozenset({"reports-reader", "graph-writer"}),
     scopes=frozenset({"kg:read", "kg:write", "identity:self"}),
 )
 
@@ -60,7 +60,7 @@ def test_ring_is_created_once_and_persisted(issuer: LocalIssuer) -> None:
     assert other_replica.ring().kid == first
 
 
-def test_token_subject_is_the_principal_and_scopes_ride_both_claims(
+def test_token_subject_and_verified_roles_are_distinct_from_scopes(
     issuer: LocalIssuer, clock: Clock
 ) -> None:
     claims = issuer.verify(issuer.mint(ALICE, _grant(clock)))
@@ -68,7 +68,9 @@ def test_token_subject_is_the_principal_and_scopes_ride_both_claims(
     assert claims["iss"] == SETTINGS.issuer and claims["aud"] == SETTINGS.audience
     assert claims["tenant_id"] == "homelab"
     assert set(claims["scope"].split()) == set(ALICE.scopes)
-    assert set(claims["realm_access"]["roles"]) == set(ALICE.scopes)
+    assert set(claims["roles"]) == set(ALICE.roles)
+    assert set(claims["realm_access"]["roles"]) == set(ALICE.roles)
+    assert not set(claims["roles"]) & set(ALICE.scopes)
     assert claims["amr"] == ["pwd"]
     assert claims["exp"] - claims["iat"] == 300
 
@@ -79,6 +81,8 @@ def test_narrowed_grant_intersects_never_widens(
     grant = _grant(clock, frozenset({"kg:read", "kg:admin"}))
     claims = issuer.verify(issuer.mint(ALICE, grant))
     assert claims["scope"] == "kg:read"
+    assert set(claims["roles"]) == set(ALICE.roles)
+    assert set(claims["realm_access"]["roles"]) == set(ALICE.roles)
 
 
 @pytest.mark.parametrize(
@@ -216,6 +220,8 @@ def test_process_key_is_published_only_for_tiny_profile(clock: Clock) -> None:
 
 
 def test_tiny_broker_session_uses_process_key_before_ring_exists() -> None:
+    from graph_os.identity.composition import self_minted_broker_session
+
     class UnavailableSecrets:
         def get(self, key: str) -> str:
             raise AssertionError("process session must not read the ring")
