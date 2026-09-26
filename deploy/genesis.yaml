@@ -7,7 +7,7 @@
 #   4. wire the MCP `servers`      (via the profile's `skill`)
 #   5. wire any `components` + `ide_targets`, then `verify`
 #
-# Composes existing sources (mcp-fleet.registry.yml, config profiles, docs/recipes/*,
+# Composes existing sources (mcp-fleet.registry.yml, config profiles, pages/recipes/*,
 # the deployment preflight) — it does not duplicate them. Regenerate after changing
 # any of those; scripts/check_genesis_manifest.py gates drift.
 version: 1
@@ -24,7 +24,7 @@ profiles:
   tiny:
     summary: zero-external-infrastructure local evaluation or development; graph-os and the bundled engine
       operate as one managed unit
-    recipe: docs/recipes/tiny.md
+    recipe: pages/recipes/tiny.md
     docker: false
     secrets: engine-encrypted-or-runtime-reference
     servers: none
@@ -40,7 +40,7 @@ profiles:
   single-node-prod:
     summary: one durable secured host with graph-os, the bundled engine, and a selected core connector
       set
-    recipe: docs/recipes/single-node-prod.md
+    recipe: pages/recipes/single-node-prod.md
     docker: true
     secrets: openbao-or-engine-encrypted
     servers: core
@@ -56,7 +56,7 @@ profiles:
   enterprise:
     summary: multi-host production with a provider-neutral Kubernetes default, reusable existing identity/secrets/ingress/observability,
       and a selected scale-out connector fleet
-    recipe: docs/recipes/enterprise.md
+    recipe: pages/recipes/enterprise.md
     docker: true
     secrets: openbao
     servers: all
