@@ -89,6 +89,10 @@ class _ControlPlane:
         self, request: PendingInputAnswerRequest
     ) -> PendingInputAnswerReceipt:
         self.pending.pop(request.work_item_id)
+        item = self.items[request.work_item_id]
+        self.items[request.work_item_id] = item.model_copy(
+            update={"status": "ready", "version": item.version + 1}
+        )
         return PendingInputAnswerReceipt(
             work_item_id=request.work_item_id,
             call_id=request.call_id,
@@ -161,7 +165,7 @@ async def test_pending_call_projects_input_required_and_consumes_exact_answer(
     )
     work_item_id = f"workitem:orchestrator:{task.id}"
     plane.items[work_item_id] = plane.items[work_item_id].model_copy(
-        update={"status": "running", "version": 2}
+        update={"status": "input_required", "version": 2}
     )
     pending = PendingInputRequest(
         work_item_id=work_item_id,
@@ -196,7 +200,7 @@ async def test_pending_call_projects_input_required_and_consumes_exact_answer(
         ),
     )
     assert receipt.accepted is True
-    assert (await authority.get(task.id)).status.state == "working"
+    assert (await authority.get(task.id)).status.state == "submitted"
 
 
 async def test_pending_exchange_stays_disabled_without_native_port(bound) -> None:
@@ -209,9 +213,12 @@ async def test_pending_exchange_stays_disabled_without_native_port(bound) -> Non
     )
     work_item_id = f"workitem:orchestrator:{task.id}"
     plane.items[work_item_id] = plane.items[work_item_id].model_copy(
-        update={"status": "running", "version": 2}
+        update={"status": "input_required", "version": 2}
     )
-    assert (await authority.get(task.id)).status.state == "working"
+    with pytest.raises(
+        AgentControlPlaneUnavailable, match="A2A pending input is unavailable"
+    ):
+        await authority.get(task.id)
     with pytest.raises(
         AgentControlPlaneUnavailable, match="A2A task approval is unavailable"
     ):

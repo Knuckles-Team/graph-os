@@ -149,6 +149,8 @@ class A2AService:
         if task.status.state == "completed":
             async for event in self._answer(task):
                 yield event
+        if task.status.state == "input-required":
+            return
         async for event in self._follow(task, seen=event_id(task)):
             yield event
 
@@ -182,6 +184,8 @@ class A2AService:
         if event_id(task) != last_event_id:
             async for event in self._status_events(task):
                 yield event
+        if task.status.state == "input-required":
+            return
         async for event in self._follow(task, seen=event_id(task)):
             yield event
 
@@ -202,6 +206,8 @@ class A2AService:
                 interval = policy.poll_interval_s
                 async for event in self._status_events(latest):
                     yield event
+                if latest.status.state == "input-required":
+                    return
             else:
                 interval = min(interval * 2, policy.max_interval_s)
             current = latest

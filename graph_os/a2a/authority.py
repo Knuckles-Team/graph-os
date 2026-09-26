@@ -99,6 +99,7 @@ _STATE_MAP: dict[str, A2ATaskState] = {
     "ready": "submitted",
     "leased": "working",
     "running": "working",
+    "input_required": "input-required",
     "succeeded": "completed",
     "failed": "failed",
     "cancelled": "canceled",
@@ -216,15 +217,16 @@ def project(
 
     timestamp = datetime.fromtimestamp(item.updated_at_ms / 1000, tz=UTC)
     message = None
+    if state == "input-required" and pending is None:
+        raise AgentControlPlaneUnavailable("A2A pending input is unavailable")
     if pending is not None:
         if (
-            state != "working"
+            state != "input-required"
             or pending.work_item_id != item.work_item_id
             or pending.work_item_version != item.version
             or pending.expires_at_ms <= int(time.time() * 1000)
         ):
             raise RuntimeError("pending A2A input is stale or unbound")
-        state = "input-required"
         message = A2AStatusMessage(
             parts=[A2ATextPart(text=pending.preview)],
             message_id=pending.call_id,
@@ -341,7 +343,7 @@ class WorkItemA2AAuthority:
         if item is None:
             return None
         pending = None
-        if self._pending_input_enabled and item.status in {"leased", "running"}:
+        if self._pending_input_enabled and item.status == "input_required":
             pending = await control_plane.get_pending_input(
                 PendingInputGetRequest(work_item_id=item.work_item_id)
             )
@@ -396,7 +398,7 @@ class WorkItemA2AAuthority:
             if not _owned(item, owner_ref):
                 continue
             pending = None
-            if self._pending_input_enabled and item.status in {"leased", "running"}:
+            if self._pending_input_enabled and item.status == "input_required":
                 pending = await control_plane.get_pending_input(
                     PendingInputGetRequest(work_item_id=item.work_item_id)
                 )

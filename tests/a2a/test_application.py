@@ -385,6 +385,28 @@ def test_resubscribe_skips_the_state_the_client_already_saw() -> None:
     assert again.text == ""
 
 
+def test_stream_stops_at_input_required_for_client_answer() -> None:
+    authority = ProgressAuthority()
+    authority.states = ["input-required"]
+    client = _stream_app(authority)
+    response = client.post(
+        "/a2a",
+        headers={
+            "Authorization": "Bearer verified",
+            "Idempotency-Key": "await-approval",
+        },
+        json={
+            "jsonrpc": "2.0",
+            "id": "await",
+            "method": "message/stream",
+            "params": {"message": _STREAM_MESSAGE},
+        },
+    )
+    frames = _frames(response.text)
+    assert frames[-1]["result"]["status"]["state"] == "input-required"
+    assert frames[-1]["result"]["final"] is False
+
+
 def test_resubscribe_to_an_unknown_task_reports_not_found() -> None:
     client = _stream_app(ProgressAuthority())
     response = client.post(
