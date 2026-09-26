@@ -54,6 +54,9 @@ def test_composer_installs_graphos_invoke_port(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(
         "graph_os.gateway.graph_api.register_graph_routes", lambda _app: None
     )
+    monkeypatch.setattr(
+        "graph_os.webui_host.a2a_routes.register_a2a_routes", lambda _app: None
+    )
     app = FastAPI()
     compose_web_application(app)
     assert app.state.graphos_invoke_op is _invoke_webui_operation

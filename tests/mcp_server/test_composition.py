@@ -13,6 +13,7 @@ from graph_os.gateway.ports import gateway_application
 from graph_os.mcp_server import runtime
 from graph_os.mcp_server.composition import (
     NativeGatewayApplication,
+    detect_composition,
     install_gateway_application,
     start_composed_services,
 )
@@ -84,6 +85,18 @@ def test_webui_co_service_uses_graph_os_host(monkeypatch: pytest.MonkeyPatch) ->
 
     assert started[0][0] == "agent-webui"
     assert started[0][1].__module__ == "graph_os.webui_host.webui_co_service"
+
+
+def test_webui_composition_reads_graphos_host_intent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "graph_os.mcp_server.composition.configured_platforms", lambda _: ()
+    )
+    monkeypatch.setenv("ENABLE_WEB_UI", "true")
+    assert detect_composition().web_ui_enabled is True
+    monkeypatch.setenv("ENABLE_WEB_UI", "false")
+    assert detect_composition().web_ui_enabled is False
 
 
 def test_gateway_adapter_satisfies_runtime_protocol() -> None:

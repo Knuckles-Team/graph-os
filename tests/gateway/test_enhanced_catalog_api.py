@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -286,3 +287,15 @@ def test_route_module_has_no_webui_or_au_gateway_fallback() -> None:
     text = __import__("pathlib").Path(source).read_text(encoding="utf-8")
     assert "agent_webui" not in text
     assert "agent_utilities.gateway" not in text
+
+
+@pytest.mark.asyncio
+async def test_webui_skills_helper_reads_active_catalog(monkeypatch: Any) -> None:
+    _app(monkeypatch)
+    assert await api.read_active_skills() == [
+        {
+            "id": "component:skill",
+            "name": "triage",
+            "description": "triage description",
+        }
+    ]

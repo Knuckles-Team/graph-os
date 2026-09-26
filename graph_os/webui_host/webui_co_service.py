@@ -73,12 +73,14 @@ def compose_web_application(app: Any) -> None:
     """
 
     from graph_os.gateway.graph_api import register_graph_routes
+    from graph_os.webui_host.a2a_routes import register_a2a_routes
 
     # The WebUI's enhanced routes consume only this host port. Resolve the
     # serving bundle at request time so startup never captures a process actor
     # or a stale registry. An unconfigured bundle refuses each request.
     app.state.graphos_invoke_op = _invoke_webui_operation
     register_graph_routes(app)
+    register_a2a_routes(app)
 
 
 async def _invoke_webui_operation(
@@ -210,12 +212,6 @@ def run_web_ui(
     # `ag-ui` extra is absent, and only a deployment that asked for the WebUI
     # should ever pay this import.
     from agent_utilities.core.contextual_model import create_context_agent
-    from agent_utilities.server.webui_contact_governance import (
-        contact_delivery_factory_kwargs,
-    )
-    from agent_utilities.server.webui_voice_delegation import (
-        webui_voice_delegation_helpers,
-    )
     from agent_webui.api_extensions import (
         get_engine_bounded,
         invoke_governed_helper,
@@ -234,8 +230,13 @@ def run_web_ui(
     from graph_os.browser_control.browser_control_service import (
         browser_control_factory_kwargs,
     )
+    from graph_os.gateway.enhanced_catalog_api import read_active_skills
     from graph_os.mcp_server import runtime as mcp_runtime
+    from graph_os.webui_host.contact_governance import (
+        contact_delivery_factory_kwargs,
+    )
     from graph_os.webui_host.mcp_delegation import webui_mcp_delegation_helpers
+    from graph_os.webui_host.voice_delegation import webui_voice_delegation_helpers
 
     # Assemble exactly what agent-webui's own entrypoint assembles.
     #
@@ -251,6 +252,7 @@ def run_web_ui(
     helpers = {
         **webui_mcp_delegation_helpers(),
         **webui_voice_delegation_helpers(),
+        "list_skills": read_active_skills,
     }
     contact_kwargs = contact_delivery_factory_kwargs(
         create_agent_web_app,

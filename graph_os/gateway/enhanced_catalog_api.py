@@ -260,6 +260,16 @@ async def _read_catalog() -> tuple[EnhancedCatalog, WorkflowCapabilities]:
         ) from exc
 
 
+async def read_active_skills() -> list[dict[str, str]]:
+    """Supply the WebUI `/skills` command from the same governed catalog."""
+    catalog, _ = await _read_catalog()
+    return [
+        {"id": item.id, "name": item.name, "description": item.description}
+        for item in catalog.components
+        if item.kind == "skill" and item.status == "active"
+    ]
+
+
 def register_enhanced_catalog_routes(app, *, prefix: str = "/api") -> None:
     """Mount the W6 browser contract with no WebUI or AU gateway dependency."""
 

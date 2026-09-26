@@ -43,11 +43,11 @@ def detect_composition(
     engine: Any = None, *, messaging_intake_enabled: bool | None = None
 ) -> CompositionPlan:
     """Read optional co-service intent without starting background work."""
-    from agent_utilities.core.config import config
+    from agent_connector_sdk.config import setting
 
     return CompositionPlan(
         messaging_platforms=configured_platforms(engine),
-        web_ui_enabled=bool(getattr(config, "enable_web_ui", False)),
+        web_ui_enabled=setting("ENABLE_WEB_UI", False),
         messaging_intake_enabled=bool(messaging_intake_enabled),
     )
 

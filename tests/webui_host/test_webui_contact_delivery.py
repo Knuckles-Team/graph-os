@@ -9,6 +9,8 @@ import types
 from types import SimpleNamespace
 from typing import Any, cast
 
+from graph_os.gateway.enhanced_catalog_api import read_active_skills
+
 
 def _package(name: str) -> types.ModuleType:
     package = types.ModuleType(name)
@@ -99,7 +101,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         sys.modules, "agent_utilities.core.contextual_model", contextual_model
     )
 
-    governance = types.ModuleType("agent_utilities.server.webui_contact_governance")
+    governance = types.ModuleType("graph_os.webui_host.contact_governance")
 
     def contact_delivery_factory_kwargs(
         app_factory: object, sync_runner: object
@@ -113,7 +115,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     )
     monkeypatch.setitem(
         sys.modules,
-        "agent_utilities.server.webui_contact_governance",
+        "graph_os.webui_host.contact_governance",
         governance,
     )
 
@@ -129,7 +131,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         mcp_delegation,
     )
 
-    voice_delegation = types.ModuleType("agent_utilities.server.webui_voice_delegation")
+    voice_delegation = types.ModuleType("graph_os.webui_host.voice_delegation")
     _export(
         voice_delegation,
         "webui_voice_delegation_helpers",
@@ -137,7 +139,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     )
     monkeypatch.setitem(
         sys.modules,
-        "agent_utilities.server.webui_voice_delegation",
+        "graph_os.webui_host.voice_delegation",
         voice_delegation,
     )
 
@@ -201,9 +203,38 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     _export(server_module, "create_agent_web_app", create_agent_web_app)
     monkeypatch.setitem(sys.modules, "agent_webui.server", server_module)
 
+    browser_package = _package("graph_os.browser_control")
+    browser_control_service = types.ModuleType(
+        "graph_os.browser_control.browser_control_service"
+    )
+    browser_control_runtime = types.ModuleType(
+        "graph_os.browser_control.browser_control_runtime"
+    )
+    _export(browser_package, "browser_control_service", browser_control_service)
+    monkeypatch.setitem(sys.modules, "graph_os.browser_control", browser_package)
+    monkeypatch.setitem(
+        sys.modules,
+        "graph_os.browser_control.browser_control_service",
+        browser_control_service,
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "graph_os.browser_control.browser_control_runtime",
+        browser_control_runtime,
+    )
+    _export(browser_control_runtime, "register_browser_control_service", lambda _: None)
+    _export(
+        browser_control_runtime, "unregister_browser_control_service", lambda _: None
+    )
+
+    mcp_package = _package("graph_os.mcp_server")
+    runtime = types.ModuleType("graph_os.mcp_server.runtime")
+    _export(mcp_package, "runtime", runtime)
+    _export(runtime, "_get_engine", lambda: "graph-os-engine")
+    monkeypatch.setitem(sys.modules, "graph_os.mcp_server", mcp_package)
+    monkeypatch.setitem(sys.modules, "graph_os.mcp_server.runtime", runtime)
+
     service = object()
-    from graph_os.browser_control import browser_control_service
-    from graph_os.mcp_server import runtime
 
     def browser_control_factory_kwargs(
         app_factory: object,
@@ -221,8 +252,8 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         browser_control_service,
         "browser_control_factory_kwargs",
         browser_control_factory_kwargs,
+        raising=False,
     )
-    monkeypatch.setattr(runtime, "_get_engine", lambda: "graph-os-engine")
 
     monkeypatch.delenv(module.ACCESS_LOG_POLICY_ENV, raising=False)
     module.run_web_ui(stop_event, host="0.0.0.0", port=8181)
@@ -235,6 +266,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         "workspace_helpers": {
             "call_mcp_tool": "mcp-helper",
             "transcribe_voice": "voice-helper",
+            "list_skills": read_active_skills,
         },
         "listener_host": "0.0.0.0",
         "application_composer": module.compose_web_application,
@@ -262,8 +294,9 @@ def test_graph_os_application_composer_mounts_native_routes(monkeypatch: Any) ->
 
     module = importlib.import_module("graph_os.webui_host.webui_co_service")
     from graph_os.gateway import graph_api
+    from graph_os.webui_host import a2a_routes
 
-    app = object()
+    app = SimpleNamespace(state=SimpleNamespace())
     calls: list[tuple[object, str]] = []
     monkeypatch.setattr(
         graph_api,
@@ -271,6 +304,46 @@ def test_graph_os_application_composer_mounts_native_routes(monkeypatch: Any) ->
         lambda value, prefix="/api": calls.append((value, prefix)),
     )
 
+    monkeypatch.setattr(
+        a2a_routes, "register_a2a_routes", lambda value: calls.append((value, "a2a"))
+    )
+
     module.compose_web_application(app)
 
-    assert calls == [(app, "/api")]
+    assert calls == [(app, "/api"), (app, "a2a")]
+
+
+def test_contact_host_keeps_durable_receipts_scoped_to_request() -> None:
+    """A moved host can replay only its one authority's matching receipt."""
+    from graph_os.webui_host.contact_governance import existing_receipt
+
+    row = {
+        "status": "succeeded",
+        "result_ref": "contact_" + "A" * 16,
+        "metadata": {"request_digest": "expected"},
+    }
+    assert existing_receipt(row, "expected") == row["result_ref"]
+    assert existing_receipt(row, "different") is None
+    assert existing_receipt({**row, "status": "working"}, "expected") is None
+
+
+def test_contact_host_factory_uses_graph_os_delivery(monkeypatch: Any) -> None:
+    """The live app factory resolves GraphOS's delivery implementation."""
+    from graph_os.webui_host import contact_delivery, contact_governance
+
+    calls: list[object] = []
+
+    def build(sync_runner: object) -> object:
+        calls.append(sync_runner)
+        return "graph-os-delivery"
+
+    monkeypatch.setattr(contact_delivery, "build_webui_contact_delivery", build)
+
+    def app(*, contact_delivery: object | None = None) -> object:
+        return contact_delivery
+
+    runner = object()
+    assert contact_governance.contact_delivery_factory_kwargs(app, runner) == {
+        "contact_delivery": "graph-os-delivery"
+    }
+    assert calls == [runner]
