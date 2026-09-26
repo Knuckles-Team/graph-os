@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 SOURCE_CONTRACT_VERSION = 1
-SOURCE_SHA256 = "becef3401e773939fc2ef57ccec1a7f043999f8123154ea530af059bc02961c2"
+SOURCE_SHA256 = "1327053cea19fdf1f5ef7fcff55d8e6d2cd3b12dbc2d9c05afd0efa66b7ab0a9"
 ENGINE_ERRORS: dict[str, tuple[int, bool]] = {
     "ABORTED_ATOMIC_GRAPH_BATCH": (400, False),
     "ACCESS_DENIED": (403, False),
@@ -192,6 +192,7 @@ ENGINE_ERRORS: dict[str, tuple[int, bool]] = {
     "STALE_GRAPH_VERSION": (400, False),
     "STALE_MAPPING_REFERENCE": (400, False),
     "STALE_RECOMPUTE_FENCE": (400, False),
+    "STALE_ROUTE": (503, True),
     "TELEMETRY_UNAVAILABLE": (503, False),
     "TELEMETRY_WINDOW_TOO_LARGE": (413, False),
     "TIMEOUT": (504, False),
