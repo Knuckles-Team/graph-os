@@ -23,6 +23,7 @@ _ENTRY_POINTS = {
     # Certify the native serving composition, not the removed informational
     # shell and never an AU compatibility alias.
     "graph-os": "graph_os.mcp_server.server:mcp_server",
+    "graph-os-connector-sync": "graph_os.connector_sync_entrypoint:main",
     "agent-utilities-doctor": "graph_os.deployment.doctor:main",
 }
 
