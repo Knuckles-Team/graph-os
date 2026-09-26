@@ -134,19 +134,26 @@ async def _list_webui_skills() -> list[dict[str, str]]:
     """Read caller-visible skills from the native fleet catalog."""
     from agent_utilities.knowledge_graph.core.session import resolve_session
 
-    from graph_os.api.invoke import VerifiedCaller
+    from graph_os.api.invoke import OpResult, VerifiedCaller, invoke
+    from graph_os.api.registry import Surface
     from graph_os.mcp_server.runtime import served_api
 
     caller = VerifiedCaller.from_session(resolve_session(), request_id="webui-skills")
     projection, _visibility = served_api()
-    gateway = projection.services.get("fleet_gateway")
-    if gateway is None:
-        raise RuntimeError("fleet catalog authority is unavailable")
 
     skills: list[dict[str, str]] = []
     cursor: str | None = None
     for _page in range(10):
-        page = await gateway.list(caller, kinds=("skill",), limit=100, cursor=cursor)
+        outcome = await invoke(
+            "fleet.catalog.list",
+            {"kinds": ("skill",), "limit": 100, "cursor": cursor},
+            caller,
+            Surface.HTTP,
+            services=projection.services,
+        )
+        if not isinstance(outcome, OpResult) or outcome.code != "OK":
+            raise RuntimeError("fleet skill catalog request was refused")
+        page = outcome.value["value"]
         for item in page["items"]:
             if item["kind"] == "skill":
                 skills.append(

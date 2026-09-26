@@ -73,36 +73,50 @@ async def test_skills_helper_uses_verified_fleet_catalog(
     )
     observed: dict[str, Any] = {}
 
-    class FleetGateway:
-        async def list(self, caller: Any, **params: Any) -> dict[str, Any]:
-            observed.update(
-                principal=caller.principal, session=caller.session, **params
-            )
-            return {
-                "items": [
-                    {
-                        "id": "skill:one",
-                        "kind": "skill",
-                        "name": "One",
-                        "description": "A skill",
-                    }
-                ],
-                "next_cursor": None,
+    services = object()
+
+    async def list_skills(
+        op_id: str, params: Any, caller: Any, surface: Surface, *, services: Any
+    ) -> OpResult:
+        observed.update(
+            op_id=op_id,
+            params=params,
+            principal=caller.principal,
+            session=caller.session,
+            surface=surface,
+            services=services,
+        )
+        return OpResult(
+            value={
+                "value": {
+                    "items": [
+                        {
+                            "id": "skill:one",
+                            "kind": "skill",
+                            "name": "One",
+                            "description": "A skill",
+                        }
+                    ],
+                    "next_cursor": None,
+                }
             }
+        )
 
     monkeypatch.setattr(
         "graph_os.mcp_server.runtime.served_api",
-        lambda: (SimpleNamespace(services={"fleet_gateway": FleetGateway()}), object()),
+        lambda: (SimpleNamespace(services=services), object()),
     )
+    monkeypatch.setattr("graph_os.api.invoke.invoke", list_skills)
     assert await _list_webui_skills() == [
         {"id": "skill:one", "name": "One", "description": "A skill"}
     ]
     assert observed == {
+        "op_id": "fleet.catalog.list",
+        "params": {"kinds": ("skill",), "limit": 100, "cursor": None},
         "principal": "user:verified",
         "session": session,
-        "kinds": ("skill",),
-        "limit": 100,
-        "cursor": None,
+        "surface": Surface.HTTP,
+        "services": services,
     }
 
 
