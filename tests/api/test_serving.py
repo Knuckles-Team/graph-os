@@ -445,6 +445,41 @@ def test_served_ports_provider_requires_explicit_registration(
         serving.configure_served_api_ports(None)
 
 
+def test_registered_served_api_reuses_one_registry_and_invoke_bundle(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(serving, "_SERVED_PORTS", None)
+    monkeypatch.setattr(serving, "_SERVED_API", None)
+    registry = Registry([op()])
+    calls = 0
+
+    def registry_factory() -> Registry:
+        nonlocal calls
+        calls += 1
+        return registry
+
+    monkeypatch.setattr(serving, "get_registry", registry_factory)
+    bundle = serving.ServedApiPorts(
+        serving=ports([]),
+        caller_for_request=lambda: None,
+        fleet_search=lambda **kwargs: (),
+        fleet_ops_factory=lambda *args: None,
+        resolver=IntentResolver(),
+    )
+    with pytest.raises(RuntimeError, match="not configured"):
+        serving.configured_served_api()
+    serving.configure_served_api_ports(bundle)
+    first = serving.configured_served_api()
+    assert serving.configured_served_api() is first
+    assert first[0].registry is registry
+    assert first[0].services.registry is registry
+    assert calls == 1
+    with pytest.raises(RuntimeError, match="already configured"):
+        serving.configure_served_api_ports(bundle)
+    assert serving.configured_served_api() is first
+    assert calls == 1
+
+
 def test_runtime_assembler_binds_public_eg_audit_and_one_fleet_gateway(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
