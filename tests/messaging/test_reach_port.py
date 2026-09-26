@@ -22,24 +22,17 @@ def test_notification_port_fails_closed_without_one_host(
 def test_graphos_supplies_reach_service_port(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    class Service:
-        def configured_platforms(self) -> list[str]:
-            return ["telegram"]
-
-        async def reach_user(self, text: str, **kwargs: Any) -> Any:
-            return SimpleNamespace(success=True, platform="telegram")
-
-        async def reach_user_and_wait(self, text: str, **kwargs: Any) -> str:
-            return f"reply to {text}"
-
     from graph_os.messaging import reach
 
-    service = Service()
-    monkeypatch.setattr(reach.MessagingService, "instance", lambda: service)
+    engine = object()
+    service = reach.MessagingService(engine)
+    monkeypatch.setattr(
+        reach.MessagingService, "instance", lambda supplied=None: service
+    )
     entry = SimpleNamespace(name="service", load=lambda: reach.service_port)
     monkeypatch.setattr(reach_port.metadata, "entry_points", lambda **_kw: [entry])
 
-    assert reach_port.reach_service_port() is service
+    assert reach_port.reach_service_port(engine) is service
 
 
 def test_goal_sla_uses_graphos_notification_port(

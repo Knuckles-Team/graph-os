@@ -12,6 +12,7 @@ a static catalog, process-local durable store, or fabricated success receipt.
 | REST gateway | Available | The same application services used by MCP, projected through GraphOS routes |
 | Fleet gateway | Available with a verified catalog | Child lifecycle, health, OAuth admission, collision-safe naming, and per-session discovery |
 | Agent WebUI host | Available through the `webui` extra | Co-service supervision with an injected GraphOS application composer |
+| Messaging intake | Available with configured channels, explicit intake intent, and a verified session | GraphOS channel adapters, router, and poll loop; engine-native per-channel leases; Agent Utilities command handler |
 | Unary A2A | Available | Authenticated Agent Card plus send, get, list, and cancel over durable WorkItems |
 | Browser control | Available when attended identity is configured | Catalog, lease, policy, dispatch, cancellation, and provenance orchestration |
 | Markets (`graph_finance`) | Available with the finance EG scopes | Flip subscriptions and inbox on the EG broker, the backfill/scan schedule, the flip explainer, and live-order proposals decided only at the operator console |

@@ -61,7 +61,7 @@ class DiscordBackend(MessagingBackend):
 
     Usage::
 
-        from agent_utilities.messaging import MessagingRegistry
+        from graph_os.messaging.registry import MessagingRegistry
         registry = MessagingRegistry()
         discord = registry.create_backend("discord")
         await discord.connect()
