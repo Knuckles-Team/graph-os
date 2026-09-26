@@ -6,6 +6,9 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from fastmcp.tools import ToolResult
+from mcp.types import CallToolResult, TextContent
+
 from graph_os.api.invoke import OpError, OpResult, invoke
 from graph_os.api.mcp.resolve import IntentResolver
 from graph_os.api.policy import PolicyGate, fleet_resource
@@ -53,6 +56,32 @@ class _CatalogOps:
         if name not in {"search", "list", "status", "load", "unload"}:
             raise AttributeError(name)
         return getattr(self._pending.require_ops(), name)
+
+
+class _RefusalToolResult(ToolResult):
+    """Preserve MCP's error bit alongside the shared structured envelope."""
+
+    def to_mcp_result(self) -> CallToolResult:
+        return CallToolResult(
+            content=self.content,
+            structuredContent=self.structured_content,
+            isError=True,
+        )
+
+
+def _native_refusal(outcome: Any, *, caller: Any, registry_digest: str) -> ToolResult:
+    from graph_os.api.errors import to_envelope
+
+    _, envelope = to_envelope(
+        outcome,
+        op="fleet.call",
+        request_id=caller.request_id or "unassigned",
+        registry_digest=registry_digest,
+    )
+    return _RefusalToolResult(
+        content=[TextContent(type="text", text="GraphOS operation refused")],
+        structured_content=envelope,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,8 +195,14 @@ def compose_fleet_host_ports(
             op_id, params, caller, Surface.MCP, services=projection.services
         )
         if isinstance(outcome, OpError):
-            raise RuntimeError("governed fleet operation refused")
-        if not isinstance(outcome, OpResult) or outcome.code != "OK":
+            return _native_refusal(
+                outcome, caller=caller, registry_digest=projection.registry.digest
+            )
+        if isinstance(outcome, OpResult) and outcome.code != "OK":
+            return _native_refusal(
+                outcome, caller=caller, registry_digest=projection.registry.digest
+            )
+        if not isinstance(outcome, OpResult):
             raise RuntimeError("governed fleet operation unavailable")
         return outcome.value
 
