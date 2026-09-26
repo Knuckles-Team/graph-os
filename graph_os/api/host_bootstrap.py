@@ -12,6 +12,7 @@ from graph_os.api.mcp.discovery import FleetSearch
 from graph_os.api.mcp.resolve import IntentResolver
 from graph_os.api.policy import PolicyGate
 from graph_os.api.serving import RuntimeAuthorities, configure_runtime_authorities
+from graph_os.fleet.catalog_sources import SdkRead
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +35,8 @@ class HostRuntimeInputs:
     fleet_ops_factory: Any
     resolver: IntentResolver
     bindings: Mapping[str, Any]
+    policy_gate: PolicyGate | None = None
+    fleet_reader: Any = None
 
 
 class _ProcessControlLeases:
@@ -80,6 +83,8 @@ def verified_process_inputs(
     fleet_ops_factory: Any,
     resolver: IntentResolver,
     bindings: Mapping[str, Any],
+    policy_gate: PolicyGate | None = None,
+    fleet_reader: Any = None,
 ) -> HostRuntimeInputs:
     """Derive service and EG ports only from a current process credential.
 
@@ -135,6 +140,50 @@ def verified_process_inputs(
         fleet_ops_factory=fleet_ops_factory,
         resolver=resolver,
         bindings=bindings,
+        policy_gate=policy_gate,
+        fleet_reader=fleet_reader,
+    )
+
+
+def compose_process_host_inputs(
+    session: Any,
+    *,
+    identity_mode: str,
+    fleet_reader: Any,
+    sdk_entries: SdkRead,
+    bindings: Mapping[str, Any],
+) -> HostRuntimeInputs:
+    """Use one configured PDP for the registry and the attached fleet.
+
+    The caller supplies real EG and SDK catalog ports. The returned input
+    bundle may be passed to ``mcp_server(host_runtime_inputs=...)``; the CLI
+    cannot infer or fabricate the fleet reader, pack reader, or service grant.
+    """
+
+    from agent_utilities.core.config import config, setting
+
+    from graph_os.api.fleet_host import compose_fleet_host_ports
+    from graph_os.fleet.catalog_reader import DeferredFleetCatalogReader
+
+    if not isinstance(fleet_reader, DeferredFleetCatalogReader):
+        raise ValueError("composed host needs the process fleet reader")
+
+    policy = PolicyGate.from_config(
+        config, identity_mode, configured_mode=setting("EUNOMIA_TYPE")
+    )
+    fleet = compose_fleet_host_ports(
+        reader=fleet_reader, sdk_entries=sdk_entries, policy_gate=policy
+    )
+    return verified_process_inputs(
+        session,
+        identity_mode=identity_mode,
+        fleet_gateway=fleet.gateway,
+        fleet_search=fleet.search,
+        fleet_ops_factory=fleet.ops_factory,
+        resolver=fleet.resolver,
+        bindings=bindings,
+        policy_gate=policy,
+        fleet_reader=fleet_reader,
     )
 
 
@@ -148,9 +197,11 @@ def host_runtime_authorities(inputs: HostRuntimeInputs) -> RuntimeAuthorities:
     from graph_os.mcp_server import runtime
 
     secrets = host_secret_ports_from_config()
-    policy = PolicyGate.from_config(
+    policy = inputs.policy_gate or PolicyGate.from_config(
         config, inputs.identity_mode, configured_mode=setting("EUNOMIA_TYPE")
     )
+    if not isinstance(policy, PolicyGate):
+        raise ValueError("verified host policy gate is unavailable")
 
     async def graph_client(tenant: str) -> Any:
         if not isinstance(tenant, str) or not tenant:

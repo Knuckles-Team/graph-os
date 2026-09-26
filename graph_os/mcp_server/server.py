@@ -179,10 +179,11 @@ def mcp_server(*, host_runtime_inputs: HostRuntimeInputs | None = None) -> None:
     from graph_os.api.serving import configured_served_api
 
     load_config()  # resolve settings through the one shared XDG config.json
-    if host_runtime_inputs is not None:
-        from graph_os.api.host_bootstrap import configure_host_runtime
+    if host_runtime_inputs is None:
+        raise RuntimeError("verified GraphOS host runtime inputs are required")
+    from graph_os.api.host_bootstrap import configure_host_runtime
 
-        configure_host_runtime(host_runtime_inputs)
+    configure_host_runtime(host_runtime_inputs)
     runtime.configure_served_api(*configured_served_api())
     install_gateway_application()
     _preflight_mcp_sdk_floor()
@@ -193,7 +194,9 @@ def mcp_server(*, host_runtime_inputs: HostRuntimeInputs | None = None) -> None:
     _register_semantic_content(mcp)
     from graph_os.fleet.catalog_reader import DeferredFleetCatalogReader
 
-    fleet_catalog_reader = DeferredFleetCatalogReader()
+    fleet_catalog_reader = host_runtime_inputs.fleet_reader
+    if not isinstance(fleet_catalog_reader, DeferredFleetCatalogReader):
+        raise RuntimeError("served host fleet reader is not the composed reader")
 
     # Apply the middleware stack assembled by the factory.
     for middleware in middlewares:
