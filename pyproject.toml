@@ -71,6 +71,7 @@ webui = [
 
 [project.scripts]
 graph-os = "graph_os.mcp_server.server:mcp_server"
+graph-os-connector-sync = "graph_os.connector_sync_entrypoint:main"
 graph-os-daemon = "graph_os.gateway.daemon:main"
 graph-os-release-canary = "graph_os.deployment.release_canary:main"
 graph-os-production-ops = "graph_os.deployment.production_ops:main"

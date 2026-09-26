@@ -192,6 +192,8 @@ def test_reader_joins_liveness_current_records_and_content_with_bounded_pages() 
     catalog = asyncio.run(FleetCatalogReader(port, page_size=2).read())
 
     assert catalog.context == CONTEXT
+    assert catalog.registry_revision == 1
+    assert catalog.registry_digest == "sha256:" + "9" * 64
     assert len(catalog.servers) == 1
     joined = catalog.servers[0]
     assert joined.registration == SERVER

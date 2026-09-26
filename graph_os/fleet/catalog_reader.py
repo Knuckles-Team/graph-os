@@ -173,6 +173,8 @@ class FleetCatalog:
 
     context: ReadContext
     servers: tuple[CatalogServer, ...]
+    registry_revision: int | None = None
+    registry_digest: str | None = None
 
 
 class FleetCatalogReadPort(Protocol):
@@ -235,9 +237,13 @@ class FleetCatalogReader:
         selected_kinds = self._validated_kinds(kinds)
         context = await self._port.read_context()
         self._validate_context(context)
-        registrations = await self._read_servers(context)
+        registrations, registry_revision, registry_digest = await self._read_servers(
+            context
+        )
         components = await self._read_components(context, selected_kinds)
-        return await self._join(context, registrations, components)
+        return await self._join(
+            context, registrations, components, registry_revision, registry_digest
+        )
 
     @staticmethod
     def _validated_kinds(kinds: Sequence[ComponentKind]) -> tuple[ComponentKind, ...]:
@@ -275,7 +281,7 @@ class FleetCatalogReader:
 
     async def _read_servers(
         self, context: ReadContext
-    ) -> dict[str, ServerRegistration]:
+    ) -> tuple[dict[str, ServerRegistration], int, str]:
         servers: dict[str, ServerRegistration] = {}
         server_ids: set[str] = set()
         snapshot: tuple[int, int, str] | None = None
@@ -309,7 +315,7 @@ class FleetCatalogReader:
             raise FleetCatalogIntegrityError(
                 "registered-server pages did not exhaust the live snapshot"
             )
-        return servers
+        return servers, snapshot[1], snapshot[2]
 
     async def _read_components(
         self,
@@ -409,6 +415,8 @@ class FleetCatalogReader:
         context: ReadContext,
         registrations: dict[str, ServerRegistration],
         components: dict[str, ComponentRecord],
+        registry_revision: int,
+        registry_digest: str,
     ) -> FleetCatalog:
         server_components, children = self._partition_components(components)
         missing_components = set(registrations).difference(server_components)
@@ -425,7 +433,12 @@ class FleetCatalogReader:
                 )
             )
         joined.sort(key=lambda item: item.component.server_name)
-        return FleetCatalog(context=context, servers=tuple(joined))
+        return FleetCatalog(
+            context=context,
+            servers=tuple(joined),
+            registry_revision=registry_revision,
+            registry_digest=registry_digest,
+        )
 
     async def _read_content(
         self, context: ReadContext, entry: ComponentRecord

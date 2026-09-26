@@ -69,6 +69,11 @@ class GeneratedFleetCatalogPort:
     async def read_context(self) -> ReadContext:
         return self._context
 
+    @property
+    def tenant_client(self) -> Any:
+        """The exact verified tenant client shared with catalog reconciliation."""
+        return self._tenant
+
     def _receipt(self, source: str, graph: str) -> ReadReceipt:
         return ReadReceipt(context=self._context, source=source, graph=graph)
 

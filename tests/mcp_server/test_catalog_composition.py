@@ -35,11 +35,26 @@ class Multiplexer:
     def __init__(self, *, fail: bool = False) -> None:
         self.refreshes = 0
         self.fail = fail
+        self.writer: Any | None = None
+        self.pack_authority: Any | None = None
+        self.remote_pack_authority: Any | None = None
 
     async def refresh_engine_catalog(self) -> None:
         self.refreshes += 1
         if self.fail:
             raise RuntimeError("catalog unavailable")
+
+    def install_catalog_authority_writer(self, writer: Any) -> None:
+        self.writer = writer
+
+    def install_connector_pack_authority(self, resolver: Any) -> None:
+        self.pack_authority = resolver
+
+    def install_remote_connector_pack_authority(self, resolver: Any) -> None:
+        self.remote_pack_authority = resolver
+
+    async def reconcile_pack_catalog_binding(self, _server_name: str) -> Any:
+        raise AssertionError("pack import is not invoked during startup")
 
 
 @pytest.mark.asyncio
@@ -84,6 +99,10 @@ async def test_startup_injects_generated_clients_and_public_catalog_ports(
 
     assert compute.graphs == ["tenant-a", "__commons__"]
     assert mux.refreshes == 1
+    assert mux.writer is not None
+    assert callable(mux.pack_authority)
+    assert callable(mux.remote_pack_authority)
+    assert mux.writer._fleet_port.tenant_client is verified[0]["client"]
     assert verified == [
         {
             "client": SimpleNamespace(graph="tenant-a"),
