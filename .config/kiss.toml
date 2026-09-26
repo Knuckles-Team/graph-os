@@ -8,7 +8,7 @@
 # via `kiss rules` with no --config: e.g. `returns_per_function <= 9`,
 # `statements_per_function <= 119`). The day this repository has enough real
 # code to measure a distribution, follow epistemic-graph's
-# docs/quality-gate-terms.md precedent: recalibrate a threshold only against
+# pages/quality-gate-terms.md precedent: recalibrate a threshold only against
 # a measured percentile, with the measurement written down next to the
 # number, never against "what currently passes."
 #

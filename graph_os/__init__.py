@@ -18,7 +18,7 @@ The live package layout is:
 The ``graph-os`` console command serves
 ``graph_os.mcp_server.server:mcp_server`` over stdio or authenticated
 streamable HTTP. Capability limits that depend on unfinished upstream
-contracts are documented in ``docs/status.md`` and fail closed; no legacy
+contracts are documented in ``pages/status.md`` and fail closed; no legacy
 fallback is implied by this package description.
 """
 

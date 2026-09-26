@@ -19,7 +19,7 @@ An eventual image definition here must:
 - resolve endpoints and credentials from deployment configuration and secret
   references, never from values embedded in the image;
 - retain the same fail-closed capability checks documented in
-  `docs/status.md`; and
+  `pages/status.md`; and
 - be adopted atomically by the owning deployment manifests before this
   repository claims container delivery is complete.
 

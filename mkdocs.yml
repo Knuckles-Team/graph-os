@@ -7,8 +7,8 @@ site_description: >-
 site_url: https://knuckles-team.github.io/graph-os/
 repo_name: Knuckles-Team/graph-os
 repo_url: https://github.com/Knuckles-Team/graph-os
-edit_uri: edit/main/docs/
-docs_dir: docs
+edit_uri: edit/main/pages/
+docs_dir: pages
 site_dir: site
 strict: true
 copyright: Copyright &copy; Knuckles-Team — MIT licensed

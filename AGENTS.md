@@ -11,7 +11,7 @@ This repository owns the GraphOS serving process and the code under
 policy, optional Agent WebUI hosting, unary A2A, governed browser control, and
 deployment operations.
 
-Current capability limits are documented in `docs/status.md`. A capability
+Current capability limits are documented in `pages/status.md`. A capability
 waiting on another repository's public contract must fail closed and remain
 marked unavailable. Do not add a compatibility alias, static fallback, or
 fabricated receipt to make it appear complete.
@@ -113,7 +113,7 @@ uv build --wheel --out-dir dist
 The pre-push suite adds dependency readiness, scanner censuses, clone checks,
 secret history, lock verification, and the local CI replica. Do not bypass a
 failure, add an inline suppression, freeze a baseline, or weaken a threshold.
-Scanner acceptance rules live in `docs/quality-gate-terms.md`.
+Scanner acceptance rules live in `pages/quality-gate-terms.md`.
 
 Shared hooks come from `Knuckles-Team/pipelines` at `main` -- the one
 sanctioned exception to this repo's immutable-pin policy, pinned in
@@ -158,7 +158,7 @@ add new `.ttl` files or shapes here.
 ## Documentation
 
 `README.md` is the concise public entry page. Detailed public material belongs
-under `docs/` and is published with MkDocs. Keep prose about the current
+under `pages/` and is published with MkDocs. Keep prose about the current
 product and its contracts. Internal planning history, local paths, temporary
 branches, and repository-transition notes do not belong on the public surface.
 

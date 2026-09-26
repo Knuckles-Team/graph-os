@@ -11,7 +11,7 @@
 graph_os = "the GraphOS Python package: MCP/REST composition, fleet, gateway, control plane, WebUI host, A2A, browser control, deployment, and console entry points"
 tests = "the pytest suite: wiring tests proving the console entry point and every package under graph_os/ are live, imported members of the package"
 deploy = "deployment inputs: genesis.yaml run-plan manifest and dev/test/prod profiles consumed by graph_os.deployment.genesis_environments, plus the container-delivery boundary note"
-docs = "MkDocs source for the public GitHub Pages documentation site"
+pages = "MkDocs source for the public GitHub Pages documentation site"
 ".config" = "tool configuration: pre-commit suite (pre-commit -c), bump2version (--config-file), KISS thresholds, vulture whitelist, this manifest, generated MkDocs theme overrides (custom_dir)"
 ".github" = "GitHub Actions workflow definitions (GitHub discovers only .github/)"
 

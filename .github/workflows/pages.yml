@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - docs/**
+      - pages/**
       - .config/mkdocs-overrides/**
       - mkdocs.yml
       - .github/workflows/pages.yml
@@ -22,5 +22,5 @@ jobs:
       id-token: write
     uses: Knuckles-Team/pipelines/.github/workflows/pages_pipeline.yml@main
     with:
-      content_source: docs
+      content_source: pages
       shared_theme_enabled: true

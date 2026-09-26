@@ -27,12 +27,12 @@ def test_readme_uses_the_public_title_and_exact_section_order() -> None:
         "## Contributing",
         "## License",
     ]
-    assert "docs/assets/runtime-architecture.svg" in readme
+    assert "pages/assets/runtime-architecture.svg" in readme
     assert "runtime-architecture.mmd" not in readme
 
 
 def test_architecture_names_each_supported_ecosystem_entrypoint() -> None:
-    architecture = (ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+    architecture = (ROOT / "pages" / "architecture.md").read_text(encoding="utf-8")
 
     for entrypoint in (
         "Agent Web UI",
