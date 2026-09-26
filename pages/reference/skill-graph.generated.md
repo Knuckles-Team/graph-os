@@ -30,11 +30,14 @@ Every concept and component this repo's own registries and documentation nav dec
 ## Components
 
 - **MCP server** — `mcp-server.md`
+- **Operation API** — `api.md`
 - **REST gateway** — `gateway.md`
 - **Fleet gateway** — `fleet.md`
+- **Dynamic multiplexer** — `fleet-multiplexer.md`
 - **Unary A2A** — `a2a.md`
 - **Policy evolution** — `policy-evolution.md`
 - **Access elevation and guardrails** — `guardrails.md`
+- **Markets and live-order approval** — `finance.md`
 - **Browser control** — `browser-control-service.md`
 
 ## Glossary
