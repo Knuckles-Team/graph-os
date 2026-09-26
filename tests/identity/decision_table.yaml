@@ -11,10 +11,10 @@
     {"role": "reports-reader", "resource": {"Graph": "agent:reports"}, "action": "Write", "effect": "Deny"}
   ],
   "cases": [
-    {"id": "report-read", "scope": "kg:admin", "action": "Read", "resource": "agent:reports", "allow": true, "reason_code": "Standing"},
-    {"id": "report-write-denied", "scope": "kg:admin", "action": "Write", "resource": "agent:reports", "allow": false, "reason_code": "Denied"},
-    {"id": "ungranted-graph", "scope": "kg:admin", "action": "Read", "resource": "agent:private", "allow": false, "reason_code": "Denied"},
-    {"id": "missing-scope", "scope": "kg:write", "action": "Read", "resource": "agent:reports", "allow": false, "reason_code": "SCOPE_DENIED"}
+    {"id": "report-read", "scope": "kg:admin", "action": "Read", "resource": "agent:reports", "allow": true, "reason_code": "STANDING_GRANT"},
+    {"id": "report-write-denied", "scope": "kg:admin", "action": "Write", "resource": "agent:reports", "allow": false, "reason_code": "EXPLICIT_DENY"},
+    {"id": "ungranted-graph", "scope": "kg:admin", "action": "Read", "resource": "agent:private", "allow": false, "reason_code": "NO_MATCHING_GRANT"},
+    {"id": "missing-scope", "scope": "node:read", "narrow_scopes": ["identity:self"], "action": "Read", "resource": "agent:reports", "allow": false, "reason_code": "SCOPE_DENIED"}
   ],
   "flip_with_data": {
     "resource": "agent:reports",
