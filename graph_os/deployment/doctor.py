@@ -26,6 +26,7 @@ from typing import Any
 
 from . import doctor_certification as _doctor_certification
 from . import doctor_coverage as _doctor_coverage
+from . import doctor_identity as _doctor_identity
 from . import doctor_lakehouse as _doctor_lakehouse
 from . import doctor_observability as _doctor_observability
 from . import doctor_support as _doctor_support
@@ -2204,6 +2205,7 @@ CHECKS: dict[str, Callable[..., dict[str, Any]]] = {
     "secrets": _check_secrets,
     "secrets_backend": _check_secrets_backend,
     "auth": _check_auth,
+    "identity_mode": _doctor_identity.check_identity_mode,
     "outbound_auth": _check_outbound_auth,
     "skill_certification": _check_skill_certification,
     "production_certification": _check_production_certification,

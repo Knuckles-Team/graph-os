@@ -326,10 +326,27 @@ def mcp_server(*, host_runtime_inputs: HostRuntimeInputs | None = None) -> None:
             # boundary. When ENABLE_WEB_UI is true, the packaged agent-webui is
             # started in-process by this same supervisor as a separately bound,
             # independently restartable co-service.
+            web_ui_runner = None
+            if config.enable_web_ui:
+                from graph_os.identity.serving import served_webui_identity
+                from graph_os.webui_host import run_web_ui
+
+                identity = served_webui_identity(runtime.graph_client)
+
+                def run_served_webui(stop_event: Any) -> None:
+                    run_web_ui(
+                        stop_event,
+                        identity=identity,
+                        engine_factory=runtime._get_engine,
+                    )
+
+                web_ui_runner = run_served_webui
+
             co_service_supervisor = start_composed_services(
                 bootstrap_session,
                 runtime._get_engine(),
                 messaging_intake_enabled=config.messaging_intake_enabled,
+                web_ui_runner=web_ui_runner,
             )
 
         if transport == "stdio":

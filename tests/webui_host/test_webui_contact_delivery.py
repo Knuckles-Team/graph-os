@@ -11,6 +11,12 @@ from typing import Any, cast
 
 from graph_os.webui_host.webui_co_service import _list_webui_skills
 
+# The host modules the run_web_ui test patches are imported before that test
+# replaces agent_utilities / agent_webui with synthetic modules: importing them
+# afterwards would resolve their own imports against the stubs.
+from graph_os.browser_control import browser_control_service
+from graph_os.mcp_server import runtime
+
 
 def _package(name: str) -> types.ModuleType:
     package = types.ModuleType(name)
@@ -69,6 +75,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
             calls["server"] = self
 
         async def serve(self) -> None:
+            assert calls["identity_prepared"] == ("identity-runtime", ["0.0.0.0"])
             calls["served"] = True
             stop_event.set()
 
@@ -187,6 +194,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         workspace_helpers: dict[str, object],
         listener_host: str,
         application_composer: object,
+        session_boundary: object | None = None,
         contact_delivery: object | None = None,
         browser_control: object | None = None,
     ) -> object:
@@ -195,6 +203,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
             "workspace_helpers": workspace_helpers,
             "listener_host": listener_host,
             "application_composer": application_composer,
+            "session_boundary": session_boundary,
             "contact_delivery": contact_delivery,
             "browser_control": browser_control,
         }
@@ -255,8 +264,24 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         raising=False,
     )
 
+    async def prepare_identity(identity: object, bind_hosts: list[str]) -> None:
+        calls["identity_prepared"] = (identity, bind_hosts)
+
+    class ServedIdentity:
+        async def prepare(self, bind_hosts: list[str]) -> None:
+            await prepare_identity("identity-runtime", bind_hosts)
+
+        def webui_session_boundary(self) -> tuple[str, str]:
+            return ("boundary", "identity-runtime")
+
     monkeypatch.delenv(module.ACCESS_LOG_POLICY_ENV, raising=False)
-    module.run_web_ui(stop_event, host="0.0.0.0", port=8181)
+    module.run_web_ui(
+        stop_event,
+        identity=ServedIdentity(),
+        engine_factory=runtime._get_engine,
+        host="0.0.0.0",
+        port=8181,
+    )
 
     assert os.environ[module.ACCESS_LOG_POLICY_ENV] == "disabled"
     assert calls["engine_getter"] == "bounded-engine"
@@ -270,6 +295,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         },
         "listener_host": "0.0.0.0",
         "application_composer": module.compose_web_application,
+        "session_boundary": ("boundary", "identity-runtime"),
         "contact_delivery": "governed-contact-delivery",
         "browser_control": service,
     }

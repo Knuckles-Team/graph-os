@@ -62,7 +62,7 @@ async def test_installed_gateway_port_dispatches_native_runtime(
     assert calls == [("graph_query", {"query": "MATCH"})]
 
 
-def test_webui_co_service_uses_graph_os_host(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_webui_supervisor_uses_injected_runner(monkeypatch: pytest.MonkeyPatch) -> None:
     started: list[tuple[str, Any]] = []
 
     class Supervisor:
@@ -81,10 +81,28 @@ def test_webui_co_service_uses_graph_os_host(monkeypatch: pytest.MonkeyPatch) ->
         "graph_os.mcp_server.composition.CoServiceSupervisor", Supervisor
     )
 
-    start_composed_services(object(), object())
+    def web_ui_runner(stop_event: object) -> None:
+        return None
+
+    start_composed_services(object(), object(), web_ui_runner=web_ui_runner)
 
     assert started[0][0] == "agent-webui"
-    assert started[0][1].__module__ == "graph_os.webui_host.webui_co_service"
+    assert started[0][1] is web_ui_runner
+
+
+def test_webui_refuses_to_start_without_served_runner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "graph_os.mcp_server.composition.detect_composition",
+        lambda engine, **kwargs: SimpleNamespace(
+            messaging_intake_configured=False,
+            messaging_configured=False,
+            web_ui_enabled=True,
+        ),
+    )
+    with pytest.raises(RuntimeError, match="served WebUI runner is required"):
+        start_composed_services(object(), object())
 
 
 def test_webui_composition_reads_graphos_host_intent(

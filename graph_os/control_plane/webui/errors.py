@@ -10,7 +10,6 @@ __all__ = [
     "WebUiDomainError",
     "WebUiEntityNotFoundError",
     "WebUiPaginationError",
-    "WebUiPilotBoundaryError",
     "WebUiRetentionError",
 ]
 
@@ -52,9 +51,3 @@ class WebUiRetentionError(WebUiDomainError):
     """A lifecycle transition would bypass retention or legal-hold policy."""
 
     code = "webui_retention_invalid"
-
-
-class WebUiPilotBoundaryError(WebUiDomainError):
-    """An anonymous pilot operation crossed its private boundary."""
-
-    code = "webui_anonymous_pilot_boundary"

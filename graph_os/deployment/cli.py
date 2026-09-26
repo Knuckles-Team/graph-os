@@ -102,6 +102,13 @@ def _run_environments(args: argparse.Namespace) -> int:
     return 2
 
 
+def _run_identity(args: argparse.Namespace) -> int:
+    """``setup-config identity …`` is ``graph-os-identity …`` (IDM-16)."""
+    from graph_os.identity.cli import main as identity_main
+
+    return identity_main(list(args.identity_args))
+
+
 _COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace], int]] = {
     "generate": _run_generate,
     "doctor": _run_doctor,
@@ -109,6 +116,7 @@ _COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace], int]] = {
     "codex": _run_codex,
     "harness-fence": _run_harness_fence,
     "environments": _run_environments,
+    "identity": _run_identity,
 }
 
 
@@ -176,6 +184,10 @@ def main(argv: list[str] | None = None) -> int:
         help="Load + validate one profile; exit non-zero and name the problem on failure.",
     )
     env_validate.add_argument("name", help="Profile name to validate.")
+
+    sub.add_parser(
+        "identity", help="Identity operator commands (graph-os-identity)."
+    ).add_argument("identity_args", nargs=argparse.REMAINDER)
 
     args = parser.parse_args(argv)
     handler = _COMMAND_HANDLERS.get(args.command)

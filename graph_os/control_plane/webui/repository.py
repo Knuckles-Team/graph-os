@@ -15,7 +15,6 @@ from .errors import (
     WebUiCasConflictError,
     WebUiEntityNotFoundError,
     WebUiPaginationError,
-    WebUiPilotBoundaryError,
     WebUiRetentionError,
 )
 from .models import (
@@ -68,7 +67,6 @@ _ENTITY_TYPES: tuple[tuple[type[BaseModel], EntityKind], ...] = (
     (FeedbackIdentity, "feedback"),
     (SupportIdentity, "support"),
 )
-_PILOT_AUTHORITY_KINDS = {"tenant", "workspace", "user", "profile"}
 _RETENTION_TARGETS = {
     "active",
     "retained",
@@ -151,34 +149,6 @@ def _validate_expected_version(expected_version: int | None) -> None:
         or expected_version < 1
     ):
         raise WebUiCasConflictError()
-
-
-def _pilot_ref_mismatch(entity: WebUiEntity, context: AccessContext) -> bool:
-    expected_refs = (
-        ("session_ref", context.session_ref),
-        ("user_ref", "user:anonymous-pilot"),
-        ("owner_ref", "user:anonymous-pilot"),
-        ("actor_ref", "actor:anonymous-pilot"),
-        ("requester_ref", "actor:anonymous-pilot"),
-    )
-    return any(
-        getattr(entity, field_name, None) not in (None, expected)
-        for field_name, expected in expected_refs
-    )
-
-
-def _pilot_boundary_violation(
-    entity: WebUiEntity,
-    entity_kind: EntityKind,
-    context: AccessContext,
-) -> bool:
-    if entity_kind in _PILOT_AUTHORITY_KINDS:
-        return True
-    if getattr(entity, "visibility", "private") != "private":
-        return True
-    if _pilot_ref_mismatch(entity, context):
-        return True
-    return isinstance(entity, SessionIdentity) and not entity.anonymous_pilot
 
 
 def _validate_retention_target(target: LifecycleState) -> None:
@@ -322,17 +292,6 @@ class InMemoryWebUiRepository:
     ) -> tuple[EntityKind, str, str, str]:
         return entity_kind, tenant_ref, workspace_ref, entity_ref
 
-    @staticmethod
-    def _pilot_boundary(
-        entity: WebUiEntity,
-        entity_kind: EntityKind,
-        context: AccessContext,
-    ) -> None:
-        if not context.anonymous_pilot:
-            return
-        if _pilot_boundary_violation(entity, entity_kind, context):
-            raise WebUiPilotBoundaryError()
-
     def _initial_retention(
         self,
         *,
@@ -389,7 +348,6 @@ class InMemoryWebUiRepository:
             workspace_ref,
             permission="write",
         )
-        self._pilot_boundary(entity, entity_kind, context)
         key = self._key(entity_kind, tenant_ref, workspace_ref, entity_ref)
         with self._lock:
             existing = self._entities.get(key)

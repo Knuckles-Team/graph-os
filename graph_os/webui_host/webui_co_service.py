@@ -39,7 +39,10 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Awaitable, Callable
 from typing import Any, cast
+
+from graph_os.identity.ports import ServedIdentityPort
 
 __all__ = ["compose_web_application", "run_web_ui"]
 
@@ -175,9 +178,13 @@ async def _serve_until_stopped(
     browser_control_service: Any,
     register_browser_control_service: Any,
     unregister_browser_control_service: Any,
+    prepare_identity: Callable[[], Awaitable[Any]],
 ) -> None:
     import asyncio
 
+    # Seed the identity store and refuse an unsafe ``none`` exposure BEFORE
+    # the listener binds: a refused exposure must never answer one request.
+    await prepare_identity()
     if browser_control_service is not None:
         register_browser_control_service(browser_control_service)
     task = asyncio.ensure_future(server.serve())
@@ -196,6 +203,8 @@ async def _serve_until_stopped(
 def run_web_ui(
     stop_event: threading.Event,
     *,
+    identity: ServedIdentityPort,
+    engine_factory: Callable[[], Any],
     host: str | None = None,
     port: int | None = None,
 ) -> None:
@@ -269,7 +278,6 @@ def run_web_ui(
     from graph_os.browser_control.browser_control_service import (
         browser_control_factory_kwargs,
     )
-    from graph_os.mcp_server import runtime as mcp_runtime
     from graph_os.webui_host.contact_governance import (
         contact_delivery_factory_kwargs,
     )
@@ -298,15 +306,18 @@ def run_web_ui(
     )
     browser_control_kwargs = browser_control_factory_kwargs(
         create_agent_web_app,
-        mcp_runtime._get_engine(),
+        engine_factory(),
         lambda operation: invoke_governed_helper(operation, deadline=10.0),
         session_revalidator=revalidate_browser_control_session,
     )
+    # The identity broker owns every browser credential: /auth/*, sessions,
+    # API keys and the none-mode bootstrap principal (graph_os.identity).
     app = create_agent_web_app(
         agent,
         workspace_helpers=helpers,
         listener_host=bind_host,
         application_composer=compose_web_application,
+        session_boundary=identity.webui_session_boundary(),
         **contact_kwargs,
         **browser_control_kwargs,
     )
@@ -336,5 +347,6 @@ def run_web_ui(
             browser_control_service,
             register_browser_control_service,
             unregister_browser_control_service,
+            lambda: identity.prepare([bind_host]),
         )
     )
