@@ -52,19 +52,7 @@ def verified_a2a_caller() -> Any:
     from graph_os.api.invoke import VerifiedCaller
 
     session = resolve_session()
-    actor = session.actor
-    actor_type = str(actor.actor_type)
-    return VerifiedCaller(
-        principal=str(actor.actor_id),
-        tenant=session.tenant,
-        effective_scopes=frozenset(session.scopes),
-        engine_claims={"principal": str(actor.actor_id), "tenant": session.tenant},
-        principal_kind="human" if actor_type == "human" else "service",
-        delegated=actor_type == "ai_agent",
-        policy_revision=str(session.policy_version),
-        request_id=session.trace_context or "",
-        session=session,
-    )
+    return VerifiedCaller.from_session(session, request_id=session.trace_context or "")
 
 
 class OperationProjection:
@@ -116,10 +104,16 @@ class OperationProjection:
         if invoke_fn is None:
             from graph_os.api.invoke import invoke as invoke_fn
 
+        caller = self._caller()
+        if method == PLAN_CONFIRM and (
+            caller.principal_kind != "human" or caller.delegated
+        ):
+            return OperationReply(code="FORBIDDEN", refused=True)
+
         result = await invoke_fn(
             parsed.op,
             parsed.params,
-            self._caller(),
+            caller,
             Surface.A2A,
             services=self._services,
             plan_ref=parsed.plan_ref,

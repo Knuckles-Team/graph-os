@@ -35,7 +35,9 @@ async def test_plan_confirm_resubmits_exact_op_and_params_to_shared_invoke() -> 
         return SimpleNamespace(code="OK", details={}, value={"accepted": True})
 
     projection = OperationProjection(
-        services="services", caller=lambda: "verified-caller", invoke_fn=invoke
+        services="services",
+        caller=lambda: SimpleNamespace(principal_kind="human", delegated=False),
+        invoke_fn=invoke,
     )
     answer = await projection.invoke(
         "graphos.plan/confirm",
@@ -51,7 +53,7 @@ async def test_plan_confirm_resubmits_exact_op_and_params_to_shared_invoke() -> 
         (
             "finance.orders.submit",
             {"order_id": "one"},
-            "verified-caller",
+            SimpleNamespace(principal_kind="human", delegated=False),
             Surface.A2A,
             {"services": "services", "plan_ref": "p1", "idempotency_key": "k1"},
         )
@@ -67,7 +69,9 @@ async def test_preview_requires_input_and_console_step_up_stays_out_of_band() ->
         )
 
     projection = OperationProjection(
-        services="services", caller=lambda: "verified-caller", invoke_fn=invoke
+        services="services",
+        caller=lambda: SimpleNamespace(principal_kind="human", delegated=False),
+        invoke_fn=invoke,
     )
     answer = await projection.invoke(
         "graphos.op/invoke",
@@ -99,7 +103,9 @@ async def test_plan_preview_carries_exact_authenticated_confirmation_input() -> 
         )
 
     projection = OperationProjection(
-        services="services", caller=lambda: "verified-caller", invoke_fn=invoke
+        services="services",
+        caller=lambda: SimpleNamespace(principal_kind="human", delegated=False),
+        invoke_fn=invoke,
     )
     params = {"order_id": "one", "limits": {"quantity": 3}}
     answer = await projection.invoke(
@@ -134,11 +140,40 @@ async def test_missing_plan_binding_fails_closed() -> None:
 async def test_confirm_rejects_missing_op_and_params() -> None:
     projection = OperationProjection(
         services="services",
-        caller=lambda: "verified-caller",
+        caller=lambda: SimpleNamespace(principal_kind="human", delegated=False),
         invoke_fn=lambda *_args, **_kwargs: None,  # never called
     )
     with pytest.raises(ValidationError):
         await projection.invoke("graphos.plan/confirm", {"plan_ref": "p1"})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("principal_kind", "delegated"),
+    [("service", False), ("human", True)],
+)
+async def test_plan_confirm_rejects_nonhuman_or_delegated_caller(
+    principal_kind: str, delegated: bool
+) -> None:
+    calls: list[Any] = []
+
+    async def invoke(*args: Any, **kwargs: Any) -> Any:
+        calls.append((args, kwargs))
+        return SimpleNamespace(code="OK", details={}, value={})
+
+    projection = OperationProjection(
+        services="services",
+        caller=lambda: SimpleNamespace(
+            principal_kind=principal_kind, delegated=delegated
+        ),
+        invoke_fn=invoke,
+    )
+    answer = await projection.invoke(
+        "graphos.plan/confirm", {"plan_ref": "p1", "op": "op", "params": {}}
+    )
+    assert answer.refused is True
+    assert answer.code == "FORBIDDEN"
+    assert calls == []
 
 
 def test_nonhuman_ambient_actor_never_projects_as_human(
@@ -149,7 +184,11 @@ def test_nonhuman_ambient_actor_never_projects_as_human(
     from agent_utilities.security.brain_context import ActorContext
 
     invoke_module = ModuleType("graph_os.api.invoke")
-    invoke_module.VerifiedCaller = SimpleNamespace  # type: ignore[attr-defined]
+    invoke_module.VerifiedCaller = SimpleNamespace(  # type: ignore[attr-defined]
+        from_session=lambda session, **_kwargs: SimpleNamespace(
+            principal_kind="service", delegated=True, session=session
+        )
+    )
     monkeypatch.setitem(sys.modules, "graph_os.api.invoke", invoke_module)
     session = GraphSession(
         actor=ActorContext(
