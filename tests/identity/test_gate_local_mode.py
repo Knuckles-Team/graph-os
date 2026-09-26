@@ -200,6 +200,40 @@ def test_token_exchange_trades_an_api_key() -> None:
     assert served.client.post("/oauth/token", data=form).status_code == 400
 
 
+def test_token_exchange_refuses_duplicate_and_unexpected_form_fields() -> None:
+    served = _with_admin()
+    grant = "urn:ietf:params:oauth:grant-type:token-exchange"
+    token_type = "urn:graph-os:token-type:api-key"
+    for body in (
+        f"grant_type={grant}&subject_token=a&subject_token=b&subject_token_type={token_type}",
+        f"grant_type={grant}&subject_token=a&subject_token_type={token_type}&extra=x",
+    ):
+        response = served.client.post(
+            "/oauth/token",
+            content=body,
+            headers={"content-type": "application/x-www-form-urlencoded"},
+        )
+        assert response.status_code == 400
+        assert response.json() == {"error": "invalid_request"}
+
+
+def test_token_exchange_refuses_oversized_and_non_form_input() -> None:
+    served = _with_admin()
+    oversized = served.client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token": "x" * (24 * 1024 + 1),
+            "subject_token_type": "urn:graph-os:token-type:api-key",
+        },
+    )
+    assert oversized.status_code == 400
+    assert oversized.json() == {"error": "invalid_request"}
+    wrong_media = served.client.post("/oauth/token", json={"subject_token": "x"})
+    assert wrong_media.status_code == 400
+    assert wrong_media.json() == {"error": "invalid_request"}
+
+
 def _enroll_totp(served: Served) -> None:
     assert (
         served.post("/auth/mfa/totp/enroll")

@@ -23,6 +23,9 @@ lane) and ``tests/identity/test_oidc.py``.
 
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -75,6 +78,7 @@ __all__ = [
     "ProviderCache",
     "ProviderMetadata",
     "parse_provider_metadata",
+    "verify_access_token",
     "verify_id_token",
 ]
 
@@ -312,6 +316,52 @@ def verify_id_token(
     return claims
 
 
+def verify_access_token(
+    access_token: str, *, settings: OidcSettings, keys: KeySet, now: int
+) -> dict[str, Any]:
+    """Verify an RFC 9068 JWT access token for this configured client.
+
+    ID tokens have a different purpose and require the browser transaction's
+    nonce. Only a signed ``at+jwt`` access token can use this exchange path.
+    """
+    if access_token.count(".") != 2:
+        raise IdTokenError("an access token must be a compact JWS")
+    try:
+        header = extract_compact(access_token.encode()).protected
+        if header.get("typ") != "at+jwt":
+            raise IdTokenError("token is not an at+jwt access token")
+        decoded = jwt.decode(access_token, keys, algorithms=list(settings.signing_algs))
+        jwt.JWTClaimsRegistry(
+            now=now,
+            leeway=settings.clock_skew_s,
+            iss={"essential": True, "value": settings.issuer},
+            sub={"essential": True},
+            exp={"essential": True},
+            iat={"essential": True},
+        ).validate(decoded.claims)
+    except (JoseError, ValueError) as exc:
+        raise IdTokenError(type(exc).__name__) from None
+    claims: dict[str, Any] = dict(decoded.claims)
+    _check_audience(claims, settings.client_id)
+    subject = claims.get("sub")
+    if not isinstance(subject, str) or not subject or len(subject) > 255:
+        raise IdTokenError("sub must be a non-empty string of at most 255 characters")
+    return claims
+
+
+def _unverified_issuer(token: str) -> str | None:
+    """Select a configured provider; the later signature check establishes trust."""
+    if len(token) > 24 * 1024 or token.count(".") != 2:
+        return None
+    try:
+        payload = token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(payload + "==="))
+    except (binascii.Error, ValueError):
+        return None
+    issuer = claims.get("iss") if isinstance(claims, dict) else None
+    return issuer if isinstance(issuer, str) else None
+
+
 def _unverified_kid(id_token: str) -> str | None:
     try:
         header = extract_compact(id_token.encode()).protected
@@ -377,6 +427,48 @@ class OidcBroker:
             self._providers.metadata, settings.issuer
         )
         return settings, metadata
+
+    async def verify_exchange_access_token(
+        self, token: str
+    ) -> ExternalAssertion | None:
+        """Verify one access JWT against an enabled engine IdP, or refuse it."""
+        issuer = _unverified_issuer(token)
+        if issuer is None:
+            return None
+        matches: list[tuple[IdpRecord, OidcSettings]] = []
+        for record in await self._directory.records():
+            if record.kind != "oidc" or not record.enabled:
+                continue
+            try:
+                settings = _settings(record)
+            except UnknownIdp:
+                return None
+            if settings.issuer == issuer:
+                matches.append((record, settings))
+        # Two enabled records for one issuer would make the authority mapping
+        # ambiguous even when they share a JWKS. No ordering rule may choose it.
+        if len(matches) != 1:
+            return None
+        record, settings = matches[0]
+        try:
+            _, metadata = await self._provider(record)
+            keys = await anyio.to_thread.run_sync(
+                self._providers.keys, metadata, _unverified_kid(token)
+            )
+            claims = verify_access_token(
+                token, settings=settings, keys=keys, now=int(self._clock())
+            )
+        except (IdTokenError, OAuthDiscoveryError, UnknownIdp, httpx.HTTPError):
+            return None
+        username = claims.get(settings.username_claim)
+        return ExternalAssertion(
+            idp_id=record.idp_id,
+            subject=claims["sub"],
+            claims=flatten_claims(
+                claims, settings.claim_paths, group_paths=settings.group_paths
+            ),
+            username_hint=username if isinstance(username, str) else None,
+        )
 
     async def begin(self, request: Request) -> Response:
         """``GET /auth/oidc/{idp_id}/login``: redirect to the IdP."""
