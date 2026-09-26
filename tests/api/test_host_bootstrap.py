@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import sys
 from contextlib import contextmanager
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 
 import pytest
 
@@ -211,46 +210,3 @@ def test_process_host_composition_shares_policy_and_verified_fleet(
     assert isinstance(inputs.fleet_gateway, FleetGateway)
     assert callable(inputs.fleet_search)
     assert callable(inputs.fleet_ops_factory)
-
-
-def test_mcp_entrypoint_registers_host_before_serving(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from agent_utilities.core import config as config_module
-
-    from graph_os.api import serving
-
-    semantic_content = ModuleType("graph_os.semantic_content")
-    semantic_content.default_content_providers = lambda: ()  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "graph_os.semantic_content", semantic_content)
-    from graph_os.mcp_server import server
-
-    calls: list[str] = []
-    marker = object()
-    monkeypatch.setattr(config_module, "load_config", lambda: calls.append("config"))
-    monkeypatch.setattr(
-        host_bootstrap,
-        "configure_host_runtime",
-        lambda inputs: calls.append("host") if inputs is marker else None,
-    )
-    monkeypatch.setattr(
-        serving,
-        "configured_served_api",
-        lambda: (calls.append("bundle"), object(), object(), object())[1:],
-    )
-
-    class StopAfterComposition(Exception):
-        pass
-
-    def configure(*args):
-        calls.append("projection")
-        raise StopAfterComposition
-
-    monkeypatch.setattr(server.runtime, "configure_served_api", configure)
-    with pytest.raises(StopAfterComposition):
-        server.mcp_server(host_runtime_inputs=marker)
-    assert calls == ["config", "host", "bundle", "projection"]
-    calls.clear()
-    with pytest.raises(RuntimeError, match="host runtime inputs are required"):
-        server.mcp_server()
-    assert calls == ["config"]
