@@ -11,14 +11,20 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, Protocol, runtime_checkable
 
 from agent_utilities.api import (
+    AgentControlPlaneUnavailable,
     AgentTaskDispatchRequest,
     AgentTaskDispatchResult,
     AgentWorkItemNotCancelable,
+    PendingInputAnswerReceipt,
+    PendingInputAnswerRequest,
+    PendingInputGetRequest,
+    PendingInputRequest,
     RunOutput,
     RunOutputRequest,
     WorkItemCancelRequest,
@@ -32,9 +38,11 @@ from agent_utilities.security.persistence_privacy import persistence_reference
 from .models import (
     A2AMessage,
     A2ARouteDecision,
+    A2AStatusMessage,
     A2ATask,
     A2ATaskState,
     A2ATaskStatus,
+    A2ATextPart,
 )
 
 __all__ = [
@@ -70,6 +78,14 @@ class A2AControlPlanePort(Protocol):
     async def cancel_work_item(
         self, request: WorkItemCancelRequest
     ) -> WorkItemSnapshot | None: ...
+
+    async def get_pending_input(
+        self, request: PendingInputGetRequest
+    ) -> PendingInputRequest | None: ...
+
+    async def submit_pending_input_answer(
+        self, request: PendingInputAnswerRequest
+    ) -> PendingInputAnswerReceipt: ...
 
 
 ControlPlaneFactory = Callable[[Any], A2AControlPlanePort]
@@ -118,6 +134,10 @@ class A2ATaskAuthority(Protocol):
     async def cancel(self, task_id: str) -> A2ATask: ...
 
     async def output(self, task_id: str) -> str | None: ...
+
+    async def answer_pending_input(
+        self, task_id: str, request: PendingInputAnswerRequest
+    ) -> PendingInputAnswerReceipt: ...
 
 
 def _digest(value: Any) -> str:
@@ -182,7 +202,9 @@ def _owned(item: WorkItemSnapshot | None, owner_ref: str) -> bool:
     )
 
 
-def project(item: WorkItemSnapshot) -> A2ATask:
+def project(
+    item: WorkItemSnapshot, pending: PendingInputRequest | None = None
+) -> A2ATask:
     """Project one owned WorkItem snapshot onto the public A2A task shape."""
     state = _STATE_MAP.get(item.status)
     if state is None:
@@ -193,10 +215,35 @@ def project(item: WorkItemSnapshot) -> A2ATask:
     from agent_utilities.observability.trace_ontology import trace_id
 
     timestamp = datetime.fromtimestamp(item.updated_at_ms / 1000, tz=UTC)
+    message = None
+    if pending is not None:
+        if (
+            state != "working"
+            or pending.work_item_id != item.work_item_id
+            or pending.work_item_version != item.version
+            or pending.expires_at_ms <= int(time.time() * 1000)
+        ):
+            raise RuntimeError("pending A2A input is stale or unbound")
+        state = "input-required"
+        message = A2AStatusMessage(
+            parts=[A2ATextPart(text=pending.preview)],
+            message_id=pending.call_id,
+            metadata={
+                "graphOsApproval": {
+                    "call_id": pending.call_id,
+                    "plan_ref": pending.plan_ref,
+                    "op": pending.op,
+                    "params_digest": pending.params_digest,
+                    "work_item_version": pending.work_item_version,
+                }
+            },
+        )
     return A2ATask(
         id=task_id,
         context_id=str(item.metadata.get("a2a_context_id") or ""),
-        status=A2ATaskStatus(state=state, timestamp=timestamp.isoformat()),
+        status=A2ATaskStatus(
+            state=state, timestamp=timestamp.isoformat(), message=message
+        ),
         metadata={
             "graphOs": {
                 "taskAuthorityRef": item.work_item_id,
@@ -211,8 +258,14 @@ def project(item: WorkItemSnapshot) -> A2ATask:
 class WorkItemA2AAuthority:
     """A2A lifecycle over the verified caller's AU control plane."""
 
-    def __init__(self, control_plane_for: ControlPlaneFactory) -> None:
+    def __init__(
+        self,
+        control_plane_for: ControlPlaneFactory,
+        *,
+        pending_input_enabled: bool = False,
+    ) -> None:
         self._control_plane_for = control_plane_for
+        self._pending_input_enabled = pending_input_enabled
 
     def _bound(self, scope: str) -> tuple[Any, A2AControlPlanePort, str]:
         session = _resolve(scope)
@@ -285,7 +338,45 @@ class WorkItemA2AAuthority:
     async def get(self, task_id: str) -> A2ATask | None:
         _session, control_plane, owner_ref = self._bound("kg:read")
         item = await self._owned_item(control_plane, task_id, owner_ref)
-        return None if item is None else project(item)
+        if item is None:
+            return None
+        pending = None
+        if self._pending_input_enabled and item.status in {"leased", "running"}:
+            pending = await control_plane.get_pending_input(
+                PendingInputGetRequest(work_item_id=item.work_item_id)
+            )
+        return project(item, pending)
+
+    async def answer_pending_input(
+        self, task_id: str, request: PendingInputAnswerRequest
+    ) -> PendingInputAnswerReceipt:
+        if not self._pending_input_enabled:
+            raise AgentControlPlaneUnavailable("A2A task approval is unavailable")
+        session, control_plane, owner_ref = self._bound("kg:write")
+        item = await self._owned_item(control_plane, task_id, owner_ref)
+        if item is None or item.work_item_id != request.work_item_id:
+            raise PermissionError("A2A pending call is unavailable")
+        pending = await control_plane.get_pending_input(
+            PendingInputGetRequest(work_item_id=item.work_item_id)
+        )
+        if pending is None or any(
+            getattr(pending, key) != getattr(request, key)
+            for key in (
+                "work_item_id",
+                "work_item_version",
+                "call_id",
+                "plan_ref",
+                "op",
+                "params_digest",
+            )
+        ):
+            raise PermissionError("A2A pending call binding changed")
+        if pending.origin_principal != str(session.actor.actor_id):
+            raise PermissionError("A2A delegated approval is unavailable")
+        receipt = await control_plane.submit_pending_input_answer(request)
+        if not receipt.accepted or receipt.call_id != pending.call_id:
+            raise PermissionError("A2A pending call was not consumed")
+        return receipt
 
     async def list(
         self, *, cursor: str | None, limit: int
@@ -300,7 +391,16 @@ class WorkItemA2AAuthority:
                 kind=_WORK_ITEM_KIND,
             )
         )
-        tasks = [project(item) for item in page.items if _owned(item, owner_ref)]
+        tasks = []
+        for item in page.items:
+            if not _owned(item, owner_ref):
+                continue
+            pending = None
+            if self._pending_input_enabled and item.status in {"leased", "running"}:
+                pending = await control_plane.get_pending_input(
+                    PendingInputGetRequest(work_item_id=item.work_item_id)
+                )
+            tasks.append(project(item, pending))
         return tasks, _encode_cursor(page.next_cursor, session.tenant, owner_ref)
 
     async def output(self, task_id: str) -> str | None:

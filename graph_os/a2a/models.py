@@ -20,6 +20,7 @@ __all__ = [
     "A2ATask",
     "A2ATaskState",
     "A2ATaskStatus",
+    "A2AStatusMessage",
     "A2ATaskArtifactUpdateEvent",
     "A2ATaskStatusUpdateEvent",
     "A2ATextPart",
@@ -91,13 +92,28 @@ class A2ARouteDecision(_WireModel):
 
 
 A2ATaskState = Literal[
-    "submitted", "working", "completed", "canceled", "failed", "rejected"
+    "submitted",
+    "working",
+    "input-required",
+    "completed",
+    "canceled",
+    "failed",
+    "rejected",
 ]
+
+
+class A2AStatusMessage(_WireModel):
+    role: Literal["agent"] = "agent"
+    parts: list[A2ATextPart] = Field(min_length=1, max_length=1)
+    kind: Literal["message"] = "message"
+    message_id: str = Field(min_length=1, max_length=512)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class A2ATaskStatus(_WireModel):
     state: A2ATaskState
     timestamp: str | None = None
+    message: A2AStatusMessage | None = None
 
 
 class A2ATask(_WireModel):

@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import time
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from agent_utilities.api import (
+    AgentControlPlaneUnavailable,
     AgentTaskDispatchResult,
     CapabilityResolution,
+    PendingInputAnswerReceipt,
+    PendingInputAnswerRequest,
+    PendingInputRequest,
     WorkItemPage,
     WorkItemSnapshot,
     WorkItemSubmissionResult,
@@ -41,6 +46,7 @@ class _ControlPlane:
         self.cancel_refused = False
         self.dispatch_requests: list[Any] = []
         self.outputs: dict[str, Any] = {}
+        self.pending: dict[str, PendingInputRequest] = {}
 
     async def get_run_output(self, request: Any) -> Any:
         return self.outputs.get(request.run_id)
@@ -75,6 +81,19 @@ class _ControlPlane:
 
     async def get_work_item(self, request: Any) -> WorkItemSnapshot | None:
         return self.items.get(request.work_item_id)
+
+    async def get_pending_input(self, request: Any) -> PendingInputRequest | None:
+        return self.pending.get(request.work_item_id)
+
+    async def submit_pending_input_answer(
+        self, request: PendingInputAnswerRequest
+    ) -> PendingInputAnswerReceipt:
+        self.pending.pop(request.work_item_id)
+        return PendingInputAnswerReceipt(
+            work_item_id=request.work_item_id,
+            call_id=request.call_id,
+            accepted=True,
+        )
 
     async def list_work_items(self, request: Any) -> WorkItemPage:
         ordered = sorted(self.items)
@@ -128,6 +147,87 @@ async def test_lifecycle_uses_one_control_plane_store(bound) -> None:
     assert [listed.id for listed in tasks] == [task.id] and cursor is None
     cancelled = await authority.cancel(task.id)
     assert cancelled.status.state == "canceled"
+
+
+async def test_pending_call_projects_input_required_and_consumes_exact_answer(
+    bound,
+) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane, pending_input_enabled=True)
+    task = await authority.dispatch(
+        message=_message(),
+        idempotency_key="pending",
+        decision=A2ARouteDecision(agent_name="expert", selection_mode="router"),
+    )
+    work_item_id = f"workitem:orchestrator:{task.id}"
+    plane.items[work_item_id] = plane.items[work_item_id].model_copy(
+        update={"status": "running", "version": 2}
+    )
+    pending = PendingInputRequest(
+        work_item_id=work_item_id,
+        work_item_version=2,
+        call_id="call-1",
+        plan_ref="plan-1",
+        op="query.uql",
+        params_digest="a" * 64,
+        origin_principal="actor-a",
+        expires_at_ms=int(time.time() * 1000) + 60_000,
+        preview="Run the query?",
+    )
+    plane.pending[work_item_id] = pending
+    observed = await authority.get(task.id)
+    assert observed is not None
+    assert observed.status.state == "input-required"
+    assert observed.status.message is not None
+    assert observed.status.message.metadata["graphOsApproval"]["call_id"] == "call-1"
+    listed, _cursor = await authority.list(cursor=None, limit=10)
+    assert listed[0].status.state == "input-required"
+    receipt = await authority.answer_pending_input(
+        task.id,
+        PendingInputAnswerRequest(
+            work_item_id=work_item_id,
+            work_item_version=2,
+            call_id="call-1",
+            plan_ref="plan-1",
+            op="query.uql",
+            params_digest="a" * 64,
+            decision="approve",
+            idempotency_key="answer-1",
+        ),
+    )
+    assert receipt.accepted is True
+    assert (await authority.get(task.id)).status.state == "working"
+
+
+async def test_pending_exchange_stays_disabled_without_native_port(bound) -> None:
+    plane = _ControlPlane()
+    authority = WorkItemA2AAuthority(lambda session: plane)
+    task = await authority.dispatch(
+        message=_message(),
+        idempotency_key="disabled",
+        decision=A2ARouteDecision(agent_name="expert", selection_mode="router"),
+    )
+    work_item_id = f"workitem:orchestrator:{task.id}"
+    plane.items[work_item_id] = plane.items[work_item_id].model_copy(
+        update={"status": "running", "version": 2}
+    )
+    assert (await authority.get(task.id)).status.state == "working"
+    with pytest.raises(
+        AgentControlPlaneUnavailable, match="A2A task approval is unavailable"
+    ):
+        await authority.answer_pending_input(
+            task.id,
+            PendingInputAnswerRequest(
+                work_item_id=work_item_id,
+                work_item_version=2,
+                call_id="call-1",
+                plan_ref="plan-1",
+                op="query.uql",
+                params_digest="a" * 64,
+                decision="approve",
+                idempotency_key="answer-1",
+            ),
+        )
 
 
 async def test_reused_key_with_a_different_request_conflicts(bound) -> None:

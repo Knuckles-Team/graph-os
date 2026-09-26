@@ -176,6 +176,71 @@ async def test_plan_confirm_rejects_nonhuman_or_delegated_caller(
     assert calls == []
 
 
+@pytest.mark.asyncio
+async def test_task_approval_requires_signed_message_and_bound_service() -> None:
+    class TaskService:
+        def __init__(self) -> None:
+            self.calls: list[Any] = []
+
+        async def answer_task_approval(self, task_id: str, request: Any) -> Any:
+            self.calls.append((task_id, request))
+            return SimpleNamespace(accepted=True, call_id="call-1")
+
+    async def invoke(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("task approval must not execute the operation")
+
+    service = TaskService()
+    projection = OperationProjection(
+        services="services",
+        caller=lambda: SimpleNamespace(
+            principal_kind="human", delegated=False, session=object()
+        ),
+        invoke_fn=invoke,
+    )
+    task_id = "a2a-" + "1" * 64
+    binding = {
+        "task_id": task_id,
+        "work_item_version": 4,
+        "call_id": "call-1",
+        "plan_ref": "plan-1",
+        "op": "query.uql",
+        "params_digest": "a" * 64,
+    }
+    payload = {
+        **binding,
+        "decision": "approve",
+        "idempotency_key": "once-1",
+        "message": {
+            "role": "user",
+            "messageId": "message-1",
+            "parts": [{"kind": "text", "text": "approve"}],
+            "metadata": {"graphOsApproval": binding},
+        },
+    }
+    unbound = await projection.invoke("graphos.plan/confirm", payload)
+    assert unbound.refused is True
+    assert unbound.code == "UNAVAILABLE"
+    assert service.calls == []
+
+    payload["message"]["metadata"]["graphOsApproval"] = {**binding, "call_id": "other"}
+    refused = await projection.invoke(
+        "graphos.plan/confirm", payload, task_service=service
+    )
+    assert refused.refused is True
+    assert refused.code == "INVALID_ARGUMENT"
+    assert service.calls == []
+
+    payload["message"]["metadata"]["graphOsApproval"] = binding
+    approved = await projection.invoke(
+        "graphos.plan/confirm", payload, task_service=service
+    )
+    assert approved.value == {"accepted": True, "call_id": "call-1"}
+    assert len(service.calls) == 1
+    assert service.calls[0][0] == task_id
+    assert service.calls[0][1].work_item_id == f"workitem:orchestrator:{task_id}"
+    assert service.calls[0][1].params_digest == "a" * 64
+
+
 def test_nonhuman_ambient_actor_never_projects_as_human(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -74,6 +74,7 @@ def compose_a2a_service(
     *,
     control_plane_for: Callable[[Any], Any],
     card_metadata: A2ACardMetadata | None = None,
+    pending_input_enabled: bool = False,
 ) -> A2AService:
     """One A2A service over the control plane and EG assembly (via Decide).
 
@@ -95,7 +96,9 @@ def compose_a2a_service(
     # A running plan that stops (ST-11) returns its leases through this router.
     install_release(router.release_record)
     return A2AService(
-        authority=WorkItemA2AAuthority(control_plane_for),
+        authority=WorkItemA2AAuthority(
+            control_plane_for, pending_input_enabled=pending_input_enabled
+        ),
         router=router,
         card_metadata=card_metadata or A2ACardMetadata(),
     )
@@ -106,11 +109,13 @@ def compose_a2a(
     control_plane_for: Callable[[Any], Any],
     authenticator: A2AAuthenticator,
     card_metadata: A2ACardMetadata | None = None,
+    pending_input_enabled: bool = False,
 ) -> A2AComposition:
     """Compose the standalone A2A application over the shared service."""
     service = compose_a2a_service(
         control_plane_for=control_plane_for,
         card_metadata=card_metadata,
+        pending_input_enabled=pending_input_enabled,
     )
     return A2AComposition(
         application=create_a2a_application(

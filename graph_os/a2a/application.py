@@ -6,6 +6,7 @@ import json
 from collections.abc import AsyncIterator
 from typing import Any, Protocol, runtime_checkable
 
+from agent_utilities.api import AgentControlPlaneUnavailable
 from agent_utilities.security.elevation import ElevationRefused
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
@@ -123,7 +124,9 @@ async def _invoke_method(
     if method == "tasks/cancel":
         cancel_params = _TaskParams.model_validate(raw_params)
         return await service.cancel_task(cancel_params.id)
-    return await _extension_method(method, raw_params, request_id, operation_projection)
+    return await _extension_method(
+        method, raw_params, request_id, operation_projection, service
+    )
 
 
 async def _extension_method(
@@ -131,12 +134,15 @@ async def _extension_method(
     raw_params: dict[str, Any],
     request_id: Any,
     operation_projection: OperationProjection | None,
+    service: A2AService,
 ) -> Any:
     """GraphOS extension methods beyond core A2A."""
     if method in OPERATION_METHODS:
         if operation_projection is None:
             return _error(request_id, -32601, "Method not found", 404)
-        return await operation_projection.invoke(method, raw_params)
+        return await operation_projection.invoke(
+            method, raw_params, task_service=service
+        )
     if method in ELEVATION_METHODS:
         return await invoke_elevation(method, raw_params)
     return _error(request_id, -32601, "Method not found", 404)
@@ -152,6 +158,8 @@ _KNOWN_ERRORS = (
     A2AIdempotencyConflict,
     A2AAssemblyUnavailable,
     A2ATaskNotCancelable,
+    AgentControlPlaneUnavailable,
+    PermissionError,
     ValidationError,
     TypeError,
     ValueError,
@@ -205,7 +213,13 @@ def _open_stream(
 
 def _error_body(error: Exception) -> dict[str, Any]:
     code, _status = _error_code(error)
-    message = "Invalid params" if code == -32602 else str(error)
+    message = (
+        "Invalid params"
+        if code == -32602
+        else "Request refused"
+        if code in {-32003, -32004}
+        else str(error)
+    )
     return {"code": code, "message": message}
 
 
@@ -215,6 +229,8 @@ def _error_code(error: Exception) -> tuple[int, int]:
         (A2AAssemblyUnavailable, -32003, 503),
         (A2ATaskNotCancelable, -32002, 409),
         (ElevationRefused, -32004, 403),
+        (AgentControlPlaneUnavailable, -32003, 503),
+        (PermissionError, -32004, 403),
         (LookupError, -32001, 404),
     ):
         if isinstance(error, kind):

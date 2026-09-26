@@ -8,6 +8,8 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from agent_utilities.api import PendingInputAnswerReceipt, PendingInputAnswerRequest
+
 from .authority import A2ATaskAuthority
 from .elevation import ELEVATION_SKILL
 from .models import (
@@ -124,6 +126,11 @@ class A2AService:
 
     async def cancel_task(self, task_id: str) -> A2ATask:
         return await self.authority.cancel(task_id)
+
+    async def answer_task_approval(
+        self, task_id: str, request: PendingInputAnswerRequest
+    ) -> PendingInputAnswerReceipt:
+        return await self.authority.answer_pending_input(task_id, request)
 
     async def stream_message(
         self,

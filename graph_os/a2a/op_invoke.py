@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from .models import A2AMessage
 
 OP_INVOKE = "graphos.op/invoke"
 PLAN_CONFIRM = "graphos.plan/confirm"
@@ -27,6 +29,20 @@ class _InvokeParams(_Params):
 
 class _ConfirmParams(_Params):
     plan_ref: str = Field(min_length=1, max_length=512)
+
+
+class _TaskConfirmParams(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    task_id: str = Field(pattern=r"^a2a-[0-9a-f]{64}$")
+    work_item_version: int = Field(ge=1)
+    call_id: str = Field(min_length=1, max_length=512)
+    plan_ref: str = Field(min_length=1, max_length=512)
+    op: str = Field(min_length=1, max_length=512)
+    params_digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    decision: Literal["approve", "deny"]
+    message: A2AMessage
+    idempotency_key: str = Field(min_length=1, max_length=512)
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,11 +106,17 @@ class OperationProjection:
             policy=lambda op, _: op.id in selected,
         )
 
-    async def invoke(self, method: str, raw: Mapping[str, Any]) -> OperationReply:
+    async def invoke(
+        self, method: str, raw: Mapping[str, Any], *, task_service: Any = None
+    ) -> OperationReply:
         if method == OP_INVOKE:
             parsed = _InvokeParams.model_validate(raw)
         elif method == PLAN_CONFIRM:
-            parsed = _ConfirmParams.model_validate(raw)
+            parsed = (
+                _TaskConfirmParams.model_validate(raw)
+                if "task_id" in raw
+                else _ConfirmParams.model_validate(raw)
+            )
         else:
             raise ValueError("Unknown operation method")
 
@@ -109,6 +131,42 @@ class OperationProjection:
             caller.principal_kind != "human" or caller.delegated
         ):
             return OperationReply(code="FORBIDDEN", refused=True)
+
+        if isinstance(parsed, _TaskConfirmParams):
+            if task_service is None or getattr(caller, "session", None) is None:
+                return OperationReply(code="UNAVAILABLE", refused=True)
+            binding = {
+                "task_id": parsed.task_id,
+                "work_item_version": parsed.work_item_version,
+                "call_id": parsed.call_id,
+                "plan_ref": parsed.plan_ref,
+                "op": parsed.op,
+                "params_digest": parsed.params_digest,
+            }
+            if (
+                len(parsed.message.parts) != 1
+                or parsed.message.parts[0].text != parsed.decision
+                or parsed.message.metadata.get("graphOsApproval") != binding
+            ):
+                return OperationReply(code="INVALID_ARGUMENT", refused=True)
+            from agent_utilities.api import PendingInputAnswerRequest
+
+            receipt = await task_service.answer_task_approval(
+                parsed.task_id,
+                PendingInputAnswerRequest(
+                    work_item_id=f"workitem:orchestrator:{parsed.task_id}",
+                    work_item_version=parsed.work_item_version,
+                    call_id=parsed.call_id,
+                    plan_ref=parsed.plan_ref,
+                    op=parsed.op,
+                    params_digest=parsed.params_digest,
+                    decision=parsed.decision,
+                    idempotency_key=parsed.idempotency_key,
+                ),
+            )
+            return OperationReply(
+                value={"accepted": receipt.accepted, "call_id": receipt.call_id}
+            )
 
         result = await invoke_fn(
             parsed.op,
