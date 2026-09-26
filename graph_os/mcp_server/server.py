@@ -181,6 +181,12 @@ def mcp_server(*, host_runtime_inputs: HostRuntimeInputs | None = None) -> None:
     load_config()  # resolve settings through the one shared XDG config.json
     if host_runtime_inputs is None:
         raise RuntimeError("verified GraphOS host runtime inputs are required")
+    bootstrap_session = host_runtime_inputs.process_session
+    if bootstrap_session is None:
+        raise RuntimeError("verified served process session is unavailable")
+    claims = bootstrap_session.engine_verified_context()
+    if host_runtime_inputs.service_claims(str(claims.get("tenant", ""))) != claims:
+        raise RuntimeError("served host and process authority differ")
     from graph_os.api.host_bootstrap import configure_host_runtime
 
     configure_host_runtime(host_runtime_inputs)
@@ -208,11 +214,12 @@ def mcp_server(*, host_runtime_inputs: HostRuntimeInputs | None = None) -> None:
     runtime.verify_resident_tools(mcp)
 
     transport = getattr(args, "transport", "stdio")
+    if host_runtime_inputs.transport != transport:
+        raise RuntimeError("served host transport changed after authority mint")
     host = getattr(args, "host", "127.0.0.1")
     port = int(getattr(args, "port", 8000))
     network_serving = build_network_serving_config(args)
 
-    bootstrap_session = runtime._mint_process_session(transport)
     runtime._PROCESS_SESSION = bootstrap_session if transport == "stdio" else None
     runtime.set_process_session(runtime._PROCESS_SESSION)
     runtime._start_process_authority_supervisor(bootstrap_session)

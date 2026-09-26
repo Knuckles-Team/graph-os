@@ -49,13 +49,23 @@ class _PendingFleet:
 
 
 class _CatalogOps:
-    def __init__(self, pending: _PendingFleet) -> None:
+    def __init__(self, pending: _PendingFleet, tenant_id: str) -> None:
         self._pending = pending
+        self._tenant_id = tenant_id
 
     def __getattr__(self, name: str) -> Any:
         if name not in {"search", "list", "status", "load", "unload"}:
             raise AttributeError(name)
-        return getattr(self._pending.require_ops(), name)
+        operation = getattr(self._pending.require_ops(), name)
+
+        async def guarded(caller: Any, **kwargs: Any) -> Any:
+            if getattr(caller, "tenant", None) != self._tenant_id:
+                raise PermissionError(
+                    "served catalog has no authority for caller tenant"
+                )
+            return await operation(caller, **kwargs)
+
+        return guarded
 
 
 class _RefusalToolResult(ToolResult):
@@ -120,6 +130,7 @@ def compose_fleet_host_ports(
     reader: Any,
     sdk_entries: SdkRead,
     policy_gate: PolicyGate,
+    tenant_id: str,
     read_item: Callable[..., Awaitable[Any]] | None = None,
 ) -> FleetHostPorts:
     """Compose a caller-filtered fleet from explicit EG and SDK authorities.
@@ -136,9 +147,16 @@ def compose_fleet_host_ports(
         raise ValueError("verified SDK pack reader is required")
     if not isinstance(policy_gate, PolicyGate):
         raise ValueError("governed fleet policy is required")
+    if not isinstance(tenant_id, str) or not tenant_id:
+        raise ValueError("verified fleet tenant is required")
     pending = _PendingFleet()
 
+    def require_tenant(caller: Any) -> None:
+        if getattr(caller, "tenant", None) != tenant_id:
+            raise PermissionError("served catalog has no authority for caller tenant")
+
     async def permitted(item: CatalogItem, caller: Any, action: str) -> bool:
+        require_tenant(caller)
         decision = await policy_gate.decisions([_resource(item)], caller, action)
         return len(decision) == 1 and decision[0] is True
 
@@ -152,17 +170,20 @@ def compose_fleet_host_ports(
         return await permitted(item, caller, "call")
 
     async def tool_for(server: str, tool: str, caller: Any) -> Any:
+        require_tenant(caller)
         return await tool_for_multiplexer_ops(pending.require_ops())(
             server, tool, caller
         )
 
     async def call_policy(server: str, tool: str, caller: Any) -> bool:
+        require_tenant(caller)
         item = await pending.require_ops().admitted_tool(caller, server, tool)
         return await callable_item(item, caller)
 
     async def delegated_call(
         server: str, tool: str, arguments: Mapping[str, Any], caller: Any
     ) -> Any:
+        require_tenant(caller)
         return await oauth_delegated_call_for_mux(pending.require_mux())(
             server, tool, arguments, caller
         )
@@ -171,10 +192,11 @@ def compose_fleet_host_ports(
         tool_for=tool_for,
         policy_check=call_policy,
         delegated_call=delegated_call,
-        catalog_ops=_CatalogOps(pending),
+        catalog_ops=_CatalogOps(pending, tenant_id),
     )
 
     async def search(*, caller: Any, **kwargs: Any) -> list[Mapping[str, Any]]:
+        require_tenant(caller)
         result = await pending.require_ops().search(caller, **kwargs)
         items = result.get("items") if isinstance(result, Mapping) else None
         if not isinstance(items, list) or any(
@@ -186,6 +208,7 @@ def compose_fleet_host_ports(
     async def invoke_fleet(
         op_id: str, params: Mapping[str, Any], caller: Any, surface: str
     ) -> Any:
+        require_tenant(caller)
         if surface != "mcp":
             raise PermissionError("native fleet dispatch requires MCP surface")
         from graph_os.api.serving import configured_served_api
@@ -207,6 +230,7 @@ def compose_fleet_host_ports(
         return outcome.value
 
     def session_key_for(caller: Any) -> str:
+        require_tenant(caller)
         session = getattr(caller, "session", None)
         if (
             session is None
