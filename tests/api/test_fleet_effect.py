@@ -10,6 +10,7 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
+from graph_os.api.errors import FleetRefusal
 from graph_os.api.ops import fleet
 from graph_os.api.registry import (
     Confirm,
@@ -22,6 +23,7 @@ from graph_os.api.registry import (
 from graph_os.fleet.gateway_ops import (
     AdmittedTool,
     FleetGateway,
+    _child_error_code,
     annotation_effect,
     compose_fleet_gateway,
     fleet_effect_for,
@@ -29,6 +31,61 @@ from graph_os.fleet.gateway_ops import (
     tool_for_multiplexer_ops,
 )
 from graph_os.fleet.service_child import ServiceChildOutcomeUnknown
+
+
+def test_child_refusal_uses_structured_code_only() -> None:
+    assert (
+        _child_error_code(
+            SimpleNamespace(structured_content={"error": {"code": "CHILD_BUSY"}})
+        )
+        == "CHILD_BUSY"
+    )
+    assert (
+        _child_error_code(
+            SimpleNamespace(structured_content={"error": {"code": "secret value"}})
+        )
+        == "CHILD_REFUSED"
+    )
+    assert (
+        _child_error_code(
+            SimpleNamespace(content=[{"type": "text", "text": "CHILD_BUSY"}])
+        )
+        == "CHILD_REFUSED"
+    )
+
+
+@pytest.mark.asyncio
+async def test_delegated_child_refusal_keeps_bounded_structured_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    api = ModuleType("agent_utilities.api")
+    api.use_session = lambda _session: nullcontext()  # type: ignore[attr-defined]
+    brain = ModuleType("agent_utilities.security.brain_context")
+    brain.use_actor = lambda _actor: nullcontext()  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "agent_utilities.api", api)
+    monkeypatch.setitem(sys.modules, "agent_utilities.security.brain_context", brain)
+
+    class Mux:
+        async def call_oauth_gated_tool(self, *_args: object) -> object:
+            return SimpleNamespace(
+                is_error=True,
+                structured_content={
+                    "error": {"code": "CHILD_BUSY", "message": "secret"}
+                },
+            )
+
+    actor = SimpleNamespace(authenticated=True, actor_id="alice", tenant_id="acme")
+    caller = SimpleNamespace(
+        session=SimpleNamespace(actor=actor), principal="alice", tenant="acme"
+    )
+    with pytest.raises(FleetRefusal) as refused:
+        await oauth_delegated_call_for_mux(Mux())("search", "query", {}, caller)
+    assert (refused.value.code, refused.value.server, refused.value.tool) == (
+        "CHILD_BUSY",
+        "search",
+        "query",
+    )
+    assert "secret" not in str(refused.value)
 
 
 def test_annotations_default_to_write_and_destructive_wins() -> None:
@@ -147,7 +204,18 @@ async def test_effect_change_after_preview_refuses_dispatch() -> None:
 
 def test_fleet_ops_are_distinct_and_loading_is_mcp_only() -> None:
     registry = Registry(fleet.specs())
-    assert len(registry) == 6
+    assert {spec.id for spec in registry} == {
+        "fleet.health",
+        "fleet.topology",
+        "fleet.pause",
+        "fleet.kill",
+        "fleet.call",
+        "fleet.catalog.search",
+        "fleet.catalog.list",
+        "fleet.tools.load",
+        "fleet.tools.unload",
+        "fleet.status",
+    }
     assert registry["fleet.catalog.search"].scopes == frozenset({"mcp:discover"})
     assert registry["fleet.tools.load"].surfaces == frozenset({Surface.MCP})
     assert registry["fleet.call"].scopes == frozenset({"mcp:delegate"})

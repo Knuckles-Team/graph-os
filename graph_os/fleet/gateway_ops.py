@@ -8,11 +8,33 @@ confirm the effect before any child can be reached.
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from graph_os.api.errors import FleetRefusal
 from graph_os.api.registry import Confirm, Effect, Executor, PrincipalRule
+
+_CHILD_CODE = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,127}\Z")
+
+
+def _child_error_code(result: Any) -> str:
+    """Read only a structured child code; never infer one from free text."""
+
+    structured = getattr(
+        result, "structured_content", getattr(result, "structuredContent", None)
+    )
+    if not isinstance(structured, Mapping):
+        return "CHILD_REFUSED"
+    error = structured.get("error")
+    typed = error if isinstance(error, Mapping) else structured
+    code = typed.get("code")
+    return (
+        code
+        if isinstance(code, str) and _CHILD_CODE.fullmatch(code)
+        else "CHILD_REFUSED"
+    )
 
 
 def _hint(annotations: Any, snake: str, camel: str) -> bool | None:
@@ -149,7 +171,7 @@ def oauth_delegated_call_for_mux(mux: Any) -> DelegatedCall:
         with use_actor(actor), use_session(session):
             result = await mux.call_oauth_gated_tool(server, tool, dict(arguments))
         if bool(getattr(result, "is_error", getattr(result, "isError", False))):
-            raise RuntimeError("delegated child tool failed")
+            raise FleetRefusal(_child_error_code(result), server, tool)
         return result.model_dump(mode="json", by_alias=True)
 
     return delegated

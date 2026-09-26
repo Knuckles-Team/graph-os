@@ -209,3 +209,16 @@ def test_fleet_code_and_provenance_are_preserved() -> None:
     }
     assert envelope["error"]["retryable"] is True
     assert "secret" not in str(envelope)
+
+
+def test_invocation_keeps_structured_child_code_and_bounds_provenance() -> None:
+    refusal = InvokeError(
+        "CHILD_BUSY", {"server": "search", "tool": "query", "token": "secret"}, "fleet"
+    )
+    status, envelope = to_envelope(refusal, **CONTEXT)
+    assert status == 502
+    assert envelope["error"]["source"] == "fleet"
+    assert envelope["error"]["code"] == "CHILD_BUSY"
+    assert envelope["error"]["details"] == {"server": "search", "tool": "query"}
+    assert a2a_error_status(refusal.code, source="fleet") == (-32000, 502)
+    assert "secret" not in str(envelope)
