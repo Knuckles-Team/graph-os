@@ -171,10 +171,10 @@ def mcp_server() -> None:
     """
     from agent_utilities.core.config import load_config
 
-    from graph_os.api.serving import assemble_served_api, configured_served_api_ports
+    from graph_os.api.serving import configured_served_api
 
     load_config()  # resolve settings through the one shared XDG config.json
-    runtime.configure_served_api(*assemble_served_api(configured_served_api_ports()))
+    runtime.configure_served_api(*configured_served_api())
     install_gateway_application()
     _preflight_mcp_sdk_floor()
     _configure_graphos_otel()

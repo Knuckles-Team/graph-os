@@ -103,7 +103,11 @@ class RuntimeAuthorities:
     bindings: Mapping[str, Any]
 
 
+Visibility = Callable[[Any, Any], Awaitable[bool]]
+
+
 _SERVED_PORTS: ServedApiPorts | None = None
+_SERVED_API: tuple[MCPProjection, Visibility, Callable[..., Any]] | None = None
 
 
 def assemble_runtime_authorities(authorities: RuntimeAuthorities) -> ServedApiPorts:
@@ -169,7 +173,6 @@ def assemble_runtime_authorities(authorities: RuntimeAuthorities) -> ServedApiPo
         fleet_ops_factory=authorities.fleet_ops_factory,
         resolver=authorities.resolver,
     )
-    assemble_served_api(ports)
     return ports
 
 
@@ -233,7 +236,13 @@ def configure_served_api_ports(
                 resolve_bearer=resolve_bearer,
             ),
         )
+    # Construct before publication so no transport can observe half a bundle.
+    # The registry and invoke services must be the same objects for MCP, HTTP,
+    # A2A, and the WebUI for the lifetime of this serving process.
+    assembled = assemble_served_api(ports)
+    global _SERVED_API
     _SERVED_PORTS = ports
+    _SERVED_API = assembled
 
 
 def configured_served_api_ports() -> ServedApiPorts:
@@ -242,6 +251,14 @@ def configured_served_api_ports() -> ServedApiPorts:
     if _SERVED_PORTS is None:
         raise RuntimeError("served API authority ports are not configured")
     return _SERVED_PORTS
+
+
+def configured_served_api() -> tuple[MCPProjection, Visibility, Callable[..., Any]]:
+    """Return the single preflighted projection and invoke bundle."""
+
+    if _SERVED_PORTS is None or _SERVED_API is None:
+        raise RuntimeError("served API authority ports are not configured")
+    return _SERVED_API
 
 
 def caller_from_verified_session() -> VerifiedCaller:
@@ -396,9 +413,6 @@ def build_invoke_services(ports: ServingPorts) -> InvokeServices:
     )
     bindings["invoke_services"] = services
     return services
-
-
-Visibility = Callable[[Any, Any], Awaitable[bool]]
 
 
 def assemble_served_api(
