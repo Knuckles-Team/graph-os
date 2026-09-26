@@ -37,7 +37,7 @@ def _check_workspace_config() -> dict[str, Any]:
             "skip",
             "no workspace.yml found (not a workspace checkout)",
             remediation=(
-                "copy docs/examples/workspace.yml to the workspace root (or the "
+                "copy pages/examples/workspace.yml to the workspace root (or the "
                 "agent-utilities XDG config dir) and edit it for your repos"
             ),
         )
@@ -56,8 +56,8 @@ def _check_workspace_config() -> dict[str, Any]:
             "fail",
             f"workspace.yml has {len(rep['errors'])} validation error(s)",
             remediation=(
-                "validate entries against docs/guides/workspace-config.md and the "
-                "annotated template in docs/examples/workspace.yml"
+                "validate entries against pages/guides/workspace-config.md and the "
+                "annotated template in pages/examples/workspace.yml"
             ),
             skill="agent-utilities-deployment",
             data=data,
@@ -69,7 +69,7 @@ def _check_workspace_config() -> dict[str, Any]:
             "workspace_config",
             "warn",
             detail + f", {nwarn} advisory warning(s)",
-            remediation="see docs/guides/workspace-config.md for the full schema",
+            remediation="see pages/guides/workspace-config.md for the full schema",
             data=data,
         )
     return _result("workspace_config", "ok", detail, data=data)
