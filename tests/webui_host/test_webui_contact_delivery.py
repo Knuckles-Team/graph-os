@@ -9,7 +9,7 @@ import types
 from types import SimpleNamespace
 from typing import Any, cast
 
-from graph_os.gateway.enhanced_catalog_api import read_active_skills
+from graph_os.webui_host.webui_co_service import _list_webui_skills
 
 
 def _package(name: str) -> types.ModuleType:
@@ -266,7 +266,7 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
         "workspace_helpers": {
             "call_mcp_tool": "mcp-helper",
             "transcribe_voice": "voice-helper",
-            "list_skills": read_active_skills,
+            "list_skills": _list_webui_skills,
         },
         "listener_host": "0.0.0.0",
         "application_composer": module.compose_web_application,

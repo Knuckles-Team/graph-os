@@ -13,6 +13,7 @@ from graph_os.api.invoke import OpError, OpResult
 from graph_os.api.registry import Surface
 from graph_os.webui_host.webui_co_service import (
     _invoke_webui_operation,
+    _list_webui_skills,
     compose_web_application,
 )
 
@@ -60,6 +61,63 @@ def test_composer_installs_graphos_invoke_port(monkeypatch: pytest.MonkeyPatch) 
     app = FastAPI()
     compose_web_application(app)
     assert app.state.graphos_invoke_op is _invoke_webui_operation
+
+
+@pytest.mark.asyncio
+async def test_skills_helper_uses_verified_fleet_catalog(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _session()
+    monkeypatch.setattr(
+        "agent_utilities.knowledge_graph.core.session.resolve_session", lambda: session
+    )
+    observed: dict[str, Any] = {}
+
+    class FleetGateway:
+        async def list(self, caller: Any, **params: Any) -> dict[str, Any]:
+            observed.update(
+                principal=caller.principal, session=caller.session, **params
+            )
+            return {
+                "items": [
+                    {
+                        "id": "skill:one",
+                        "kind": "skill",
+                        "name": "One",
+                        "description": "A skill",
+                    }
+                ],
+                "next_cursor": None,
+            }
+
+    monkeypatch.setattr(
+        "graph_os.mcp_server.runtime.served_api",
+        lambda: (SimpleNamespace(services={"fleet_gateway": FleetGateway()}), object()),
+    )
+    assert await _list_webui_skills() == [
+        {"id": "skill:one", "name": "One", "description": "A skill"}
+    ]
+    assert observed == {
+        "principal": "user:verified",
+        "session": session,
+        "kinds": ("skill",),
+        "limit": 100,
+        "cursor": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_skills_helper_refuses_missing_verified_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def missing() -> Any:
+        raise PermissionError("synthetic missing ambient session")
+
+    monkeypatch.setattr(
+        "agent_utilities.knowledge_graph.core.session.resolve_session", missing
+    )
+    with pytest.raises(PermissionError):
+        await _list_webui_skills()
 
 
 @pytest.mark.asyncio

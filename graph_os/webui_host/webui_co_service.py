@@ -130,6 +130,38 @@ async def _invoke_webui_operation(
     return outcome.value
 
 
+async def _list_webui_skills() -> list[dict[str, str]]:
+    """Read caller-visible skills from the native fleet catalog."""
+    from agent_utilities.knowledge_graph.core.session import resolve_session
+
+    from graph_os.api.invoke import VerifiedCaller
+    from graph_os.mcp_server.runtime import served_api
+
+    caller = VerifiedCaller.from_session(resolve_session(), request_id="webui-skills")
+    projection, _visibility = served_api()
+    gateway = projection.services.get("fleet_gateway")
+    if gateway is None:
+        raise RuntimeError("fleet catalog authority is unavailable")
+
+    skills: list[dict[str, str]] = []
+    cursor: str | None = None
+    for _page in range(10):
+        page = await gateway.list(caller, kinds=("skill",), limit=100, cursor=cursor)
+        for item in page["items"]:
+            if item["kind"] == "skill":
+                skills.append(
+                    {
+                        "id": item["id"],
+                        "name": item["name"],
+                        "description": item["description"],
+                    }
+                )
+        cursor = page["next_cursor"]
+        if cursor is None:
+            return skills
+    raise RuntimeError("fleet skill catalog exceeds the WebUI display bound")
+
+
 async def _serve_until_stopped(
     server: Any,
     stop_event: threading.Event,
@@ -230,7 +262,6 @@ def run_web_ui(
     from graph_os.browser_control.browser_control_service import (
         browser_control_factory_kwargs,
     )
-    from graph_os.gateway.enhanced_catalog_api import read_active_skills
     from graph_os.mcp_server import runtime as mcp_runtime
     from graph_os.webui_host.contact_governance import (
         contact_delivery_factory_kwargs,
@@ -252,7 +283,7 @@ def run_web_ui(
     helpers = {
         **webui_mcp_delegation_helpers(),
         **webui_voice_delegation_helpers(),
-        "list_skills": read_active_skills,
+        "list_skills": _list_webui_skills,
     }
     contact_kwargs = contact_delivery_factory_kwargs(
         create_agent_web_app,
