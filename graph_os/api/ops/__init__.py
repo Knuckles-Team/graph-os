@@ -5,14 +5,17 @@ from __future__ import annotations
 from importlib import import_module
 
 from graph_os.api.registry import OpSpec, Registry
+from graph_os.api.registry.domain_scopes import domain_scopes
 
 # Each module is an explicit source of public operations. Missing declarations
 # are a build error, not a reason to publish an incomplete registry.
 # Identity administration joins this list with the Train 7 broker and its
 # scoped operation modules; Train 5 cannot advertise those operations early.
 CURATED_SOURCES = (
+    ("action_verify", "specs"),
     ("agents", "operations"),
     ("analytics", "specs"),
+    ("approvals", "specs"),
     ("browser", "operations"),
     ("capacity", "specs"),
     ("decide", "specs"),
@@ -21,6 +24,7 @@ CURATED_SOURCES = (
     ("federation", "specs"),
     ("finance", "specs"),
     ("fleet", "operations"),
+    ("fleet_observability", "operations"),
     ("graph", "specs"),
     ("harness", "specs"),
     ("ingest", "specs"),
@@ -43,6 +47,9 @@ CURATED_SOURCES = (
 
 
 def get_registry() -> Registry:
+    # IDM-05 is a startup dependency: an old or incomplete EG wheel must not
+    # expose a GraphOS API that advertises unregistered domain scopes.
+    domain_scopes()
     curated: list[OpSpec] = []
     for name, factory in CURATED_SOURCES:
         module = import_module(f"graph_os.api.ops.{name}")

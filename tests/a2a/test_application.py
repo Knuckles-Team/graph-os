@@ -73,6 +73,21 @@ def _app() -> tuple[Any, Authenticator, Authority]:
     return app, auth, authority
 
 
+def test_native_protocol_routes_keep_methods_and_openapi_paths() -> None:
+    app, _auth, _authority = _app()
+    expected = {
+        "/.well-known/agent-card.json": {"GET"},
+        "/a2a": {"POST"},
+    }
+    assert {
+        route.path: route.methods for route in app.routes if route.path in expected
+    } == expected
+    assert {path: set(app.openapi()["paths"][path]) for path in expected} == {
+        path: {method.lower() for method in methods}
+        for path, methods in expected.items()
+    }
+
+
 def test_agent_card_is_authenticated_truthful_and_has_one_path() -> None:
     app, auth, _authority = _app()
     client = TestClient(app)

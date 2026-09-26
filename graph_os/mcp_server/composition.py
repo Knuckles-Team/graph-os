@@ -12,7 +12,7 @@ from typing import Any
 
 from graph_os.gateway.ports import configure_gateway_application
 from graph_os.mcp_server import runtime
-from graph_os.messaging.intake import start_messaging_intake
+from graph_os.messaging.intake import configured_platforms, start_messaging_intake
 from graph_os.webui_host import run_web_ui
 
 logger = logging.getLogger(__name__)
@@ -44,10 +44,9 @@ def detect_composition(
 ) -> CompositionPlan:
     """Read optional co-service intent without starting background work."""
     from agent_utilities.core.config import config
-    from agent_utilities.messaging.daemon import configured_platforms
 
     return CompositionPlan(
-        messaging_platforms=tuple(configured_platforms(engine)),
+        messaging_platforms=configured_platforms(engine),
         web_ui_enabled=bool(getattr(config, "enable_web_ui", False)),
         messaging_intake_enabled=bool(messaging_intake_enabled),
     )

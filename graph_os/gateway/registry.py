@@ -65,7 +65,6 @@ _BUILTIN_WIDGETS: dict[str, str] = {
     "emerald_exchange": "graph_os.gateway.widgets.emerald_exchange",
     "legal_peripherals": "graph_os.gateway.widgets.legal_peripherals",
     "twenty": "graph_os.gateway.widgets.twenty",
-    "orchestrator": "graph_os.gateway.widgets.orchestrator",
     "atlassian": "graph_os.gateway.widgets.atlassian",
     "google_workspace": "graph_os.gateway.widgets.google_workspace",
     "zulip": "graph_os.gateway.widgets.zulip",

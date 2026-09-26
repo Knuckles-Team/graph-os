@@ -42,6 +42,11 @@ def register_graph_routes(app: Any, prefix: str = "/api") -> None:
 
     app.add_route("/fleet/events", fleet_events_receive, methods=["POST"])
     register_remote_oauth_routes(app, prefix="")
+    from graph_os.gateway.dashboard_runtime import register_dashboard_runtime_routes
+    from graph_os.gateway.registry_api import register_registry_routes
+
+    register_registry_routes(app, prefix=prefix)
+    register_dashboard_runtime_routes(app, prefix=prefix)
     app.mount(
         "/api/v1",
         create_api_application(services=projection.services, visibility=visibility),

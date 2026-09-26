@@ -13,6 +13,15 @@
     "ops.backup": {"reader": "SCOPE_REQUIRED", "operator": "POLICY_DENIED", "admin": "OK", "delegated_admin": "PRINCIPAL_NOT_ALLOWED", "service": "PRINCIPAL_NOT_ALLOWED"}
   },
   "surface_projections": ["mcp", "http", "a2a"],
+  "surface_invocation_cases": [
+    {"op": "ops.graphs.list", "principal": "reader"},
+    {"op": "ops.graphs.list", "principal": "operator"},
+    {"op": "ops.health", "principal": "operator"},
+    {"op": "ops.health", "principal": "admin"},
+    {"op": "ops.shards.plan", "principal": "service"},
+    {"op": "ops.shards.plan", "principal": "admin"},
+    {"op": "ops.backup", "principal": "operator"}
+  ],
   "fleet_items": {
     "fleet:tool:sample/public": {"scopes": ["graph:read"], "allow": ["reader", "admin"]},
     "fleet:tool:sample/private": {"scopes": ["graph:read"], "allow": ["admin"]}

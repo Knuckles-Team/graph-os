@@ -5,12 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 from agent_utilities.messaging.models import SendResult
-from agent_utilities.messaging.service import MessagingService, reach_user_sync
+
+from graph_os.messaging.service import MessagingService, reach_user_sync
 
 
-def service_port() -> MessagingService:
+def service_port(engine: Any = None) -> MessagingService:
     """Supply the live reach service to AU callers through its public port."""
-    return MessagingService.instance()
+    return MessagingService.instance(engine)
 
 
 def notify_sync(engine: Any, text: str, **kwargs: Any) -> SendResult:

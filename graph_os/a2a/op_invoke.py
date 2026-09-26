@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -41,6 +41,7 @@ class OperationReply:
 
 CallerResolver = Callable[[], Any]
 InvokeFunction = Callable[..., Awaitable[Any]]
+CardDiscovery = Callable[[Any], Awaitable[Iterable[str]]]
 
 
 def verified_a2a_caller() -> Any:
@@ -75,10 +76,31 @@ class OperationProjection:
         *,
         caller: CallerResolver = verified_a2a_caller,
         invoke_fn: InvokeFunction | None = None,
+        card_discovery: CardDiscovery | None = None,
     ) -> None:
         self._services = services
         self._caller = caller
         self._invoke_fn = invoke_fn
+        self._card_discovery = card_discovery
+
+    async def visible_card_ops(self) -> tuple[Any, ...]:
+        """Narrow a trusted discovery result by A2A surface and caller authority."""
+        if self._card_discovery is None:
+            return ()
+        from graph_os.api.registry import Surface
+
+        caller = self._caller()
+        try:
+            selected = frozenset(await self._card_discovery(caller))
+        except Exception:
+            return ()
+        if not selected:
+            return ()
+        return self._services.registry.find(
+            caller,
+            surface=Surface.A2A,
+            policy=lambda op, _: op.id in selected,
+        )
 
     async def invoke(self, method: str, raw: Mapping[str, Any]) -> OperationReply:
         if method == OP_INVOKE:

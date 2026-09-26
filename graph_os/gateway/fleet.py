@@ -38,6 +38,8 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
+from dataclasses import replace
 from typing import Any
 
 import msgpack
@@ -47,6 +49,8 @@ from agent_utilities.orchestration.action_policy import (
     approval_lease_to_props,
 )
 from agent_utilities.orchestration.fleet_health import (
+    FleetDependencyEvidence,
+    FleetHealthSnapshot,
     _domain_sql,
     collect_fleet_health,
     health_payload,
@@ -107,6 +111,153 @@ def _tenant_scope(dialect: str) -> tuple[str, list[Any]]:
         raise PermissionError("Fleet supervision authority is unavailable") from exc
 
 
+def _caller_tenant_scope(
+    caller: Any, *, required_scope: str = "fleet:read"
+) -> Callable[[str], tuple[str, list[Any]]]:
+    """Bind a supervisory read to operation-pipeline verified caller facts."""
+    if not getattr(caller, "authenticated", False) or required_scope not in getattr(
+        caller, "effective_scopes", frozenset()
+    ):
+        raise PermissionError("Fleet supervision requires verified read authority")
+    tenant = str(getattr(caller, "tenant", "") or "").strip()
+    if not tenant:
+        raise PermissionError("Fleet supervision requires verified tenant authority")
+
+    def scope(dialect: str) -> tuple[str, list[Any]]:
+        return f"{_tenant_sql(dialect)} = ?", [tenant]
+
+    return scope
+
+
+def fleet_health_for_caller(caller: Any) -> dict[str, Any]:
+    """Read the existing health contract under an authenticated op caller."""
+    snapshot = collect_fleet_health(scope_resolver=_caller_tenant_scope(caller))
+    return health_payload(_tenant_health_projection(snapshot))
+
+
+def fleet_topology_for_caller(
+    caller: Any, *, limit: int = 200, offset: int = 0, status: str | None = None
+) -> dict[str, Any]:
+    """Read one bounded topology page under the same tenant as health."""
+    scope = _caller_tenant_scope(caller)
+    snapshot = collect_fleet_health(scope_resolver=scope)
+    snapshot, rows = _topology_rows(
+        snapshot, status, limit, offset, scope, allow_control_only=True
+    )
+    return _topology_payload(
+        _tenant_health_projection(snapshot), rows, limit, offset, caller_scoped=True
+    )
+
+
+def _tenant_health_projection(snapshot: FleetHealthSnapshot) -> FleetHealthSnapshot:
+    """Keep tenant SQL evidence; suppress process-global goals and workers.
+
+    AU's collector accepts a tenant predicate for its control-store SQL only.
+    Its goal and dispatch registries are process-wide and carry no tenant
+    filter. Their counts, rows, and healthy evidence cannot describe this
+    caller's tenant until those sources gain tenant-scoped authority.
+    """
+    if not isinstance(snapshot, FleetHealthSnapshot):
+        raise RuntimeError("fleet health source contract is unavailable")
+    checked_at = snapshot.evidence.generated_at
+    dependencies = dict(snapshot.evidence.dependencies)
+    control = dependencies.get("control_store")
+    diagnostics = [
+        f"control_store: {message}"
+        for message in (control.diagnostics if control is not None else ())
+    ]
+    for name in ("goal_rehydration", "worker_registry"):
+        dependencies[name] = FleetDependencyEvidence(
+            status="unavailable",
+            checked_at=checked_at,
+            diagnostics=[f"{name}: tenant-scoped source unavailable"],
+        )
+        diagnostics.append(f"{name}: tenant-scoped source unavailable")
+    status = "partial" if control and control.status != "unavailable" else "unavailable"
+    last_success_at = control.last_success_at if control is not None else None
+    evidence = snapshot.evidence.model_copy(
+        update={
+            "status": status,
+            "ready": False,
+            "autoscaling_ready": False,
+            "convergence_ready": False,
+            "last_success_at": last_success_at,
+            "freshness_seconds": (
+                max(0.0, checked_at - last_success_at)
+                if last_success_at is not None
+                else None
+            ),
+            "dependencies": dependencies,
+            "diagnostics": diagnostics[:4],
+        }
+    )
+    return replace(snapshot, evidence=evidence, goals=None, dispatch_workers=None)
+
+
+def fleet_set_status_for_caller(
+    caller: Any,
+    *,
+    action: str,
+    session_ids: tuple[str, ...] = (),
+    domain: str | None = None,
+) -> dict[str, Any]:
+    """Contain only sessions proven to belong to the verified caller tenant."""
+    if action not in {"pause", "kill"}:
+        raise ValueError("unknown fleet containment action")
+    if getattr(caller, "principal_kind", None) != "human" or getattr(
+        caller, "delegated", True
+    ):
+        raise PermissionError("fleet containment requires a direct human caller")
+    scope = _caller_tenant_scope(caller, required_scope="fleet:control")
+    if bool(session_ids) == bool(domain):
+        raise ValueError("provide session_ids or domain")
+    if session_ids:
+        if len(session_ids) > _MAX_PAGE or len(set(session_ids)) != len(session_ids):
+            raise ValueError("invalid session target list")
+        found = _fetch_sessions_by_ids(session_ids, scope)
+        if set(found) != set(session_ids):
+            raise PermissionError("fleet target is unavailable")
+        target_ids = list(session_ids)
+    else:
+        rows = _fetch_sessions(domain=domain, limit=_MAX_PAGE + 1, scope_resolver=scope)
+        if not rows or len(rows) > _MAX_PAGE:
+            raise ValueError("fleet domain target is unavailable or too large")
+        target_ids = [str(row["id"]) for row in rows]
+    final_status = "paused" if action == "pause" else "cancelled"
+    requested_status = "pause_requested" if action == "pause" else "kill_requested"
+    affected, applied = _write_fleet_status(
+        target_ids,
+        final_status,
+        requested_status,
+        _multi_host_state(),
+        scope_resolver=scope,
+    )
+    return {
+        "status": "success",
+        "action": final_status,
+        "affected": affected,
+        "applied": applied,
+        "count": len(affected),
+    }
+
+
+def _fetch_sessions_by_ids(
+    session_ids: tuple[str, ...], scope_resolver: Callable[[str], tuple[str, list[Any]]]
+) -> list[str]:
+    conn = _sessions._connect_db()
+    try:
+        scope_sql, scope_params = scope_resolver(conn.dialect)
+        placeholders = ", ".join("?" for _ in session_ids)
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT id FROM sessions WHERE id IN ({placeholders}) AND {scope_sql}",
+            [*session_ids, *scope_params],
+        )
+        return [str(row["id"]) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
 async def _verified_graph_client(required_scope: str) -> tuple[Any, Any, Any]:
     """Resolve ``(session, session-routed EG client, verified claims)``.
 
@@ -146,6 +297,7 @@ def _fetch_sessions(
     domain: str | None = None,
     limit: int = 200,
     offset: int = 0,
+    scope_resolver: Callable[[str], tuple[str, list[Any]]] = _tenant_scope,
 ) -> list[dict[str, Any]]:
     """Read a filtered, paginated page of sessions tagged with their domain."""
     conn = _sessions._connect_db()
@@ -159,7 +311,7 @@ def _fetch_sessions(
         if domain:
             where.append(f"{dom} = ?")
             params.append(domain)
-        scope_sql, scope_params = _tenant_scope(conn.dialect)
+        scope_sql, scope_params = scope_resolver(conn.dialect)
         if scope_sql:
             where.append(scope_sql)
             params.extend(scope_params)
@@ -198,39 +350,7 @@ async def fleet_topology(request: Request) -> JSONResponse:
     snapshot = collect_fleet_health(scope_resolver=_tenant_scope)
     limit, offset, status = _page_params(request)
     snapshot, rows = _topology_rows(snapshot, status, limit, offset)
-    domains = _group_sessions(rows)
-
-    # Totals come from the same SQL aggregate evidence, never from the returned
-    # page. ``None`` is intentional when the authoritative read was not safe.
-    total_sessions = (
-        snapshot.sessions.get("total") if snapshot.sessions is not None else None
-    )
-    active_goals = getattr(_sessions, "active_goals", {})
-    goals = (
-        _sessions.make_serializable(list(active_goals.values()))
-        if snapshot.goals is not None and hasattr(_sessions, "make_serializable")
-        else None
-    )
-    workers = snapshot.dispatch_workers
-    payload = {
-        "generated_at": snapshot.evidence.generated_at,
-        "domains": list(domains.values())
-        if snapshot.evidence.convergence_ready
-        else None,
-        "goals": goals,
-        "dispatch_workers": workers,
-        "totals": {
-            "domains": len(domains) if snapshot.evidence.convergence_ready else None,
-            "sessions": total_sessions,
-            "dispatch_workers": len(workers) if workers is not None else None,
-        },
-        "page": {
-            "limit": limit,
-            "offset": offset,
-            "returned": len(rows) if snapshot.evidence.convergence_ready else None,
-        },
-        "evidence": snapshot.evidence.model_dump(mode="json"),
-    }
+    payload = _topology_payload(snapshot, rows, limit, offset)
     return JSONResponse(
         payload,
         status_code=200 if snapshot.evidence.ready else 503,
@@ -238,13 +358,80 @@ async def fleet_topology(request: Request) -> JSONResponse:
     )
 
 
+def _topology_payload(
+    snapshot: Any,
+    rows: list[dict[str, Any]],
+    limit: int,
+    offset: int,
+    *,
+    caller_scoped: bool = False,
+) -> dict[str, Any]:
+    domains = _group_sessions(rows)
+    control = snapshot.evidence.dependencies.get("control_store")
+    page_ready = snapshot.evidence.convergence_ready or (
+        caller_scoped
+        and control is not None
+        and control.status in {"healthy", "degraded"}
+    )
+
+    # Totals come from the same SQL aggregate evidence, never from the returned
+    # page. ``None`` is intentional when the authoritative read was not safe.
+    total_sessions = (
+        snapshot.sessions.get("total") if snapshot.sessions is not None else None
+    )
+    active_goals = {} if caller_scoped else getattr(_sessions, "active_goals", {})
+    goals = (
+        _sessions.make_serializable(list(active_goals.values()))
+        if not caller_scoped
+        and snapshot.goals is not None
+        and hasattr(_sessions, "make_serializable")
+        else None
+    )
+    workers = snapshot.dispatch_workers
+    payload = {
+        "generated_at": snapshot.evidence.generated_at,
+        "domains": list(domains.values()) if page_ready else None,
+        "goals": goals,
+        "dispatch_workers": workers,
+        "totals": {
+            "domains": len(domains) if page_ready else None,
+            "sessions": total_sessions,
+            "dispatch_workers": len(workers) if workers is not None else None,
+        },
+        "page": {
+            "limit": limit,
+            "offset": offset,
+            "returned": len(rows) if page_ready else None,
+        },
+        "evidence": snapshot.evidence.model_dump(mode="json"),
+    }
+    return payload
+
+
 def _topology_rows(
-    snapshot: Any, status: str | None, limit: int, offset: int
+    snapshot: Any,
+    status: str | None,
+    limit: int,
+    offset: int,
+    scope_resolver: Callable[[str], tuple[str, list[Any]]] = _tenant_scope,
+    *,
+    allow_control_only: bool = False,
 ) -> tuple[Any, list[dict[str, Any]]]:
-    if not snapshot.evidence.convergence_ready:
+    control = snapshot.evidence.dependencies.get("control_store")
+    page_ready = snapshot.evidence.convergence_ready or (
+        allow_control_only
+        and control is not None
+        and control.status in {"healthy", "degraded"}
+    )
+    if not page_ready:
         return snapshot, []
     try:
-        return snapshot, _fetch_sessions(status=status, limit=limit, offset=offset)
+        return snapshot, _fetch_sessions(
+            status=status,
+            limit=limit,
+            offset=offset,
+            scope_resolver=scope_resolver,
+        )
     except PermissionError:
         raise
     except Exception as exc:
@@ -357,19 +544,39 @@ def _write_fleet_status(
     new_status: str,
     requested_status: str,
     multi_host: bool,
+    scope_resolver: Callable[[str], tuple[str, list[Any]]] = _tenant_scope,
 ) -> tuple[list[str], dict[str, str]]:
     applied: dict[str, str] = {}
     conn = _sessions._connect_db()
     try:
         cur = conn.cursor()
+        scope_sql, scope_params = scope_resolver(conn.dialect)
+        scoped_update = (
+            "UPDATE sessions SET status = ?, updated_at = ? WHERE id = ?"
+            + (f" AND {scope_sql}" if scope_sql else "")
+        )
+        for session_id in target_ids:
+            status = requested_status if multi_host else new_status
+            cur.execute(
+                scoped_update,
+                [status, time.time(), session_id, *scope_params],
+            )
+            if cur.rowcount != 1:
+                raise PermissionError("fleet target is unavailable")
+            applied[session_id] = status
+        # Persist every scoped row before canceling any in-process task. A lost
+        # tenant fence cannot leave one task canceled after a rolled-back batch.
+        conn.commit()
         for session_id in target_ids:
             local = _cancel_session_tasks(session_id)
-            status = new_status if local or not multi_host else requested_status
-            cur.execute(
-                "UPDATE sessions SET status = ?, updated_at = ? WHERE id = ?",
-                (status, time.time(), session_id),
-            )
-            applied[session_id] = status
+            if local and multi_host:
+                cur.execute(
+                    scoped_update,
+                    [new_status, time.time(), session_id, *scope_params],
+                )
+                if cur.rowcount != 1:
+                    raise PermissionError("fleet target is unavailable")
+                applied[session_id] = new_status
         conn.commit()
     finally:
         conn.close()
@@ -638,14 +845,3 @@ async def fleet_touched(request: Request) -> JSONResponse:
         )
     except Exception as exc:  # noqa: BLE001 — degrade gracefully when engine cold
         return JSONResponse(public_error_payload(exc, logger=logger), status_code=500)
-
-
-def mount_fleet_routes(app, prefix: str = "") -> None:
-    """Mount only the signed fleet webhook protocol endpoint.
-
-    Supervisory reads and actions are operation-registry entries under
-    ``/api/v1``. They are never served through the retired ``/fleet/*`` paths.
-    """
-    from graph_os.gateway.fleet_events import fleet_events_receive
-
-    app.add_route(prefix + "/fleet/events", fleet_events_receive, methods=["POST"])

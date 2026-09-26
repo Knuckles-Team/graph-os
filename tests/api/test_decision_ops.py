@@ -1,4 +1,4 @@
-"""Fixed variant and verified tenant boundaries for DecisionLog read ops."""
+"""Fixed supported variants and verified tenant boundaries for DecisionLog."""
 
 from types import SimpleNamespace
 
@@ -10,11 +10,9 @@ from graph_os.api.ops import decisions  # noqa: E402
 from graph_os.api.registry import Composite  # noqa: E402
 
 
-def test_only_read_scoped_composite_ops_are_declared() -> None:
+def test_only_supported_read_scoped_composite_ops_are_declared() -> None:
     ops = decisions.specs()
-    assert {op.id for op in ops} == {
-        "decisions.list", "decisions.get", "decisions.provenance", "decisions.aggregate"
-    }
+    assert {op.id for op in ops} == {"decisions.get", "decisions.aggregate"}
     for op in ops:
         assert op.scopes == frozenset({"agent:decision-read"})
         assert isinstance(op.binding, Composite)
@@ -30,17 +28,19 @@ async def test_handlers_fix_variant_and_verified_tenant(monkeypatch) -> None:
         return {"ok": True}
 
     monkeypatch.setattr(decisions, "_read", capture)
-    await decisions.list_handler(context, {"limit": 2}, None)
     await decisions.get_handler(context, {"record_id": "r1"}, None)
-    await decisions.provenance_handler(context, {"record_id": "r1"}, None)
     await decisions.aggregate_handler(
-        context, {"window": {"from_ms": 0, "to_ms": 10}}, None
+        context,
+        {"question_id": "assemble", "window": {"from_ms": 0, "to_ms": 10}},
+        None,
     )
-    assert [request["op"] for request in calls] == [
-        "list", "get", "provenance", "aggregate"
-    ]
-    assert [request["tenant_id"] for request in calls[:3]] == ["verified-tenant"] * 3
-    assert calls[3]["request"]["tenant_id"] == "verified-tenant"
+    assert [request["op"] for request in calls] == ["get", "aggregate"]
+    assert calls[0]["tenant_id"] == "verified-tenant"
+    assert calls[1]["request"] == {
+        "tenant_id": "verified-tenant",
+        "question_id": "assemble",
+        "window": {"from_ms": 0, "to_ms": 10},
+    }
 
 
 @pytest.mark.asyncio
@@ -51,7 +51,23 @@ async def test_caller_cannot_supply_tenant_or_variant() -> None:
             context, {"record_id": "r1", "tenant_id": "other"}, None
         )
     with pytest.raises(ValueError):
-        await decisions.list_handler(context, {"op": "commit"}, None)
+        await decisions.aggregate_handler(
+            context,
+            {"window": {"from_ms": 0, "to_ms": 10}, "attribution": {}},
+            None,
+        )
+    with pytest.raises(ValueError):
+        await decisions.aggregate_handler(
+            context,
+            {"window": {"from_ms": 0, "to_ms": 10}, "tenant_id": "other"},
+            None,
+        )
+    with pytest.raises(ValueError):
+        await decisions.aggregate_handler(
+            context,
+            {"window": {"from_ms": 10, "to_ms": 0}},
+            None,
+        )
 
 
 @pytest.mark.asyncio

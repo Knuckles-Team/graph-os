@@ -12,6 +12,7 @@ a static catalog, process-local durable store, or fabricated success receipt.
 | REST gateway | Available | The same application services used by MCP, projected through GraphOS routes |
 | Fleet gateway | Available with a verified catalog | Child lifecycle, health, OAuth admission, collision-safe naming, and per-session discovery |
 | Agent WebUI host | Available through the `webui` extra | Co-service supervision with an injected GraphOS application composer |
+| Messaging intake | Available with configured channels, explicit intake intent, and a verified session | GraphOS channel adapters, router, and poll loop; engine-native per-channel leases; Agent Utilities command handler |
 | Unary A2A | Available | Authenticated Agent Card plus send, get, list, and cancel over durable WorkItems |
 | Browser control | Available when attended identity is configured | Catalog, lease, policy, dispatch, cancellation, and provenance orchestration |
 | Markets (`graph_finance`) | Available with the finance EG scopes | Flip subscriptions and inbox on the EG broker, the backfill/scan schedule, the flip explainer, and live-order proposals decided only at the operator console |
@@ -20,6 +21,13 @@ a static catalog, process-local durable store, or fabricated success receipt.
 MCP and REST handlers meet at the same application boundary. Connector widgets
 delegate through admitted fleet tools. The WebUI co-service submits work to the
 same multiplexer owned by the serving loop.
+
+`GET /api/registry` and its per-kind routes page the EG server registry and
+fleet catalog under the verified caller. OAuth-scoped discovery rows require a
+current GraphOS broker grant with the matching revision fingerprint; missing
+catalog authority returns an explicit unavailable response. Dashboard runtime
+routes require verified read, write, or admin scopes as appropriate and send
+hydration through the agent-utilities public source-sync port.
 
 ## Operation API cutover
 
@@ -49,6 +57,7 @@ from the running server instead of assuming the planned surface is live.
 | Context-budget-selected A2A tool subsets | Refused before admission because the signed request does not bind an enforceable subset |
 | A2A push notifications and transition history | Not advertised by the Agent Card |
 | `AgentAssemble` routing and `find_tools` budgets | Unbudgeted routing falls back to capability search, budgeted routing fails closed, and `find_tools` returns ranked tools with the reason, until epistemic-graph serves `AgentAssemble` and Decide is installed |
+| Live artifact create/get/refresh | No GraphOS route is served: the former AU route uses a process-local store without a wired durable writer or tenant-scoped EG artifact contract |
 
 Authenticated A2A `message/stream` and `tasks/resubscribe` stream task state
 and the completed task's answer over SSE.

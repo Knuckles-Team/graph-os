@@ -6,13 +6,13 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from starlette.routing import Match
 
 from graph_os.gateway import graph_api
 
 
 @pytest.fixture
-def gateway(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+def gateway(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     subapp = FastAPI()
 
     @subapp.get("/registry")
@@ -40,19 +40,45 @@ def gateway(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setattr("agent_utilities.core.config.config.gateway_rate_limit", 0)
     monkeypatch.setattr("agent_utilities.core.config.config.gateway_metrics", False)
     app = FastAPI()
+    monkeypatch.setattr(app, "add_middleware", lambda *_args, **_kwargs: None)
     graph_api.register_graph_routes(app)
-    # Test route inventory, not authentication middleware behavior.
-    app.user_middleware.clear()
-    app.middleware_stack = None
-    return TestClient(app)
+    return app
 
 
-def test_only_versioned_operation_routes_are_mounted(gateway: TestClient) -> None:
-    assert gateway.get("/api/v1/registry").json() == {"registry_digest": "test-digest"}
+def _has_route(app: FastAPI, path: str, method: str) -> bool:
+    scope = {"type": "http", "path": path, "method": method, "root_path": ""}
+    return any(route.matches(scope)[0] is Match.FULL for route in app.routes)
+
+
+def test_only_versioned_operation_routes_are_mounted(gateway: FastAPI) -> None:
+    assert _has_route(gateway, "/api/v1/registry", "GET")
     for path in ("/api/sparql", "/api/graph/sql-schema", "/api/graph/query"):
-        assert gateway.get(path).status_code == 404
+        assert not _has_route(gateway, path, "GET")
 
 
-def test_fleet_webhook_remains_a_protocol_route(gateway: TestClient) -> None:
-    assert gateway.get("/fleet/events").status_code == 405
-    assert gateway.get("/api/fleet/events").status_code == 404
+def test_fleet_webhook_remains_a_protocol_route(gateway: FastAPI) -> None:
+    assert _has_route(gateway, "/fleet/events", "POST")
+    assert not _has_route(gateway, "/fleet/events", "GET")
+    assert not _has_route(gateway, "/api/fleet/events", "POST")
+    routes = [route.path for route in gateway.routes]
+    assert routes.count("/fleet/events") == 1
+    assert "/fleet/events" not in gateway.openapi()["paths"]
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        "/fleet/health",
+        "/fleet/topology",
+        "/fleet/pause",
+        "/fleet/kill",
+        "/fleet/approvals",
+        "/fleet/approvals/grant",
+        "/fleet/actions/verify",
+        "/fleet/trace",
+        "/fleet/touched",
+    ),
+)
+def test_retired_fleet_routes_are_not_served(gateway: FastAPI, path: str) -> None:
+    assert not _has_route(gateway, path, "GET")
+    assert not _has_route(gateway, path, "POST")

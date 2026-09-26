@@ -38,7 +38,6 @@ import time
 import typing as _typing
 import weakref
 from pathlib import Path
-from types import SimpleNamespace
 from urllib.parse import quote, urlsplit
 
 import fastmcp.exceptions as _fastmcp_exceptions
@@ -1531,6 +1530,40 @@ def _resolve_remote_oauth_bearer(
     return broker.bearer_headers_for(
         actor=actor, provider_id=descriptor.provider_id, resource_url=url
     )
+
+
+def current_remote_oauth_grant_bindings(actor: _typing.Any) -> tuple[_typing.Any, ...]:
+    """Return only current grants from this process's admitted MCP providers."""
+    from graph_os.fleet.remote_oauth_broker import (
+        OAuthGrantBinding,
+        OAuthProviderError,
+        OAuthScopeError,
+        OAuthTokenAbsentError,
+        OAuthTokenStore,
+    )
+
+    OAuthTokenStore._require_verified(actor)
+    with _REMOTE_OAUTH_BROKERS_LOCK:
+        brokers = tuple(_REMOTE_OAUTH_BROKERS.values())
+    bindings: list[OAuthGrantBinding] = []
+    for broker in brokers:
+        for provider in broker.registry.enabled_providers():
+            try:
+                binding = broker.grant_binding_for(
+                    actor=actor,
+                    provider_id=provider.provider_id,
+                    resource_url=provider.resource_url,
+                )
+            except (
+                OAuthTokenAbsentError,
+                OAuthProviderError,
+                OAuthScopeError,
+                PermissionError,
+            ):
+                continue
+            if isinstance(binding, OAuthGrantBinding):
+                bindings.append(binding)
+    return tuple(sorted(bindings, key=lambda binding: binding.fingerprint))
 
 
 class _DiscoveryRanking(_typing.TypedDict):
@@ -6024,16 +6057,30 @@ async def unload_session_tools(
 
 
 def _ops_caller() -> _typing.Any:
-    """Project a verified request caller onto the fleet ops authority port."""
-    caller = resolve_fleet_caller()
-    if caller is None:
+    """Use the served API's full verified caller for fleet policy decisions."""
+    fleet_caller = resolve_fleet_caller()
+    if fleet_caller is None:
         raise _fastmcp_exceptions.ToolError("Verified MCP caller required")
-    return SimpleNamespace(
-        effective_scopes=caller.capabilities,
-        subject=caller.subject,
-        tenant=caller.tenant,
-        groups=caller.groups,
-    )
+    from graph_os.api.invoke.steps import VerifiedCaller
+    from graph_os.mcp_server import runtime
+
+    try:
+        projection, _visibility = runtime.served_api()
+        caller = projection.caller_for_request()
+    except Exception as exc:
+        raise _fastmcp_exceptions.ToolError(
+            "Verified GraphOS fleet caller unavailable"
+        ) from exc
+    if not isinstance(caller, VerifiedCaller) or not caller.policy_revision:
+        raise _fastmcp_exceptions.ToolError("Verified GraphOS fleet caller unavailable")
+    if (
+        caller.principal != fleet_caller.subject
+        or caller.tenant != fleet_caller.tenant
+        or not caller.effective_scopes.issubset(fleet_caller.capabilities)
+        or not caller.authenticated
+    ):
+        raise _fastmcp_exceptions.ToolError("MCP fleet caller identity mismatch")
+    return caller
 
 
 def _ops_result(payload: dict[str, _typing.Any]) -> _fastmcp_tools.ToolResult:

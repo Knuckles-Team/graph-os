@@ -127,7 +127,7 @@ shaper* (the core orchestrator) and **every spawned swarm/sub-agent** inherit, p
 *Universal capability* rule. Three seams make that true, all bottoming out at the one
 `create_agent` choke point (`agent/factory.py`):
 
-1. **Awareness in the prompt.** `bus_capability_prompt()` (`messaging/bus.py`, single source) is
+1. **Awareness in the prompt.** `bus_capability_prompt()` (`orchestration/agent_bus.py`, single source) is
    appended to every agent's system prompt when universal tools are on — so each agent knows it
    can `bus_join`/`bus_peers`/`bus_send`/`bus_check` and `dispatch`, and that it should set up
    agent-to-agent comms whenever more than one agent is involved.
@@ -158,16 +158,16 @@ orchestrator separately dispatches heavy work to the Loop's task lanes.
 
 | Concern | Where |
 |---|---|
-| Core service | `agent_utilities/messaging/bus.py` (`AgentBus`) |
-| Delivery/wakeup plane (AU-P1-2) | `agent_utilities/messaging/bus_log.py` (`resolve_bus_log_backend`, `EngineBrokerBusLog`, `KafkaBusLog`) |
+| Core service | `agent_utilities/orchestration/agent_bus.py` (`AgentBus`) |
+| Delivery/wakeup plane (AU-P1-2) | `epistemic_graph/partitioned_stream.py` (`SyncMessageDeliveryLog`) through AU `bus_log.py` tenant/envelope facade |
 | MCP tool + REST twin | `agent_utilities/mcp/tools/bus_tools.py` (`graph_bus`) → `/graph/bus` |
 | Native agent tools (universal) | `tools/agent_tools.py` (`bus_join`/`bus_peers`/`bus_send`/`bus_check`) + `tools/tool_registry.py` |
-| Capability awareness | `bus_capability_prompt()` (`messaging/bus.py`) injected at `agent/factory.py` |
+| Capability awareness | `bus_capability_prompt()` (`orchestration/agent_bus.py`) injected at `agent/factory.py` |
 | Swarm coordination | shared `swarm_topic()` in `mcp/tools/analysis_tools.py` (`action=swarm`) |
 | Standalone preset | `prompts/bus_coordinator.json` + `mcp_config.bus.json` (2-tool focused surface) |
 | Federation relay | `agent_utilities/messaging/federation.py` (`BusFederationRelay`) |
-| Ontology | `:BusAgent`/`:Topic`/`:BusSubscription`/`:BusMessage`/`:BusTopicCursor` in `knowledge_graph/ontology_orchestration.ttl` |
-| Store-and-forward (ECO-4.91) | topic-log `:BusMessage{kind=topic}` + per-(agent,topic) `:BusTopicCursor`; reaper `AgentBus.prune_topic_log()` |
+| Ontology | `:BusAgent`/`:Topic`/`:BusSubscription` plus native WorkItem inbox/outbox rows |
+| Store-and-forward (ECO-4.91) | EG partitioned streams with consumer cursors; the AU controller commits each recipient inbox before cursor acknowledgment |
 | Auto-presence (AU-ECO.bus.auto-register-online-presence) | `AgentBus.touch()` + `bus_tools._session_identity(ctx)` (served-session id) |
 | Governance | `bus.send`/`bus.dispatch` in `orchestration/action_policy.py` + `deploy/action-policy.default.yml` |
 | Observability | `agent_utilities_bus_*` in `observability/gateway_metrics.py`; Grafana `agent-bus.json` |

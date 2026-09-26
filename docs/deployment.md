@@ -157,7 +157,7 @@ Two lease-shaped records are not EG control leases, so the policy does not
 apply to them:
 
 - `messaging_intake_lease` is a WorkItem claim
-  (agent-utilities `messaging/intake_lease.py`).
+  (`graph_os/messaging/lease.py`).
 - Capacity leases use `AcquireCapacity` under the `capacity:*` scopes.
 
 `graph_os/lease_kinds.py` records this classification.

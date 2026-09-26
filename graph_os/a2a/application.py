@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .authority import A2AIdempotencyConflict, A2ATaskNotCancelable
 from .elevation import ELEVATION_METHODS, ELEVATION_WRITE_METHODS, invoke_elevation
-from .models import A2AMessage, A2ATask, A2ATaskArtifactUpdateEvent
+from .models import A2AMessage, A2ASkill, A2ATask, A2ATaskArtifactUpdateEvent
 from .op_invoke import OPERATION_METHODS, OperationProjection, OperationReply
 from .routing import A2AAssemblyUnavailable
 from .service import A2AService, state_fence
@@ -243,10 +243,31 @@ def create_a2a_handlers(
         raise TypeError("authenticator does not implement A2AAuthenticator")
 
     async def agent_card(request: Request) -> JSONResponse:
-        await authenticator.authenticate(request, scope="kg:read")
+        await authenticator.authenticate(
+            request, scope="" if operation_projection is not None else "kg:read"
+        )
         endpoint = str(request.url.replace(path="/a2a", query=""))
+        card = service.agent_card(endpoint)
+        if operation_projection is not None:
+            visible_ops = await operation_projection.visible_card_ops()
+            card = card.model_copy(
+                update={
+                    "skills": [
+                        A2ASkill(
+                            id=op.id,
+                            name=op.id,
+                            description=op.summary,
+                            tags=[op.verb.value, op.effect.value],
+                            input_modes=["application/json"],
+                            output_modes=["application/json"],
+                        )
+                        for op in visible_ops
+                    ],
+                    "security": [{"bearerAuth": []}],
+                }
+            )
         return JSONResponse(
-            service.agent_card(endpoint).model_dump(mode="json", by_alias=True),
+            card.model_dump(mode="json", by_alias=True),
             headers={"Cache-Control": "no-store"},
         )
 
@@ -331,6 +352,7 @@ def create_a2a_application(
         authenticator=authenticator,
         operation_projection=operation_projection,
     )
-    app.add_api_route("/.well-known/agent-card.json", card_handler, methods=["GET"])
-    app.add_api_route("/a2a", rpc_handler, methods=["POST"])
+    from graph_os.api.a2a.routes import mount_a2a_routes
+
+    mount_a2a_routes(app, card_handler=card_handler, rpc_handler=rpc_handler)
     return app

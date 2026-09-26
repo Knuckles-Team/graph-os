@@ -2,11 +2,14 @@
 
 The EG DecisionLog wire method contains both reads and writes. Each handler
 constructs one fixed read variant; callers cannot supply the variant or tenant.
+The public EG contract currently exposes Get and Aggregate as reads. A list or
+provenance operation must be added at that authority before it can be served.
 """
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -23,13 +26,8 @@ class _Params(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class ListParams(_Params):
-    after: str | None = None
-    limit: int = Field(default=50, ge=1, le=256)
-
-
 class RecordParams(_Params):
-    record_id: str = Field(min_length=1)
+    record_id: str = Field(min_length=1, max_length=256)
 
 
 class WindowParams(_Params):
@@ -39,8 +37,7 @@ class WindowParams(_Params):
 
 class AggregateParams(_Params):
     window: WindowParams
-    question_id: str | None = None
-    attribution: dict[str, Any] | None = None
+    question_id: str | None = Field(default=None, min_length=1, max_length=256)
 
 
 async def _read(context: Any, op: Mapping[str, Any]) -> Any:
@@ -52,58 +49,39 @@ async def _read(context: Any, op: Mapping[str, Any]) -> Any:
     return result.payload
 
 
-async def list_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
-    request = ListParams.model_validate(params)
-    return await _read(context, {
-        "op": "list", "tenant_id": context.caller.tenant,
-        "after": request.after, "limit": request.limit,
-    })
-
-
 async def get_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
     request = RecordParams.model_validate(params)
-    return await _read(context, {
-        "op": "get", "tenant_id": context.caller.tenant,
-        "record_id": request.record_id,
-    })
-
-
-async def provenance_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
-    request = RecordParams.model_validate(params)
-    return await _read(context, {
-        "op": "provenance", "tenant_id": context.caller.tenant,
-        "record_id": request.record_id,
-    })
+    return await _read(
+        context,
+        {
+            "op": "get",
+            "tenant_id": context.caller.tenant,
+            "record_id": request.record_id,
+        },
+    )
 
 
 async def aggregate_handler(context: Any, params: Mapping[str, Any], op: OpSpec) -> Any:
     request = AggregateParams.model_validate(params)
+    if request.window.from_ms > request.window.to_ms:
+        raise ValueError("decision aggregate window must have from_ms <= to_ms")
     body = request.model_dump(exclude_none=True)
     body["tenant_id"] = context.caller.tenant
     return await _read(context, {"op": "aggregate", "request": body})
 
 
-_RESULT = EgSchemaRef(path="contract/schemas/result.coordination.json#/methods/DecisionLog")
+_RESULT = EgSchemaRef(
+    path="contract/schemas/result.coordination.json#/methods/DecisionLog"
+)
 
 
 def specs() -> tuple[OpSpec, ...]:
     return (
         OpSpec(
-            id="decisions.list",
-            verb=Verb.ASK,
-            summary="List bounded DecisionLog records visible to the caller.",
-            examples=("Show my recent decisions",),
-            params=ListParams,
-            result=_RESULT,
-            binding=Composite(handler="graph_os.api.ops.decisions.list_handler"),
-            scopes=frozenset({"agent:decision-read"}),
-            idempotency=Idempotency.NATURAL,
-        ),
-        OpSpec(
             id="decisions.get",
             verb=Verb.ASK,
-            summary="Read a visible DecisionLog record by ID.",
-            examples=("Show decision record d-123",),
+            summary="Read a statistical DecisionLog entry by ID.",
+            examples=("Show statistical decision entry d-123",),
             params=RecordParams,
             result=_RESULT,
             binding=Composite(handler="graph_os.api.ops.decisions.get_handler"),
@@ -111,20 +89,9 @@ def specs() -> tuple[OpSpec, ...]:
             idempotency=Idempotency.NATURAL,
         ),
         OpSpec(
-            id="decisions.provenance",
-            verb=Verb.WHY,
-            summary="Read a visible decision and its evaluations and resolutions.",
-            examples=("Why did decision d-123 resolve this way?",),
-            params=RecordParams,
-            result=_RESULT,
-            binding=Composite(handler="graph_os.api.ops.decisions.provenance_handler"),
-            scopes=frozenset({"agent:decision-read"}),
-            idempotency=Idempotency.NATURAL,
-        ),
-        OpSpec(
             id="decisions.aggregate",
             verb=Verb.ASK,
-            summary="Read visibility-filtered DecisionLog outcome aggregates.",
+            summary="Read tenant-scoped statistical DecisionLog outcome aggregates.",
             examples=("Summarize decisions during this window",),
             params=AggregateParams,
             result=_RESULT,

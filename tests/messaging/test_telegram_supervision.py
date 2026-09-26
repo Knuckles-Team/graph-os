@@ -10,7 +10,8 @@ from typing import Any
 
 import pytest
 from agent_utilities.messaging.models import EventType
-from agent_utilities.messaging.router import InboundRouter
+
+from graph_os.messaging.router import InboundRouter
 
 
 def _msg_event() -> Any:

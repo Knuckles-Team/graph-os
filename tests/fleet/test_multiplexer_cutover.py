@@ -21,6 +21,39 @@ from tests.fleet.catalog_fixture import _NeverRead, multiplexer_from_fixture
 from tests.fleet.conftest import fleet_session
 
 
+@pytest.fixture
+def served_caller(monkeypatch):
+    """Supply a complete serving snapshot for resident wiring tests."""
+    from graph_os.api.invoke.steps import VerifiedCaller
+    from graph_os.fleet.fleet_authority import resolve_fleet_caller
+    from graph_os.mcp_server import runtime
+
+    def caller_for_request():
+        caller = resolve_fleet_caller()
+        assert caller is not None
+        return VerifiedCaller(
+            principal=caller.subject,
+            tenant=caller.tenant,
+            effective_scopes=caller.capabilities,
+            engine_claims={
+                "principal": caller.subject,
+                "tenant": caller.tenant,
+                "scopes": sorted(caller.capabilities),
+            },
+            principal_kind="human",
+            policy_revision="fixture-revision",
+        )
+
+    monkeypatch.setattr(
+        runtime,
+        "served_api",
+        lambda: (
+            SimpleNamespace(caller_for_request=caller_for_request),
+            object(),
+        ),
+    )
+
+
 class _Ops:
     def __init__(self) -> None:
         self.calls: list[tuple[str, object]] = []
@@ -45,7 +78,7 @@ class _Ops:
 
 
 @pytest.mark.asyncio
-async def test_only_four_resident_fleet_tools_are_registered():
+async def test_only_four_resident_fleet_tools_are_registered(served_caller):
     mcp = FastMCP("test")
     ops = _Ops()
     mux = SimpleNamespace(_multiplexer_ops=ops, _global_visible=set())
@@ -71,7 +104,9 @@ def test_cutover_refuses_missing_governed_ops():
 
 
 @pytest.mark.asyncio
-async def test_factory_mounts_native_tool_with_governed_body(monkeypatch):
+async def test_factory_mounts_native_tool_with_governed_body(
+    monkeypatch, served_caller
+):
     mcp = FastMCP("test")
     monkeypatch.setitem(
         sys.modules,
@@ -102,7 +137,7 @@ async def test_factory_mounts_native_tool_with_governed_body(monkeypatch):
     calls = []
 
     async def governed(arguments, caller):
-        calls.append((arguments, caller.subject))
+        calls.append((arguments, caller.principal))
         return {"ok": True}
 
     item = CatalogItem(
@@ -177,7 +212,9 @@ def test_native_admission_is_resident_allowlist(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_loaded_forwarder_calls_governed_invoke(tmp_path, monkeypatch):
+async def test_loaded_forwarder_calls_governed_invoke(
+    tmp_path, monkeypatch, served_caller
+):
     mux = multiplexer_from_fixture(tmp_path / "empty-catalog.json")
     mux._exposed.add("s__tool")
     monkeypatch.setattr("graph_os.fleet.multiplexer._session_key", lambda: "a")
@@ -197,7 +234,7 @@ async def test_loaded_forwarder_calls_governed_invoke(tmp_path, monkeypatch):
 
         def _forwarder(self, item):
             async def invoke(arguments, caller):
-                calls.append((arguments, caller.subject))
+                calls.append((arguments, caller.principal))
                 return {"governed": True}
 
             return invoke

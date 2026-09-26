@@ -273,7 +273,7 @@ async def test_inbound_frame_reaches_router_and_reply_renders(
     handler's reply is rendered back through the Mattermost outbound API (the bot posts it).
     The orchestrator itself is stubbed — we are proving the transport wiring, not the LLM.
     """
-    from agent_utilities.messaging.router import InboundRouter
+    from graph_os.messaging.router import InboundRouter
 
     b = _backend()
     await b.connect()
@@ -333,7 +333,8 @@ async def test_reach_user_routes_to_mattermost_last_active(
     """``reach_user`` follows the user to a Mattermost channel they were last active on —
     proving Mattermost is a first-class target of the platform-agnostic reach service."""
     from agent_utilities.messaging.models import InboundEvent, SendResult
-    from agent_utilities.messaging.service import MessagingService
+
+    from graph_os.messaging.service import MessagingService
 
     class _Eng:
         def __init__(self) -> None:

@@ -489,6 +489,18 @@ def test_runtime_assembler_binds_public_eg_audit_and_one_fleet_gateway(
 
     with pytest.raises(ValueError, match="governed fleet gateway"):
         serving.configure_runtime_authorities(authorities(fleet_gateway=object()))
+    with pytest.raises(ValueError, match="action verifier binding"):
+        serving.configure_runtime_authorities(
+            authorities(bindings={"action_verify": object()})
+        )
+    from graph_os.access.approvals import ApprovalService
+
+    with pytest.raises(ValueError, match="approval decision authority"):
+        serving.configure_runtime_authorities(
+            authorities(
+                bindings={"approvals": ApprovalService(decision_authority=object())}
+            )
+        )
     with pytest.raises(ValueError, match="bearer reference"):
         serving.configure_runtime_authorities(authorities(bearer_ref="raw-token"))
     with pytest.raises(ValueError, match="policy_gate"):

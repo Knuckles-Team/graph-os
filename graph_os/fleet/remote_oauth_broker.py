@@ -53,6 +53,7 @@ __all__ = [
     "AuthorizationServerMetadata",
     "DynamicClientRegistrar",
     "OAuthBindingError",
+    "OAuthGrantBinding",
     "OAuthDiscoveryError",
     "OAuthProviderError",
     "OAuthRedirectNotAllowlistedError",
@@ -710,6 +711,43 @@ class StoredToken:
     # Process-owned identity for the exact grant.  It is deliberately separate
     # from bearer/refresh material and is rotated on callback/refresh.
     grant_revision: str = ""
+
+
+@dataclass(frozen=True)
+class OAuthGrantBinding:
+    """Non-secret identity of one verified, current broker grant.
+
+    The fingerprint schema is shared with EG fleet discovery records. A
+    registry read can disclose an OAuth-scoped row only while this exact grant
+    revision remains in the process-owned token store.
+    """
+
+    tenant_id: str
+    principal_id: str
+    provider_id: str
+    resource_url: str
+    audience: str
+    granted_scopes: tuple[str, ...]
+    key_version: int
+    grant_revision: str
+
+    @property
+    def fingerprint(self) -> str:
+        material = {
+            "schema": "au.oauth-grant-binding.v1",
+            "tenant": self.tenant_id,
+            "principal": self.principal_id,
+            "provider": self.provider_id,
+            "resource": self.resource_url,
+            "audience": self.audience,
+            "scopes": list(self.granted_scopes),
+            "key_version": self.key_version,
+            "grant_revision": self.grant_revision,
+        }
+        encoded = json.dumps(
+            material, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        ).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
 
 
 def _normalize_granted_scopes(value: str) -> tuple[str, ...]:
@@ -1391,6 +1429,25 @@ class RemoteOAuthBroker:
         if token.key_version <= 0 or not token.grant_revision.strip():
             raise OAuthTokenAbsentError("stored grant identity is unavailable")
         return token
+
+    def grant_binding_for(
+        self, *, actor: ActorContext, provider_id: str, resource_url: str
+    ) -> OAuthGrantBinding:
+        """Read one current grant identity without exposing bearer material."""
+        token = self._resolved_token(
+            actor=actor, provider_id=provider_id, resource_url=resource_url
+        )
+        tenant, principal = OAuthTokenStore._require_verified(actor)
+        return OAuthGrantBinding(
+            tenant_id=tenant,
+            principal_id=principal,
+            provider_id=provider_id,
+            resource_url=resource_url,
+            audience=token.audience,
+            granted_scopes=_normalize_granted_scopes(token.granted_scope),
+            key_version=token.key_version,
+            grant_revision=token.grant_revision,
+        )
 
     def bearer_headers_for(
         self, *, actor: ActorContext, provider_id: str, resource_url: str

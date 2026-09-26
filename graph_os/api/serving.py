@@ -120,6 +120,19 @@ def assemble_runtime_authorities(authorities: RuntimeAuthorities) -> ServedApiPo
         raise ValueError("runtime bindings are unavailable")
     if "fleet_gateway" in authorities.bindings:
         raise ValueError("fleet_gateway is reserved for the serving root")
+    from graph_os.access.action_verify import ActionVerifier
+    from graph_os.access.approvals import ApprovalService
+
+    approval_service = authorities.bindings.get("approvals")
+    if approval_service is None:
+        approval_service = ApprovalService()
+    elif not isinstance(approval_service, ApprovalService):
+        raise ValueError("approval service binding is invalid")
+    elif not approval_service.serving_safe:
+        raise ValueError("approval decision authority is not native")
+    action_verifier = authorities.bindings.get("action_verify")
+    if action_verifier is not None and not isinstance(action_verifier, ActionVerifier):
+        raise ValueError("action verifier binding is invalid")
     from graph_os.fleet.gateway_ops import FleetGateway
 
     if not isinstance(authorities.fleet_gateway, FleetGateway):
@@ -142,6 +155,7 @@ def assemble_runtime_authorities(authorities: RuntimeAuthorities) -> ServedApiPo
             fleet_effect=authorities.fleet_gateway.effect,
             bindings={
                 **authorities.bindings,
+                "approvals": approval_service,
                 "fleet_gateway": authorities.fleet_gateway,
             },
         ),
