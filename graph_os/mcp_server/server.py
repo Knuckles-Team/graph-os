@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from agent_connector_sdk.mcp.content import register_connector_content
 from agent_connector_sdk.mcp.network import build_network_serving_config
@@ -19,6 +19,9 @@ from graph_os.mcp_server.composition import (
 from graph_os.semantic_content import default_content_providers
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from graph_os.api.host_bootstrap import HostRuntimeInputs
 
 _FLEET_EMBED_MODEL: Any = None
 
@@ -161,19 +164,25 @@ def _attach_fleet_runtime(mcp: Any, fleet_catalog_reader: Any) -> Any:
         ) from exc
 
 
-def mcp_server() -> None:
+def mcp_server(*, host_runtime_inputs: HostRuntimeInputs | None = None) -> None:
     """``graph-os`` MCP server entry point (registered as console_scripts).
 
     FastMCP wrapper over the operation registry and governed fleet. It serves
     over ``stdio`` or ``streamable-http``,
     selected by the standard ``--transport/--host/--port`` args
     from :func:`create_mcp_server`. HTTP operations are under ``/api/v1``.
+    A host launcher may supply its verified authority bundle explicitly;
+    an unconfigured console launch refuses before creating a transport.
     """
     from agent_utilities.core.config import load_config
 
     from graph_os.api.serving import configured_served_api
 
     load_config()  # resolve settings through the one shared XDG config.json
+    if host_runtime_inputs is not None:
+        from graph_os.api.host_bootstrap import configure_host_runtime
+
+        configure_host_runtime(host_runtime_inputs)
     runtime.configure_served_api(*configured_served_api())
     install_gateway_application()
     _preflight_mcp_sdk_floor()
