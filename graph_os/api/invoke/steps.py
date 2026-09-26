@@ -62,7 +62,7 @@ class VerifiedCaller:
 class OpError:
     code: str
     details: Mapping[str, Any] = field(default_factory=dict)
-    source: Literal["graphos", "engine"] = "graphos"
+    source: Literal["graphos", "engine", "fleet"] = "graphos"
 
 
 @dataclass(frozen=True, slots=True)

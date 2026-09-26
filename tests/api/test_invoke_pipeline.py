@@ -12,7 +12,7 @@ import pytest
 from epistemic_graph import EngineResponseError
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.errors import to_envelope
+from graph_os.api.errors import FleetRefusal, to_envelope
 from graph_os.api.invoke import InvokeServices, OpError, VerifiedCaller, invoke
 from graph_os.api.invoke.executor import BoundOperationRuntime
 from graph_os.api.invoke.pipeline import FleetCallDecision
@@ -139,6 +139,34 @@ async def test_engine_refusal_survives_invoke_with_private_detail_removed(
     )
     assert actual_status == status
     assert envelope["error"]["source"] == source
+    assert "tenant-secret" not in str(envelope)
+
+
+@pytest.mark.asyncio
+async def test_fleet_child_refusal_survives_invoke_with_provenance() -> None:
+    class RefusingRuntime(FakeRuntime):
+        async def dispatch(
+            self, op: OpSpec, params: dict[str, Any], context: Any
+        ) -> dict[str, bool]:
+            raise FleetRefusal("CHILD_BUSY", "search", "query", "tenant-secret")
+
+    app, _, _ = services(
+        op(effect=Effect.READ, audit=AuditClass.NONE), RefusingRuntime()
+    )
+    refusal = await invoke(
+        "items.change", {"subject": "item:1"}, caller(), Surface.MCP, services=app
+    )
+    assert refusal == OpError(
+        "CHILD_BUSY", {"server": "search", "tool": "query"}, source="fleet"
+    )
+    status, envelope = to_envelope(
+        refusal,
+        op="items.change",
+        request_id="req-1",
+        registry_digest=app.registry.digest,
+    )
+    assert status == 502
+    assert envelope["error"]["source"] == "fleet"
     assert "tenant-secret" not in str(envelope)
 
 

@@ -96,7 +96,7 @@ class EngineRefusal(Exception):
         )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class FleetRefusal(Exception):
     """A child's own code, with its provenance kept in details."""
 
@@ -124,6 +124,27 @@ def _public_message(default: str) -> str:
     """
 
     return default
+
+
+_FLEET_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}\Z")
+_FLEET_CODE = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,127}\Z")
+
+
+def _fleet_details(code: str, details: Mapping[str, Any]) -> dict[str, str]:
+    """Project only bounded child provenance, never raw child payloads."""
+
+    if _FLEET_CODE.fullmatch(code) is None:
+        raise ValueError("invalid fleet error code")
+    server = details.get("server")
+    tool = details.get("tool")
+    if (
+        not isinstance(server, str)
+        or _FLEET_NAME.fullmatch(server) is None
+        or not isinstance(tool, str)
+        or _FLEET_NAME.fullmatch(tool) is None
+    ):
+        return {}
+    return {"server": server, "tool": tool}
 
 
 def _public_details(
@@ -211,7 +232,7 @@ def _classified_error(
             "fleet",
             502,
             error.retryable,
-            {"server": error.server, "tool": error.tool},
+            _fleet_details(error.code, {"server": error.server, "tool": error.tool}),
         )
     if isinstance(error, OpErrorLike):
         source = getattr(error, "source", "graphos")
@@ -220,6 +241,14 @@ def _classified_error(
             if metadata is None:
                 raise ValueError("unknown engine error code")
             return error.code, "engine", metadata[0], metadata[1], {}
+        if source == "fleet":
+            return (
+                error.code,
+                "fleet",
+                502,
+                False,
+                _fleet_details(error.code, error.details),
+            )
         if source != "graphos":
             raise ValueError("unknown operation error source")
         code = GraphOSErrorCode(error.code)
@@ -267,6 +296,10 @@ def a2a_error_status(
         if metadata is None:
             raise ValueError("unknown engine error code")
         return -32000, metadata[0]
+    if source == "fleet":
+        if _FLEET_CODE.fullmatch(str(code)) is None:
+            raise ValueError("invalid fleet error code")
+        return -32000, 502
     if source != "graphos":
         raise ValueError("unknown operation error source")
     typed = GraphOSErrorCode(code)

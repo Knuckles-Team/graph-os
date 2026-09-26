@@ -13,6 +13,7 @@ from typing import Any
 from epistemic_graph import EngineResponseError
 from pydantic import BaseModel
 
+from graph_os.api.errors import FleetRefusal
 from graph_os.api.generated.engine_errors import ENGINE_ERRORS
 from graph_os.api.invoke.audit import audit_event
 from graph_os.api.invoke.executor import (
@@ -476,6 +477,11 @@ async def invoke(
         else:
             status = "INTERNAL"
             result = OpError(status)
+    except FleetRefusal as exc:
+        status = exc.code
+        result = OpError(
+            exc.code, {"server": exc.server, "tool": exc.tool}, source="fleet"
+        )
     except Exception:
         status = "INTERNAL"
         result = OpError(status)
