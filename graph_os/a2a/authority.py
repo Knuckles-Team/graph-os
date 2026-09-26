@@ -56,7 +56,7 @@ __all__ = [
 
 
 class A2AControlPlanePort(Protocol):
-    """The five AU control-plane operations the A2A projection uses.
+    """The AU control-plane operations the A2A projection uses.
 
     ``agent_utilities.api.AgentControlPlane`` satisfies it; the facade depends
     on this port, not on that concrete class, so any conforming plane (a
