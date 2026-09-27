@@ -8,7 +8,6 @@ catalog request. A runner is restarted before that EG context's JWT expires.
 from __future__ import annotations
 
 import argparse
-import os
 import time
 from collections.abc import Sequence
 from dataclasses import replace
@@ -26,6 +25,7 @@ from agent_connector_sdk.runner.catalog_authority import (
     RemotePackImportAuthorityResolver,
 )
 from agent_connector_sdk.runner.composition import default_services
+from agent_utilities.core.config import setting
 from agent_utilities.security.request_identity import (
     mint_actor_from_token_sync,
     mint_graph_session,
@@ -43,15 +43,15 @@ _RESTART_MARGIN_SECONDS = 45.0
 
 
 def _required(name: str) -> str:
-    value = os.environ.get(name, "").strip()
+    value = str(setting(name, "")).strip()
     if not value:
         raise ValueError(f"{name} is required")
     return value
 
 
 def _runner_config(state_dir: Path) -> ConnectorRunnerConfig:
-    socket = os.environ.get("CONNECTOR_SYNC_EG_SOCKET_PATH", "").strip() or None
-    tcp = os.environ.get("CONNECTOR_SYNC_EG_TCP_ADDR", "").strip() or None
+    socket = str(setting("CONNECTOR_SYNC_EG_SOCKET_PATH", "")).strip() or None
+    tcp = str(setting("CONNECTOR_SYNC_EG_TCP_ADDR", "")).strip() or None
     return ConnectorRunnerConfig(
         graph=_required("CONNECTOR_SYNC_GRAPH"),
         state_dir=state_dir,
@@ -114,8 +114,10 @@ def _fleet_services_factory(auth, resolver):
                 raise PermissionError(
                     "fleet MCP endpoint is outside TLS identity boundary"
                 )
-            if result.auth or result.bearer_token:
-                return result
+            if result.auth is not None or result.bearer_token:
+                raise PermissionError(
+                    "fleet MCP endpoint cannot override verified runner identity"
+                )
             return replace(result, auth=auth)
 
         return replace(services, endpoints=endpoint)
@@ -207,7 +209,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--health-allow-non-loopback", action="store_true")
     args = parser.parse_args(argv)
     state_dir = args.state_dir or Path(
-        os.environ.get("CONNECTOR_SYNC_STATE_DIR", "/var/lib/connector-sync")
+        str(setting("CONNECTOR_SYNC_STATE_DIR", "/var/lib/connector-sync"))
     )
 
     async def run() -> int:
