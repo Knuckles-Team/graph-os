@@ -19,114 +19,39 @@ the single gateway composition entry point.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
-# Cached OWL/RDF bridge for the local SPARQL endpoint (built lazily from the
-# active engine + a local owlready2 backend). Its rdflib materialization is
-# cache-invalidated on LPG changes, so a single instance is safe to reuse.
-_SPARQL_BRIDGE: Any = None
-
-
-def _get_sparql_bridge() -> Any:
-    """Return a cached OWLBridge for SPARQL, or ``None`` if unavailable."""
-    global _SPARQL_BRIDGE
-    if _SPARQL_BRIDGE is not None:
-        return _SPARQL_BRIDGE
-    try:
-        from agent_utilities.knowledge_graph.backends.owl import create_owl_backend
-        from agent_utilities.knowledge_graph.core.owl_bridge import OWLBridge
-
-        from graph_os.gateway.ports import gateway_application
-
-        engine = gateway_application().engine()
-        try:
-            owl_backend = create_owl_backend()  # local owlready2 if installed
-        except Exception:
-            # owlready2 absent → still serve SPARQL via rdflib materialization of
-            # the live LPG (query_sparql falls back when self.owl has no query_sparql).
-            owl_backend = None
-        _SPARQL_BRIDGE = OWLBridge(
-            graph=engine.graph_compute,
-            owl_backend=owl_backend,
-            backend=getattr(engine, "backend", None),
-        )
-    except Exception as exc:  # pragma: no cover - SPARQL is best-effort
-        logger.warning("Local SPARQL bridge unavailable (%s)", exc)
-        return None
-    return _SPARQL_BRIDGE
-
 
 def _mount_sparql_route(app, prefix: str = "/api") -> None:
-    """Mount ``{prefix}/sparql`` — a local, zero-dependency SPARQL endpoint."""
+    """Keep the legacy URL fail closed until an EG-bound SPARQL route exists."""
 
     async def sparql_endpoint(request: Request) -> JSONResponse:
-        from agent_utilities.api.session import (
-            resolve_session,
-            use_session,
-        )
+        from agent_utilities.api.session import resolve_session
 
-        session = resolve_session(required_scope="kg:read")
+        resolve_session(required_scope="kg:read")
         query = await _sparql_query(request)
         if not query:
             return JSONResponse(
                 {"status": "error", "message": "missing 'query'"}, status_code=400
             )
-        bridge = _get_sparql_bridge()
-        if bridge is None:
-            return JSONResponse(
-                {
-                    "status": "error",
-                    "message": (
-                        "SPARQL layer unavailable (install agent-utilities[owl])"
-                    ),
-                },
-                status_code=503,
-            )
-
-        try:
-            # ``bridge.query_sparql`` targets whatever named graph the AMBIENT
-            # session is pinned to (OWLBridge -> GraphComputeEngine.sparql ->
-            # the session-routed engine client) -- retarget per graph the
-            # actor may read (GOC-61: org graph(s) then commons, same
-            # ``accessible_graphs`` ordering ``tenant_sharing.read_union``
-            # uses for Cypher) so a SPARQL query issued under a tenant-pinned
-            # session still sees the commons graph. ``read_union`` itself is
-            # NOT reused here: it additionally applies the Cypher-shaped
-            # ``filter_commons_catalog`` node-type restriction to commons
-            # rows, which would drop every SPARQL binding (a binding carries
-            # no Cypher ``node_type``) -- see its docstring.
-            from agent_utilities.knowledge_graph.core.tenant_sharing import (
-                accessible_graphs,
-            )
-
-            bindings = _query_accessible_graphs(
-                bridge, query, session, accessible_graphs, use_session
-            )
-            # W3C SPARQL-JSON-ish envelope (vars derived from the first binding).
-            varnames = list(bindings[0].keys()) if bindings else []
-            return JSONResponse(
-                {
-                    "status": "success",
-                    "head": {"vars": varnames},
-                    "results": {"bindings": bindings},
-                }
-            )
-        except Exception:
-            return JSONResponse(
-                {"status": "error", "message": "SPARQL query failed"},
-                status_code=500,
-            )
+        return JSONResponse(
+            {
+                "status": "error",
+                "code": "sparql_unavailable",
+                "message": "GraphOS SPARQL requires verified EG request binding",
+            },
+            status_code=503,
+        )
 
     path = f"{prefix}/sparql"
     # Starlette-style add_route (works on FastAPI too): raw Request→Response with
     # no FastAPI body/param validation, matching the other kg_server endpoints.
     app.add_route(path, sparql_endpoint, methods=["GET", "POST"])
-    logger.info("Mounted local SPARQL endpoint")
+    logger.info("Mounted fail-closed SPARQL compatibility route")
 
 
 async def _sparql_query(request: Request) -> str | None:
@@ -139,19 +64,6 @@ async def _sparql_query(request: Request) -> str | None:
     except Exception as exc:
         logger.warning("SPARQL JSON body unavailable; reading raw body: %s", exc)
         return (await request.body()).decode("utf-8", "replace") or None
-
-
-def _query_accessible_graphs(
-    bridge: Any, query: str, session: Any, accessible_graphs: Any, use_session: Any
-) -> list[dict[str, Any]]:
-    bindings: list[dict[str, Any]] = []
-    for graph_name in accessible_graphs(session.actor):
-        try:
-            with use_session(session.with_graph(graph_name)):
-                bindings.extend(bridge.query_sparql(query))
-        except Exception as exc:
-            logger.warning("sparql union graph %s unavailable: %s", graph_name, exc)
-    return bindings
 
 
 SQL_SCHEMA_PATH = "/graph/sql-schema"
@@ -307,11 +219,8 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     application.mount_rest_routes(app, prefix=prefix)
 
-    # Local SPARQL endpoint (CONCEPT:AU-KG.query.vendor-agnostic-traversal) — served
-    # over the OWL/RDF bridge with
-    # ZERO external dependencies (rdflib materialization of the live LPG + OWL
-    # inferences); an external Fuseki/Stardog is optional enterprise scale-out, not
-    # required. Works in the zero-dep tiny profile.
+    # Preserve the legacy URL as unavailable until a verified request-scoped
+    # EG SPARQL authority can be composed here.
     _mount_sparql_route(app, prefix=prefix)
 
     # Read-only SQL catalog introspection (CONCEPT:AU-KG.query.raw-python) — the

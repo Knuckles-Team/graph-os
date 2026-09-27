@@ -36,6 +36,7 @@ same multiplexer owned by the serving loop.
 |---|---|
 | Durable four-family MCP resource/template reconciliation | `reingestion-unreconciled`; GraphOS does not claim publication |
 | Live ConnectorPack catalog import | Source composition exists; deployment remains unavailable until EG request-scoped catalog reads, policy receipts, fleet TLS/CA/DNS, and matching service grants are verified together |
+| GraphOS `/api/sparql` compatibility route | Returns `503 sparql_unavailable` after `kg:read` admission; a verified, request-scoped binding to EG's native SPARQL client is not yet composed |
 | Context-budget-selected A2A tool subsets | Refused before admission because the signed request does not bind an enforceable subset |
 | A2A streaming, push notifications, and transition history | Not advertised by the Agent Card |
 

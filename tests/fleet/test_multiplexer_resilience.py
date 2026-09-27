@@ -173,6 +173,25 @@ async def test_session_pool_round_robins_parallel_calls_across_connections():
     assert all(not r.is_error for r in results)
 
 
+async def test_non_oauth_child_skips_secret_lookup_thread(monkeypatch):
+    from graph_os.fleet import multiplexer as mod
+
+    monkeypatch.setattr(
+        mod.asyncio,
+        "to_thread",
+        lambda *args, **kwargs: pytest.fail(
+            "non-OAuth child must not offload grant lookup"
+        ),
+    )
+    headers = {"X-Test": "value"}
+    result = await mod.MCPMultiplexer._apply_remote_child_oauth_grant(
+        {"url": "https://pooled.example/mcp"},
+        "https://pooled.example/mcp",
+        headers,
+    )
+    assert result == (headers, None)
+
+
 async def test_multiplexer_opens_pool_size_connections_for_http_child(
     tmp_path, monkeypatch
 ):
@@ -214,6 +233,20 @@ async def test_multiplexer_opens_pool_size_connections_for_http_child(
 
     monkeypatch.setattr(mod, "streamable_http_client", fake_http)
     monkeypatch.setattr(mod, "ClientSession", FakeSessionCM)
+
+    class FakeHttpClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+    # This test checks pool sizing. Keep the transport's HTTP client creation
+    # local so DNS pinning cannot make a unit test depend on network access.
+    monkeypatch.setattr(
+        "agent_utilities.core.http_client.create_async_http_client",
+        lambda **kwargs: FakeHttpClient(),
+    )
 
     mux = multiplexer_from_fixture(tmp_path / "c.json")
     # A non-loopback remote child must be HTTPS (fail-closed transport gate

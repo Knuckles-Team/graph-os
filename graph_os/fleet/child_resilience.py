@@ -478,6 +478,7 @@ class ChildRuntime:
         # catalog/runtime epoch around this marker.
         self._generation = 0
         self._task_generation_secret: str | None = None
+        self._catalog_child_id = ""
         self._rr_index = 0
         self._in_flight = 0
         self._queued = 0

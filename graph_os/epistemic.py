@@ -32,10 +32,17 @@ class TenantGraphBindingError(AuthorityError):
 class VerifiedActor(Protocol):
     """The generic subset of an authenticated actor needed by graph-os."""
 
-    actor_id: str
-    tenant_id: str
-    roles: Iterable[str]
-    authenticated: bool
+    @property
+    def actor_id(self) -> str: ...
+
+    @property
+    def tenant_id(self) -> str: ...
+
+    @property
+    def roles(self) -> Iterable[str]: ...
+
+    @property
+    def authenticated(self) -> bool: ...
 
     def ensure_credential_current(self) -> None:
         """Raise when the already-verified credential is no longer current."""

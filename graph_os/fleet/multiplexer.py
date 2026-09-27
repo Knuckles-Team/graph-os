@@ -101,6 +101,15 @@ from graph_os.fleet.catalog_snapshot import (
 )
 from graph_os.fleet.session_notifications import SessionCatalogNotifications
 
+
+def _server_registration_digest(server: _catalog_reader.CatalogServer) -> str:
+    """Require a live EG registration before a child snapshot can be trusted."""
+    registration = server.registration
+    if registration is None:
+        raise CatalogSnapshotUnavailable("server registration is unavailable")
+    return registration_config_digest(registration.url, registration.resources)
+
+
 # Direct all logs to stderr so stdout remains perfectly clean for stdio JSON-RPC
 logging.basicConfig(
     level=logging.INFO,
@@ -1883,6 +1892,15 @@ def _resolve_remote_oauth_grant(
     )
 
 
+async def _remote_oauth_grant_for_child(
+    cfg: dict, url: str
+) -> tuple[dict[str, str], _typing.Any] | None:
+    """Offload a grant lookup only for a child that declares OAuth."""
+    if not _oauth_gated(cfg):
+        return None
+    return await asyncio.to_thread(_resolve_remote_oauth_grant, cfg, url)
+
+
 def current_remote_oauth_grant_bindings(actor: _typing.Any) -> tuple[_typing.Any, ...]:
     """Return current broker-resolved grants for a verified actor.
 
@@ -3156,7 +3174,7 @@ class MCPMultiplexer:
         # (missing/expired/revoked grant) rather than falling back to any
         # shared/service credential; the caller sees that failure as this
         # session never opening, exactly like any other connect failure.
-        oauth_grant = await asyncio.to_thread(_resolve_remote_oauth_grant, cfg, url)
+        oauth_grant = await _remote_oauth_grant_for_child(cfg, url)
         if oauth_grant is not None:
             oauth_bearer_headers, discovery_binding = oauth_grant
             _CURRENT_DISCOVERY_BINDING.set(discovery_binding)
@@ -4791,9 +4809,7 @@ class MCPMultiplexer:
                 component_id=server.component.component_id,
                 registry_revision=fleet.registry_revision if fleet else None,
                 registry_digest=fleet.registry_digest if fleet else None,
-                registration_config_digest=registration_config_digest(
-                    server.registration.url, server.registration.resources
-                ),
+                registration_config_digest=_server_registration_digest(server),
                 component_revision=server.component.entry_revision,
                 component_digest=server.content.content_digest,
                 discovery_tenant=discovery_binding.tenant_id,
@@ -4841,9 +4857,7 @@ class MCPMultiplexer:
                 component_id=server.component.component_id,
                 registry_revision=fleet.registry_revision,
                 registry_digest=fleet.registry_digest,
-                registration_config_digest=registration_config_digest(
-                    server.registration.url, server.registration.resources
-                ),
+                registration_config_digest=_server_registration_digest(server),
                 component_revision=server.component.entry_revision,
                 component_digest=server.content.content_digest,
                 discovery_tenant=fleet.context.tenant_id,
