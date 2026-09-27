@@ -119,7 +119,9 @@ class RemoteConnectorPackAuthority:
                     != str(self._attester.actor.actor_id)
                 ):
                     raise CatalogAuthorityUnavailable("mounted child tenant differs")
-                binding = await self._mounted.reconcile_pack_catalog_binding(connector_id)
+                binding = await self._mounted.reconcile_pack_catalog_binding(
+                    connector_id
+                )
                 if self._mounted.catalog_attestation(connector_id) != before:
                     raise CatalogAuthorityUnavailable("mounted child changed")
             observed = before
@@ -136,7 +138,9 @@ class RemoteConnectorPackAuthority:
                 generated_pack, "McpCatalogAuthorityStatusRequest", None
             )
             if request_type is None:
-                raise CatalogAuthorityUnavailable("EG owner read contract is unavailable")
+                raise CatalogAuthorityUnavailable(
+                    "EG owner read contract is unavailable"
+                )
             request = request_type.model_validate(
                 {"tenant_id": verified.tenant, "server_name": connector_id}
             )
@@ -185,9 +189,10 @@ class RemoteConnectorPackAuthority:
             ):
                 raise CatalogAuthorityUnavailable("pack catalog changed")
             principal = result.payload
-            if not isinstance(principal, str) or re.fullmatch(
-                r"principal:sha256:[0-9a-f]{64}", principal
-            ) is None:
+            if (
+                not isinstance(principal, str)
+                or re.fullmatch(r"principal:sha256:[0-9a-f]{64}", principal) is None
+            ):
                 raise CatalogAuthorityUnavailable("EG owner principal is unavailable")
             return principal
 
@@ -204,8 +209,7 @@ class RemoteConnectorPackAuthority:
             or verified.tenant != observed.discovery_tenant
             or self._mounted.catalog_attestation(connector_id) != observed
             or mutation.tenant_id != verified.tenant
-            or mutation.caller_principal
-            != _opaque_caller(str(verified.actor.actor_id))
+            or mutation.caller_principal != _opaque_caller(str(verified.actor.actor_id))
         ):
             raise CatalogAuthorityUnavailable("pack authority identity changed")
         return {

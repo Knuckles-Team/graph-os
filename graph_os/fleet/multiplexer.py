@@ -7773,6 +7773,7 @@ def _register_meta_tools(mcp, mux: MCPMultiplexer) -> None:
             fn=_unload_tools,
         )
     )
+
     async def _connector_pack_authority(connector: str) -> _fastmcp_tools.ToolResult:
         if not isinstance(connector, str) or not connector.strip():
             raise _fastmcp_exceptions.ToolError("connector is required")

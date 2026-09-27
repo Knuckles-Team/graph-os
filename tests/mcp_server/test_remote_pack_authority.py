@@ -120,6 +120,7 @@ def _setup(monkeypatch, *, stale: bool = False):
 
     monkeypatch.setattr(remote, "send_connector_pack", send)
     monkeypatch.setattr(remote, "pack_import_authority", resolver)
+
     async def refresh(_session):
         return None
 

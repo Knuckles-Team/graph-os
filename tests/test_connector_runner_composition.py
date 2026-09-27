@@ -371,7 +371,13 @@ async def test_runner_entry_uses_verified_client_and_closes_pool(
         return SimpleNamespace(sink=Sink())
 
     async def run(argv: list[str], services: Any) -> int:
-        assert argv == ["--config", str(runner_config), "--log-format", "json", "--once"]
+        assert argv == [
+            "--config",
+            str(runner_config),
+            "--log-format",
+            "json",
+            "--once",
+        ]
         assert services.sink is not None
         assert client.closed is False
         return 0
