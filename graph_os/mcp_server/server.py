@@ -193,6 +193,7 @@ def mcp_server() -> None:
     # The fleet adapter adds only four resident projections. The six intent
     # tools are registered in runtime._build_server; both groups are required.
     fleet_mux = _attach_fleet_runtime(mcp, fleet_catalog_reader)
+    runtime.bind_capacity_service(lambda: fleet_mux.children)
     runtime.verify_resident_tools(mcp)
 
     transport = getattr(args, "transport", "stdio")

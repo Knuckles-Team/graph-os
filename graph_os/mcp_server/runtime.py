@@ -71,6 +71,24 @@ def fleet_ops_factory() -> Any:
     return _FLEET_OPS_FACTORY
 
 
+def bind_capacity_service(children: Any) -> None:
+    """Bind the mounted fleet to the one shared MCP and HTTP invoke runtime.
+
+    The fleet is constructed after the served API bundle. A missing durable
+    mode writer deliberately leaves ``set_mode`` unavailable; reads use the
+    live child map and cannot mistake a process-local override for authority.
+    """
+    from graph_os.fleet.throttle_service import CapacityService
+
+    projection, _ = served_api()
+    bindings = projection.services.runtime.bindings
+    if not isinstance(bindings, dict) or "capacity" in bindings:
+        raise RuntimeError("capacity service cannot be bound twice")
+    if not callable(children):
+        raise TypeError("live fleet children provider is required")
+    bindings["capacity"] = CapacityService(children)
+
+
 def verify_resident_tools(mcp: Any) -> None:
     """Refuse to boot with a missing or accidentally extra resident tool."""
     import asyncio

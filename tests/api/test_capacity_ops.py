@@ -13,6 +13,7 @@ from graph_os.fleet.throttle_service import (
     CapacityUnavailable,
     execute,
 )
+from graph_os.mcp_server import runtime
 
 
 class Cells:
@@ -151,3 +152,20 @@ async def test_throttle_status_does_not_invent_unpersisted_ceiling(
             "epoch": None,
         }
     ]
+
+
+def test_serving_binds_one_live_capacity_service(monkeypatch: Any) -> None:
+    bindings: dict[str, Any] = {}
+    projection = SimpleNamespace(
+        services=SimpleNamespace(runtime=SimpleNamespace(bindings=bindings))
+    )
+    monkeypatch.setattr(runtime, "served_api", lambda: (projection, None))
+    children: dict[str, Any] = {}
+
+    runtime.bind_capacity_service(lambda: children)
+    service = bindings["capacity"]
+    assert isinstance(service, CapacityService)
+    assert service._children() is children
+    assert service._write_mode is None
+    with pytest.raises(RuntimeError, match="cannot be bound twice"):
+        runtime.bind_capacity_service(lambda: children)
