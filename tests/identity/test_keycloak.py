@@ -58,9 +58,9 @@ CLASSES = {
 def _preset() -> Any:
     return keycloak_preset(
         idp_id="keycloak",
-        realm_url="https://keycloak.arpa/realms/homelab",
+        realm_url="https://keycloak.example/realms/homelab",
         client_id="graph-os",
-        redirect_uri="https://graphos.arpa/auth/oidc/callback",
+        redirect_uri="https://graphos.example/auth/oidc/callback",
         realm_roles=REALM_ROLES,
         groups=GROUPS,
         scope_classes=CLASSES,
@@ -136,7 +136,7 @@ def test_preset_dry_run_for_an_approver_token() -> None:
 # Link migration
 # ---------------------------------------------------------------------------
 USERS = [
-    KeycloakUser("5b1e-alice", "alice", "alice@home.arpa", "Alice A"),
+    KeycloakUser("5b1e-alice", "alice", "alice@example.invalid", "Alice A"),
     KeycloakUser("77aa-bob", "bob"),
     KeycloakUser("9c0d-svc", "service-account-graph-os", service_account=True),
     KeycloakUser("0000-idle", "idle"),
@@ -153,7 +153,7 @@ def test_dry_run_links_every_owner_verbatim_with_zero_ownership_changes() -> Non
         "username": "alice",
         "kind": "human",
         "principal_id": "5b1e-alice",
-        "email": "alice@home.arpa",
+        "email": "alice@example.invalid",
         "display_name": "Alice A",
     }
     assert [(row["subject"], row["principal_id"]) for row in plan.link] == [
@@ -239,7 +239,7 @@ def test_admin_api_users_are_paged_and_classified() -> None:
         return httpx.Response(200, json=pages[len(seen) - 1])
 
     admin = KeycloakAdminUsers(
-        "https://keycloak.arpa",
+        "https://keycloak.example",
         "homelab",
         "t0k",
         http_client_factory=lambda: httpx.Client(transport=httpx.MockTransport(handle)),
@@ -259,4 +259,4 @@ def test_admin_api_users_are_paged_and_classified() -> None:
 
 def test_admin_api_requires_https() -> None:
     with pytest.raises(ValueError):
-        KeycloakAdminUsers("http://keycloak.arpa", "homelab", "t")
+        KeycloakAdminUsers("http://keycloak.example", "homelab", "t")

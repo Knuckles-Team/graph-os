@@ -152,6 +152,37 @@ async def test_composite_entry_uses_verified_caller_session(monkeypatch: Any) ->
 
 
 @pytest.mark.asyncio
+async def test_composite_entry_refuses_missing_caller_before_engine_construction(
+    monkeypatch: Any,
+) -> None:
+    def unexpected_engine(*_args: Any) -> Any:
+        pytest.fail("missing caller must not construct the identity engine")
+
+    monkeypatch.setattr(admin_service, "EngineIdentityPort", unexpected_engine)
+    context = SimpleNamespace(client=object(), caller=SimpleNamespace(session=None))
+    with pytest.raises(IdentityUnavailable, match="verified caller"):
+        await admin_service.execute_identity_op(
+            context,
+            {"principal_id": "usr:admin"},
+            SimpleNamespace(id="identity.users.get"),
+        )
+
+
+@pytest.mark.asyncio
+async def test_self_profile_ignores_a_supplied_principal_id() -> None:
+    engine = Engine()
+    engine.answers["user", "resolve_self"] = IdentityReply(
+        "resolution", {"principal_id": "usr:caller"}
+    )
+    caller = object()
+    result = await IdentityAdminService(engine).execute(
+        "identity.self.profile", caller, {"principal_id": "usr:admin"}
+    )
+    assert result == {"principal_id": "usr:caller"}
+    assert engine.calls == [(caller, IdentityCall("user", "resolve_self"))]
+
+
+@pytest.mark.asyncio
 async def test_search_and_api_key_cursor_use_eg_contract() -> None:
     engine = Engine()
     engine.answers["user", "search"] = IdentityReply(
@@ -378,6 +409,9 @@ async def test_explicit_issuer_rotation_records_kid_as_caller() -> None:
     class Broker:
         issuer = Issuer()
 
+        def __init__(self, engine: Engine) -> None:
+            self.engine = engine
+
         async def config(self, *, fresh: bool) -> dict[str, Any]:
             assert fresh is True
             events.append("config")
@@ -395,8 +429,7 @@ async def test_explicit_issuer_rotation_records_kid_as_caller() -> None:
     engine.answers["config", "rotate_issuer"] = IdentityReply(
         "config", {"epoch": 2, "issuer_kid_current": "kid-2"}
     )
-    broker = Broker()
-    broker.engine = engine
+    broker = Broker(engine)
     session = object()
     context = SimpleNamespace(
         services={"identity": broker}, caller=SimpleNamespace(session=session)

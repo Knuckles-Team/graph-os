@@ -207,7 +207,7 @@ def test_settings_resolve_secrets_by_reference() -> None:
     secrets = FakeSecrets({"mail/listmonk": "tok"})
     notifier = notifier_from_settings(
         {
-            "GRAPHOS_LISTMONK_URL": "http://listmonk.apps.svc.cluster.local:9000",
+            "GRAPHOS_LISTMONK_URL": "http://127.0.0.1:9000",
             "GRAPHOS_LISTMONK_TOKEN_REF": "mail/listmonk",
             "GRAPHOS_LISTMONK_TEMPLATES": "password_reset=3, invite=5",
         },

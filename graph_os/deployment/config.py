@@ -6,8 +6,9 @@ the process that serves those agents, including the deployment profile.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
+
+from agent_utilities.core.config import setting
 
 PROFILES = ("tiny", "single-node-prod", "enterprise")
 
@@ -26,9 +27,7 @@ def app_profile(value: object) -> str:
 
 def configured_profiles() -> tuple[str, str]:
     """Read the projected XDG hosting values after process composition."""
-    return os.environ.get("DEPLOYMENT_PROFILE", ""), app_profile(
-        os.environ.get("APP_PROFILE")
-    )
+    return setting("DEPLOYMENT_PROFILE", ""), app_profile(setting("APP_PROFILE"))
 
 
 def is_production_posture(profile: str) -> bool:

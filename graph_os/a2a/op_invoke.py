@@ -43,6 +43,27 @@ CallerResolver = Callable[[], Any]
 InvokeFunction = Callable[..., Awaitable[Any]]
 
 
+def _reply_from_result(result: Any) -> OperationReply:
+    """Map the shared operation outcome to an A2A response."""
+    code = result.code
+    details = result.details
+    if code in {"CONFIRMATION_REQUIRED", "STEP_UP_REQUIRED"}:
+        # The caller must answer with graphos.plan/confirm or visit the
+        # human console. A2A never performs a console confirmation.
+        return OperationReply(
+            value={
+                "state": "input-required",
+                "code": code,
+                "plan_ref": details["plan_ref"],
+                "preview": dict(details),
+            },
+            code=code,
+        )
+    if code != "OK":
+        return OperationReply(code=code, details=details, refused=True)
+    return OperationReply(value=result.value)
+
+
 def verified_a2a_caller() -> Any:
     """Project only the middleware's verified ambient authority into invoke."""
 
@@ -81,6 +102,7 @@ class OperationProjection:
         self._invoke_fn = invoke_fn
 
     async def invoke(self, method: str, raw: Mapping[str, Any]) -> OperationReply:
+        parsed: _InvokeParams | _ConfirmParams
         if method == OP_INVOKE:
             parsed = _InvokeParams.model_validate(raw)
         elif method == PLAN_CONFIRM:
@@ -92,7 +114,9 @@ class OperationProjection:
 
         invoke_fn = self._invoke_fn
         if invoke_fn is None:
-            from graph_os.api.invoke import invoke as invoke_fn
+            from graph_os.api.invoke import invoke
+
+            invoke_fn = invoke
 
         result = await invoke_fn(
             parsed.op,
@@ -103,20 +127,4 @@ class OperationProjection:
             plan_ref=parsed.plan_ref,
             idempotency_key=parsed.idempotency_key,
         )
-        code = result.code
-        details = result.details
-        if code in {"CONFIRMATION_REQUIRED", "STEP_UP_REQUIRED"}:
-            # The caller must answer with graphos.plan/confirm or visit the
-            # human console. A2A never performs a console confirmation.
-            return OperationReply(
-                value={
-                    "state": "input-required",
-                    "code": code,
-                    "plan_ref": details["plan_ref"],
-                    "preview": dict(details),
-                },
-                code=code,
-            )
-        if code != "OK":
-            return OperationReply(code=code, details=details, refused=True)
-        return OperationReply(value=result.value)
+        return _reply_from_result(result)

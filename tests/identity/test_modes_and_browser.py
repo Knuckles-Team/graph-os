@@ -60,7 +60,7 @@ def test_loopback_names(host: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "host", ["0.0.0.0", "10.0.0.5", "graph-os.arpa", "localhost.evil"]
+    "host", ["0.0.0.0", "10.0.0.5", "graph-os.example", "localhost.evil"]
 )
 def test_non_loopback_names(host: str) -> None:
     assert not is_loopback_host(host)
@@ -131,9 +131,9 @@ def test_duplicate_host_headers_are_refused() -> None:
 
 
 def test_acknowledged_exposure_answers_one_extra_name() -> None:
-    guard = NoneModeRequestGuard(exposed_name="demo.lan")
-    assert guard.refusal(_scope(host="demo.lan:8080")) is None
-    assert guard.refusal(_scope(host="other.lan")) == "host_not_loopback"
+    guard = NoneModeRequestGuard(exposed_name="demo.example")
+    assert guard.refusal(_scope(host="demo.example:8080")) is None
+    assert guard.refusal(_scope(host="other.example")) == "host_not_loopback"
 
 
 def test_session_cookie_parsing_refuses_duplicates_and_bad_shapes() -> None:

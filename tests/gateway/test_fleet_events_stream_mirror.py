@@ -158,7 +158,7 @@ async def test_persist_event_mirror_fails_closed_without_fleet_events_scope(
     event = fleet_events.FleetEvent(
         source="portainer",
         severity="info",
-        subject="registry.arpa",
+        subject="registry.example.invalid",
         status="unknown",
         summary="check",
     )
