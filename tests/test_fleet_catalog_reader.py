@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import replace
 
 import pytest
@@ -130,6 +131,18 @@ def content(entry: ComponentRecord) -> ComponentContent:
     )
 
 
+def captured_content(entry: ComponentRecord) -> ComponentContent:
+    """The SDK's pinned MCP_SERVER body captured from initialization."""
+    return replace(
+        content(entry),
+        body=json.dumps({"name": entry.upstream_name, "version": "1.0.0"}).encode(),
+    )
+
+
+def catalog_content(entry: ComponentRecord) -> ComponentContent:
+    return captured_content(entry) if entry.kind == "mcp_server" else content(entry)
+
+
 class FakeFleetCatalogPort:
     """Deterministic fake of the pending generated EG adapter."""
 
@@ -146,7 +159,9 @@ class FakeFleetCatalogPort:
         )
         entries = [entry for page in self.component_pages for entry in page.entries]
         self.current = {entry.component_id: entry for entry in entries}
-        self.contents = {entry.component_id: content(entry) for entry in entries}
+        self.contents = {
+            entry.component_id: catalog_content(entry) for entry in entries
+        }
         self.server_calls: list[tuple[str, int, str | None]] = []
         self.search_calls: list[ComponentSearchRequest] = []
 
@@ -208,6 +223,73 @@ def test_reader_joins_liveness_current_records_and_content_with_bounded_pages() 
         ComponentSearchRequest("tenant-a", FLEET_COMPONENT_KINDS, 2, None),
         ComponentSearchRequest("tenant-a", FLEET_COMPONENT_KINDS, 2, "component-2"),
     ]
+
+
+def test_reader_joins_runtime_name_from_pinned_content_across_pack_identity() -> None:
+    pack_server = replace(
+        SERVER_COMPONENT, server_name="search", upstream_name="search"
+    )
+    pack_tool = replace(TOOL_COMPONENT, server_name="search")
+    port = FakeFleetCatalogPort(
+        component_pages=[component_page(pack_server, pack_tool)]
+    )
+    port.contents[pack_server.component_id] = replace(
+        content(pack_server), body=b'{"name":"search-mcp","version":"1.0.0"}'
+    )
+
+    catalog = asyncio.run(FleetCatalogReader(port).read())
+
+    assert catalog.servers[0].registration == SERVER
+    assert catalog.servers[0].component.server_name == "search-mcp"
+    assert catalog.servers[0].provides[0].entry.server_name == "search-mcp"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"{}",
+        b'{"name":"","version":"1.0.0"}',
+        b'{"name":"search-mcp","name":"other","version":"1.0.0"}',
+        b"not-json",
+    ],
+)
+def test_reader_rejects_missing_or_malformed_server_identity(body: bytes) -> None:
+    port = FakeFleetCatalogPort()
+    port.contents[SERVER_COMPONENT.component_id] = replace(
+        content(SERVER_COMPONENT), body=body
+    )
+
+    with pytest.raises(FleetCatalogIntegrityError, match="server content"):
+        asyncio.run(FleetCatalogReader(port).read())
+
+
+def test_reader_rejects_two_packs_claiming_one_runtime_name() -> None:
+    other_server = replace(
+        SERVER_COMPONENT,
+        component_id="mcp:other/mcp_server/other",
+        server_name="other",
+        upstream_name="other",
+    )
+    port = FakeFleetCatalogPort(
+        component_pages=[component_page(SERVER_COMPONENT, other_server)]
+    )
+    port.contents[other_server.component_id] = replace(
+        content(other_server), body=captured_content(SERVER_COMPONENT).body
+    )
+
+    with pytest.raises(FleetCatalogIntegrityError, match="multiple server components"):
+        asyncio.run(FleetCatalogReader(port).read())
+
+
+def test_reader_does_not_alias_an_unmatched_live_registration() -> None:
+    port = FakeFleetCatalogPort()
+    port.contents[SERVER_COMPONENT.component_id] = replace(
+        content(SERVER_COMPONENT),
+        body=b'{"name":"other-mcp","version":"1.0.0"}',
+    )
+
+    with pytest.raises(FleetCatalogIntegrityError, match="has no current mcp_server"):
+        asyncio.run(FleetCatalogReader(port).read())
 
 
 def test_reader_fails_closed_on_cross_tenant_search_receipt() -> None:

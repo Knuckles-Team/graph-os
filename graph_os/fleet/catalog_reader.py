@@ -13,8 +13,9 @@ composition-root adapter.
 
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncIterator, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Final, Literal, Protocol
 
 COMMONS_GRAPH: Final = "__commons__"
@@ -388,9 +389,10 @@ class FleetCatalogReader:
         context: ReadContext,
         registration: ServerRegistration | None,
         server_component: ComponentRecord,
+        server_content: ComponentContent,
+        runtime_name: str,
         children: dict[str, list[ComponentRecord]],
     ) -> CatalogServer:
-        server_content = await self._read_content(context, server_component)
         provided = []
         ordered_children = sorted(
             children.get(server_component.component_id, []),
@@ -399,13 +401,13 @@ class FleetCatalogReader:
         for child in ordered_children:
             provided.append(
                 CatalogComponent(
-                    entry=child,
+                    entry=replace(child, server_name=runtime_name),
                     content=await self._read_content(context, child),
                 )
             )
         return CatalogServer(
             registration=registration,
-            component=server_component,
+            component=replace(server_component, server_name=runtime_name),
             content=server_content,
             provides=tuple(provided),
         )
@@ -419,17 +421,23 @@ class FleetCatalogReader:
         registry_digest: str,
     ) -> FleetCatalog:
         server_components, children = self._partition_components(components)
-        missing_components = set(registrations).difference(server_components)
+        identities = await self._server_identities(context, server_components)
+        missing_components = set(registrations).difference(identities)
         if missing_components:
             name = min(missing_components)
             raise FleetCatalogIntegrityError(
                 f"live server {name!r} has no current mcp_server component"
             )
         joined: list[CatalogServer] = []
-        for name, server_component in server_components.items():
+        for name, (server_component, server_content) in identities.items():
             joined.append(
                 await self._join_server(
-                    context, registrations.get(name), server_component, children
+                    context,
+                    registrations.get(name),
+                    server_component,
+                    server_content,
+                    name,
+                    children,
                 )
             )
         joined.sort(key=lambda item: item.component.server_name)
@@ -439,6 +447,48 @@ class FleetCatalogReader:
             registry_revision=registry_revision,
             registry_digest=registry_digest,
         )
+
+    async def _server_identities(
+        self, context: ReadContext, server_components: dict[str, ComponentRecord]
+    ) -> dict[str, tuple[ComponentRecord, ComponentContent]]:
+        """Map each pack to its unique served MCP identity."""
+        identities: dict[str, tuple[ComponentRecord, ComponentContent]] = {}
+        for server_component in server_components.values():
+            content = await self._read_content(context, server_component)
+            runtime_name = self._server_identity(content)
+            if runtime_name in identities:
+                raise FleetCatalogIntegrityError(
+                    f"multiple server components claim registered name {runtime_name!r}"
+                )
+            identities[runtime_name] = (server_component, content)
+        return identities
+
+    @staticmethod
+    def _server_identity(content: ComponentContent) -> str:
+        """Return the served MCP name captured in this pinned connector pack."""
+        if content.media_type != "application/json":
+            raise FleetCatalogIntegrityError("server content is not JSON")
+
+        def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+            result = dict(pairs)
+            if len(result) != len(pairs):
+                raise ValueError("duplicate JSON key")
+            return result
+
+        try:
+            body = json.loads(content.body, object_pairs_hook=unique_object)
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+            raise FleetCatalogIntegrityError(
+                "server content is malformed JSON"
+            ) from exc
+        if not isinstance(body, dict):
+            raise FleetCatalogIntegrityError("server content lacks MCP identity")
+        name, version = body.get("name"), body.get("version")
+        if not isinstance(name, str) or not name.strip():
+            raise FleetCatalogIntegrityError("server content lacks MCP identity")
+        if not isinstance(version, str) or not version.strip():
+            raise FleetCatalogIntegrityError("server content lacks MCP identity")
+        return name
 
     async def _read_content(
         self, context: ReadContext, entry: ComponentRecord
