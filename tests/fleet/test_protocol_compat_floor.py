@@ -5,11 +5,18 @@ from pathlib import Path
 from graph_os.fleet import protocol_compat
 
 
-def test_graphos_declares_native_fastmcp_runtime_floor() -> None:
-    requirement = protocol_compat._declared_runtime_floor("graph-os", "fastmcp")
+def test_source_checkout_enforces_native_fastmcp_runtime_floor(monkeypatch) -> None:
+    monkeypatch.setattr(protocol_compat, "_declared_runtime_floor", lambda *_args: None)
+    monkeypatch.setattr(
+        protocol_compat.importlib.metadata,
+        "version",
+        lambda name: "3.4.5" if name == "fastmcp" else "2.0.0",
+    )
 
-    assert requirement is not None
-    assert requirement.specifier.contains("4.0.0b1", prereleases=True)
+    outcome = protocol_compat.check_mcp_sdk_floor()
+
+    assert outcome["ok"] is False
+    assert "fastmcp 3.4.5 does not satisfy" in outcome["detail"]
 
 
 def test_source_floor_is_read_from_graphos_manifest() -> None:

@@ -423,6 +423,17 @@ def _source_floor_reconciliation(
     return shadow_requirement, divergence
 
 
+def _effective_fastmcp_floor(distribution: str) -> tuple[Any | None, str | None]:
+    """Use the imported source floor when this checkout has no wheel metadata."""
+    declared = _declared_runtime_floor(distribution, "fastmcp")
+    if declared is None:
+        if distribution == "graph-os":
+            source_floor, _ = _source_shadow_floor("fastmcp")
+            return source_floor, None
+        return None, None
+    return _source_floor_reconciliation(distribution, declared)
+
+
 def check_mcp_sdk_floor(distribution: str = "graph-os") -> dict[str, Any]:
     """Compare installed MCP packages against GraphOS runtime requirements.
 
@@ -448,7 +459,7 @@ def check_mcp_sdk_floor(distribution: str = "graph-os") -> dict[str, Any]:
     malformed build) — distinct from a real
     mismatch.
     """
-    fastmcp_requirement = _declared_runtime_floor(distribution, "fastmcp")
+    fastmcp_requirement, divergence = _effective_fastmcp_floor(distribution)
     if fastmcp_requirement is None:
         return {
             "ok": None,
@@ -462,9 +473,6 @@ def check_mcp_sdk_floor(distribution: str = "graph-os") -> dict[str, Any]:
             "detail": "fastmcp is not installed",
         }
 
-    fastmcp_requirement, divergence = _source_floor_reconciliation(
-        distribution, fastmcp_requirement
-    )
     problems = _requirement_problems("fastmcp", installed_fastmcp, fastmcp_requirement)
     try:
         installed_mcp: str | None = importlib.metadata.version("mcp")

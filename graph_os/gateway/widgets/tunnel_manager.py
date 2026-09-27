@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 
 from graph_os.gateway.models import (
     ServiceCategory,
@@ -13,6 +14,16 @@ from graph_os.gateway.models import (
 from graph_os.gateway.widgets.base import BaseWidget
 
 logger = logging.getLogger(__name__)
+
+
+def _host_aliases(response: object) -> Mapping[str, object]:
+    """Require the ``tm_hosts(action=list)`` inventory result shape."""
+    if not isinstance(response, Mapping):
+        raise ValueError("tunnel inventory response has no hosts mapping")
+    hosts = response.get("hosts")
+    if not isinstance(hosts, Mapping):
+        raise ValueError("tunnel inventory response has no hosts mapping")
+    return hosts
 
 
 class Widget(BaseWidget):
@@ -29,7 +40,7 @@ class Widget(BaseWidget):
     def fetch_data(self, config: ServiceConfig) -> WidgetData:
         client = self._fleet_client()
         try:
-            hosts = client.list_hosts() or {}
+            hosts = _host_aliases(client.list_hosts())
         except Exception as e:
             logger.warning("Tunnel Manager fetch: %s", e)
             return self._error_data(e)
