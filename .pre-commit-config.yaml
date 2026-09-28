@@ -1,13 +1,15 @@
-# Combined pre-commit and pre-push suite for graph-os.
+# Combined pre-commit and pre-push suite for graph-os, and the single source
+# of the release workflow's gates: CI runs this file (commit and push stages
+# over every file, then the manual-stage hooks that need the provisioned
+# environment), so local and hosted runs execute the same gate code.
 #
-# Tool hooks are adopted from agent-utilities'/epistemic-graph's suites where
-# they apply to a pure-Python package. Every repository-agnostic gate --
-# complexity, KISS, clones, secrets, privacy, hygiene and code shape -- comes
-# from the shared hook repository Knuckles-Team/pipelines at a pinned commit and
-# is configured in pyproject.toml [tool.pipelines_hooks]; no gate script is
-# copied into this repository. Shared hooks list `manual` so CI runs the
-# identical pinned hook with `--hook-stage manual`. Repository-specific inputs
-# are declared in pyproject.toml `[tool.pipelines_hooks]`.
+# Every repository-agnostic gate -- complexity, KISS, clones, secrets,
+# privacy, hygiene and code shape -- comes from the shared hook repository
+# Knuckles-Team/pipelines at a pinned commit; repository-specific inputs are
+# declared in pyproject.toml `[tool.pipelines_hooks]`. Hooks that need a
+# sibling checkout or a synced environment (scripts/local_hook.sh) print
+# `SKIPPED (<gate>): <reason>` in a fresh clone and fail closed under CI.
+# Provision everything with scripts/bootstrap.sh.
 default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
 
@@ -35,9 +37,7 @@ repos:
   hooks:
   - id: ruff-check
     args: ["--fix", "--unsafe-fixes"]
-    exclude: ^(tests/|test/)
   - id: ruff-format
-    exclude: ^(tests/|test/)
 
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: fc0f09a29bb495f4a91f00266155d6282d52485d # v1.20.2
@@ -52,7 +52,7 @@ repos:
   hooks:
   - id: vulture
     pass_filenames: false
-    args: [".", "--min-confidence", "95", "--exclude", ".venv,build,tests"]
+    args: [".", "--min-confidence", "95", "--exclude", ".venv,.uv-workspace-siblings,build,tests"]
 
 - repo: https://github.com/codespell-project/codespell
   rev: 2ccb47ff45ad361a21071a7eedda4c37e6ae8c5a # v2.4.2
@@ -157,6 +157,16 @@ repos:
   - id: dependency-readiness
     name: Dependency readiness - declared and imported dependencies respect layer order
     entry: scripts/local_hook.sh dependency-readiness
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages: [manual]
+
+  # The isolated mypy hook above ignores missing imports; this one checks
+  # graph_os against the real locked dependency types.
+  - id: mypy-env
+    name: mypy (locked environment)
+    entry: scripts/local_hook.sh mypy-env
     language: system
     pass_filenames: false
     always_run: true

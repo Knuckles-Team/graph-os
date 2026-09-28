@@ -4,6 +4,7 @@
 # synced test environment that scripts/bootstrap.sh provisions).
 #
 #   scripts/local_hook.sh pytest [pytest args...]   full test suite
+#   scripts/local_hook.sh mypy-env                  mypy against the locked environment
 #   scripts/local_hook.sh dependency-readiness      release-tag index readiness
 #
 # A missing prerequisite prints "SKIPPED (<gate>): <reason>" and exits 0
@@ -40,12 +41,20 @@ for source in sources.values():
 PY
 }
 
+require_synced_env() {
+  while read -r sibling; do
+    [ -e "$sibling/pyproject.toml" ] || unavailable "sibling checkout $sibling is missing"
+  done < <(declared_siblings)
+  [ -x .venv/bin/python ] || unavailable "the locked test environment (.venv) is not synced"
+}
+
 case "$gate" in
+  mypy-env)
+    require_synced_env
+    exec uv run --no-sync mypy graph_os
+    ;;
   pytest)
-    while read -r sibling; do
-      [ -e "$sibling/pyproject.toml" ] || unavailable "sibling checkout $sibling is missing"
-    done < <(declared_siblings)
-    [ -x .venv/bin/python ] || unavailable "the locked test environment (.venv) is not synced"
+    require_synced_env
     # epistemic-graph is overlaid from source (uv sync --no-install-package
     # epistemic-graph), exactly as the release workflow does.
     if ! .venv/bin/python -c "import epistemic_graph" 2>/dev/null; then
@@ -71,7 +80,7 @@ case "$gate" in
       python -m repository_manager.dependency_readiness .
     ;;
   *)
-    echo "usage: scripts/local_hook.sh {pytest|dependency-readiness} [args...]" >&2
+    echo "usage: scripts/local_hook.sh {mypy-env|pytest|dependency-readiness} [args...]" >&2
     exit 2
     ;;
 esac

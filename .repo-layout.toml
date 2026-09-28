@@ -17,7 +17,7 @@
 [dirs]
 ".specify" = "tracked Spec Kit constitution; generated tooling files remain ignored"
 specs = "tracked repository-owned specifications and contribution templates"
-scripts = "local public-spec self-containment validator used by the pre-commit gate"
+scripts = "contributor bootstrap, the sibling-aware local pre-commit hook runner, and the public-spec self-containment validator"
 graph_os = "the GraphOS Python package: MCP/REST composition, fleet, gateway, control plane, WebUI host, A2A, browser control, deployment, and console entry points"
 tests = "the pytest suite: wiring tests proving the console entry point and every package under graph_os/ are live, imported members of the package"
 deploy = "graph-os deployment profile inputs (dev/test/prod) consumed by graph_os.deployment.genesis_environments"
