@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-PIPELINES_REVISION = "444b232c7975e125a24b17d53ff615f5ad26a4cd"
 
 
 def test_readme_uses_the_public_title_and_exact_section_order() -> None:
@@ -51,8 +51,9 @@ def test_architecture_names_each_supported_ecosystem_entrypoint() -> None:
 def test_pages_uses_the_immutable_shared_brand_revision() -> None:
     pages = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
 
-    assert (
-        "Knuckles-Team/pipelines/.github/workflows/pages_pipeline.yml@"
-        f"{PIPELINES_REVISION}"
-    ) in pages
+    # Structural: an immutable commit pin, whichever revision it is.
+    assert re.search(
+        r"Knuckles-Team/pipelines/\.github/workflows/pages_pipeline\.yml@[0-9a-f]{40}\b",
+        pages,
+    )
     assert "shared_theme_enabled: true" in pages

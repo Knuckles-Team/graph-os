@@ -8,17 +8,18 @@ name: Release
 # native toolchain is runner-provisioned. Everything else (Pages) lives in
 # its own workflow.
 #
-# Every gate is a shared hook from Knuckles-Team/pipelines, run through
-# pre-commit at the revision pinned in .pre-commit-config.yaml, so CI and the
-# local hooks can never run different gate code. `scanner-quality` provisions
-# the pinned cccc/kiss/dupehound/jscpd toolchain on the runner (hooks never
-# install scanners) and runs the census and differential forms. The
-# diff-scoped `complexity-staged` / `kiss-staged` hooks compare the staged
-# index with HEAD, which is empty on a fresh checkout, so CI runs the census
-# forms instead. The `ci-gate-replica` hook replays `gates` and `build`
-# locally before a push.
+# CI runs this repository's own .pre-commit-config.yaml -- the commit and
+# push stages over every file, then the manual-stage hooks that need the
+# provisioned environment -- so CI and local hooks can never run different
+# gate code. Shared gates come from Knuckles-Team/pipelines at the revision
+# pinned there. `scanner-quality` provisions the pinned
+# cccc/kiss/dupehound/jscpd toolchain on the runner (hooks never install
+# scanners) and runs their census and differential forms; the diff-scoped
+# `complexity-staged` / `kiss-staged` hooks compare the staged index with
+# HEAD, which is empty on a fresh checkout.
 #
-# This pure-Python package has no native numeric-runtime gate. Container images
+# The package is pure Python; the only Rust build is epistemic-graph's
+# numeric kernel for the source-overlay test environment. Container images
 # have a separate delivery owner and are not published by this wheel workflow.
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -28,14 +29,7 @@ on:
       - 'main'
     tags:
       - 'v*'
-  pull_request:
-    paths:
-      - 'graph_os/**'
-      - 'tests/**'
-      - 'pyproject.toml'
-      - 'uv.lock'
-      - '.pre-commit-config.yaml'
-      - '.github/workflows/release.yml'
+  pull_request: {}
 
 concurrency:
   group: release-${{ github.workflow }}-${{ github.ref }}
@@ -48,6 +42,10 @@ jobs:
   gates:
     name: gates
     runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_JOBS: "4"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_RELEASE_DEBUG: "0"
     steps:
       # YAML anchors, reused by `scanner-quality` and `build`: jscpd's
       # differential gate flags a copy-pasted preamble as a new same-file
@@ -124,18 +122,10 @@ jobs:
             BASE="$(git rev-list --max-parents=0 HEAD)"
           fi
           echo "PRE_COMMIT_FROM_REF=$BASE" >> "$GITHUB_ENV"
-          echo "CX_DUP_BASE_REF=$BASE" >> "$GITHUB_ENV"
-
-      - name: Shared security, code-shape and hygiene hooks
-        run: |
-          set -euo pipefail
-          for hook in secret-history dependency-audit security-sanitizer root-hygiene gitignore-convergence sprawl mermaid no-stub stubs env-sprawl stdout-writes swallowed-errors event-loop-blocking import-cycles ci-gate-replica-consistency; do
-            uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
-          done
 
       # The prohibited-identity catalog is operator-owned and never committed;
-      # a missing catalog makes the hook fail closed.
-      - name: Tracked-artifact privacy (identity catalog from the repository variable)
+      # a missing catalog makes the tracked-privacy hook fail closed.
+      - name: Commit- and push-stage hooks (.pre-commit-config.yaml)
         env:
           PROHIBITED_IDENTITY_CATALOG: ${{ vars.PROHIBITED_IDENTITY_CATALOG }}
         run: |
@@ -144,7 +134,9 @@ jobs:
             mkdir -p "$HOME/.config/agent-utilities/governance"
             printf '%s' "$PROHIBITED_IDENTITY_CATALOG" > "$HOME/.config/agent-utilities/governance/prohibited-identities.json"
           fi
-          uvx --from pre-commit==4.6.0 pre-commit run tracked-privacy --hook-stage manual --all-files
+          uvx --from pre-commit==4.6.0 pre-commit run --all-files --show-diff-on-failure
+          uvx --from pre-commit==4.6.0 pre-commit run --hook-stage pre-push \
+            --from-ref "$PRE_COMMIT_FROM_REF" --to-ref HEAD
 
       # External-index availability is a release boundary, not a PR/push
       # boundary. Repository-manager's one readiness primitive checks the
@@ -163,18 +155,21 @@ jobs:
         run: |
           set -euo pipefail
           rm_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/repository-manager"
-          au_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-utilities"
-          test "$(git -C "$rm_source" rev-parse HEAD)" = "0671b97250c7a2e87a1f63b43818e99eb90709a1"
           mkdir -p "$rm_source/.uv-workspace-siblings"
-          ln -s "$au_source" "$rm_source/.uv-workspace-siblings/agent-utilities"
-          uv run --no-project --python 3.12 --prerelease=allow --with "$rm_source" \
-            python -m repository_manager.dependency_readiness .
+          ln -s "$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-utilities" "$rm_source/.uv-workspace-siblings/agent-utilities"
+          uvx --from pre-commit==4.6.0 pre-commit run dependency-readiness --hook-stage manual --all-files
+
+      # The numeric kernel builds into the epistemic-graph checkout's private
+      # target-isolated/ dir (never CARGO_TARGET_DIR); cache exactly that dir.
+      - name: Cache the epistemic-graph kernel build
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: .uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph -> target-isolated
 
       - name: Sync test environment
         run: |
           set -euo pipefail
           eg_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph"
-          test "$(git -C "$eg_source" rev-parse HEAD)" = "49d63da5396fef7482fc3617df3f90a836661722"
           python -m pip install 'maturin>=1,<2'
           python "$eg_source/scripts/build_numeric_kernel.py"
           echo "PYTHONPATH=$eg_source${PYTHONPATH:+:$PYTHONPATH}" >> "$GITHUB_ENV"
@@ -182,22 +177,20 @@ jobs:
           PYTHONPATH="$eg_source${PYTHONPATH:+:$PYTHONPATH}" uv run --no-sync python -c \
             'from pathlib import Path; import epistemic_graph; from epistemic_graph.generated import connector_pack, source_ingestion, storage; root = Path(".uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph").resolve(); assert Path(epistemic_graph.__file__).resolve().is_relative_to(root); assert connector_pack.ConnectorPackStatusRequest; assert source_ingestion.SourceCheckpoint; assert storage.send_agent_component_content'
 
-      - name: Lint (ruff)
-        run: uv run --no-sync ruff check .
-
-      - name: Format check (ruff)
-        run: uv run --no-sync ruff format --check .
-
-      - name: Type check (mypy)
-        run: uv run --no-sync mypy graph_os
-
-      - name: Test suite
-        run: uv run --no-sync pytest
+      - name: Locked-environment type check and full test suite (manual-stage hooks)
+        run: |
+          set -euo pipefail
+          for hook in mypy-env pytest; do
+            uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
+          done
 
   scanner-quality:
     name: Scanner quality (cccc, KISS, dupehound, jscpd)
     runs-on: ubuntu-latest
     continue-on-error: true
+    env:
+      CARGO_BUILD_JOBS: "4"
+      CARGO_PROFILE_RELEASE_DEBUG: "0"
     steps:
       - *release-checkout
       - *release-python
@@ -211,28 +204,17 @@ jobs:
         with:
           node-version: '22'
 
-      # Each scanner is installed to its own runner-local --root/prefix at the
-      # version the shared scanner-versions hook verifies.
+      # Each scanner is installed to its own runner-local prefix at the
+      # version the shared scanner-versions hook verifies (the same script
+      # scripts/bootstrap.sh --scanners runs locally).
       - name: Provision pinned scanner toolchain
-        shell: bash
-        run: |
-          set -euo pipefail
-          scanner_root="$RUNNER_TEMP/graph-os-scanners"
-          mkdir -p "$scanner_root"
-          # cccc 1.6.0 is not published to crates.io (cccc-cli stops at 1.0.0);
-          # install the upstream v1.6.0 tag by its immutable commit.
-          cargo install --locked --git https://github.com/moznion/cccc --rev d728759323be5d9977b7390a27133e8eaf481f26 --root "$scanner_root/cccc" cccc-cli
-          cargo install --locked --version 0.4.10 --root "$scanner_root/kiss" kiss-ai
-          cargo install --locked --version 0.1.2 --root "$scanner_root/dupehound" dupehound
-          npm install --prefix "$scanner_root/npm" --no-package-lock --ignore-scripts --no-save --no-audit --no-fund \
-            "jscpd@5.0.16"
-          for bin_dir in "$scanner_root/cccc/bin" "$scanner_root/kiss/bin" "$scanner_root/dupehound/bin" "$scanner_root/npm/node_modules/.bin"; do
-            echo "$bin_dir" >> "$GITHUB_PATH"
-          done
+        run: bash scripts/install_scanners.sh "$RUNNER_TEMP/graph-os-scanners" >> "$GITHUB_PATH"
 
       - *release-base
 
       - name: Shared scanner hooks (versions, censuses incl. orphan modules, clone differentials)
+        env:
+          CX_DUP_BASE_REF: ${{ env.PRE_COMMIT_FROM_REF }}
         run: |
           set -euo pipefail
           uvx --from 'git+https://github.com/Knuckles-Team/pipelines@35209bf6d85569a3c1fe3d5cd31771cacfdc3731' \

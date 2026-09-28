@@ -134,21 +134,3 @@ mcp_server = true
 # The MCP server and gateway serve stdio/HTTP; stdout there is protocol output.
 [tool.pipelines_hooks.stdout_writes]
 served_paths = ["graph_os/mcp_server", "graph_os/gateway"]
-
-[tool.pipelines_hooks.ci_replica]
-build_affecting = ["pyproject.toml", "uv.lock", "mkdocs.yml", "docs/**", "specs/**", "overrides/**", ".github/workflows/**", ".pre-commit-config.yaml"]
-
-[tool.pipelines_hooks.ci_replica.workflows."release.yml"]
-blocking = true
-executable_jobs = ["gates", "build"]
-
-[tool.pipelines_hooks.ci_replica.workflows."release.yml".skip_reasons]
-scanner-quality = "provisions the pinned cccc/kiss/dupehound/jscpd toolchain on the runner (cargo install, npm install); local replay never installs tools, and the pre-push hooks run the same shared gates against the locally installed, version-verified binaries"
-publish-pypi = "requires a vX.Y.Z release tag and the pypi-publish environment; publishing must never happen from a local hook"
-
-[tool.pipelines_hooks.ci_replica.workflows."pages.yml"]
-blocking = false
-executable_jobs = []
-
-[tool.pipelines_hooks.ci_replica.workflows."pages.yml".skip_reasons]
-deploy = "calls the immutable shared Pages workflow; theme synchronization and the strict site build are verified directly, while hosted deployment requires the github-pages environment"

@@ -1,13 +1,34 @@
-"""CI must materialize every locked path source before frozen synchronization."""
+"""Structural contracts of the release workflow, derived from their sources of truth.
+
+The workflow's own pins (sibling commits, tool versions) are the single place a
+revision is recorded; these tests check that each pin is immutable and wired in
+the right order, never that it equals a copy kept here.
+"""
 
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
+from typing import Any
 
 import yaml
 
 ROOT = Path(__file__).parents[2]
+SHA = re.compile(r"[0-9a-f]{40}")
+
+
+def _workflow() -> dict[str, Any]:
+    path = ROOT / ".github" / "workflows" / "release.yml"
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def _gate_steps() -> list[dict[str, Any]]:
+    return _workflow()["jobs"]["gates"]["steps"]
+
+
+def _step_index(steps: list[dict[str, Any]], needle: str) -> int:
+    return next(i for i, step in enumerate(steps) if needle in step.get("run", ""))
 
 
 def _declared_paths() -> set[str]:
@@ -28,127 +49,127 @@ def _locked_paths() -> set[str]:
     }
 
 
-def _steps_before_sync() -> list[dict[str, object]]:
-    workflow_path = ROOT / ".github" / "workflows" / "release.yml"
-    workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
-    steps = workflow["jobs"]["gates"]["steps"]
-    sync_index = next(
-        index
-        for index, step in enumerate(steps)
-        if "uv sync --frozen --extra test" in step.get("run", "")
+def _manual_hook_ids() -> set[str]:
+    config = yaml.safe_load(
+        (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
     )
-    return steps[:sync_index]
+    return {
+        hook["id"]
+        for repo in config["repos"]
+        for hook in repo["hooks"]
+        if "manual" in hook.get("stages", [])
+    }
 
 
-def _sync_command() -> str:
-    workflow_path = ROOT / ".github" / "workflows" / "release.yml"
-    workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
-    return next(
-        step["run"]
-        for step in workflow["jobs"]["gates"]["steps"]
-        if "uv sync --frozen --extra test" in step.get("run", "")
+def _manual_hooks_named(commands: str) -> set[str]:
+    named = set(
+        re.findall(r"pre-commit run ([a-z][a-z-]*) --hook-stage manual", commands)
     )
+    for group in re.findall(r"for hook in ([a-z -]+); do", commands):
+        named |= set(group.split())
+    return named
 
 
 def test_release_workflow_materializes_uv_path_sources_before_sync() -> None:
-    required = _declared_paths()
-    steps = _steps_before_sync()
-    provisioned = {
-        step.get("with", {}).get("path")
-        for step in steps
+    steps = _gate_steps()
+    before_sync = steps[: _step_index(steps, "uv sync --frozen --extra test")]
+    checkouts = {
+        step["with"]["path"]: step
+        for step in before_sync
         if step.get("uses", "").startswith("actions/checkout@")
+        and "path" in step.get("with", {})
     }
 
-    assert required <= provisioned
-    provisioning_plan = yaml.safe_dump(steps)
+    assert _declared_paths() <= set(checkouts)
+    provisioning_plan = yaml.safe_dump(before_sync)
     assert all(path in provisioning_plan for path in _locked_paths())
-    for path in required:
-        step = next(item for item in steps if item.get("with", {}).get("path") == path)
-        assert len(step["with"]["ref"]) == 40
+    for step in checkouts.values():
+        assert SHA.fullmatch(step["with"]["ref"]), step["with"]
         assert step["with"]["persist-credentials"] is False
 
 
-def test_scanner_job_installs_pinned_uv_before_uvx() -> None:
-    workflow = yaml.safe_load(
-        (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
-    )
-    steps = workflow["jobs"]["scanner-quality"]["steps"]
-    uv_index = next(
-        index
-        for index, step in enumerate(steps)
-        if "astral-sh/setup-uv@" in step.get("uses", "")
-    )
-    scanner_index = next(
-        index
-        for index, step in enumerate(steps)
-        if "pre-commit run" in step.get("run", "")
-    )
-
-    assert uv_index < scanner_index
-    assert steps[uv_index]["with"]["version"] == "0.11.7"
+def test_every_uvx_runs_after_a_pinned_uv() -> None:
+    for name, job in _workflow()["jobs"].items():
+        steps = job["steps"]
+        uvx = [i for i, step in enumerate(steps) if "uvx " in step.get("run", "")]
+        if not uvx:
+            continue
+        setup = next(
+            i
+            for i, step in enumerate(steps)
+            if "astral-sh/setup-uv@" in step.get("uses", "")
+        )
+        assert setup < min(uvx), name
+        assert re.fullmatch(r"\d+\.\d+\.\d+", steps[setup]["with"]["version"]), name
 
 
-def test_webui_checkout_uses_reachable_published_commit() -> None:
-    steps = _steps_before_sync()
-    checkout = next(
-        step
-        for step in steps
-        if step.get("with", {}).get("repository") == "Knuckles-Team/agent-webui"
-    )
-
-    assert checkout["with"]["ref"] == "a25478b4b1e892c5df8c5c79113ea37c89578053"
-
-
-def test_release_workflow_pins_published_generated_contract_heads() -> None:
-    steps = _steps_before_sync()
-    refs = {
-        step["with"]["repository"]: step["with"]["ref"]
-        for step in steps
-        if step.get("with", {}).get("repository")
+def test_one_python_version_is_pinned_for_every_job() -> None:
+    versions = {
+        step["with"]["python-version"]
+        for job in _workflow()["jobs"].values()
+        for step in job["steps"]
+        if "actions/setup-python@" in step.get("uses", "")
     }
 
-    assert refs["Knuckles-Team/agent-connector-sdk"] == (
-        "da1757b998698d2e8d5c60c4eca9aea18d9baf8d"
-    )
-    assert refs["Knuckles-Team/epistemic-graph"] == (
-        "49d63da5396fef7482fc3617df3f90a836661722"
-    )
+    # scripts/bootstrap.sh reads this same pin.
+    assert len(versions) == 1
+    assert re.fullmatch(r"3\.\d+", versions.pop())
 
 
-def test_release_workflow_uses_pinned_epistemic_graph_contract_overlay() -> None:
-    command = _sync_command()
+def test_gates_run_the_repository_pre_commit_configuration() -> None:
+    steps = _gate_steps()
+    commands = "\n".join(step.get("run", "") for step in steps)
 
-    assert (
-        "uv sync --frozen --extra test --extra webui --no-install-package epistemic-graph"
-        in command
+    assert "pre-commit run --all-files" in commands
+    assert "pre-commit run --hook-stage pre-push" in commands
+    assert {"pytest", "mypy-env"} <= _manual_hooks_named(commands)
+    # The full suite runs only after the environment it needs is synced.
+    assert _step_index(steps, "uv sync --frozen") < _step_index(steps, "pytest")
+
+
+def test_every_manual_hook_ci_names_is_defined() -> None:
+    commands = "\n".join(
+        step.get("run", "")
+        for job in _workflow()["jobs"].values()
+        for step in job["steps"]
     )
+
+    assert _manual_hooks_named(commands) <= _manual_hook_ids()
+
+
+def test_epistemic_graph_is_overlaid_from_the_pinned_source() -> None:
+    steps = _gate_steps()
+    command = steps[_step_index(steps, "uv sync --frozen --extra test")]["run"]
+
+    assert "--no-install-package epistemic-graph" in command
     assert "PYTHONPATH=$eg_source" in command
-    assert 'git -C "$eg_source" rev-parse HEAD' in command
-    assert "49d63da5396fef7482fc3617df3f90a836661722" in command
-    assert "python -m pip install 'maturin>=1,<2'" in command
     assert 'python "$eg_source/scripts/build_numeric_kernel.py"' in command
     assert "epistemic_graph.__file__" in command
-    assert "source_ingestion.SourceCheckpoint" in command
-    assert "storage.send_agent_component_content" in command
 
 
-def test_release_workflow_materializes_nested_sdk_and_au_paths() -> None:
-    steps = _steps_before_sync()
-    materialize = next(
-        step for step in steps if step.get("name") == "Materialize nested pinned source paths"
+def test_kernel_build_cache_covers_the_target_dir_cargo_uses() -> None:
+    steps = _gate_steps()
+    cache = next(
+        step for step in steps if "Swatinem/rust-cache@" in step.get("uses", "")
     )
-    command = materialize["run"]
+    workspace, _, target = cache["with"]["workspaces"].partition(" -> ")
+    kernel_checkout = next(
+        step
+        for step in steps
+        if step.get("with", {}).get("repository") == "Knuckles-Team/epistemic-graph"
+    )
 
-    assert '"$au_source/.uv-workspace-siblings/agent-connector-sdk"' in command
-    assert '"$webui_source/.uv-workspace-siblings/agent-utilities"' in command
-    assert 'ln -s "$sdk_source"' in command
-    assert 'ln -s "$au_source"' in command
+    assert workspace == kernel_checkout["with"]["path"]
+    # build_numeric_kernel.py always builds into <checkout>/target-isolated.
+    assert target == "target-isolated"
+    assert steps.index(cache) < _step_index(steps, "build_numeric_kernel.py")
+    env = _workflow()["jobs"]["gates"]["env"]
+    assert env["CARGO_BUILD_JOBS"] == "4"
+    assert env["CARGO_PROFILE_RELEASE_DEBUG"] == "0"
 
 
 def test_release_dependency_readiness_blocks_tag_build_only() -> None:
-    workflow = yaml.safe_load(
-        (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
-    )
+    workflow = _workflow()
     steps = workflow["jobs"]["gates"]["steps"]
     checkout = next(
         step
@@ -160,19 +181,16 @@ def test_release_dependency_readiness_blocks_tag_build_only() -> None:
     )
 
     assert checkout["with"]["repository"] == "Knuckles-Team/repository-manager"
-    assert checkout["with"]["ref"] == "0671b97250c7a2e87a1f63b43818e99eb90709a1"
+    assert SHA.fullmatch(checkout["with"]["ref"])
     assert checkout["with"]["persist-credentials"] is False
     assert checkout["if"] == readiness["if"] == "startsWith(github.ref, 'refs/tags/v')"
     assert steps.index(checkout) < steps.index(readiness)
-    assert "python -m repository_manager.dependency_readiness ." in readiness["run"]
+    assert "dependency-readiness --hook-stage manual" in readiness["run"]
     assert workflow["jobs"]["build"]["needs"] == ["gates"]
 
 
 def test_scanner_versions_receive_distinct_argv_and_remain_advisory() -> None:
-    workflow = yaml.safe_load(
-        (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
-    )
-    scanner = workflow["jobs"]["scanner-quality"]
+    scanner = _workflow()["jobs"]["scanner-quality"]
     command = next(
         step["run"]
         for step in scanner["steps"]
@@ -182,4 +200,3 @@ def test_scanner_versions_receive_distinct_argv_and_remain_advisory() -> None:
     assert "pipelines-hook scanner-versions cccc kiss dupehound jscpd" in command
     assert "['cccc'" not in command
     assert scanner["continue-on-error"] is True
-    assert workflow["jobs"]["build"]["needs"] == ["gates"]
