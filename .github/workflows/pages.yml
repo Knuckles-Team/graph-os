@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - docs/**
+      - specs/**
+      - scripts/public_spec_report.py
       - overrides/**
       - mkdocs.yml
       - .github/workflows/pages.yml

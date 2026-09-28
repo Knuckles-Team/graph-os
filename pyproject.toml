@@ -136,7 +136,7 @@ mcp_server = true
 served_paths = ["graph_os/mcp_server", "graph_os/gateway"]
 
 [tool.pipelines_hooks.ci_replica]
-build_affecting = ["pyproject.toml", "uv.lock", "mkdocs.yml", "docs/**", "overrides/**", ".github/workflows/**", ".pre-commit-config.yaml"]
+build_affecting = ["pyproject.toml", "uv.lock", "mkdocs.yml", "docs/**", "specs/**", "scripts/public_spec_report.py", "overrides/**", ".github/workflows/**", ".pre-commit-config.yaml"]
 
 [tool.pipelines_hooks.ci_replica.workflows."release.yml"]
 blocking = true
@@ -152,3 +152,10 @@ executable_jobs = []
 
 [tool.pipelines_hooks.ci_replica.workflows."pages.yml".skip_reasons]
 deploy = "calls the immutable shared Pages workflow; theme synchronization and the strict site build are verified directly, while hosted deployment requires the github-pages environment"
+
+[tool.pipelines_hooks.ci_replica.workflows."spec-report-refresh.yml"]
+blocking = false
+executable_jobs = []
+
+[tool.pipelines_hooks.ci_replica.workflows."spec-report-refresh.yml".skip_reasons]
+refresh = "manual-only public-source checkout and pull-request publication; the offline renderer and source-validation tests run locally"

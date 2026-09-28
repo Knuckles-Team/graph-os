@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Graph OS public specification status</title>
+<style>
+:root { color-scheme: light dark; font: 16px system-ui, sans-serif; } body { max-width: 100rem; margin: auto; padding: 1.5rem; }
+table { width: 100%; border-collapse: collapse; } th,td { padding: .5rem; border-bottom: 1px solid #8886; text-align: left; vertical-align: top; }
+th { position: sticky; top: 0; background: Canvas; } .badge { border: 1px solid #888; border-radius: .4rem; padding: .12rem .35rem; white-space: nowrap; }
+.accepted,.landed,.closed { border-color: #18964a; } .failed,.rejected { border-color: #c33; } .issue { display: block; color: #b33; }
+label { display: inline-block; margin: .3rem 1rem .3rem 0; } input,select { font: inherit; padding: .3rem; }
+</style></head><body>
+<main><h1>Graph OS public specification status</h1>
+<p>Snapshot through 2026-09-28 17:17 UTC from the committed <code>specs/</code> revisions listed below in six public repositories. The repository specs and linked CI results are the evidence; source presence alone cannot establish completion. Missing or unsupported status metadata is shown as UNKNOWN / NOT AUDITED.</p>
+<p><strong>3 specs</strong> · Delivery: UNKNOWN: 3 · Acceptance: NOT_AUDITED: 3</p>
+<details><summary>State legend and evidence rules</summary>
+<p><strong>Delivery:</strong> UNKNOWN = no supported status claim; SPECIFIED = build contract is published; BUILDING = public implementation work exists; BUILT = implementation exists with public commit evidence; LANDED = exact implementation commit is on default branch; CLOSED = work closed with a merged-head record; DEFERRED/REJECTED = public disposition decision.</p>
+<p><strong>Acceptance:</strong> NOT AUDITED = no verified acceptance decision; PENDING = review is open; ACCEPTED = merged-head tests plus consumer or release proof at the same commit; FAILED = linked failed test. Delivery and acceptance are independent.</p>
+<p>This report validates the shape of public evidence and exact commit references. Human reviewers must still evaluate whether linked tests satisfy every requirement. The report lists published specs; it does not claim that every program obligation has a spec.</p></details>
+<label>Search <input id="search" type="search" placeholder="Spec, repo, requirement"></label>
+<label>Repository <select id="repo"><option value="">All</option><option value="epistemic-graph">epistemic-graph</option><option value="agent-connector-sdk">agent-connector-sdk</option><option value="agent-utilities">agent-utilities</option><option value="graph-os">graph-os</option><option value="agent-webui">agent-webui</option><option value="repository-manager">repository-manager</option></select></label>
+<label>Delivery <select id="delivery"><option value="">All</option><option>BUILDING</option><option>BUILT</option><option>CLOSED</option><option>DEFERRED</option><option>LANDED</option><option>REJECTED</option><option>SPECIFIED</option><option>UNKNOWN</option></select></label>
+<label>Acceptance <select id="acceptance"><option value="">All</option><option>ACCEPTED</option><option>FAILED</option><option>NOT_AUDITED</option><option>PENDING</option></select></label>
+<p id="visible" aria-live="polite"></p>
+<table><thead><tr><th>Specification</th><th>Owner</th><th>Delivery</th><th>Acceptance</th><th>Requirement IDs</th><th>Public evidence / issue</th></tr></thead><tbody><tr data-repo="agent-webui" data-delivery="UNKNOWN" data-acceptance="NOT_AUDITED"><td><a href="https://github.com/Knuckles-Team/agent-webui/blob/main/specs/finance-asset-manager/spec.md">finance-asset-manager</a></td><td>agent-webui</td><td><span class="badge unknown">UNKNOWN</span></td><td><span class="badge not_audited">NOT AUDITED</span></td><td></td><td><span class="issue">No committed status.json</span></td></tr><tr data-repo="epistemic-graph" data-delivery="UNKNOWN" data-acceptance="NOT_AUDITED"><td><a href="https://github.com/Knuckles-Team/epistemic-graph/blob/main/specs/EG-T4-GREEN/spec.md">EG-T4-GREEN</a></td><td>epistemic-graph</td><td><span class="badge unknown">UNKNOWN</span></td><td><span class="badge not_audited">NOT AUDITED</span></td><td></td><td><span class="issue">No committed status.json</span></td></tr><tr data-repo="epistemic-graph" data-delivery="UNKNOWN" data-acceptance="NOT_AUDITED"><td><a href="https://github.com/Knuckles-Team/epistemic-graph/blob/main/specs/unified-data-plane/spec.md">unified-data-plane</a></td><td>epistemic-graph</td><td><span class="badge unknown">UNKNOWN</span></td><td><span class="badge not_audited">NOT AUDITED</span></td><td></td><td><span class="issue">No committed status.json</span></td></tr></tbody></table>
+<details><summary>Source revisions</summary><ul><li><a href="https://github.com/Knuckles-Team/epistemic-graph/commit/26db94af9c650c3ad2c7f93971ef67205483fe0b">epistemic-graph @ 26db94af9c65</a></li><li><a href="https://github.com/Knuckles-Team/agent-connector-sdk/commit/1d68a5dc2862571dce8b0920460e05728c56e56e">agent-connector-sdk @ 1d68a5dc2862</a></li><li><a href="https://github.com/Knuckles-Team/agent-utilities/commit/55f284ea38e39f28f7440971aef2c835ad349184">agent-utilities @ 55f284ea38e3</a></li><li><a href="https://github.com/Knuckles-Team/graph-os/commit/f4d285f1d15366cd552b38f51fa8d61f650e1740">graph-os @ f4d285f1d153</a></li><li><a href="https://github.com/Knuckles-Team/agent-webui/commit/a0f5b9c5a7ee88bbca13be16ae497ef8344e2690">agent-webui @ a0f5b9c5a7ee</a></li><li><a href="https://github.com/Knuckles-Team/repository-manager/commit/9ec639128cac882875ddd8f0560f0189452884de">repository-manager @ 9ec639128cac</a></li></ul></details></main>
+<script>
+const controls = ['search','repo','delivery','acceptance'].map(id => document.getElementById(id));
+function filter() { let count = 0; for (const row of document.querySelectorAll('tbody tr')) {
+  const show = row.textContent.toLowerCase().includes(controls[0].value.toLowerCase()) &&
+    (!controls[1].value || row.dataset.repo === controls[1].value) &&
+    (!controls[2].value || row.dataset.delivery === controls[2].value) &&
+    (!controls[3].value || row.dataset.acceptance === controls[3].value);
+  row.hidden = !show; if (show) count++;
+} document.getElementById('visible').textContent = `${count} matching specs`; }
+controls.forEach(control => control.addEventListener('input', filter)); filter();
+</script></body></html>
