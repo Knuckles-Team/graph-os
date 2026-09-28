@@ -66,6 +66,25 @@ Security is fail closed:
   payloads, and privacy-safe receipts. Unknown effects never claim rollback.
 - Apply action policy and durable provenance before governed mutation dispatch.
 
+## Setup
+
+From a fresh clone (locally, or in a Claude Code cloud session where
+`.claude/hooks/session-start.sh` runs it automatically):
+
+```bash
+scripts/bootstrap.sh              # uv >= 0.9, pinned Python, sibling sources, locked deps, git hooks
+scripts/bootstrap.sh --kernel     # also build epistemic-graph's numeric kernel (needed by the full suite)
+scripts/bootstrap.sh --scanners   # also the pinned cccc/kiss/dupehound/jscpd scanners (~15 min cold)
+```
+
+Bootstrap is idempotent. It links each `[tool.uv.sources]` path under
+`.uv-workspace-siblings/` to a `../<repository>` checkout when one exists (the
+layout in `graph_os/skills/graph-os-development/references/bootstrap.md`) and
+installs the pre-commit and pre-push hooks. A hook whose prerequisite is
+missing (a sibling checkout, the synced environment, the kernel) prints
+`SKIPPED (<gate>): <reason>` and exits 0 locally; under CI (`$CI` set) it
+exits 2 with `CANNOT RUN`, so hosted CI never passes a gate that did not run.
+
 ## Commands
 
 The package publishes these operator commands:
@@ -82,44 +101,40 @@ The package publishes these operator commands:
 
 The `graph-os` entrypoint is `graph_os.mcp_server.server:mcp_server`.
 
-Install and run focused development checks with:
+After `scripts/bootstrap.sh`, run focused development checks with:
 
 ```bash
-uv sync --extra test
-uv run pytest
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy graph_os
+uv run --no-sync pytest tests/<area>
+uv run --no-sync ruff check .
+uv run --no-sync mypy graph_os
 ```
 
 ## Quality gates
 
-Install the repository hooks once:
+`.pre-commit-config.yaml` is the single definition of the gates. The release
+workflow runs it directly: the commit stage over every file, the push stage
+over the pushed range, then the manual-stage `mypy-env` and `pytest` hooks
+once the pinned sibling sources and source-overlay environment are provisioned.
+Run the same locally:
 
 ```bash
-uvx --from pre-commit==4.6.0 pre-commit install \
-  --hook-type pre-commit --hook-type pre-push
-```
-
-Run the normal hooks and release evidence before handoff:
-
-```bash
-uvx --from pre-commit==4.6.0 pre-commit run --all-files
-uvx --from pre-commit==4.6.0 pre-commit run pytest --hook-stage manual --all-files
+uvx pre-commit run --all-files
+uvx pre-commit run --hook-stage pre-push --all-files
+uvx pre-commit run mypy-env --hook-stage manual --all-files
+uvx pre-commit run pytest --hook-stage manual --all-files
 uv run --no-project --with "mkdocs>=1.6,<2" mkdocs build --strict
 uv build --wheel --out-dir dist
 ```
 
-The pre-push suite runs secret-history and patch-safety checks without requiring
-sibling checkouts, native scanners, or a live runtime. The release workflow
-provisions pinned sibling sources, verifies the frozen lock, and runs the full
-test suite before build. Its scanner job provisions exact native versions and
-reports scanner findings. On release tags, repository-manager's external index
-dependency-readiness check blocks build and publication. The local `pytest`,
-`ci-gate-replica`, `dependency-readiness`, `uv-lock`, and scanner census hooks
-remain available at the `manual` stage. Do not bypass a failure, add an inline
-suppression, freeze a baseline, or weaken a threshold. Scanner acceptance rules
-live in `docs/quality-gate-terms.md`.
+The scanner job provisions the exact native scanner versions with
+`scripts/install_scanners.sh` (also `scripts/bootstrap.sh --scanners`) and
+reports census findings as advisory. On release tags, repository-manager's
+external-index `dependency-readiness` hook blocks build and publication. The
+`uv-lock` and scanner census hooks remain available at the `manual` stage. Do
+not bypass a failure, add an inline suppression, freeze a baseline, or weaken
+a threshold; gates check behaviour or a contract derived from its source of
+truth, never a hand-kept count, pin copy or golden digest. Scanner acceptance
+rules live in `docs/quality-gate-terms.md`.
 
 Shared hooks come from `Knuckles-Team/pipelines` at the immutable revision in
 `.pre-commit-config.yaml`; CI and local checks use that same revision. A local
@@ -160,12 +175,18 @@ within the repository or to a public URL.
 
 ## Branching & isolation
 
-Work in a dedicated Git worktree created from current local `main`:
+Never push to `main`. Work on a topic branch from current `origin/main`, in a
+dedicated Git worktree when other work shares the checkout:
 
 ```bash
+git fetch origin
 git worktree add "${XDG_STATE_HOME}/repository-worktrees/graph-os/<lane>" \
-  -b "<type>/<lane>" main
+  -b "<type>/<lane>" origin/main
 ```
+
+Commit in logical steps, push the branch with `git push -u origin <branch>`,
+and open a draft pull request against `main`; hosted CI (`release.yml`) is the
+merge gate.
 
 - Never use an orchestration tool's automatic worktree isolation against this
   shared checkout; it can mutate `core.bare` in the common Git directory.

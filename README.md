@@ -125,8 +125,8 @@ boundaries and quality gates. Report vulnerabilities through
 
 ### Development
 
-Create a branch, install the `test` extra, and run the focused tests plus
-repository hooks described in [AGENTS.md](AGENTS.md).
+Run `scripts/bootstrap.sh`, then follow [CONTRIBUTING.md](CONTRIBUTING.md)
+for the hooks, tests, and branch and pull-request flow.
 
 ## License
 

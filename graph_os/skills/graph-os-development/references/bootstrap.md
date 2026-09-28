@@ -62,7 +62,9 @@ update the intended lock/source contract in the owning repository.
 Graph OS's source test setup follows `.github/workflows/release.yml`: it builds
 the local EG numeric kernel, sets `PYTHONPATH` to that EG checkout, and runs
 `uv sync --frozen --extra test --extra webui --no-install-package epistemic-graph`
-before tests. From `graphos-src/graph-os`, the current local equivalent is:
+before tests. From `graphos-src/graph-os`, `scripts/bootstrap.sh --kernel`
+creates the Graph OS links above, builds the kernel, syncs the environment and
+installs the git hooks; the equivalent manual commands are:
 
 ```bash
 python -m pip install 'maturin>=1,<2'
