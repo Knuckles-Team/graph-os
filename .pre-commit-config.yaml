@@ -128,9 +128,7 @@ repos:
   # public documentation
   - id: public-surface
     stages: [pre-commit, manual]
-  # secrets, privacy, dependencies, hygiene
-  - id: dependency-audit
-    stages: [pre-commit, manual]
+  # secrets, privacy, supply chain, hygiene
   - id: supply-chain
     stages: [pre-commit, manual]
   - id: secret-history

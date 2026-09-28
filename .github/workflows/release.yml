@@ -129,7 +129,7 @@ jobs:
       - name: Shared security, code-shape and hygiene hooks
         run: |
           set -euo pipefail
-          for hook in secret-history dependency-audit security-sanitizer root-hygiene gitignore-convergence sprawl mermaid no-stub stubs env-sprawl stdout-writes swallowed-errors event-loop-blocking import-cycles ci-gate-replica-consistency; do
+          for hook in secret-history security-sanitizer root-hygiene gitignore-convergence sprawl mermaid no-stub stubs env-sprawl stdout-writes swallowed-errors event-loop-blocking import-cycles ci-gate-replica-consistency; do
             uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
           done
 

@@ -44,4 +44,3 @@ overrides = "canonical shared MkDocs Material template overrides for the ecosyst
 ".bumpversion.cfg" = "bump2version release configuration"
 ".gitignore" = "git exclusion patterns (carries the fleet-shared REQUIRED set)"
 ".pre-commit-config.yaml" = "the combined pre-commit and pre-push suite, including the pinned shared hooks"
-".security-audit-allow.txt" = "risk-acceptance ledger read by the shared dependency-audit hook — currently empty"
