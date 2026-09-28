@@ -30,6 +30,7 @@ nav:
   - Capabilities: capabilities.md
   - Interfaces: interfaces.md
   - How it fits: architecture.md
+  - Specification status: spec-status.html
   - Use Graph OS:
       - MCP server: mcp-server.md
       - REST gateway: gateway.md

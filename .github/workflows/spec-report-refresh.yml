@@ -1,0 +1,98 @@
+name: Refresh public specification report
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout Graph OS
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          path: graph-os
+          persist-credentials: false
+      - name: Checkout epistemic-graph
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Knuckles-Team/epistemic-graph
+          ref: main
+          path: sources/epistemic-graph
+          persist-credentials: false
+      - name: Checkout agent-connector-sdk
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Knuckles-Team/agent-connector-sdk
+          ref: main
+          path: sources/agent-connector-sdk
+          persist-credentials: false
+      - name: Checkout agent-utilities
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Knuckles-Team/agent-utilities
+          ref: main
+          path: sources/agent-utilities
+          persist-credentials: false
+      - name: Checkout agent-webui
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Knuckles-Team/agent-webui
+          ref: main
+          path: sources/agent-webui
+          persist-credentials: false
+      - name: Checkout repository-manager
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Knuckles-Team/repository-manager
+          ref: main
+          path: sources/repository-manager
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: 3.14.7
+      - name: Render report from public committed specs
+        run: |
+          python graph-os/scripts/public_spec_report.py \
+            --repo graph-os=graph-os \
+            --repo epistemic-graph=sources/epistemic-graph \
+            --repo agent-connector-sdk=sources/agent-connector-sdk \
+            --repo agent-utilities=sources/agent-utilities \
+            --repo agent-webui=sources/agent-webui \
+            --repo repository-manager=sources/repository-manager \
+            --output graph-os/docs/spec-status.html
+      - name: Check for changed snapshot
+        id: changes
+        run: |
+          if git -C graph-os diff --quiet -- docs/spec-status.html; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open report refresh pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REFRESH_BRANCH: docs/spec-status-${{ github.run_id }}
+        working-directory: graph-os
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$REFRESH_BRANCH"
+          git add -- docs/spec-status.html
+          git diff --cached --check
+          git commit -m 'docs: refresh public specification status snapshot'
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$REFRESH_BRANCH"
+          gh pr create \
+            --base main \
+            --head "$REFRESH_BRANCH" \
+            --title 'docs: refresh public specification status snapshot' \
+            --body 'Generated from committed specs/status.json in the six public Graph OS repositories. Review evidence and the source revision list before merging.'
