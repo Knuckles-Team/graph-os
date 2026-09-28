@@ -78,6 +78,9 @@ setup-config = "graph_os.deployment.cli:main"
 agent-utilities-doctor = "graph_os.deployment.doctor:main"
 agent-utilities-venv = "graph_os.deployment.venv_sync:main"
 
+[project.entry-points."agent_utilities.skill_providers"]
+graph-os = "graph_os.skills"
+
 # Portable development binding for the not-yet-published AU 2.5 release.
 # The path is ignored and supplied as a local symlink; package metadata keeps
 # the real PEP 508 floor above, so released wheels resolve from the index.
@@ -95,7 +98,7 @@ include = ["graph_os*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-graph_os = ["ontology/**/*.ttl"]
+graph_os = ["ontology/**/*.ttl", "skills/**"]
 
 [tool.ruff]
 line-length = 88
