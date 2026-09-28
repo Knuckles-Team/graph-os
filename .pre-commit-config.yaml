@@ -152,15 +152,16 @@ repos:
   - id: ci-gate-replica-consistency
     stages: [pre-commit, manual]
   - id: ci-gate-replica
-    stages: [pre-push]
+    # The release workflow provisions pinned sibling sources on its runner.
+    # Local replay is useful after a developer provisions those sources, but
+    # cannot be a push prerequisite in a fresh checkout.
+    stages: [manual]
 
 - repo: local
   hooks:
-  # Fails when any declared or imported dependency violates the repository
-  # dependency order. It resolves the sibling
-  # `repository-manager` checkout from `git rev-parse --git-common-dir` (the
-  # shared git dir, stable across linked worktrees) rather than a
-  # `$PWD`-relative path, which breaks in a worktree. Falls back to PyPI (CI).
+  # Release readiness checks the external package index, which may lag source
+  # commits and is not available to a cloud PR checkout. Run it explicitly
+  # before a release; source dependency rules remain in the shared audit gate.
   - id: dependency-readiness
     name: Dependency readiness — declared and imported dependencies respect layer order
     entry: >-
@@ -173,7 +174,7 @@ repos:
     language: system
     pass_filenames: false
     always_run: true
-    stages: [manual, pre-push]
+    stages: [manual]
 
   - id: pytest
     name: pytest (full suite)
@@ -181,4 +182,5 @@ repos:
     language: system
     pass_filenames: false
     always_run: true
-    stages: [pre-push, manual]
+    # CI provisions the pinned sibling repos before running this suite.
+    stages: [manual]
