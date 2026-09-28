@@ -147,41 +147,29 @@ repos:
     stages: [pre-commit, manual]
   - id: pre-commit-patch-safety
     stages: [pre-push, manual]
-  # CI replica
-  - id: ci-gate-replica-consistency
-    stages: [pre-commit, manual]
-  - id: ci-gate-replica
-    # The release workflow provisions pinned sibling sources on its runner.
-    # Local replay is useful after a developer provisions those sources, but
-    # cannot be a push prerequisite in a fresh checkout.
-    stages: [manual]
 
 - repo: local
   hooks:
   # Release readiness checks the external package index, which may lag source
-  # commits and is not available to a cloud PR checkout. Run it explicitly
-  # before a release; source dependency rules remain in the shared audit gate.
+  # commits. The release workflow runs it on version tags only; run it
+  # explicitly before a release. Without a repository-manager checkout it is
+  # SKIPPED locally and CANNOT RUN (exit 2) under CI.
   - id: dependency-readiness
-    name: Dependency readiness — declared and imported dependencies respect layer order
-    entry: >-
-      bash -c '
-      CANON_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)";
-      P="$CANON_ROOT/../agents/repository-manager";
-      [ -d "$P" ] || P=repository-manager;
-      uv run --no-project --python 3.12 --prerelease=allow --with "$P" python -m repository_manager.dependency_readiness .
-      '
+    name: Dependency readiness - declared and imported dependencies respect layer order
+    entry: scripts/local_hook.sh dependency-readiness
     language: system
     pass_filenames: false
     always_run: true
     stages: [manual]
 
+  # Needs the sibling source checkouts and the synced environment that
+  # scripts/bootstrap.sh provisions; SKIPPED locally without them.
   - id: pytest
     name: pytest (full suite)
-    entry: uv run --extra test python -m pytest
+    entry: scripts/local_hook.sh pytest
     language: system
     pass_filenames: false
     always_run: true
-    # CI provisions the pinned sibling repos before running this suite.
     stages: [manual]
 
 - repo: local
