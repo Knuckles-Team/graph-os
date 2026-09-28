@@ -42,6 +42,11 @@ site/
 
 # Fleet-shared entries required by the gitignore-convergence hook
 /.specify/
+!/.specify/
+/.specify/*
+!/.specify/memory/
+/.specify/memory/*
+!/.specify/memory/constitution.md
 dist-*/
 target-*/
 .venv/

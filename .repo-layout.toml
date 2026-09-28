@@ -15,6 +15,7 @@
 # manifest itself excepted) must have a line here.
 
 [dirs]
+".specify" = "tracked Spec Kit constitution; generated tooling files remain ignored"
 specs = "tracked repository-owned specifications and contribution templates"
 graph_os = "the GraphOS Python package: MCP/REST composition, fleet, gateway, control plane, WebUI host, A2A, browser control, deployment, and console entry points"
 tests = "the pytest suite: wiring tests proving the console entry point and every package under graph_os/ are live, imported members of the package"
