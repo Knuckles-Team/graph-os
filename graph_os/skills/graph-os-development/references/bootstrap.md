@@ -1,6 +1,8 @@
 # Public source bootstrap
 
-This recipe mirrors the editable paths in the six repositories' `pyproject.toml`
+Start with the [organization contribution guide](https://github.com/Knuckles-Team/.github/blob/main/CONTRIBUTING.md)
+and choose an owner spec from the [build-first queue](https://knuckles-team.github.io/.github/build-first.html).
+This recipe mirrors the editable paths in the six core repositories' `pyproject.toml`
 files and Graph OS's public `.github/workflows/release.yml`. Use Python 3.12,
 `uv`, Rust/Cargo for engine work, and the Node/pnpm versions required by WebUI.
 All source URLs below are public GitHub HTTPS URLs.
@@ -30,6 +32,22 @@ git clone https://github.com/Knuckles-Team/repository-manager.git
 mkdir -p repository-manager/.uv-workspace-siblings
 ln -s ../../agent-utilities repository-manager/.uv-workspace-siblings/agent-utilities
 ```
+
+For work in `pipelines`, `agent-terminal-ui`, `emerald-exchange`,
+`tunnel-manager`, or the organization hub, clone only the owning public
+repository and any public consumer or producer repository named by its spec:
+
+```bash
+git clone https://github.com/Knuckles-Team/pipelines.git
+git clone https://github.com/Knuckles-Team/agent-terminal-ui.git
+git clone https://github.com/Knuckles-Team/emerald-exchange.git
+git clone https://github.com/Knuckles-Team/tunnel-manager.git
+git clone https://github.com/Knuckles-Team/.github.git organization-hub
+```
+
+Read each chosen repository's `AGENTS.md` and `specs/README.md` for its
+language-specific setup, fixtures, and gates. These extra repositories do not
+require the six-core editable sibling layout merely to read or author specs.
 
 These symlinks are ignored local source bindings, not files to commit. If one
 already exists, inspect where it points rather than replacing it blindly.

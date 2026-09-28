@@ -4,16 +4,21 @@ domain: development
 skill_type: skill
 description: >-
   Develop a feature in any Graph OS ecosystem repository from public GitHub
-  checkouts. Use for epistemic-graph, agent-connector-sdk, agent-utilities,
-  graph-os, agent-webui, or repository-manager when choosing the owner, preparing
-  an isolated source and test environment, or proving a repository-owned spec.
+  checkouts. Use when choosing the owner of any Graph OS ecosystem spec,
+  preparing an isolated source and test environment, or proving its deliverable.
 license: MIT
 tags: [graph-os, development, public-contribution, specs]
 metadata:
-  version: '1.0.0'
+  version: '1.0.1'
 ---
 
 # Graph OS ecosystem development
+
+Start at the public [organization hub](https://github.com/Knuckles-Team/.github):
+its [build-first queue](https://knuckles-team.github.io/.github/build-first.html)
+lists work still to build, the [spec status report](https://knuckles-team.github.io/.github/spec-status.html)
+links owner-native contracts, and the [contribution guide](https://github.com/Knuckles-Team/.github/blob/main/CONTRIBUTING.md)
+walks a new contributor or coding agent from checkout to pull request.
 
 Use the **owning repository's tracked `specs/<id>/`** as the complete contribution
 contract. Its `spec.md`, architecture/design `plan.md`, `test-spec.md`, and
@@ -33,6 +38,16 @@ operator inventory, internal URL, or live deployment to interpret a spec.
 | `graph-os` | Deployable gateway, MCP/REST composition, control plane and operations |
 | `agent-webui` | Browser interface and its Python service adapter |
 | `repository-manager` | Repository lifecycle, worktrees, gate orchestration and release readiness |
+| `pipelines` | Shared CI, quality and Pages workflows, artifact publication order |
+| `agent-terminal-ui` | Terminal client interaction and local presentation |
+| `emerald-exchange` | Finance strategy application, curation and governed trading workflows |
+| `tunnel-manager` | Tunnel inventory, configuration and control API |
+| `.github` | Public ecosystem map, cross-repository status and program governance |
+
+Other connector, frontend and service repositories may own additional
+requirements. Use the owner named by the public spec and verify it against
+actual code and interfaces. A related consumer spec does not transfer authority
+from the component that implements the behavior.
 
 Read each affected repository's `AGENTS.md`, `CONTRIBUTING.md`, own spec, public
 interfaces, and tests. Extend the existing owner and execution path. A new
@@ -52,6 +67,13 @@ package index, credentials, or running services. `repository-manager` is needed
 only when working on its code or release-readiness logic. Work in a personal Git
 branch/worktree and stage only reviewed paths. Never use a shared `git stash` or
 an agent harness worktree action in a multi-worktree repository.
+
+Install [universal-skills](https://github.com/Knuckles-Team/universal-skills)
+and use `spec-generator`, `task-planner`, `sdd-implementer`, `spec-verifier`,
+and `sdd-full-lifecycle` as needed. Read all five owner files: `spec.md`,
+`plan.md`, `test-spec.md`, `tasks.md`, and `status.json`. A complete public
+spec supplies its own design, tests, fixtures, and acceptance criteria; never
+ask a contributor to retrieve private drafts or local operator inventory.
 
 Check the target repository's own `AGENTS.md` for current commands and tool
 versions. Run focused tests first, then its ordinary pre-commit/PR checks.
