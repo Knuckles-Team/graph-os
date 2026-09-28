@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "spec_id": "GRAPHOS-FLEET-001",
+  "owner_repo": "graph-os",
+  "requirement_ids": [
+    "EH-213",
+    "EH-215",
+    "EH-216",
+    "EH-217",
+    "EH-219",
+    "EH-220",
+    "EH-221",
+    "EH-410",
+    "EH-461",
+    "EH-475",
+    "EH-594",
+    "EH-595",
+    "EH-598",
+    "EH-599",
+    "EH-611",
+    "EH-614",
+    "EH-615",
+    "EH-626",
+    "EH-627",
+    "EH-628",
+    "EH-629",
+    "RF-021",
+    "PA-12"
+  ],
+  "delivery_state": "SPECIFIED",
+  "acceptance_state": "NOT_AUDITED",
+  "evidence": []
+}

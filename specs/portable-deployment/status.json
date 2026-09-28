@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "spec_id": "GRAPHOS-DEPLOY-001",
+  "owner_repo": "graph-os",
+  "requirement_ids": [
+    "EH-253",
+    "EH-254",
+    "EH-357",
+    "EH-388",
+    "EH-426",
+    "EH-432",
+    "EH-477",
+    "EH-489",
+    "EH-491",
+    "EH-518",
+    "EH-585",
+    "EH-589",
+    "EH-630",
+    "RF-028"
+  ],
+  "delivery_state": "SPECIFIED",
+  "acceptance_state": "NOT_AUDITED",
+  "evidence": []
+}

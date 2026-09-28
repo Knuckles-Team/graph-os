@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "spec_id": "GRAPHOS-IDENTITY-001",
+  "owner_repo": "graph-os",
+  "requirement_ids": [
+    "EH-405",
+    "EH-541",
+    "EH-542",
+    "EH-543",
+    "EH-544",
+    "EH-545",
+    "EH-546",
+    "EH-547",
+    "EH-548",
+    "EH-549",
+    "EH-550",
+    "EH-551",
+    "EH-552",
+    "EH-553",
+    "EH-554",
+    "EH-555",
+    "EH-556",
+    "EH-602",
+    "EH-603",
+    "EH-616",
+    "EH-625",
+    "EH-629",
+    "EH-716"
+  ],
+  "delivery_state": "SPECIFIED",
+  "acceptance_state": "NOT_AUDITED",
+  "evidence": []
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "spec_id": "GRAPHOS-A2A-001",
+  "owner_repo": "graph-os",
+  "requirement_ids": [
+    "EH-218",
+    "EH-219",
+    "EH-220",
+    "EH-221",
+    "EH-590",
+    "EH-601",
+    "EH-658",
+    "RF-030"
+  ],
+  "delivery_state": "SPECIFIED",
+  "acceptance_state": "NOT_AUDITED",
+  "evidence": []
+}
