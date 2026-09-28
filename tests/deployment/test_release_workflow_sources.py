@@ -132,6 +132,42 @@ def test_release_workflow_uses_pinned_epistemic_graph_contract_overlay() -> None
     assert "storage.send_agent_component_content" in command
 
 
+def test_release_workflow_materializes_nested_sdk_and_au_paths() -> None:
+    steps = _steps_before_sync()
+    materialize = next(
+        step for step in steps if step.get("name") == "Materialize nested pinned source paths"
+    )
+    command = materialize["run"]
+
+    assert '"$au_source/.uv-workspace-siblings/agent-connector-sdk"' in command
+    assert '"$webui_source/.uv-workspace-siblings/agent-utilities"' in command
+    assert 'ln -s "$sdk_source"' in command
+    assert 'ln -s "$au_source"' in command
+
+
+def test_release_dependency_readiness_blocks_tag_build_only() -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    )
+    steps = workflow["jobs"]["gates"]["steps"]
+    checkout = next(
+        step
+        for step in steps
+        if step.get("name") == "Checkout pinned release-readiness implementation"
+    )
+    readiness = next(
+        step for step in steps if step.get("name") == "Release dependency readiness"
+    )
+
+    assert checkout["with"]["repository"] == "Knuckles-Team/repository-manager"
+    assert checkout["with"]["ref"] == "0671b97250c7a2e87a1f63b43818e99eb90709a1"
+    assert checkout["with"]["persist-credentials"] is False
+    assert checkout["if"] == readiness["if"] == "startsWith(github.ref, 'refs/tags/v')"
+    assert steps.index(checkout) < steps.index(readiness)
+    assert "python -m repository_manager.dependency_readiness ." in readiness["run"]
+    assert workflow["jobs"]["build"]["needs"] == ["gates"]
+
+
 def test_scanner_versions_receive_distinct_argv_and_remain_advisory() -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")

@@ -102,11 +102,15 @@ jobs:
           path: .uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph
           persist-credentials: false
 
-      - name: Materialize agent-webui's pinned AU source path
+      - name: Materialize nested pinned source paths
         run: |
           set -euo pipefail
-          mkdir -p .uv-workspace-siblings/agent-webui/.uv-workspace-siblings
-          cp -a .uv-workspace-siblings/agent-utilities .uv-workspace-siblings/agent-webui/.uv-workspace-siblings/agent-utilities
+          au_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-utilities"
+          sdk_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-connector-sdk"
+          webui_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-webui"
+          mkdir -p "$au_source/.uv-workspace-siblings" "$webui_source/.uv-workspace-siblings"
+          ln -s "$sdk_source" "$au_source/.uv-workspace-siblings/agent-connector-sdk"
+          ln -s "$au_source" "$webui_source/.uv-workspace-siblings/agent-utilities"
 
       # The base the differential hooks compare against: the pull request base
       # or the previous push, else the root commit (a first push scans all of
@@ -141,6 +145,30 @@ jobs:
             printf '%s' "$PROHIBITED_IDENTITY_CATALOG" > "$HOME/.config/agent-utilities/governance/prohibited-identities.json"
           fi
           uvx --from pre-commit==4.6.0 pre-commit run tracked-privacy --hook-stage manual --all-files
+
+      # External-index availability is a release boundary, not a PR/push
+      # boundary. Repository-manager's one readiness primitive checks the
+      # package versions that this wheel declares before a tag can build.
+      - name: Checkout pinned release-readiness implementation
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: Knuckles-Team/repository-manager
+          ref: 0671b97250c7a2e87a1f63b43818e99eb90709a1
+          path: .uv-workspace-siblings/repository-manager
+          persist-credentials: false
+
+      - name: Release dependency readiness
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          rm_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/repository-manager"
+          au_source="$GITHUB_WORKSPACE/.uv-workspace-siblings/agent-utilities"
+          test "$(git -C "$rm_source" rev-parse HEAD)" = "0671b97250c7a2e87a1f63b43818e99eb90709a1"
+          mkdir -p "$rm_source/.uv-workspace-siblings"
+          ln -s "$au_source" "$rm_source/.uv-workspace-siblings/agent-utilities"
+          uv run --no-project --python 3.12 --prerelease=allow --with "$rm_source" \
+            python -m repository_manager.dependency_readiness .
 
       - name: Sync test environment
         run: |

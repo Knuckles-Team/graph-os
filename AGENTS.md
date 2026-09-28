@@ -110,10 +110,16 @@ uv run --no-project --with "mkdocs>=1.6,<2" mkdocs build --strict
 uv build --wheel --out-dir dist
 ```
 
-The pre-push suite adds dependency readiness, scanner censuses, clone checks,
-secret history, lock verification, and the local CI replica. Do not bypass a
-failure, add an inline suppression, freeze a baseline, or weaken a threshold.
-Scanner acceptance rules live in `docs/quality-gate-terms.md`.
+The pre-push suite runs secret-history and patch-safety checks without requiring
+sibling checkouts, native scanners, or a live runtime. The release workflow
+provisions pinned sibling sources, verifies the frozen lock, and runs the full
+test suite before build. Its scanner job provisions exact native versions and
+reports scanner findings. On release tags, repository-manager's external index
+dependency-readiness check blocks build and publication. The local `pytest`,
+`ci-gate-replica`, `dependency-readiness`, `uv-lock`, and scanner census hooks
+remain available at the `manual` stage. Do not bypass a failure, add an inline
+suppression, freeze a baseline, or weaken a threshold. Scanner acceptance rules
+live in `docs/quality-gate-terms.md`.
 
 Shared hooks come from `Knuckles-Team/pipelines` at the immutable revision in
 `.pre-commit-config.yaml`; CI and local checks use that same revision. A local

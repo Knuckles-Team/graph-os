@@ -83,7 +83,8 @@ repos:
   hooks:
   - id: uv-lock
     args: ["--locked"]
-    stages: [pre-push, manual]
+    # Hosted release gates verify the frozen lock after pinned source checkout.
+    stages: [manual]
 
 # ── Shared gates (Knuckles-Team/pipelines, pinned) ─────────────────────────────
 - repo: https://github.com/Knuckles-Team/pipelines
@@ -97,17 +98,17 @@ repos:
   - id: dupehound-changed
     stages: [pre-commit, manual]
   - id: complexity-census
-    stages: [pre-push, manual]
+    stages: [manual]
   # also graph-os's Python orphan-module wiring gate (.kiss/kiss.toml
   # orphan_module_enabled = true): one whole-package pass, enforced
   - id: kiss-census
-    stages: [pre-push, manual]
+    stages: [manual]
   - id: jscpd-differential
-    stages: [pre-push, manual]
+    stages: [manual]
   - id: jscpd-census
-    stages: [pre-push, manual]
+    stages: [manual]
   - id: scanner-versions
-    stages: [pre-push, manual]
+    stages: [manual]
   # code shape
   - id: no-stub
     stages: [pre-commit, manual]
