@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "spec_id": "GRAPHOS-CAPACITY-001",
+  "owner_repo": "graph-os",
+  "requirement_ids": [
+    "EH-406",
+    "EH-604"
+  ],
+  "delivery_state": "SPECIFIED",
+  "acceptance_state": "NOT_AUDITED",
+  "evidence": []
+}
