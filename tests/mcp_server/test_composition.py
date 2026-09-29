@@ -108,25 +108,56 @@ def test_console_script_targets_native_serving_entrypoint() -> None:
 
 
 def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
-    from agent_connector_sdk.mcp.content import register_connector_content
+    """GraphOS serves its shapes and packaged skill as SDK connector content.
 
+    The public ``graph-os-development`` skill ships under ``graph_os/skills``
+    (package data plus the ``agent_utilities.skill_providers`` entry point), so
+    the SDK registers exactly one skills-directory provider rooted there and
+    nothing else: no prompts, and one runtime shapes resource.
+    """
+    import anyio
+    from agent_connector_sdk.mcp.content import register_connector_content
+    from fastmcp.server.providers.skills import SkillsDirectoryProvider
+
+    import graph_os.skills
     from graph_os.content import connector_content
 
     class Mcp:
         def __init__(self) -> None:
             self.resources: list[Any] = []
+            self.providers: list[Any] = []
 
         def add_resource(self, resource: Any) -> None:
             self.resources.append(resource)
 
         def add_provider(self, provider: Any) -> None:
-            raise AssertionError("GraphOS does not package an SDK skill provider")
+            self.providers.append(provider)
 
         def add_prompt(self, prompt: Any) -> None:
             raise AssertionError("GraphOS does not package an SDK prompt")
 
     mcp = Mcp()
-    register_connector_content(mcp, connector_content())
+    registration = register_connector_content(mcp, connector_content())
+
+    assert (registration.skills, registration.prompts, registration.resources) == (
+        1,
+        0,
+        1,
+    )
+    assert len(mcp.providers) == 1
+    (provider,) = mcp.providers
+    assert type(provider) is SkillsDirectoryProvider
+    skills_root = Path(graph_os.skills.__file__).resolve().parent
+    assert sorted(path.parent.name for path in skills_root.glob("*/SKILL.md")) == [
+        "graph-os-development"
+    ]
+    skill_uris = sorted(
+        str(resource.uri) for resource in anyio.run(provider.list_resources)
+    )
+    assert skill_uris == [
+        "skill://graph-os-development/SKILL.md",
+        "skill://graph-os-development/_manifest",
+    ]
 
     assert len(mcp.resources) == 1
     resource = mcp.resources[0]
