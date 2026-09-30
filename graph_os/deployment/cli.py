@@ -29,6 +29,24 @@ from .genesis_environments import (
 )
 
 
+def _run_release_plan(args: argparse.Namespace) -> int:
+    from pathlib import Path
+
+    from .release_candidate import CandidateError, plan_candidate
+
+    try:
+        result = plan_candidate(
+            Path(args.candidate),
+            trusted_digest=args.trusted_digest,
+            profile_name=args.profile,
+        )
+    except CandidateError as exc:
+        print(json.dumps({"status": "blocked", "executed": False, "code": str(exc)}))
+        return 1
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 def _run_generate(args: argparse.Namespace) -> int:
     res = write_config(args.profile, args.out)
     print(json.dumps(res, indent=2))
@@ -103,6 +121,7 @@ def _run_environments(args: argparse.Namespace) -> int:
 
 
 _COMMAND_HANDLERS: dict[str, Callable[[argparse.Namespace], int]] = {
+    "release-plan": _run_release_plan,
     "generate": _run_generate,
     "doctor": _run_doctor,
     "reference": _run_reference,
@@ -176,6 +195,19 @@ def main(argv: list[str] | None = None) -> int:
         help="Load + validate one profile; exit non-zero and name the problem on failure.",
     )
     env_validate.add_argument("name", help="Profile name to validate.")
+
+    release = sub.add_parser(
+        "release-plan", help="Validate a trusted release candidate; never apply."
+    )
+    release.add_argument("candidate", help="Candidate JSON file.")
+    release.add_argument(
+        "--trusted-digest",
+        required=True,
+        help="Expected canonical sha256 digest; signature verification is always required.",
+    )
+    release.add_argument(
+        "--profile", required=True, help="Existing named deployment profile."
+    )
 
     args = parser.parse_args(argv)
     handler = _COMMAND_HANDLERS.get(args.command)

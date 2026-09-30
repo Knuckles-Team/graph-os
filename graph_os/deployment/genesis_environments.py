@@ -38,6 +38,8 @@ see the design doc's "Scope note".
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -797,7 +799,19 @@ def list_environment_profiles() -> dict[str, Path]:
     return found
 
 
-def load_environment_profile(name: str) -> EnvironmentProfile:
+def _profile_material(path: Path, expected_digest: str | None) -> bytes:
+    """Read once so the selected digest covers precisely the parsed profile."""
+    material = path.read_bytes()
+    if expected_digest is not None:
+        digest = "sha256:" + hashlib.sha256(material).hexdigest()
+        if not hmac.compare_digest(digest, expected_digest):
+            raise EnvironmentProfileError("profile_digest_mismatch")
+    return material
+
+
+def load_environment_profile(
+    name: str, *, expected_digest: str | None = None
+) -> EnvironmentProfile:
     """Load and fully validate the named profile.
 
     Raises :class:`EnvironmentProfileError` (or the more specific
@@ -817,7 +831,7 @@ def load_environment_profile(name: str) -> EnvironmentProfile:
         )
     path = catalog[name]
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        raw = yaml.safe_load(_profile_material(path, expected_digest))
     except yaml.YAMLError as exc:
         raise EnvironmentProfileError(f"{path}: invalid YAML: {exc}") from exc
     if not isinstance(raw, Mapping):
