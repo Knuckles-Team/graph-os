@@ -87,6 +87,38 @@ invalid.
 
 ## Validate a candidate
 
+Validate a signed candidate and emit a deterministic dependency plan with:
+
+```bash
+setup-config release-plan candidate.json --trusted-digest 'sha256:<digest>' --profile prod
+```
+
+The digest selects the canonical unsigned JSON document; it cannot establish
+trust. AU's configured
+`CERT_EVIDENCE_VERIFIER_COMMAND` independently authenticates the signed document
+before GraphOS consumes it. The signature envelope follows AU's public
+`verify_signed_evidence` contract, including algorithm, key ID, signature and
+subject digest. Missing or failed verification blocks planning.
+
+Candidate schema version 1 contains `candidate_id`, timezone-aware `created_at`,
+`artifacts`, `stages`, and one GraphOS `profiles` binding. Each artifact declares
+its component ID, repository, full source revision, immutable digest, image or
+wheel kind, exact API/schema contract identifiers, and public GitHub build
+receipt. Each stage declares whether it is optional/enabled, its probe contract,
+and predecessors with matching API/schema identifiers. Unknown fields,
+duplicate IDs, missing enabled predecessors, incompatible contracts and cycles
+are refused. Disabled optional stages are excluded from the plan. Ordering uses
+declared edges with component-ID tie-breaking.
+
+The profile binding pins both the profile file's SHA256 bytes and its GraphOS
+artifact digest. The existing profile loader validates that same material; its
+release must be digest-pinned to the selected artifact. The output includes
+manifest/profile digests, ordered artifact revisions and public receipts. It
+reports `executed: false` and `acceptance: not_audited`: this command does not
+apply artifacts, evaluate live readiness, perform rollback, or qualify a
+release. Those remaining requirements are tracked by the
+[dependency-ordered release specification](https://github.com/Knuckles-Team/graph-os/tree/main/specs/dependency-ordered-release).
+
 Run diagnostics against the resolved deployment configuration, then execute the
 bounded release canary in the candidate environment:
 
