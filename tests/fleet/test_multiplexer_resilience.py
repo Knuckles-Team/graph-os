@@ -124,6 +124,7 @@ async def test_zero_max_concurrency_is_rejected():
         ChildRuntime("unlimited", {"max_concurrency": 0})
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_multiplexer_surfaces_busy_error_as_typed_tool_result(tmp_path):
     mux = multiplexer_from_fixture(tmp_path / "c.json")
     # Seed the catalog directly (bypassing the on-disk config read) so
@@ -772,6 +773,7 @@ async def test_busy_rejections_do_not_count_as_breaker_failures():
     assert not (await blocker).is_error
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_multiplexer_surfaces_circuit_open_as_typed_tool_result(tmp_path):
     mux = multiplexer_from_fixture(tmp_path / "c.json")
     # Seed the catalog directly (bypassing the on-disk config read) so

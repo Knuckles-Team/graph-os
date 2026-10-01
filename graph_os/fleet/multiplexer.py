@@ -117,6 +117,11 @@ _ENGINE_CONFIG_FIELDS = frozenset(
         "pool_size",
         "enabledTools",
         "disabledTools",
+        # Declares a child tool's owner-stamped service-credential path
+        # (GRAPHOS-FLEET-R015/R021; see graph_os.fleet.gateway_ops and
+        # graph_os.fleet.service_child) instead of the caller's own
+        # delegated credential. Absent or any other value means "delegated".
+        "credential_mode",
     }
 )
 _MAX_DELEGATED_VALUE_BYTES = 4 * 1024 * 1024
@@ -1345,21 +1350,33 @@ async def _run_bounded_probe(
     )
 
 
-def _request_capabilities() -> frozenset[str] | None:
-    """Return verified remote capabilities, or ``None`` for local stdio."""
-    try:
-        from fastmcp.server.dependencies import get_access_token, get_http_request
+def _stdio_capabilities() -> frozenset[str]:
+    """Capabilities for a local stdio caller: the process's own verified
+    actor context (the same context the serving host binds for every stdio
+    tool call), read through its already-resolved effective capability set
+    (``roles`` — role ∪ scope ∪ group-derived capabilities). An unbound or
+    unauthenticated actor is refused exactly like an unauthenticated remote
+    caller — stdio carries no implicit trust.
+    """
+    from agent_utilities.security.brain_context import current_actor
 
-        get_http_request()
-    except RuntimeError:
-        return None
+    try:
+        actor = current_actor()
     except Exception:
         raise _fastmcp_exceptions.ToolError(
-            "Authenticated HTTP context required"
+            "Authenticated local process context required"
         ) from None
-    token = get_access_token()
-    if token is None:
-        raise _fastmcp_exceptions.ToolError("Authenticated HTTP context required")
+    if actor.authenticated is not True:
+        raise _fastmcp_exceptions.ToolError(
+            "Authenticated local process context required"
+        ) from None
+    return frozenset(str(role).strip() for role in actor.roles if str(role).strip())
+
+
+def _http_capabilities(token: _typing.Any) -> frozenset[str]:
+    """Capabilities for a verified HTTP bearer token: its own declared
+    scopes plus any identity-group-derived capabilities its claims map to.
+    """
     capabilities = {
         str(scope).strip()
         for scope in (getattr(token, "scopes", None) or [])
@@ -1384,30 +1401,54 @@ def _request_capabilities() -> frozenset[str] | None:
     return frozenset(capabilities)
 
 
+def _request_capabilities() -> frozenset[str]:
+    """Return the verified caller's capabilities for every transport.
+
+    Either path (stdio or HTTP) must resolve to a concrete, authenticated
+    capability set: there is no longer a transport that bypasses this check.
+    """
+    try:
+        from fastmcp.server.dependencies import get_access_token, get_http_request
+
+        get_http_request()
+    except RuntimeError:
+        return _stdio_capabilities()
+    except Exception:
+        raise _fastmcp_exceptions.ToolError(
+            "Authenticated HTTP context required"
+        ) from None
+    token = get_access_token()
+    if token is None:
+        raise _fastmcp_exceptions.ToolError("Authenticated HTTP context required")
+    return _http_capabilities(token)
+
+
 def _fleet_required_capabilities(kind: str) -> set[str]:
-    """Capability alternatives for one bounded fleet operation kind."""
+    """Capability alternatives for one bounded fleet operation kind.
+
+    ``manage`` has no narrower fleet-specific scope, so an administrative
+    grant is its exact requirement. ``discover`` and ``delegate`` each have
+    their own dedicated fleet scope; a generic ``admin``/``kg:admin``/
+    ``mcp:admin`` grant is a different capability entirely and is never
+    accepted in its place — the exact fleet scope is always required.
+    """
     administrative = {"admin", "kg:admin", "mcp:admin"}
     return {
-        "discover": {"mcp:discover", "mcp:delegate", *administrative},
+        "discover": {"mcp:discover", "mcp:delegate"},
         "manage": administrative,
-        "delegate": {"mcp:delegate", *administrative},
-    }.get(kind, {"mcp:delegate", *administrative})
+        "delegate": {"mcp:delegate"},
+    }.get(kind, {"mcp:delegate"})
 
 
 def _require_fleet_capability(kind: str, extra_scopes: list[str] | None = None) -> None:
-    """Authorize remote fleet discovery/delegation; local stdio is trusted."""
+    """Authorize fleet discovery/delegation for every transport, local stdio
+    included: the exact same capability check applies regardless of how the
+    caller connected."""
     capabilities = _request_capabilities()
-    if capabilities is None:
-        return
-    administrative = {"admin", "kg:admin", "mcp:admin"}
     required = _fleet_required_capabilities(kind)
     if not capabilities.intersection(required):
         raise _fastmcp_exceptions.ToolError(f"MCP fleet {kind} capability required")
-    if (
-        extra_scopes
-        and not capabilities.intersection(administrative)
-        and not set(extra_scopes).issubset(capabilities)
-    ):
+    if extra_scopes and not set(extra_scopes).issubset(capabilities):
         raise _fastmcp_exceptions.ToolError("Child MCP capability scope required")
 
 
@@ -6112,12 +6153,16 @@ class MCPMultiplexer:
             return prefixed_name in self._session_loaded.get(key, set())
         if not self.is_serving():
             return False
-        # Unknown to the multiplexer's own bookkeeping entirely — e.g. a
-        # native host tool registered directly on the FastMCP server outside
-        # the progressive-disclosure surface. Nothing here can gate it, so it
-        # is unconditionally callable, matching how the dispatch middleware
-        # (which only ever sees already-registered tool names) treats it.
-        return True
+        # Unknown to the catalog/probe/session-load bookkeeping entirely. The
+        # only remaining legitimate case is a native tool registered directly
+        # on the host FastMCP server outside the progressive-disclosure
+        # surface (e.g. one of this module's own meta-tools, or a host tool
+        # graph-os serves natively) — verify it is ACTUALLY registered there
+        # rather than assume some other layer admits it. No host bound at all
+        # means nothing here can vouch for the name, so it is denied too.
+        if self._host_mcp is None:
+            return False
+        return prefixed_name in _provider_tools(self._host_mcp)
 
     def prune_session_visibility(self, session_key: str) -> None:
         """Drop empty per-session visibility state after explicit retraction."""

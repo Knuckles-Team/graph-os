@@ -22,11 +22,13 @@ from fastmcp.tools import Tool
 from graph_os.fleet.multiplexer import (
     _LOCAL_SESSION_META_KEY,
     SessionVisibilityMiddleware,
+    _fleet_required_capabilities,
     _gated_tool_names,
     _make_forwarder,
     _provider_tools,
     _register_forwarder,
     _register_meta_tools,
+    _require_fleet_capability,
     _session_key,
     _tool_is_verbose,
     get_server_prefix,
@@ -207,6 +209,22 @@ def _mux_with_children(tmp_path, tool_map: dict[str, list[tuple[str, str]]]):
     return mux
 
 
+def _wired_meta_tool_server(tmp_path):
+    """One mux with a live ``CNT`` child, its meta-tools registered on a real
+    FastMCP host, ``_host_mcp`` bound (so ``tool_dispatchable`` recognizes
+    those meta-tools as genuinely host-registered), and the session
+    visibility middleware attached -- the shared live-client setup for the
+    ``load_tools`` notification/dispatch tests below."""
+    from fastmcp import FastMCP
+
+    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
+    mcp = FastMCP("test-mux")
+    _register_meta_tools(mcp, mux)
+    mux._host_mcp = mcp
+    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
+    return mux, mcp
+
+
 # --------------------------------------------------------------------------- #
 # Catalog + lazy mount
 # --------------------------------------------------------------------------- #
@@ -305,6 +323,7 @@ async def test_mount_child_lazy_and_idempotent(tmp_path):
     assert mux._start_child.await_count == 1
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_recovered_child_replaces_exposed_schema_without_catalog_polling(
     tmp_path,
 ):
@@ -394,6 +413,7 @@ async def test_recovered_child_replaces_exposed_schema_without_catalog_polling(
     await mux.aclose()
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     tmp_path, monkeypatch
 ):
@@ -459,6 +479,7 @@ async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     await mux.aclose()
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_schema_refresh_rolls_back_partial_host_registration_atomically(
     tmp_path, monkeypatch
 ):
@@ -1279,6 +1300,7 @@ async def test_list_catalog_unknown_server(tmp_path):
     assert "error" in cat
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_list_catalog_meta_tool_registered(tmp_path):
     from fastmcp import FastMCP
 
@@ -1495,6 +1517,7 @@ async def _registered_tool_names(mcp) -> set[str]:
     return {t.name for t in tools}
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_meta_tools_registered_and_load_exposes(tmp_path):
     from fastmcp import FastMCP
 
@@ -1526,6 +1549,7 @@ async def test_meta_tools_registered_and_load_exposes(tmp_path):
     assert CNT_PREFIXED in mux._exposed  # still globally registered
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_per_session_disclosure_isolation(tmp_path):
     """Plan Phase 5: one session's load_tools must not leak to another session.
 
@@ -1596,6 +1620,7 @@ async def test_per_session_disclosure_isolation(tmp_path):
     assert {"find_tools", "load_tools"} <= b_tools
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_one_shot_tool_call_prunes_session_visibility_state(tmp_path):
     """Auto-unload must leave no process-global key after the one-shot call."""
     from fastmcp import Client, FastMCP
@@ -1631,6 +1656,7 @@ async def test_one_shot_tool_call_prunes_session_visibility_state(tmp_path):
     assert mux._auto_unload == {}
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_explicit_unload_prunes_session_visibility_state(tmp_path):
     """List-only one-shot sessions retract visibility before termination."""
     from fastmcp import Client, FastMCP
@@ -1651,6 +1677,7 @@ async def test_explicit_unload_prunes_session_visibility_state(tmp_path):
     assert mux._auto_unload == {}
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_find_tools_meta_returns_structured(tmp_path):
     from fastmcp import FastMCP
 
@@ -1795,15 +1822,16 @@ async def test_tool_dispatchable_false_for_catalogued_but_unmounted_tool(tmp_pat
     assert mux.tool_dispatchable(CNT_PREFIXED, session_key="any-session") is False
 
 
-def test_tool_dispatchable_true_for_unknown_name_on_a_genuinely_serving_instance(
+def test_tool_dispatchable_false_for_unknown_name_on_a_serving_instance(
     tmp_path,
 ):
-    """The 'unknown to our bookkeeping -> unconditionally callable' fallback
-    still applies for a REAL, serving instance (non-empty catalog) — a name
-    that matches no server at all is presumed a native host tool outside the
-    progressive-disclosure surface, same as before D-SH-6's fix. This is the
-    regression guard: D-SH-6 must not turn INTO a false denial for the
-    legitimate case it always covered.
+    """An unrecognized native host tool must be DENIED by default, even on a
+    REAL, serving instance (non-empty catalog) — a name that matches no
+    server, no global/local visibility set, and no exposed forwarder is not
+    something this bookkeeping can vouch for, so it must not be presumed
+    callable. Default-open here was exactly the gap a caller could use to
+    reach an unregistered host tool the real dispatch middleware never
+    actually admitted.
 
     The EG-backed catalog source (``tests.fleet.catalog_fixture``) composes
     the catalog synchronously at construction, unlike the retired static
@@ -1811,7 +1839,7 @@ def test_tool_dispatchable_true_for_unknown_name_on_a_genuinely_serving_instance
     so a freshly-built fixture with an admissible server is already serving."""
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "a")]})
     assert mux.is_serving() is True  # at least one real server catalogued
-    assert mux.tool_dispatchable("some_native_host_tool") is True
+    assert mux.tool_dispatchable("some_native_host_tool") is False
 
 
 def test_tool_dispatchable_false_for_unknown_name_on_a_non_serving_instance(tmp_path):
@@ -1848,6 +1876,7 @@ async def test_tool_dispatchable_is_session_scoped_after_expose(tmp_path):
     assert mux.tool_dispatchable(CNT_PREFIXED, session_key="session-B") is False
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_list_catalog_mounted_matches_dispatch_reality_across_sessions(
     tmp_path,
 ):
@@ -1925,6 +1954,7 @@ async def test_list_catalog_mounted_matches_dispatch_reality_across_sessions(
         assert entry_a["mounted"] is True
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_three_concurrent_local_sessions_blast_radius(tmp_path):
     """D-W2-6 blast-radius proof: reproduces the independently-observed symptom
     ("...leaks process-global multiplexer session visibility and creates three
@@ -2134,6 +2164,7 @@ async def test_notify_tools_changed_surfaces_send_failure(monkeypatch, caplog):
     assert any("list_changed" in r.message for r in caplog.records)
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_load_tools_reports_notification_sent_true_inside_a_live_session(
     tmp_path,
 ):
@@ -2142,12 +2173,9 @@ async def test_load_tools_reports_notification_sent_true_inside_a_live_session(
     never "this client's own tool list is refreshed". See
     ``test_load_tools_notification_sent_true_does_not_imply_the_tool_is_dispatchable_yet``
     for the negative case that motivated the rename."""
-    from fastmcp import Client, FastMCP
+    from fastmcp import Client
 
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
+    _mux, mcp = _wired_meta_tool_server(tmp_path)
 
     async with Client(mcp) as client:
         result = await client.call_tool("load_tools", {"servers": [CNT]})
@@ -2180,6 +2208,7 @@ async def test_load_tools_reports_notification_not_sent_outside_a_request_contex
     assert "notified" not in payload
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_load_tools_notification_sent_true_does_not_imply_universal_callability(
     tmp_path,
 ):
@@ -2193,12 +2222,9 @@ async def test_load_tools_notification_sent_true_does_not_imply_universal_callab
     name, in the SAME live multiplexer, moments later. If ``notification_sent:
     True`` meant what the retired ``notified`` name implied ("the tool is
     callable now"), this would have to succeed; it must not."""
-    from fastmcp import Client, FastMCP
+    from fastmcp import Client
 
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
+    _mux, mcp = _wired_meta_tool_server(tmp_path)
 
     # The in-memory transport gives no real per-connection identity (see
     # ``_session_key``'s docstring), so two independent sessions must declare
@@ -2335,6 +2361,7 @@ async def test_aclose_cancels_a_forced_probe_too(tmp_path):
     assert not mux._probe_tasks
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_load_tools_changes_the_wire_tool_list_a_live_client_observes(tmp_path):
     """Track 9 of the pydantic-ai native-adoption program (provider prompt-cache
     discipline, CONCEPT:AU-ORCH.optimization.provider-prompt-cache — see
@@ -2362,12 +2389,9 @@ async def test_load_tools_changes_the_wire_tool_list_a_live_client_observes(tmp_
     prompt-cache-safe by the framework's own design (see
     ``pydantic_ai.capabilities.ToolSearch``'s docstring).
     """
-    from fastmcp import Client, FastMCP
+    from fastmcp import Client
 
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
+    _mux, mcp = _wired_meta_tool_server(tmp_path)
 
     async with Client(mcp) as client:
         before = {t.name for t in await client.list_tools()}
@@ -2384,3 +2408,104 @@ async def test_load_tools_changes_the_wire_tool_list_a_live_client_observes(tmp_
     # of that array.
     assert after != before
     assert CNT_PREFIXED in after
+
+
+def _mock_authenticated_http_caller(monkeypatch, *, scopes):
+    """Simulate a real, authenticated HTTP/remote caller with exactly ``scopes``."""
+    monkeypatch.setattr(
+        "fastmcp.server.dependencies.get_http_request", lambda: SimpleNamespace()
+    )
+    monkeypatch.setattr(
+        "fastmcp.server.dependencies.get_access_token",
+        lambda: SimpleNamespace(scopes=list(scopes), claims=None),
+    )
+
+
+def test_fleet_required_capabilities_rejects_generic_admin_for_discover_and_delegate():
+    """A broad ``admin``/``kg:admin``/``mcp:admin`` grant is a different
+    capability than the fleet's own ``mcp:discover``/``mcp:delegate`` scopes
+    and must never satisfy either of them. ``manage`` has no narrower
+    fleet-specific scope of its own, so an administrative grant remains its
+    exact requirement."""
+    for admin_scope in ("admin", "kg:admin", "mcp:admin"):
+        assert admin_scope not in _fleet_required_capabilities("discover")
+        assert admin_scope not in _fleet_required_capabilities("delegate")
+        assert admin_scope in _fleet_required_capabilities("manage")
+
+
+def test_require_fleet_capability_denies_admin_only_caller_for_discover(monkeypatch):
+    """The previously over-broad path, now denied: an admin-only caller who
+    holds no ``mcp:discover`` scope must be refused fleet discovery -- a
+    generic administrative grant is not a substitute for the exact fleet
+    scope the requested action declares."""
+    _mock_authenticated_http_caller(monkeypatch, scopes=["admin"])
+    with pytest.raises(ToolError, match="MCP fleet discover capability required"):
+        _require_fleet_capability("discover")
+
+
+def test_require_fleet_capability_allows_exact_scope_caller_for_discover(monkeypatch):
+    """The correctly scoped path, still allowed: a caller holding the fleet's
+    own ``mcp:discover`` scope passes with no administrative grant at all."""
+    _mock_authenticated_http_caller(monkeypatch, scopes=["mcp:discover"])
+    _require_fleet_capability("discover")  # must not raise
+
+
+def test_require_fleet_capability_enforces_extra_scopes_even_for_admin_caller(
+    monkeypatch,
+):
+    """A child's own declared extra-scope requirement must still be enforced
+    even when the caller additionally holds an administrative capability --
+    admin no longer bypasses a declared child capability-scope requirement."""
+    _mock_authenticated_http_caller(monkeypatch, scopes=["mcp:delegate", "admin"])
+    with pytest.raises(ToolError, match="Child MCP capability scope required"):
+        _require_fleet_capability("delegate", extra_scopes=["child:special"])
+
+
+def test_require_fleet_capability_allows_caller_holding_the_extra_scope(monkeypatch):
+    _mock_authenticated_http_caller(
+        monkeypatch, scopes=["mcp:delegate", "child:special"]
+    )
+    _require_fleet_capability("delegate", extra_scopes=["child:special"])  # no raise
+
+
+def test_require_fleet_capability_denies_stdio_caller_with_no_verified_actor():
+    """GRAPHOS-FLEET-R021: a local stdio caller is no longer trusted outright
+    -- with no verified process actor bound at all, the exact same check
+    applies and the call is refused, exactly as an unauthenticated remote
+    caller would be."""
+    with pytest.raises(ToolError, match="Authenticated local process context"):
+        _require_fleet_capability("discover")
+
+
+def test_require_fleet_capability_denies_stdio_caller_missing_the_exact_scope():
+    """A verified stdio actor that lacks the fleet's own ``mcp:discover``
+    scope is refused the same way a remote caller without it would be --
+    being local carries no implicit discovery/delegation grant."""
+    from agent_utilities.security.brain_context import ActorContext, use_actor
+
+    actor = ActorContext(
+        actor_id="stdio-caller",
+        roles=("some:other:scope",),
+        tenant_id="test-tenant",
+        authenticated=True,
+    )
+    with use_actor(actor):
+        with pytest.raises(ToolError, match="MCP fleet discover capability required"):
+            _require_fleet_capability("discover")
+
+
+def test_require_fleet_capability_allows_stdio_caller_with_exact_scope():
+    """The correctly scoped stdio path: a verified local actor holding the
+    fleet's own ``mcp:discover`` scope passes -- the same outcome an
+    equally-scoped remote caller gets, proving local stdio runs through the
+    identical check rather than a separate, more permissive one."""
+    from agent_utilities.security.brain_context import ActorContext, use_actor
+
+    actor = ActorContext(
+        actor_id="stdio-caller",
+        roles=("mcp:discover",),
+        tenant_id="test-tenant",
+        authenticated=True,
+    )
+    with use_actor(actor):
+        _require_fleet_capability("discover")  # must not raise
