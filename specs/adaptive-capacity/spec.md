@@ -1,8 +1,6 @@
 # Adaptive capacity control
 
 **Owner:** graph-os. **Requirement IDs:** GRAPHOS-CAPACITY-R001; GraphOS interface GRAPHOS-CAPACITY-R002. **Spec state:** ready to build. **Delivery state:** source not verified. **Acceptance state:** not accepted.
-Every requirement ID above is defined in [requirements.md](requirements.md); its current delivery
-state and evidence are recorded in [status.json](status.json).
 
 ## State legend
 

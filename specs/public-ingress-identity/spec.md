@@ -1,8 +1,6 @@
 # GRAPHOS-INGRESS-001 — Portable public ingress and identity cutover
 
 **Owner:** graph-os. **Requirement ID:** GRAPHOS-INGRESS-R001 (GraphOS deployment-consumer partition). **Delivery:** SPECIFIED. **Acceptance:** NOT_AUDITED.
-Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
-delivery state and evidence are recorded in [status.json](status.json).
 
 ## Purpose and user stories
 
