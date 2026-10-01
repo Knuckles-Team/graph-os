@@ -87,8 +87,10 @@ async def _unused_invoke(*_args: object, **_kwargs: object) -> None:
 
 def test_v1_subapp_mount_has_one_prefix(monkeypatch: pytest.MonkeyPatch) -> None:
     module = ModuleType("graph_os.api.registry")
-    module.Surface = SimpleNamespace(HTTP="http")  # type: ignore[attr-defined]
-    module.canonical_op = lambda op: {"id": op.id}  # type: ignore[attr-defined]
+    vars(module).update(
+        Surface=SimpleNamespace(HTTP="http"),
+        canonical_op=lambda op: {"id": op.id},
+    )
     monkeypatch.setitem(sys.modules, "graph_os.api.registry", module)
     op = SimpleNamespace(
         id="identity.users.list",
