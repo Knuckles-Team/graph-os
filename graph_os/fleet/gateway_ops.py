@@ -103,6 +103,28 @@ DelegatedCall = Callable[[str, str, Mapping[str, Any], Any], Awaitable[Any]]
 ServiceCall = Callable[[str, str, Mapping[str, Any], Any, str, str], Awaitable[Any]]
 
 
+def _require_admitted_target(item: Any, server: str, tool: str) -> None:
+    if (
+        item is None
+        or getattr(item, "kind", None) != "tool"
+        or getattr(item, "server", None) != server
+        or getattr(item, "name", None) != tool
+    ):
+        raise PermissionError("fleet tool is not admitted")
+
+
+def _require_service_authority(
+    mode: str, executor_scopes: frozenset[str], subject_id: Any
+) -> None:
+    if mode == "service" and (
+        not isinstance(executor_scopes, frozenset)
+        or not executor_scopes
+        or not isinstance(subject_id, str)
+        or not subject_id
+    ):
+        raise RuntimeError("service child authority metadata is incomplete")
+
+
 def tool_for_multiplexer_ops(ops: Any) -> ToolFor:
     """Read private effect/credential metadata from the admitted fleet item.
 
@@ -113,26 +135,14 @@ def tool_for_multiplexer_ops(ops: Any) -> ToolFor:
 
     async def tool_for(server: str, tool: str, caller: Any) -> AdmittedTool:
         item = await ops.admitted_tool(caller, server, tool)
-        if (
-            item is None
-            or getattr(item, "kind", None) != "tool"
-            or getattr(item, "server", None) != server
-            or getattr(item, "name", None) != tool
-        ):
-            raise PermissionError("fleet tool is not admitted")
+        _require_admitted_target(item, server, tool)
         scopes = getattr(item, "required_scopes", None)
         mode = getattr(item, "credential_mode", None)
         if not isinstance(scopes, frozenset) or mode not in {"delegated", "service"}:
             raise RuntimeError("fleet tool authority metadata is incomplete")
         executor_scopes: frozenset[str] = getattr(item, "executor_scopes", frozenset())
         subject_id = getattr(item, "subject_id", None)
-        if mode == "service" and (
-            not isinstance(executor_scopes, frozenset)
-            or not executor_scopes
-            or not isinstance(subject_id, str)
-            or not subject_id
-        ):
-            raise RuntimeError("service child authority metadata is incomplete")
+        _require_service_authority(mode, executor_scopes, subject_id)
         return AdmittedTool(
             annotations=getattr(item, "annotations", None),
             effect_override=getattr(item, "effect_override", None),
@@ -175,6 +185,67 @@ def oauth_delegated_call_for_mux(mux: Any) -> DelegatedCall:
         return result.model_dump(mode="json", by_alias=True)
 
     return delegated
+
+
+def _owner_identity_confirmed(
+    *,
+    caller: Any,
+    service_identity: bool,
+    owner: str | None,
+    owner_ref: str | None,
+    expected_owner_ref: str,
+) -> bool:
+    return (
+        service_identity is True
+        and owner == caller.principal
+        and owner_ref == expected_owner_ref
+    )
+
+
+def _fleet_decision_matches(fleet_decision: Any, descriptor: AdmittedTool) -> bool:
+    return (
+        fleet_decision is not None
+        and fleet_decision.credential_mode == "service"
+        and fleet_decision.executor is Executor.SERVICE
+        and fleet_decision.subject_id == descriptor.subject_id
+        and fleet_decision.executor_scopes == descriptor.executor_scopes
+        and fleet_decision.required_scopes == descriptor.required_scopes
+    )
+
+
+def _validated_service_owner_ref(
+    *,
+    caller: Any,
+    descriptor: AdmittedTool,
+    service_identity: bool,
+    owner: str | None,
+    owner_ref: str | None,
+    fleet_decision: Any,
+    registry_digest: str,
+) -> str:
+    """Return ``owner_ref`` once every service-credential authority matches.
+
+    Returning the confirmed value (rather than leaving the caller's own
+    ``str | None`` in scope) is what lets the one dispatch call that follows
+    pass it to a transport expecting a plain ``str``.
+    """
+    expected_owner_ref = (
+        "principal:sha256:" + hashlib.sha256(caller.principal.encode()).hexdigest()
+    )
+    identity_ok = _owner_identity_confirmed(
+        caller=caller,
+        service_identity=service_identity,
+        owner=owner,
+        owner_ref=owner_ref,
+        expected_owner_ref=expected_owner_ref,
+    )
+    if (
+        not identity_ok
+        or not _fleet_decision_matches(fleet_decision, descriptor)
+        or not registry_digest
+    ):
+        raise PermissionError("service child authority changed before dispatch")
+    return expected_owner_ref
 
 
 class FleetGateway:
@@ -293,26 +364,19 @@ class FleetGateway:
         if current_effect is not expected_effect:
             raise RuntimeError("fleet effect changed before dispatch")
         if descriptor.credential_mode == "service":
-            expected_owner_ref = (
-                "principal:sha256:"
-                + hashlib.sha256(caller.principal.encode()).hexdigest()
-            )
-            if (
-                service_identity is not True
-                or owner != caller.principal
-                or owner_ref != expected_owner_ref
-                or fleet_decision is None
-                or fleet_decision.credential_mode != "service"
-                or fleet_decision.executor is not Executor.SERVICE
-                or fleet_decision.subject_id != descriptor.subject_id
-                or fleet_decision.executor_scopes != descriptor.executor_scopes
-                or fleet_decision.required_scopes != descriptor.required_scopes
-                or self._service_call is None
-                or not registry_digest
-            ):
+            if self._service_call is None:
                 raise PermissionError("service child authority changed before dispatch")
+            validated_owner_ref = _validated_service_owner_ref(
+                caller=caller,
+                descriptor=descriptor,
+                service_identity=service_identity,
+                owner=owner,
+                owner_ref=owner_ref,
+                fleet_decision=fleet_decision,
+                registry_digest=registry_digest,
+            )
             return await self._service_call(
-                server, tool, arguments, caller, owner_ref, registry_digest
+                server, tool, arguments, caller, validated_owner_ref, registry_digest
             )
         if service_identity is True:
             raise PermissionError("delegated child cannot use service identity")

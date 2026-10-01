@@ -19,6 +19,16 @@ NativeName = Callable[[CatalogItem], str]
 ReadItem = Callable[[CatalogItem, Mapping[str, Any], Any], Awaitable[Any]]
 
 
+def _require_delegate_scope(caller: Any) -> None:
+    if "mcp:delegate" not in caller.effective_scopes:
+        raise PermissionError("mcp:delegate is required")
+
+
+def _require_discover_scope(caller: Any) -> None:
+    if "mcp:discover" not in caller.effective_scopes:
+        raise PermissionError("mcp:discover is required")
+
+
 class MultiplexerOps:
     """Discover, mount and track items under injected caller authority.
 
@@ -58,8 +68,7 @@ class MultiplexerOps:
 
     async def admitted_tool(self, caller: Any, server: str, tool: str) -> CatalogItem:
         """Return one call-authorized descriptor without requiring discovery scope."""
-        if "mcp:delegate" not in caller.effective_scopes:
-            raise PermissionError("mcp:delegate is required")
+        _require_delegate_scope(caller)
         item = await self.catalog._raw_get(f"fleet:tool:{server}/{tool}")
         if (
             item is None
@@ -85,8 +94,7 @@ class MultiplexerOps:
 
     async def search(self, caller: Any, **params: Any) -> dict[str, Any]:
         """Registry service contract for ``fleet.catalog.search``."""
-        if "mcp:discover" not in caller.effective_scopes:
-            raise PermissionError("mcp:discover is required")
+        _require_discover_scope(caller)
         return await self.find_tools(caller, **params)
 
     async def list(self, caller: Any, **params: Any) -> dict[str, Any]:
@@ -100,8 +108,7 @@ class MultiplexerOps:
         auto_unload: bool = False,
         evict: str | None = None,
     ) -> dict[str, Any]:
-        if "mcp:delegate" not in caller.effective_scopes:
-            raise PermissionError("mcp:delegate is required")
+        _require_delegate_scope(caller)
         return await self.load_tools(
             caller,
             self._session_key(caller),
@@ -118,8 +125,7 @@ class MultiplexerOps:
         kinds: Iterable[ItemKind] = (),
         all_items: bool = False,
     ) -> dict[str, Any]:
-        if "mcp:delegate" not in caller.effective_scopes:
-            raise PermissionError("mcp:delegate is required")
+        _require_delegate_scope(caller)
         return await self.unload_tools(
             caller,
             self._session_key(caller),
@@ -130,8 +136,7 @@ class MultiplexerOps:
         )
 
     async def status(self, caller: Any, servers: Iterable[str] = ()) -> dict[str, Any]:
-        if "mcp:discover" not in caller.effective_scopes:
-            raise PermissionError("mcp:discover is required")
+        _require_discover_scope(caller)
         key = self._session_key_for(caller)
         snapshot = (
             self.multiplexer_status(key)
@@ -149,28 +154,11 @@ class MultiplexerOps:
             }
         return snapshot
 
-    async def find_tools(
-        self,
-        caller: Any,
-        *,
-        query: str = "",
-        kinds: Iterable[ItemKind] = (),
-        servers: Iterable[str] = (),
-        browse: bool = False,
-        cursor: str | None = None,
-        limit: int = 20,
-        context_budget_tokens: int | None = None,
-    ) -> dict[str, Any]:
-        return await self.catalog.search(
-            caller,
-            query=query,
-            kinds=kinds,
-            servers=servers,
-            browse=browse,
-            cursor=cursor,
-            limit=limit,
-            context_budget_tokens=context_budget_tokens,
-        )
+    async def find_tools(self, caller: Any, **params: Any) -> dict[str, Any]:
+        """Forward to the one typed catalog search; see ``FleetCatalog.search``
+        for the accepted ``query``/``kinds``/``servers``/``browse``/``cursor``/
+        ``limit``/``context_budget_tokens`` keywords and their validation."""
+        return await self.catalog.search(caller, **params)
 
     def _forwarder(self, item: CatalogItem) -> Callable[..., Awaitable[Any]]:
         if item.server is None:
@@ -218,6 +206,49 @@ class MultiplexerOps:
             result["body"] = item.body
         return result
 
+    async def _resolve_loadable_items(
+        self, ids: builtins.list[str], caller: Any
+    ) -> builtins.list[CatalogItem]:
+        resolved: builtins.list[CatalogItem] = []
+        for item_id in ids:
+            item = await self.catalog.get(item_id, caller)
+            if item is None or not await self._loadable(item, caller):
+                raise PermissionError(f"item is unavailable for load: {item_id}")
+            resolved.append(item)
+        return resolved
+
+    def _check_session_cap(
+        self, session_key: str, ids: builtins.list[str], evict: str | None
+    ) -> None:
+        if (
+            len(set(ids) | self.sessions.loaded(session_key)) > self.sessions.cap
+            and evict != "lru"
+        ):
+            # The state machine provides the detailed LOAD_CAP_EXCEEDED payload.
+            self.sessions.load(session_key, ids, evict=evict)
+        if len(ids) > self.sessions.cap:
+            raise ValueError("request exceeds session cap")
+
+    def _register_native_name(self, item: CatalogItem) -> None:
+        name = self._native_name(item)
+        prior = self._native_ids.get(name)
+        if prior is not None and prior != item.id:
+            raise ValueError(f"native fleet name collision: {name}")
+        self._native_ids[name] = item.id
+
+    async def _mount_item_for_load(self, item: CatalogItem) -> None:
+        if item.kind == "connector_item":
+            return
+        if item.kind in {"tool", "prompt", "resource", "resource_template"}:
+            self._register_native_name(item)
+        if item.kind == "skill":
+            # A skill body is returned in the load result until a native
+            # Skills-over-MCP provider is bound for this client profile.
+            return
+        if item.kind in {"resource", "resource_template"} and self._read_item is None:
+            raise RuntimeError("governed fleet read adapter is unavailable")
+        await self._mount(item, self._forwarder(item) if item.kind == "tool" else None)
+
     async def load_tools(
         self,
         caller: Any,
@@ -230,43 +261,11 @@ class MultiplexerOps:
         ids = list(dict.fromkeys(items))
         if not ids or len(ids) > 256:
             raise ValueError("load expects 1..256 item ids")
-        if "mcp:delegate" not in caller.effective_scopes:
-            raise PermissionError("mcp:delegate is required")
-        resolved: builtins.list[CatalogItem] = []
-        for item_id in ids:
-            item = await self.catalog.get(item_id, caller)
-            if item is None or not await self._loadable(item, caller):
-                raise PermissionError(f"item is unavailable for load: {item_id}")
-            resolved.append(item)
-        if (
-            len(set(ids) | self.sessions.loaded(session_key)) > self.sessions.cap
-            and evict != "lru"
-        ):
-            # The state machine provides the detailed LOAD_CAP_EXCEEDED payload.
-            self.sessions.load(session_key, ids, evict=evict)
-        if len(ids) > self.sessions.cap:
-            raise ValueError("request exceeds session cap")
+        _require_delegate_scope(caller)
+        resolved = await self._resolve_loadable_items(ids, caller)
+        self._check_session_cap(session_key, ids, evict)
         for item in resolved:
-            if item.kind == "connector_item":
-                continue
-            if item.kind in {"tool", "prompt", "resource", "resource_template"}:
-                name = self._native_name(item)
-                prior = self._native_ids.get(name)
-                if prior is not None and prior != item.id:
-                    raise ValueError(f"native fleet name collision: {name}")
-                self._native_ids[name] = item.id
-            if item.kind == "skill":
-                # A skill body is returned in the load result until a native
-                # Skills-over-MCP provider is bound for this client profile.
-                continue
-            if (
-                item.kind in {"resource", "resource_template"}
-                and self._read_item is None
-            ):
-                raise RuntimeError("governed fleet read adapter is unavailable")
-            await self._mount(
-                item, self._forwarder(item) if item.kind == "tool" else None
-            )
+            await self._mount_item_for_load(item)
         state = self.sessions.load(
             session_key, ids, evict=evict, auto_unload=auto_unload
         )
@@ -289,8 +288,7 @@ class MultiplexerOps:
         kinds: Iterable[ItemKind] = (),
         all_items: bool = False,
     ) -> dict[str, Any]:
-        if "mcp:delegate" not in caller.effective_scopes:
-            raise PermissionError("mcp:delegate is required")
+        _require_delegate_scope(caller)
         loaded = self.sessions.loaded(session_key)
         targets = set(items) & loaded
         server_filter, kind_filter = set(servers), set(kinds)
@@ -368,8 +366,7 @@ class MultiplexerOps:
         params: Mapping[str, Any],
     ) -> Any:
         """Render one loaded non-tool item under fresh caller policy."""
-        if "mcp:delegate" not in caller.effective_scopes:
-            raise PermissionError("mcp:delegate is required")
+        _require_delegate_scope(caller)
         if item_id not in self.sessions.loaded(session_key):
             raise PermissionError("item is not loaded in this session")
         item = await self.catalog.get(item_id, caller)

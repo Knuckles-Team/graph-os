@@ -22,6 +22,12 @@ class _Session:
     one_shot: set[str] = field(default_factory=set)
 
 
+def _session_snapshot(session: _Session) -> list[dict[str, str | float]]:
+    return [
+        {"id": name, "last_use": stamp} for name, stamp in sorted(session.items.items())
+    ]
+
+
 class SessionLoads:
     def __init__(
         self,
@@ -60,6 +66,28 @@ class SessionLoads:
             if now - session.last_access < self.idle_ttl_seconds
         )
 
+    def _overflow_victims(
+        self,
+        session: _Session,
+        requested: list[str],
+        new: list[str],
+        evict: str | None,
+    ) -> list[str]:
+        overflow = max(0, len(session.items) + len(new) - self.cap)
+        if len(new) > self.cap:
+            raise ValueError("request exceeds session cap")
+        if overflow and evict != "lru":
+            raise LoadCapExceeded(_session_snapshot(session))
+        if evict not in {None, "lru"}:
+            raise ValueError("evict must be lru")
+        candidates = (name for name in session.items if name not in requested)
+        victims = sorted(candidates, key=lambda name: (session.items[name], name))[
+            :overflow
+        ]
+        if len(victims) < overflow:
+            raise LoadCapExceeded(_session_snapshot(session))
+        return victims
+
     def load(
         self,
         key: str,
@@ -71,29 +99,7 @@ class SessionLoads:
         requested = list(dict.fromkeys(items))
         session = self._session(key)
         new = [name for name in requested if name not in session.items]
-        overflow = max(0, len(session.items) + len(new) - self.cap)
-        if len(new) > self.cap:
-            raise ValueError("request exceeds session cap")
-        if overflow and evict != "lru":
-            raise LoadCapExceeded(
-                [
-                    {"id": name, "last_use": stamp}
-                    for name, stamp in sorted(session.items.items())
-                ]
-            )
-        if evict not in {None, "lru"}:
-            raise ValueError("evict must be lru")
-        candidates = (name for name in session.items if name not in requested)
-        victims = sorted(candidates, key=lambda name: (session.items[name], name))[
-            :overflow
-        ]
-        if len(victims) < overflow:
-            raise LoadCapExceeded(
-                [
-                    {"id": name, "last_use": stamp}
-                    for name, stamp in sorted(session.items.items())
-                ]
-            )
+        victims = self._overflow_victims(session, requested, new, evict)
         for name in victims:
             del session.items[name]
             session.one_shot.discard(name)

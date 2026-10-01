@@ -110,6 +110,101 @@ def _owner_ref(principal: str) -> str:
     return "principal:sha256:" + hashlib.sha256(principal.encode()).hexdigest()
 
 
+def _require_current_revision(registry_digest: str, caller: Any) -> str:
+    """Validate ``registry_digest`` shape and its matching, current policy
+    revision; return the verified policy revision."""
+    policy_revision = getattr(caller, "policy_revision", None)
+    if (
+        not isinstance(registry_digest, str)
+        or len(registry_digest) != 64
+        or not all(char in "0123456789abcdef" for char in registry_digest)
+        or not isinstance(policy_revision, str)
+        or not policy_revision
+        or caller.engine_claims.get("policy_version") != policy_revision
+    ):
+        raise PermissionError("service child authority revision is unavailable")
+    return policy_revision
+
+
+def _require_admitted_service_tool(item: Any, caller: Any) -> None:
+    if (
+        item.credential_mode != "service"
+        or not item.subject_id
+        or not item.executor_scopes
+        or not item.required_scopes.issubset(caller.effective_scopes)
+    ):
+        raise PermissionError("service child authority is incomplete")
+
+
+def _consistent_scope_carrier_digest(caller: Any) -> str:
+    """Validate the caller's verified-claim scope carrier matches its
+    effective scopes exactly; return its canonical digest."""
+    carrier_scopes = caller.engine_claims.get("scopes")
+    if (
+        not isinstance(carrier_scopes, list)
+        or not all(isinstance(scope, str) and scope for scope in carrier_scopes)
+        or frozenset(carrier_scopes) != caller.effective_scopes
+    ):
+        raise PermissionError("service child caller scope carrier is inconsistent")
+    return hashlib.sha256(
+        json.dumps(
+            sorted(carrier_scopes),
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode()
+    ).hexdigest()
+
+
+async def _record_outcome_unknown_best_effort(
+    journal: ServiceChildJournal, record_id: str, reason: str, caller: Any
+) -> None:
+    """Best-effort durable recovery marker.
+
+    A failure here must never shadow the primary
+    :class:`ServiceChildOutcomeUnknown` the caller raises regardless; it is
+    only logged so a failing journal stays visible to operators.
+    """
+    try:
+        await journal.outcome_unknown(record_id, reason, caller)
+    except Exception as journal_exc:
+        logger.warning(
+            "service child outcome_unknown journal write failed "
+            "(record_id=%s, exception_type=%s); the primary "
+            "ServiceChildOutcomeUnknown is raised regardless",
+            record_id,
+            type(journal_exc).__name__,
+        )
+
+
+def _reports_child_error(result: Any) -> bool:
+    if isinstance(result, Mapping):
+        return bool(result.get("isError", result.get("is_error", False)))
+    return bool(getattr(result, "is_error", getattr(result, "isError", False)))
+
+
+def _reservation_shape_valid(receipt: DurableReservation) -> bool:
+    return (
+        isinstance(receipt, DurableReservation)
+        and receipt.durable is True
+        and type(receipt.created) is bool
+        and isinstance(receipt.record_id, str)
+        and len(receipt.record_id) == 64
+        and all(char in "0123456789abcdef" for char in receipt.record_id)
+        and bool(receipt.recovery_ref)
+    )
+
+
+def _reservation_matches_record(
+    record: ServiceChildRecord, receipt: DurableReservation
+) -> bool:
+    return (
+        receipt.owner_ref == record.owner_ref
+        and receipt.target == record.target
+        and receipt.subject_id == record.subject_id
+        and receipt.audit_ref == record.request_id
+    )
+
+
 class ServiceChildAdapter:
     """Record a verified owner and target before exactly one child attempt."""
 
@@ -134,24 +229,9 @@ class ServiceChildAdapter:
         registry_digest: str,
     ) -> Any:
         self._verify_caller(caller, owner_ref)
-        policy_revision = getattr(caller, "policy_revision", None)
-        if (
-            not isinstance(registry_digest, str)
-            or len(registry_digest) != 64
-            or not all(char in "0123456789abcdef" for char in registry_digest)
-            or not isinstance(policy_revision, str)
-            or not policy_revision
-            or caller.engine_claims.get("policy_version") != policy_revision
-        ):
-            raise PermissionError("service child authority revision is unavailable")
+        policy_revision = _require_current_revision(registry_digest, caller)
         item = await self._admitted_tool(caller, server, tool)
-        if (
-            item.credential_mode != "service"
-            or not item.subject_id
-            or not item.executor_scopes
-            or not item.required_scopes.issubset(caller.effective_scopes)
-        ):
-            raise PermissionError("service child authority is incomplete")
+        _require_admitted_service_tool(item, caller)
         argument_digest = _digest(arguments)
         # The served invoke surface does not exist on this repository yet
         # (GRAPHOS-FLEET-R012's remaining note); its canonical params digest
@@ -161,20 +241,7 @@ class ServiceChildAdapter:
         audit_params_sha256 = _digest(
             {"server": server, "tool": tool, "arguments": dict(arguments)}
         )
-        carrier_scopes = caller.engine_claims.get("scopes")
-        if (
-            not isinstance(carrier_scopes, list)
-            or not all(isinstance(scope, str) and scope for scope in carrier_scopes)
-            or frozenset(carrier_scopes) != caller.effective_scopes
-        ):
-            raise PermissionError("service child caller scope carrier is inconsistent")
-        scopes_sha256 = hashlib.sha256(
-            json.dumps(
-                sorted(carrier_scopes),
-                separators=(",", ":"),
-                ensure_ascii=False,
-            ).encode()
-        ).hexdigest()
+        scopes_sha256 = _consistent_scope_carrier_digest(caller)
         record_id = _digest(
             {
                 "tenant": caller.tenant,
@@ -213,38 +280,17 @@ class ServiceChildAdapter:
         try:
             result = await self._transport.call_service_child_once(record, arguments)
         except BaseException as exc:
-            try:
-                await self._journal.outcome_unknown(
-                    record_id, type(exc).__name__, caller
-                )
-            except Exception as journal_exc:
-                logger.warning(
-                    "service child outcome_unknown journal write failed "
-                    "(record_id=%s, exception_type=%s); the primary "
-                    "ServiceChildOutcomeUnknown is raised regardless",
-                    record_id,
-                    type(journal_exc).__name__,
-                )
+            await _record_outcome_unknown_best_effort(
+                self._journal, record_id, type(exc).__name__, caller
+            )
             raise ServiceChildOutcomeUnknown(
                 "service child outcome requires recovery",
                 recovery_ref=reservation.recovery_ref,
             ) from exc
-        child_error = (
-            result.get("isError", result.get("is_error", False))
-            if isinstance(result, Mapping)
-            else getattr(result, "is_error", getattr(result, "isError", False))
-        )
-        if child_error:
-            try:
-                await self._journal.outcome_unknown(record_id, "child_error", caller)
-            except Exception as journal_exc:
-                logger.warning(
-                    "service child outcome_unknown journal write failed "
-                    "(record_id=%s, exception_type=%s); the primary "
-                    "ServiceChildOutcomeUnknown is raised regardless",
-                    record_id,
-                    type(journal_exc).__name__,
-                )
+        if _reports_child_error(result):
+            await _record_outcome_unknown_best_effort(
+                self._journal, record_id, "child_error", caller
+            )
             raise ServiceChildOutcomeUnknown(
                 "service child reported an uncertain effect",
                 recovery_ref=reservation.recovery_ref,
@@ -252,35 +298,17 @@ class ServiceChildAdapter:
         try:
             stored = await self._journal.succeeded(record_id, _digest(result), caller)
         except Exception as exc:
-            try:
-                await self._journal.outcome_unknown(
-                    record_id, "result_persist_failed", caller
-                )
-            except Exception as journal_exc:
-                logger.warning(
-                    "service child outcome_unknown journal write failed "
-                    "(record_id=%s, exception_type=%s); the primary "
-                    "ServiceChildOutcomeUnknown is raised regardless",
-                    record_id,
-                    type(journal_exc).__name__,
-                )
+            await _record_outcome_unknown_best_effort(
+                self._journal, record_id, "result_persist_failed", caller
+            )
             raise ServiceChildOutcomeUnknown(
                 "service child result was not persisted",
                 recovery_ref=reservation.recovery_ref,
             ) from exc
         if not stored:
-            try:
-                await self._journal.outcome_unknown(
-                    record_id, "result_persist_failed", caller
-                )
-            except Exception as journal_exc:
-                logger.warning(
-                    "service child outcome_unknown journal write failed "
-                    "(record_id=%s, exception_type=%s); the primary "
-                    "ServiceChildOutcomeUnknown is raised regardless",
-                    record_id,
-                    type(journal_exc).__name__,
-                )
+            await _record_outcome_unknown_best_effort(
+                self._journal, record_id, "result_persist_failed", caller
+            )
             raise ServiceChildOutcomeUnknown(
                 "service child result was not persisted",
                 recovery_ref=reservation.recovery_ref,
@@ -308,18 +336,8 @@ class ServiceChildAdapter:
 
     @staticmethod
     def _reserved(record: ServiceChildRecord, receipt: DurableReservation) -> bool:
-        return (
-            isinstance(receipt, DurableReservation)
-            and receipt.durable is True
-            and type(receipt.created) is bool
-            and isinstance(receipt.record_id, str)
-            and len(receipt.record_id) == 64
-            and all(char in "0123456789abcdef" for char in receipt.record_id)
-            and receipt.owner_ref == record.owner_ref
-            and receipt.target == record.target
-            and receipt.subject_id == record.subject_id
-            and receipt.audit_ref == record.request_id
-            and bool(receipt.recovery_ref)
+        return _reservation_shape_valid(receipt) and _reservation_matches_record(
+            record, receipt
         )
 
 

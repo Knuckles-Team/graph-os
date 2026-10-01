@@ -56,6 +56,41 @@ def _rank(item: CatalogItem, query: str) -> int:
     return sum(3 if term in item.name.lower() else 1 for term in terms if term in text)
 
 
+def _validate_search_request(
+    query: str, browse: bool, limit: int, context_budget_tokens: int | None
+) -> None:
+    if not query and not browse:
+        raise ValueError("query or browse=true is required")
+    if not 1 <= limit <= 100:
+        raise ValueError("limit must be in 1..100")
+    if context_budget_tokens is not None and context_budget_tokens < 1:
+        raise ValueError("context budget must be positive")
+
+
+def _passes_filters(
+    item: CatalogItem, kind_filter: set[ItemKind], server_filter: set[str], query: str
+) -> bool:
+    if kind_filter and item.kind not in kind_filter:
+        return False
+    if server_filter and item.server not in server_filter:
+        return False
+    return not (query and _rank(item, query) == 0)
+
+
+def _paginate(
+    items: list[CatalogItem], cursor: str | None, limit: int
+) -> tuple[list[CatalogItem], str | None]:
+    start = 0
+    if cursor is not None:
+        ids = [item.id for item in items]
+        if cursor not in ids:
+            raise ValueError("catalog cursor expired")
+        start = ids.index(cursor) + 1
+    page = items[start : start + limit]
+    next_cursor = page[-1].id if start + limit < len(items) and page else None
+    return page, next_cursor
+
+
 class FleetCatalog:
     """Merge EG, child and SDK descriptors through one visibility decision."""
 
@@ -101,41 +136,35 @@ class FleetCatalog:
         limit: int = 20,
         context_budget_tokens: int | None = None,
     ) -> dict[str, Any]:
-        if not query and not browse:
-            raise ValueError("query or browse=true is required")
-        if not 1 <= limit <= 100:
-            raise ValueError("limit must be in 1..100")
-        if context_budget_tokens is not None and context_budget_tokens < 1:
-            raise ValueError("context budget must be positive")
+        _validate_search_request(query, browse, limit, context_budget_tokens)
+        matched = await self._matching_items(caller, query, kinds, servers)
+        items = sorted(
+            matched.values(), key=lambda item: (-_rank(item, query), item.id)
+        )
+        if context_budget_tokens is not None:
+            limit = min(limit, max(1, context_budget_tokens // 80))
+        page, next_cursor = _paginate(items, cursor, limit)
+        return {"items": [item.public() for item in page], "next_cursor": next_cursor}
+
+    async def _matching_items(
+        self,
+        caller: Any,
+        query: str,
+        kinds: Iterable[ItemKind],
+        servers: Iterable[str],
+    ) -> dict[str, CatalogItem]:
         kind_filter, server_filter = set(kinds), set(servers)
         matched: dict[str, CatalogItem] = {}
         for source in self._sources:
             for item in await source():
-                if kind_filter and item.kind not in kind_filter:
-                    continue
-                if server_filter and item.server not in server_filter:
-                    continue
-                if query and _rank(item, query) == 0:
+                if not _passes_filters(item, kind_filter, server_filter, query):
                     continue
                 if await self._authorized(item, caller):
                     previous = matched.get(item.id)
                     if previous is not None and previous != item:
                         raise ValueError(f"conflicting fleet descriptor: {item.id}")
                     matched[item.id] = item
-        items = sorted(
-            matched.values(), key=lambda item: (-_rank(item, query), item.id)
-        )
-        if context_budget_tokens is not None:
-            limit = min(limit, max(1, context_budget_tokens // 80))
-        start = 0
-        if cursor is not None:
-            ids = [item.id for item in items]
-            if cursor not in ids:
-                raise ValueError("catalog cursor expired")
-            start = ids.index(cursor) + 1
-        page = items[start : start + limit]
-        next_cursor = page[-1].id if start + limit < len(items) and page else None
-        return {"items": [item.public() for item in page], "next_cursor": next_cursor}
+        return matched
 
 
 def items_from_eg_catalog(snapshot: Any) -> tuple[CatalogItem, ...]:
@@ -171,6 +200,27 @@ def items_from_eg_catalog(snapshot: Any) -> tuple[CatalogItem, ...]:
     return tuple(items)
 
 
+def _probed_item(
+    server: str, kind: ItemKind, row: Mapping[str, Any]
+) -> CatalogItem | None:
+    name = row.get("name") or row.get("uri") or row.get("uriTemplate")
+    if not isinstance(name, str) or not name:
+        return None
+    return CatalogItem(
+        id=f"fleet:{kind}:{server}/{name}",
+        kind=kind,
+        name=name,
+        description=str(row.get("description") or ""),
+        server=server,
+        schema=row.get("inputSchema") or {},
+        annotations=(
+            dict(row["annotations"])
+            if isinstance(row.get("annotations"), Mapping)
+            else None
+        ),
+    )
+
+
 def items_from_child_probe(
     server: str, info: Mapping[str, Any]
 ) -> tuple[CatalogItem, ...]:
@@ -181,30 +231,14 @@ def items_from_child_probe(
         ("resources", "resource"),
         ("resource_templates", "resource_template"),
     )
-    items: list[CatalogItem] = []
     if info.get("error"):
         return ()
-    for field_name, kind in families:
-        for row in info.get(field_name, ()):
-            name = row.get("name") or row.get("uri") or row.get("uriTemplate")
-            if not isinstance(name, str) or not name:
-                continue
-            items.append(
-                CatalogItem(
-                    id=f"fleet:{kind}:{server}/{name}",
-                    kind=kind,
-                    name=name,
-                    description=str(row.get("description") or ""),
-                    server=server,
-                    schema=row.get("inputSchema") or {},
-                    annotations=(
-                        dict(row["annotations"])
-                        if isinstance(row.get("annotations"), Mapping)
-                        else None
-                    ),
-                )
-            )
-    return tuple(items)
+    items = (
+        _probed_item(server, kind, row)
+        for field_name, kind in families
+        for row in info.get(field_name, ())
+    )
+    return tuple(item for item in items if item is not None)
 
 
 def connector_items(entries: Iterable[Mapping[str, Any]]) -> tuple[CatalogItem, ...]:

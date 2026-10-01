@@ -209,6 +209,22 @@ def _mux_with_children(tmp_path, tool_map: dict[str, list[tuple[str, str]]]):
     return mux
 
 
+def _wired_meta_tool_server(tmp_path):
+    """One mux with a live ``CNT`` child, its meta-tools registered on a real
+    FastMCP host, ``_host_mcp`` bound (so ``tool_dispatchable`` recognizes
+    those meta-tools as genuinely host-registered), and the session
+    visibility middleware attached -- the shared live-client setup for the
+    ``load_tools`` notification/dispatch tests below."""
+    from fastmcp import FastMCP
+
+    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
+    mcp = FastMCP("test-mux")
+    _register_meta_tools(mcp, mux)
+    mux._host_mcp = mcp
+    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
+    return mux, mcp
+
+
 # --------------------------------------------------------------------------- #
 # Catalog + lazy mount
 # --------------------------------------------------------------------------- #
@@ -2145,13 +2161,9 @@ async def test_load_tools_reports_notification_sent_true_inside_a_live_session(
     never "this client's own tool list is refreshed". See
     ``test_load_tools_notification_sent_true_does_not_imply_the_tool_is_dispatchable_yet``
     for the negative case that motivated the rename."""
-    from fastmcp import Client, FastMCP
+    from fastmcp import Client
 
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mux._host_mcp = mcp
-    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
+    _mux, mcp = _wired_meta_tool_server(tmp_path)
 
     async with Client(mcp) as client:
         result = await client.call_tool("load_tools", {"servers": [CNT]})
@@ -2197,13 +2209,9 @@ async def test_load_tools_notification_sent_true_does_not_imply_universal_callab
     name, in the SAME live multiplexer, moments later. If ``notification_sent:
     True`` meant what the retired ``notified`` name implied ("the tool is
     callable now"), this would have to succeed; it must not."""
-    from fastmcp import Client, FastMCP
+    from fastmcp import Client
 
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mux._host_mcp = mcp
-    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
+    _mux, mcp = _wired_meta_tool_server(tmp_path)
 
     # The in-memory transport gives no real per-connection identity (see
     # ``_session_key``'s docstring), so two independent sessions must declare
@@ -2367,13 +2375,9 @@ async def test_load_tools_changes_the_wire_tool_list_a_live_client_observes(tmp_
     prompt-cache-safe by the framework's own design (see
     ``pydantic_ai.capabilities.ToolSearch``'s docstring).
     """
-    from fastmcp import Client, FastMCP
+    from fastmcp import Client
 
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mux._host_mcp = mcp
-    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
+    _mux, mcp = _wired_meta_tool_server(tmp_path)
 
     async with Client(mcp) as client:
         before = {t.name for t in await client.list_tools()}

@@ -167,31 +167,36 @@ def operations() -> tuple[OpSpec, ...]:
             )
             for action in ("search", "list")
         ),
-        OpSpec(
-            id="fleet.tools.load",
-            verb=Verb.MANAGE,
-            summary="Load authorized fleet items for this MCP session",
-            examples=("load these tools for this session",),
-            params=FleetLoadParams,
-            result=FleetResult,
-            binding=Composite(handler="graph_os.api.ops.fleet.handle_fleet_operation"),
-            scopes=frozenset({"mcp:delegate"}),
-            effect=Effect.WRITE,
-            surfaces=frozenset({Surface.MCP}),
-            audit=AuditClass.EVENT,
-        ),
-        OpSpec(
-            id="fleet.tools.unload",
-            verb=Verb.MANAGE,
-            summary="Unload fleet items from this MCP session",
-            examples=("unload my session tools",),
-            params=FleetUnloadParams,
-            result=FleetResult,
-            binding=Composite(handler="graph_os.api.ops.fleet.handle_fleet_operation"),
-            scopes=frozenset({"mcp:delegate"}),
-            effect=Effect.WRITE,
-            surfaces=frozenset({Surface.MCP}),
-            audit=AuditClass.EVENT,
+        *(
+            OpSpec(
+                id=f"fleet.tools.{action}",
+                verb=Verb.MANAGE,
+                summary=summary,
+                examples=(example,),
+                params=params_cls,
+                result=FleetResult,
+                binding=Composite(
+                    handler="graph_os.api.ops.fleet.handle_fleet_operation"
+                ),
+                scopes=frozenset({"mcp:delegate"}),
+                effect=Effect.WRITE,
+                surfaces=frozenset({Surface.MCP}),
+                audit=AuditClass.EVENT,
+            )
+            for action, params_cls, summary, example in (
+                (
+                    "load",
+                    FleetLoadParams,
+                    "Load authorized fleet items for this MCP session",
+                    "load these tools for this session",
+                ),
+                (
+                    "unload",
+                    FleetUnloadParams,
+                    "Unload fleet items from this MCP session",
+                    "unload my session tools",
+                ),
+            )
         ),
         OpSpec(
             id="fleet.status",

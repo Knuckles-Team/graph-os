@@ -33,6 +33,27 @@ from graph_os.fleet.gateway_ops import (
 from graph_os.fleet.service_child import ServiceChildOutcomeUnknown
 
 
+def _gateway_and_caller(
+    *,
+    tool_for: object,
+    policy: object,
+    delegate: object,
+    principal: str | None = "alice",
+) -> tuple[FleetGateway, SimpleNamespace]:
+    gateway = FleetGateway(
+        tool_for=tool_for,  # type: ignore[arg-type]
+        policy_check=policy,  # type: ignore[arg-type]
+        delegated_call=delegate,  # type: ignore[arg-type]
+    )
+    fields: dict[str, object] = {
+        "effective_scopes": frozenset({"mcp:delegate"}),
+        "session": object(),
+    }
+    if principal is not None:
+        fields["principal"] = principal
+    return gateway, SimpleNamespace(**fields)
+
+
 def test_child_refusal_uses_structured_code_only() -> None:
     assert (
         _child_error_code(
@@ -140,13 +161,8 @@ async def test_gateway_rechecks_child_scope_and_policy_before_delegation() -> No
         dispatched.append("called")
         return "ok"
 
-    gateway = FleetGateway(
-        tool_for=tool_for, policy_check=policy, delegated_call=delegate
-    )
-    caller = SimpleNamespace(
-        effective_scopes=frozenset({"mcp:delegate"}),
-        session=object(),
-        principal="alice",
+    gateway, caller = _gateway_and_caller(
+        tool_for=tool_for, policy=policy, delegate=delegate
     )
     with pytest.raises(PermissionError, match="child scopes"):
         await gateway.call(caller, "s", "t", {}, expected_effect=Effect.WRITE)
@@ -169,13 +185,8 @@ async def test_service_credential_child_fails_closed() -> None:
     async def delegate(_server: str, _tool: str, _args: object, _caller: object) -> str:
         pytest.fail("service credential child reached delegated dispatcher")
 
-    gateway = FleetGateway(
-        tool_for=tool_for, policy_check=policy, delegated_call=delegate
-    )
-    caller = SimpleNamespace(
-        effective_scopes=frozenset({"mcp:delegate"}),
-        session=object(),
-        principal="alice",
+    gateway, caller = _gateway_and_caller(
+        tool_for=tool_for, policy=policy, delegate=delegate
     )
     with pytest.raises(PermissionError, match="authority changed"):
         await gateway.call(caller, "s", "t", {}, expected_effect=Effect.ADMIN)
@@ -192,11 +203,8 @@ async def test_effect_change_after_preview_refuses_dispatch() -> None:
     async def delegate(_server: str, _tool: str, _args: object, _caller: object) -> str:
         pytest.fail("effect change reached child dispatcher")
 
-    gateway = FleetGateway(
-        tool_for=tool_for, policy_check=policy, delegated_call=delegate
-    )
-    caller = SimpleNamespace(
-        effective_scopes=frozenset({"mcp:delegate"}), session=object()
+    gateway, caller = _gateway_and_caller(
+        tool_for=tool_for, policy=policy, delegate=delegate, principal=None
     )
     with pytest.raises(RuntimeError, match="effect changed"):
         await gateway.call(caller, "s", "t", {}, expected_effect=Effect.WRITE)
