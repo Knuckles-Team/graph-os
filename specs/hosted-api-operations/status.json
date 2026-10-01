@@ -399,14 +399,14 @@
     {
       "id": "GRAPHOS-OPS-R028",
       "title": "Exported domain scope classes",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILT",
       "evidence": [
         {
-          "kind": "merged_head",
+          "kind": "branch",
           "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Implemented on the default branch; exercised by tests/api"
+          "commit": "9a4eb52552f814ea2ddf70597ad8c7fac2bd7a47",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/9a4eb52552f814ea2ddf70597ad8c7fac2bd7a47",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
     },
