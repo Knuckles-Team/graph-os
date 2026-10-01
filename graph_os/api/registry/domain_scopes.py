@@ -37,13 +37,7 @@ _REQUIRED_CLASSES = {
 _APPROVER_GROUP = "action-approvers"
 
 
-def project_domain_scopes(contract: dict[str, object]) -> tuple[DomainScope, ...]:
-    """Return the domain scopes only after every exact declaration in EG's scope
-    contract agrees (see ``GRAPHOS-IDENTITY-R020``)."""
-
-    rows = contract.get("scopes")
-    if not isinstance(rows, list):
-        raise ValueError("EG scope contract has no scopes list")
+def _index_scope_rows(rows: list[object]) -> dict[str, dict[str, object]]:
     indexed: dict[str, dict[str, object]] = {}
     for row in rows:
         if not isinstance(row, dict) or not isinstance(row.get("scope"), str):
@@ -52,30 +46,43 @@ def project_domain_scopes(contract: dict[str, object]) -> tuple[DomainScope, ...
         if scope in indexed:
             raise ValueError(f"duplicate EG scope: {scope}")
         indexed[scope] = row
-    result: list[DomainScope] = []
-    for scope, expected_class in sorted(_REQUIRED_CLASSES.items()):
-        row = indexed.get(scope)
-        expected_owner = "finance" if scope.startswith("finance:") else "graph-os"
-        if (
-            row is None
-            or row.get("class") != expected_class
-            or row.get("owner") != expected_owner
-        ):
-            raise ValueError(f"EG scope contract is missing or misclassifies {scope}")
-        expected_group = _APPROVER_GROUP if expected_class == "approver" else None
-        if row.get("approver_group") != expected_group:
-            raise ValueError(
-                f"EG scope contract has the wrong approver group for {scope}"
-            )
-        result.append(
-            {
-                "scope": scope,
-                "class_": expected_class,
-                "owner": expected_owner,
-                "approver_group": expected_group,
-            }
-        )
-    return tuple(result)
+    return indexed
+
+
+def _resolve_scope(
+    scope: str, expected_class: str, indexed: dict[str, dict[str, object]]
+) -> DomainScope:
+    row = indexed.get(scope)
+    expected_owner = "finance" if scope.startswith("finance:") else "graph-os"
+    if (
+        row is None
+        or row.get("class") != expected_class
+        or row.get("owner") != expected_owner
+    ):
+        raise ValueError(f"EG scope contract is missing or misclassifies {scope}")
+    expected_group = _APPROVER_GROUP if expected_class == "approver" else None
+    if row.get("approver_group") != expected_group:
+        raise ValueError(f"EG scope contract has the wrong approver group for {scope}")
+    return {
+        "scope": scope,
+        "class_": expected_class,
+        "owner": expected_owner,
+        "approver_group": expected_group,
+    }
+
+
+def project_domain_scopes(contract: dict[str, object]) -> tuple[DomainScope, ...]:
+    """Return the domain scopes only after every exact declaration in EG's scope
+    contract agrees (see ``GRAPHOS-IDENTITY-R020``)."""
+
+    rows = contract.get("scopes")
+    if not isinstance(rows, list):
+        raise ValueError("EG scope contract has no scopes list")
+    indexed = _index_scope_rows(rows)
+    return tuple(
+        _resolve_scope(scope, expected_class, indexed)
+        for scope, expected_class in sorted(_REQUIRED_CLASSES.items())
+    )
 
 
 def domain_scopes() -> tuple[DomainScope, ...]:

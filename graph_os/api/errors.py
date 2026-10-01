@@ -208,57 +208,80 @@ def _confirmation_details(
     return projected
 
 
+def _classify_graphos_refusal(
+    error: GraphOSRefusal,
+) -> tuple[str, str, int, bool, dict[str, Any]]:
+    return (
+        error.code.value,
+        "graphos",
+        _GRAPHOS_STATUS[error.code],
+        error.code in _RETRYABLE,
+        _public_details(error.code, error.details),
+    )
+
+
+def _classify_engine_code(code: str) -> tuple[str, str, int, bool, dict[str, Any]]:
+    metadata = ENGINE_ERRORS.get(code)
+    if metadata is None:
+        raise ValueError("unknown engine error code")
+    return code, "engine", metadata[0], metadata[1], {}
+
+
+def _classify_fleet_code(
+    code: str, *, retryable: bool, details: Mapping[str, Any]
+) -> tuple[str, str, int, bool, dict[str, Any]]:
+    return code, "fleet", 502, retryable, _fleet_details(code, details)
+
+
+def _classify_fleet_refusal(
+    error: FleetRefusal,
+) -> tuple[str, str, int, bool, dict[str, Any]]:
+    if not error.code or not error.server or not error.tool:
+        raise ValueError("incomplete fleet refusal")
+    return _classify_fleet_code(
+        error.code,
+        retryable=error.retryable,
+        details={"server": error.server, "tool": error.tool},
+    )
+
+
+def _classify_graphos_code(
+    code: str, details: Mapping[str, Any]
+) -> tuple[str, str, int, bool, dict[str, Any]]:
+    parsed = GraphOSErrorCode(code)
+    return (
+        parsed.value,
+        "graphos",
+        _GRAPHOS_STATUS[parsed],
+        parsed in _RETRYABLE,
+        _public_details(parsed, details),
+    )
+
+
+def _classify_op_error(
+    error: OpErrorLike,
+) -> tuple[str, str, int, bool, dict[str, Any]]:
+    source = getattr(error, "source", "graphos")
+    if source == "engine":
+        return _classify_engine_code(error.code)
+    if source == "fleet":
+        return _classify_fleet_code(error.code, retryable=False, details=error.details)
+    if source != "graphos":
+        raise ValueError("unknown operation error source")
+    return _classify_graphos_code(error.code, error.details)
+
+
 def _classified_error(
     error: GraphOSRefusal | EngineRefusal | FleetRefusal | OpErrorLike | Exception,
 ) -> tuple[str, str, int, bool, dict[str, Any]]:
     if isinstance(error, GraphOSRefusal):
-        return (
-            error.code.value,
-            "graphos",
-            _GRAPHOS_STATUS[error.code],
-            error.code in _RETRYABLE,
-            _public_details(error.code, error.details),
-        )
+        return _classify_graphos_refusal(error)
     if isinstance(error, EngineRefusal):
-        metadata = ENGINE_ERRORS.get(error.code)
-        if metadata is None:
-            raise ValueError("unknown engine error code")
-        return error.code, "engine", metadata[0], metadata[1], {}
+        return _classify_engine_code(error.code)
     if isinstance(error, FleetRefusal):
-        if not error.code or not error.server or not error.tool:
-            raise ValueError("incomplete fleet refusal")
-        return (
-            error.code,
-            "fleet",
-            502,
-            error.retryable,
-            _fleet_details(error.code, {"server": error.server, "tool": error.tool}),
-        )
+        return _classify_fleet_refusal(error)
     if isinstance(error, OpErrorLike):
-        source = getattr(error, "source", "graphos")
-        if source == "engine":
-            metadata = ENGINE_ERRORS.get(error.code)
-            if metadata is None:
-                raise ValueError("unknown engine error code")
-            return error.code, "engine", metadata[0], metadata[1], {}
-        if source == "fleet":
-            return (
-                error.code,
-                "fleet",
-                502,
-                False,
-                _fleet_details(error.code, error.details),
-            )
-        if source != "graphos":
-            raise ValueError("unknown operation error source")
-        code = GraphOSErrorCode(error.code)
-        return (
-            code.value,
-            "graphos",
-            _GRAPHOS_STATUS[code],
-            code in _RETRYABLE,
-            _public_details(code, error.details),
-        )
+        return _classify_op_error(error)
     return GraphOSErrorCode.INTERNAL.value, "graphos", 500, False, {}
 
 

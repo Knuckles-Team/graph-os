@@ -124,27 +124,36 @@ def _resource(item: PolicyItem) -> schemas.ResourceCheck:
     )
 
 
+def _principal_matches_rule(item: PolicyItem, caller: Any, kind: str) -> bool:
+    if item.principal_rule == "service_only" and kind != "service":
+        return False
+    if item.principal_rule in {"human", "human_undelegated"} and kind != "human":
+        return False
+    return not (
+        item.principal_rule == "human_undelegated"
+        and _caller_value(caller, "delegated", False)
+    )
+
+
+def _required_scopes(item: PolicyItem, action: str) -> frozenset[str]:
+    needed = item.required_scopes
+    if action in {"discover", "load"}:
+        needed = needed | {"mcp:discover"}
+    if action == "load":
+        needed = needed | {"mcp:delegate"}
+    return needed
+
+
 def _base_authorized(item: PolicyItem, caller: Any, action: str) -> bool:
     if not _caller_value(caller, "authenticated", True):
         return False
     kind = _caller_value(caller, "principal_kind", "")
     if kind not in {"human", "service"}:
         return False
-    if item.principal_rule == "service_only" and kind != "service":
-        return False
-    if item.principal_rule in {"human", "human_undelegated"} and kind != "human":
-        return False
-    if item.principal_rule == "human_undelegated" and _caller_value(
-        caller, "delegated", False
-    ):
+    if not _principal_matches_rule(item, caller, kind):
         return False
     scopes = frozenset(_caller_value(caller, "effective_scopes", ()))
-    needed = item.required_scopes
-    if action in {"discover", "load"}:
-        needed = needed | {"mcp:discover"}
-    if action == "load":
-        needed = needed | {"mcp:delegate"}
-    return needed.issubset(scopes)
+    return _required_scopes(item, action).issubset(scopes)
 
 
 class PolicyGate:
@@ -217,28 +226,26 @@ class PolicyGate:
             )
         return allowed
 
-    async def _decide_chunk(
+    def _split_cached(
         self,
         items: Sequence[PolicyItem],
         positions: list[int],
         allowed: list[bool],
-        caller: Any,
         principal: schemas.PrincipalCheck,
+        authority_digest: str,
+        tenant: str,
         revision: str,
         action: str,
-    ) -> None:
-        if not positions:
-            return
-        authority_digest = hashlib.sha256(
-            principal.model_dump_json().encode()
-        ).hexdigest()
+    ) -> tuple[
+        list[tuple[int, tuple[str, str, str, str, str]]], list[schemas.CheckRequest]
+    ]:
         uncached: list[tuple[int, tuple[str, str, str, str, str]]] = []
         requests: list[schemas.CheckRequest] = []
         for index in positions:
             item = items[index]
             key = (
                 authority_digest,
-                str(caller.tenant),
+                tenant,
                 revision,
                 f"{item.resource}:{item.effect}",
                 action,
@@ -257,13 +264,24 @@ class PolicyGate:
                     principal=principal, resource=_resource(item), action=action
                 )
             )
-        if not requests:
-            return
+        return uncached, requests
+
+    async def _bulk_check(
+        self, requests: list[schemas.CheckRequest]
+    ) -> list[schemas.CheckResponse]:
         try:
-            responses = await self._pdp.bulk_check(requests) if self._pdp else []
+            return await self._pdp.bulk_check(requests) if self._pdp else []
         except Exception as exc:
             raise PolicyUnavailable("policy decision point unavailable") from exc
-        if len(responses) != len(requests):
+
+    def _apply_responses(
+        self,
+        items: Sequence[PolicyItem],
+        allowed: list[bool],
+        uncached: list[tuple[int, tuple[str, str, str, str, str]]],
+        responses: list[schemas.CheckResponse],
+    ) -> None:
+        if len(responses) != len(uncached):
             raise PolicyUnavailable("policy response alignment failed")
         for (index, key), response in zip(uncached, responses, strict=True):
             if not isinstance(response, schemas.CheckResponse):
@@ -273,6 +291,36 @@ class PolicyGate:
             allowed[index] = response.allowed is True
             if items[index].effect not in {"destructive", "admin"}:
                 self._cache.put(key, allowed[index])
+
+    async def _decide_chunk(
+        self,
+        items: Sequence[PolicyItem],
+        positions: list[int],
+        allowed: list[bool],
+        caller: Any,
+        principal: schemas.PrincipalCheck,
+        revision: str,
+        action: str,
+    ) -> None:
+        if not positions:
+            return
+        authority_digest = hashlib.sha256(
+            principal.model_dump_json().encode()
+        ).hexdigest()
+        uncached, requests = self._split_cached(
+            items,
+            positions,
+            allowed,
+            principal,
+            authority_digest,
+            str(caller.tenant),
+            revision,
+            action,
+        )
+        if not requests:
+            return
+        responses = await self._bulk_check(requests)
+        self._apply_responses(items, allowed, uncached, responses)
 
     async def check_op(self, op: Any, caller: Any) -> bool:
         """The invoke pipeline's policy_check callback."""

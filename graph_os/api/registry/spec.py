@@ -163,23 +163,35 @@ class OpSpec(BaseModel):
             raise ValueError("examples must contain nonempty text")
         return value
 
-    @model_validator(mode="after")
-    def _authority_shape(self) -> OpSpec:
+    def _check_executor_authority(self) -> None:
         if self.executor is Executor.CALLER and (self.executor_scopes or self.subject):
             raise ValueError("caller executor cannot claim service authority")
         if self.executor is Executor.SERVICE and (
             not self.executor_scopes or not self.subject
         ):
             raise ValueError("service executor requires executor_scopes and subject")
+
+    def _check_stability_lifecycle(self) -> None:
         if self.stability is Stability.DEPRECATED and not self.remove_in:
             raise ValueError("deprecated operation requires remove_in")
         if self.stability is not Stability.DEPRECATED and self.remove_in:
             raise ValueError("remove_in is reserved for deprecated operations")
+
+    def _check_surfaces_and_audit(self) -> None:
         if not self.surfaces:
             raise ValueError("operation requires at least one surface")
         if self.effect is not Effect.READ and self.audit is AuditClass.NONE:
             raise ValueError("mutating operation requires an audit class")
+
+    def _apply_default_confirm(self) -> None:
         if self.confirm is None:
             default = {Effect.DESTRUCTIVE: Confirm.PLAN, Effect.ADMIN: Confirm.CONSOLE}
             object.__setattr__(self, "confirm", default.get(self.effect, Confirm.NONE))
+
+    @model_validator(mode="after")
+    def _authority_shape(self) -> OpSpec:
+        self._check_executor_authority()
+        self._check_stability_lifecycle()
+        self._check_surfaces_and_audit()
+        self._apply_default_confirm()
         return self
