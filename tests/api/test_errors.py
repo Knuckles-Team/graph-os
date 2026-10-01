@@ -8,14 +8,12 @@ from typing import Any
 import pytest
 
 from graph_os.api.errors import (
-    EngineRefusal,
     FleetRefusal,
     GraphOSErrorCode,
     GraphOSRefusal,
     a2a_error_status,
     to_envelope,
 )
-from graph_os.api.generated.engine_errors import ENGINE_ERRORS
 
 CONTEXT = {
     "op": "identity.users.disable",
@@ -149,46 +147,13 @@ def test_confirmation_rejects_unbounded_or_forged_resume_values() -> None:
     assert envelope["error"]["details"] == {}
 
 
-def test_engine_codes_are_published_and_pass_through() -> None:
-    assert ENGINE_ERRORS, "EG errors.json must be generated before this check can run"
-    for code, (status_hint, retryable) in ENGINE_ERRORS.items():
-        status, envelope = to_envelope(
-            EngineRefusal.from_response({"code": code, "message": "tenant-secret"}),
-            **CONTEXT,
-        )
-        assert status == status_hint
-        assert envelope["error"]["code"] == code
-        assert envelope["error"]["source"] == "engine"
-        assert envelope["error"]["retryable"] is retryable
-        assert "tenant-secret" not in str(envelope)
-
-
-def test_unknown_engine_code_fails_closed() -> None:
-    with pytest.raises(ValueError, match="unknown engine error code"):
-        EngineRefusal.from_response({"code": "NOT_IN_CONTRACT"})
-    with pytest.raises(ValueError, match="unknown engine error code"):
-        to_envelope(EngineRefusal("NOT_IN_CONTRACT"), **CONTEXT)
-
-
-def test_invocation_preserves_typed_engine_code_across_surfaces() -> None:
-    refusal = InvokeError("AUTH_TENANT_MISMATCH", source="engine")
-    status, envelope = to_envelope(refusal, **CONTEXT)
-    assert (status, envelope["error"]["source"]) == (403, "engine")
-    assert envelope["error"]["code"] == "AUTH_TENANT_MISMATCH"
-    assert envelope["error"]["details"] == {}
-    assert a2a_error_status(refusal.code, source=refusal.source) == (-32000, 403)
-
-    with pytest.raises(ValueError, match="unknown engine error code"):
-        to_envelope(InvokeError("NOT_IN_CONTRACT", source="engine"), **CONTEXT)
-
-
-def test_stale_route_is_a_retryable_engine_refusal() -> None:
-    status, envelope = to_envelope(
-        InvokeError("STALE_ROUTE", source="engine"), **CONTEXT
-    )
-    assert status == 503
-    assert envelope["error"]["retryable"] is True
-    assert envelope["error"]["source"] == "engine"
+def test_engine_source_is_not_classifiable_yet() -> None:
+    """The engine source needs the EG error contract (see errors.py's module
+    docstring); it is deferred to the slice that can depend on it."""
+    with pytest.raises(ValueError, match="unknown operation error source"):
+        to_envelope(InvokeError("AUTH_TENANT_MISMATCH", source="engine"), **CONTEXT)
+    with pytest.raises(ValueError, match="unknown operation error source"):
+        a2a_error_status("AUTH_TENANT_MISMATCH", source="engine")
 
 
 def test_graphos_details_are_allowlisted() -> None:

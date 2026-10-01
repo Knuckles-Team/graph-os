@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Generate the versioned GraphOS API contract from its declared registry.
 
-The EG error catalog is a required input. A missing registry or catalog fails
-closed; neither an empty operation set nor a hand-maintained error map is an
-acceptable published API contract.
+A missing or empty registry fails closed; a hand-maintained contract is not
+an acceptable substitute for a generated one.
+
+The generated engine-error module (``graph_os/api/generated/engine_errors.py``,
+mapping an EG wire error code to an HTTP status and a retry flag) and its
+generator step are deferred: they require a pinned epistemic-graph revision
+that packages ``contract/errors.json``, which is a cross-repository
+dependency out of scope here. They return in the slice that can depend on it.
 """
 
 from __future__ import annotations
@@ -112,48 +117,6 @@ def _snapshot_eg_schemas(
             spec["schema_snapshot"] = _resolve_local_refs(
                 selected, document, frozenset()
             )
-
-
-def _engine_errors(path: Path) -> bytes:
-    raw = path.read_bytes()
-    contract = json.loads(raw)
-    if not isinstance(contract, dict) or not isinstance(contract.get("errors"), list):
-        raise ValueError("EG errors.json must contain an errors array")
-    version = contract.get("contract_version")
-    if not isinstance(version, (int, str)) or isinstance(version, bool):
-        raise ValueError("EG errors.json has no contract_version")
-    rows: dict[str, tuple[int, bool]] = {}
-    for row in contract["errors"]:
-        if not isinstance(row, dict):
-            raise ValueError("EG error row must be an object")
-        code = row.get("code")
-        status = row.get("http_status_hint")
-        retryable = row.get("retryable")
-        if (
-            not isinstance(code, str)
-            or not code
-            or not isinstance(status, int)
-            or isinstance(status, bool)
-            or not 300 <= status <= 599
-            or not isinstance(retryable, bool)
-        ):
-            raise ValueError(f"invalid EG error row: {row!r}")
-        if code in rows:
-            raise ValueError(f"duplicate EG error code: {code}")
-        rows[code] = (status, retryable)
-    if not rows:
-        raise ValueError("refusing to generate an empty EG error map")
-    lines = [
-        '"""Generated from epistemic_graph/contract/errors.json. Do not edit."""',
-        "",
-        "from __future__ import annotations",
-        "",
-        f"SOURCE_CONTRACT_VERSION = {version!r}",
-        f"SOURCE_SHA256 = {json.dumps(hashlib.sha256(raw).hexdigest())}",
-        "ENGINE_ERRORS: dict[str, tuple[int, bool]] = {",
-    ]
-    lines.extend(f"    {json.dumps(code)}: {rows[code]!r}," for code in sorted(rows))
-    return ("\n".join([*lines, "}", ""])).encode()
 
 
 def _descriptors(registry: dict[str, Any]) -> dict[str, Any]:
@@ -351,13 +314,12 @@ def _ts_client(registry: dict[str, Any]) -> bytes:
     return "\n".join(lines).encode()
 
 
-def generate(registry: dict[str, Any], errors_path: Path) -> dict[Path, bytes]:
+def generate(registry: dict[str, Any]) -> dict[Path, bytes]:
     if not registry.get("ops"):
         raise ValueError("refusing to generate an empty API registry")
     return {
         GENERATED / "registry.json": _json_bytes(registry),
         GENERATED / "descriptors.json": _json_bytes(_descriptors(registry)),
-        GENERATED / "engine_errors.py": _engine_errors(errors_path),
         GENERATED / "__init__.py": b'"""Generated GraphOS API contract artifacts."""\n',
         ROOT / "docs/api/openapi.json": _json_bytes(_openapi(registry)),
         ROOT
@@ -483,38 +445,14 @@ def _check_compat(registry: dict[str, Any], base_ref: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("--engine-errors-only", action="store_true")
     parser.add_argument("--check-compat", metavar="BASE_REF")
-    parser.add_argument(
-        "--eg-errors",
-        type=Path,
-        help="EG error catalog; defaults to the pinned epistemic_graph wheel",
-    )
     parser.add_argument("--registry-module", default="graph_os.api.ops")
     args = parser.parse_args()
     try:
-        registry = None if args.engine_errors_only else _registry(args.registry_module)
+        registry = _registry(args.registry_module)
         if args.check_compat:
-            if registry is None:
-                raise ValueError("--check-compat cannot use --engine-errors-only")
             return _check_compat(registry, args.check_compat)
-        errors_path = args.eg_errors
-        if errors_path is None:
-            errors_path = Path(
-                str(
-                    importlib.resources.files("epistemic_graph")
-                    / "contract/errors.json"
-                )
-            )
-        if args.engine_errors_only:
-            outputs = {
-                GENERATED / "engine_errors.py": _engine_errors(errors_path),
-                GENERATED
-                / "__init__.py": b'"""Generated GraphOS API contract artifacts."""\n',
-            }
-        else:
-            assert registry is not None
-            outputs = generate(registry, errors_path)
+        outputs = generate(registry)
     except (
         AttributeError,
         ImportError,

@@ -1,4 +1,16 @@
-"""One privacy-safe error envelope for the GraphOS operation surfaces."""
+"""One privacy-safe error envelope for the GraphOS operation surfaces.
+
+The closed GraphOS error vocabulary (``GraphOSErrorCode``) and the fleet
+error path (``FleetRefusal``) are self-contained and need no engine contract.
+The engine-sourced path (an ``EngineRefusal`` type and the "engine" source in
+``_classified_error``/``a2a_error_status``/``to_envelope``) is deferred out of
+this module for now: classifying an engine wire code into an HTTP status and
+a retry flag requires a code -> (status, retryable) table generated from the
+EG error contract (``epistemic_graph/contract/errors.json``), and there is no
+graph-os-side substitute for that table. It returns with the generated
+engine-error module and its generator step in the slice that can depend on a
+pinned epistemic-graph revision carrying that contract file.
+"""
 
 from __future__ import annotations
 
@@ -7,8 +19,6 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Protocol, runtime_checkable
-
-from graph_os.api.generated.engine_errors import ENGINE_ERRORS
 
 
 class GraphOSErrorCode(StrEnum):
@@ -76,24 +86,6 @@ class GraphOSRefusal(Exception):
     code: GraphOSErrorCode
     message: str = "Request refused"
     details: Mapping[str, Any] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
-class EngineRefusal(Exception):
-    """A refusal already decoded from EG Response.error; code is unchanged."""
-
-    code: str
-    message: str = "Engine request refused"
-
-    @classmethod
-    def from_response(cls, error: Mapping[str, Any]) -> EngineRefusal:
-        code = error.get("code")
-        if not isinstance(code, str) or code not in ENGINE_ERRORS:
-            raise ValueError("unknown engine error code")
-        message = error.get("message")
-        return cls(
-            code, message if isinstance(message, str) else "Engine request refused"
-        )
 
 
 @dataclass(slots=True)
@@ -220,13 +212,6 @@ def _classify_graphos_refusal(
     )
 
 
-def _classify_engine_code(code: str) -> tuple[str, str, int, bool, dict[str, Any]]:
-    metadata = ENGINE_ERRORS.get(code)
-    if metadata is None:
-        raise ValueError("unknown engine error code")
-    return code, "engine", metadata[0], metadata[1], {}
-
-
 def _classify_fleet_code(
     code: str, *, retryable: bool, details: Mapping[str, Any]
 ) -> tuple[str, str, int, bool, dict[str, Any]]:
@@ -262,8 +247,6 @@ def _classify_op_error(
     error: OpErrorLike,
 ) -> tuple[str, str, int, bool, dict[str, Any]]:
     source = getattr(error, "source", "graphos")
-    if source == "engine":
-        return _classify_engine_code(error.code)
     if source == "fleet":
         return _classify_fleet_code(error.code, retryable=False, details=error.details)
     if source != "graphos":
@@ -272,12 +255,10 @@ def _classify_op_error(
 
 
 def _classified_error(
-    error: GraphOSRefusal | EngineRefusal | FleetRefusal | OpErrorLike | Exception,
+    error: GraphOSRefusal | FleetRefusal | OpErrorLike | Exception,
 ) -> tuple[str, str, int, bool, dict[str, Any]]:
     if isinstance(error, GraphOSRefusal):
         return _classify_graphos_refusal(error)
-    if isinstance(error, EngineRefusal):
-        return _classify_engine_code(error.code)
     if isinstance(error, FleetRefusal):
         return _classify_fleet_refusal(error)
     if isinstance(error, OpErrorLike):
@@ -312,13 +293,13 @@ _RPC_CODES: dict[GraphOSErrorCode, int] = {
 def a2a_error_status(
     code: GraphOSErrorCode | str, *, source: str = "graphos"
 ) -> tuple[int, int]:
-    """Return JSON-RPC and HTTP status; preserve engine codes in error data."""
+    """Return JSON-RPC and HTTP status for the graphos and fleet sources.
 
-    if source == "engine":
-        metadata = ENGINE_ERRORS.get(str(code))
-        if metadata is None:
-            raise ValueError("unknown engine error code")
-        return -32000, metadata[0]
+    The engine source is not classifiable here yet: its HTTP status and
+    retryability come from the EG error contract, which is not part of this
+    slice (see graph_os/api/errors.py module docstring).
+    """
+
     if source == "fleet":
         if _FLEET_CODE.fullmatch(str(code)) is None:
             raise ValueError("invalid fleet error code")
@@ -330,7 +311,7 @@ def a2a_error_status(
 
 
 def to_envelope(
-    error: GraphOSRefusal | EngineRefusal | FleetRefusal | OpErrorLike | Exception,
+    error: GraphOSRefusal | FleetRefusal | OpErrorLike | Exception,
     *,
     op: str,
     request_id: str,
@@ -343,7 +324,6 @@ def to_envelope(
     code, source, status, retryable, details = _classified_error(error)
     defaults: dict[str, str] = {
         "graphos": "Request refused",
-        "engine": "Engine request refused",
         "fleet": "Fleet call refused",
     }
     message = _public_message(defaults[source])

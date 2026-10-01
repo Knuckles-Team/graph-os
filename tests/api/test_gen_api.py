@@ -34,22 +34,9 @@ def _registry() -> dict:
     }
 
 
-def test_generator_emits_deterministic_artifacts_and_engine_map(tmp_path: Path) -> None:
-    catalog = tmp_path / "errors.json"
-    catalog.write_text(
-        json.dumps(
-            {
-                "contract_version": 1,
-                "errors": [
-                    {"code": "READ_ONLY", "http_status_hint": 403, "retryable": False},
-                    {"code": "REDIRECTED", "http_status_hint": 307, "retryable": True},
-                ],
-            }
-        )
-    )
-    first = gen_api.generate(_registry(), catalog)
-    assert first == gen_api.generate(_registry(), catalog)
-    assert b'"REDIRECTED": (307, True)' in first[gen_api.GENERATED / "engine_errors.py"]
+def test_generator_emits_deterministic_artifacts() -> None:
+    first = gen_api.generate(_registry())
+    assert first == gen_api.generate(_registry())
     openapi = json.loads(first[gen_api.ROOT / "docs/api/openapi.json"])
     assert (
         openapi["paths"]["/api/v1/ops/query.uql"]["post"]["operationId"] == "query.uql"
@@ -64,23 +51,9 @@ def test_generator_emits_deterministic_artifacts_and_engine_map(tmp_path: Path) 
     compile(first[gen_api.ROOT / "graph_os/client/invoke.py"], "invoke.py", "exec")
 
 
-def test_generator_fails_closed_on_missing_or_empty_inputs(tmp_path: Path) -> None:
-    catalog = tmp_path / "errors.json"
-    catalog.write_text('{"contract_version": 1, "errors": []}')
+def test_generator_fails_closed_on_an_empty_registry() -> None:
     with pytest.raises(ValueError, match="empty API registry"):
-        gen_api.generate({"ops": []}, catalog)
-    with pytest.raises(ValueError, match="empty EG error map"):
-        gen_api.generate(_registry(), catalog)
-    with pytest.raises(FileNotFoundError):
-        gen_api.generate(_registry(), tmp_path / "missing.json")
-
-
-def test_generator_rejects_duplicate_engine_codes(tmp_path: Path) -> None:
-    catalog = tmp_path / "errors.json"
-    error = {"code": "READ_ONLY", "http_status_hint": 403, "retryable": False}
-    catalog.write_text(json.dumps({"contract_version": 1, "errors": [error, error]}))
-    with pytest.raises(ValueError, match="duplicate EG error code"):
-        gen_api.generate(_registry(), catalog)
+        gen_api.generate({"ops": []})
 
 
 def test_compat_detects_stable_breaks_but_allows_additive_changes() -> None:
