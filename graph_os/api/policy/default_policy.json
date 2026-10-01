@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "name": "graph-os-default",
+  "default_effect": "deny",
+  "rules": [
+    {
+      "name": "deny-destructive-fleet-to-non-admin",
+      "effect": "deny",
+      "principal_conditions": [
+        {"path": "attributes.is_admin", "operator": "equals", "value": false}
+      ],
+      "resource_conditions": [
+        {"path": "attributes.destructive_fleet", "operator": "equals", "value": true}
+      ],
+      "actions": ["discover", "load", "call"]
+    },
+    {
+      "name": "allow-scope-authorized",
+      "effect": "allow",
+      "principal_conditions": [],
+      "resource_conditions": [],
+      "actions": ["discover", "load", "call"]
+    }
+  ]
+}

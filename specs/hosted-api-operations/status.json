@@ -111,30 +111,31 @@
     {
       "id": "GRAPHOS-OPS-R007",
       "title": "Immutable operation registry with digest and authorization",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "c904072a652daea84dbaf53fdf995f826c33a831",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c904072a652daea84dbaf53fdf995f826c33a831",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "description": "Implemented on the default branch; exercised by tests/api"
         }
       ]
     },
     {
       "id": "GRAPHOS-OPS-R008",
       "title": "Generated engine-bound operations with exclusions",
-      "delivery_state": "BUILT",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "implementation",
           "result": "passed",
-          "commit": "758392eb53ece6299e18855530bdc323ba1c1b1f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/758392eb53ece6299e18855530bdc323ba1c1b1f",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "description": "Registry core and generator are on the default branch; exercised by tests/api."
         }
-      ]
+      ],
+      "remaining": "Confirm the generated engine bindings and published artifacts once the invoke, HTTP and MCP projection slices land."
     },
     {
       "id": "GRAPHOS-OPS-R009",
@@ -153,16 +154,17 @@
     {
       "id": "GRAPHOS-OPS-R010",
       "title": "Closed error enum and one response envelope",
-      "delivery_state": "BUILT",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "implementation",
           "result": "passed",
-          "commit": "d48d27a5cd0e88c826c9eb731bda1e4bdd96832d",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d48d27a5cd0e88c826c9eb731bda1e4bdd96832d",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "description": "The closed error enum, response envelope and fleet error path are on the default branch; exercised by tests/api/test_errors.py."
         }
-      ]
+      ],
+      "remaining": "Engine-sourced errors are refused until the engine contract file is available at the pinned engine revision; the generated engine error table and its tests return then."
     },
     {
       "id": "GRAPHOS-OPS-R011",
@@ -355,16 +357,17 @@
     {
       "id": "GRAPHOS-OPS-R025",
       "title": "Generated registry, OpenAPI, and client artifacts",
-      "delivery_state": "BUILT",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "implementation",
           "result": "passed",
-          "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "description": "Registry core and generator are on the default branch; exercised by tests/api."
         }
-      ]
+      ],
+      "remaining": "Confirm the generated engine bindings and published artifacts once the invoke, HTTP and MCP projection slices land."
     },
     {
       "id": "GRAPHOS-OPS-R026",
@@ -474,8 +477,16 @@
     {
       "id": "GRAPHOS-OPS-R034",
       "title": "Eunomia narrowing-only policy enforcement",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "description": "Implemented on the default branch; exercised by tests/api"
+        }
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R035",

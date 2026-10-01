@@ -121,30 +121,31 @@
     {
       "id": "GRAPHOS-FLEET-R011",
       "title": "Registry core computes a canonical digest and authorized find",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "c904072a652daea84dbaf53fdf995f826c33a831",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c904072a652daea84dbaf53fdf995f826c33a831",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "description": "Implemented on the default branch; exercised by tests/api"
         }
       ]
     },
     {
       "id": "GRAPHOS-FLEET-R012",
       "title": "EG-direct binding generator with reviewed exclusions",
-      "delivery_state": "BUILT",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "implementation",
           "result": "passed",
-          "commit": "758392eb53ece6299e18855530bdc323ba1c1b1f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/758392eb53ece6299e18855530bdc323ba1c1b1f",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "description": "Registry core and generator are on the default branch; exercised by tests/api."
         }
-      ]
+      ],
+      "remaining": "Confirm the generated engine bindings and published artifacts once the invoke, HTTP and MCP projection slices land."
     },
     {
       "id": "GRAPHOS-FLEET-R013",
