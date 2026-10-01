@@ -408,7 +408,7 @@ def _check_config() -> dict[str, Any]:
         status,
         f"config needs attention (profile {profile!r}) — see checks",
         remediation="`setup-config doctor` for detail; `setup-config generate --profile <p>` to (re)seed",
-        skill="agent-utilities-deployment",
+        skill="graphos-deployment",
         data=rep,
     )
 
@@ -1396,7 +1396,7 @@ def _check_secrets() -> dict[str, Any]:
             remediation=(
                 "repair the private runtime source or configured secret backend"
             ),
-            skill="agent-utilities-deployment",
+            skill="graphos-deployment",
             data={
                 "runtime_source": source_status,
                 "redacted": True,
@@ -1454,7 +1454,7 @@ def _check_secrets_backend() -> dict[str, Any]:
             "fail",
             f"secret reference scheme scan failed ({type(exc).__name__})",
             remediation="repair AgentConfig construction or the configured secrets backend",
-            skill="agent-utilities-deployment",
+            skill="graphos-deployment",
             data={"redacted": True},
         )
 

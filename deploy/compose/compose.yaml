@@ -1,0 +1,99 @@
+# Graph OS on one host (laptop, workstation or a small durable server).
+#
+# One service: the graph-os process serves MCP + REST/A2A on 8000 and the web UI
+# on 8080, and starts/supervises its epistemic-graph engine as a child process
+# inside the same container (the unified topology; the engine binary ships in the
+# unified image). The engine store lives on the `graph-os-data` volume and has
+# exactly one writer: never scale this service.
+#
+# Usage (Docker Compose v2.24+, or `podman compose`):
+#   cp .env.example .env                     # image + mode (compose interpolation)
+#   cp graph-os.env.example graph-os.env     # secret values; never commit either copy
+#   docker compose config --quiet && docker compose up -d
+#   docker compose logs graph-os | grep 'setup code'   # local mode first boot
+#
+# Ports are published on 127.0.0.1 only. Publishing on another address is an
+# exposure decision: use identity mode local or external and put TLS in front.
+name: graph-os
+
+services:
+  graph-os:
+    image: ${GRAPHOS_IMAGE:?set GRAPHOS_IMAGE to an immutable graph-os image reference}
+    command:
+      - graph-os
+      - --transport
+      - streamable-http
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    restart: unless-stopped
+    stop_grace_period: 90s
+    environment:
+      APP_PROFILE: ${GRAPHOS_APP_PROFILE:-dev}
+      DEPLOYMENT_PROFILE: ${GRAPHOS_DEPLOYMENT_PROFILE:-tiny}
+      # none | local | external. Seeds the durable mode on FIRST boot only.
+      GRAPHOS_AUTH_MODE: ${GRAPHOS_AUTH_MODE:-local}
+      # Inside a container the bind is never loopback, so `none` also needs the
+      # exact acknowledgement (see .env.example). Keep the 127.0.0.1 port
+      # publishing below when you use it.
+      GRAPHOS_AUTH_NONE_EXPOSE: ${GRAPHOS_AUTH_NONE_EXPOSE:-}
+      # Eunomia per mode: none -> none; local/external -> embedded (fails closed).
+      EUNOMIA_TYPE: ${EUNOMIA_TYPE:-embedded}
+      # Tiny installs keep secrets in the engine's encrypted secrets graph.
+      SECRETS_BACKEND: ${SECRETS_BACKEND:-engine}
+      ALLOWED_HOSTS: ${GRAPHOS_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      ENABLE_WEB_UI: "true"
+      GRAPH_OS_WEBUI_PORT: "8080"
+      # Unified topology, child placement: graph-os starts the engine itself.
+      GRAPH_SERVICE_ENDPOINTS: ""
+      GRAPH_SERVICE_PERSIST_DIR: /var/lib/graph-os/engine
+      ENGINE_LIFECYCLE: persistent
+      KG_DAEMON_ROLE: host
+      HOME: /var/lib/graph-os/home
+      XDG_CONFIG_HOME: /var/lib/graph-os/config
+      XDG_DATA_HOME: /var/lib/graph-os/data
+      XDG_STATE_HOME: /var/lib/graph-os/state
+      XDG_CACHE_HOME: /tmp/cache
+      XDG_RUNTIME_DIR: /run/epistemic-graph
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      RUM_OTLP_METRICS_ENDPOINT: ${RUM_OTLP_METRICS_ENDPOINT:-}
+    env_file:
+      # Secret values (GRAPH_SERVICE_AUTH_SECRET, optional GRAPHOS_SETUP_CODE,
+      # provider keys). Optional: without it graph-os generates the engine secret
+      # per install and the doctor flags it for rotation.
+      - path: ./graph-os.env
+        required: false
+    ports:
+      - "127.0.0.1:${GRAPHOS_API_PORT:-8000}:8000"
+      - "127.0.0.1:${GRAPHOS_UI_PORT:-8080}:8080"
+    volumes:
+      - graph-os-data:/var/lib/graph-os
+      - graph-os-run:/run/epistemic-graph
+    tmpfs:
+      - /tmp
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8000/health/ready', headers={'Host': 'localhost'}), timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # A large store recovers for minutes on a cold start.
+      start_period: 300s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  graph-os-data: {}
+  graph-os-run: {}
