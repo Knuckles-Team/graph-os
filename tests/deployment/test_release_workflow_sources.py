@@ -189,7 +189,7 @@ def test_release_dependency_readiness_blocks_tag_build_only() -> None:
     assert workflow["jobs"]["build"]["needs"] == ["gates"]
 
 
-def test_scanner_versions_receive_distinct_argv_and_remain_advisory() -> None:
+def test_scanner_versions_receive_distinct_argv_and_the_job_blocks() -> None:
     scanner = _workflow()["jobs"]["scanner-quality"]
     command = next(
         step["run"]
@@ -199,4 +199,4 @@ def test_scanner_versions_receive_distinct_argv_and_remain_advisory() -> None:
 
     assert "pipelines-hook scanner-versions cccc kiss dupehound jscpd" in command
     assert "['cccc'" not in command
-    assert scanner["continue-on-error"] is True
+    assert "continue-on-error" not in scanner

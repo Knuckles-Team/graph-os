@@ -4,16 +4,18 @@ name: Release
 # Modeled on agent-utilities'/epistemic-graph's release.yml two-workflow
 # split: this file is the ONLY workflow that can block a release
 # (gates -> build -> publish-pypi, wired with `needs:` so a failure names its
-# stage at a glance). Scanner quality remains visible but advisory because its
-# native toolchain is runner-provisioned. Everything else (Pages) lives in
-# its own workflow.
+# stage at a glance). Scanner quality blocks like every other job here now
+# that the fleet's own kiss fork build keeps it green; its native toolchain
+# is still runner-provisioned. Everything else (Pages) lives in its own
+# workflow.
 #
 # CI runs this repository's own .pre-commit-config.yaml -- the commit and
 # push stages over every file, then the manual-stage hooks that need the
 # provisioned environment -- so CI and local hooks can never run different
-# gate code. Shared gates come from Knuckles-Team/pipelines at the revision
-# pinned there. `scanner-quality` provisions the pinned
-# cccc/kiss/dupehound/jscpd toolchain on the runner (hooks never install
+# gate code. Shared gates come from Knuckles-Team/pipelines at `main` -- the
+# one sanctioned exception to this repository's immutable-pin policy.
+# `scanner-quality` provisions the pinned cccc/kiss (the fleet's own fork
+# build)/dupehound/jscpd toolchain on the runner (hooks never install
 # scanners) and runs their census and differential forms; the diff-scoped
 # `complexity-staged` / `kiss-staged` hooks compare the staged index with
 # HEAD, which is empty on a fresh checkout.
@@ -187,7 +189,6 @@ jobs:
   scanner-quality:
     name: Scanner quality (cccc, KISS, dupehound, jscpd)
     runs-on: ubuntu-latest
-    continue-on-error: true
     env:
       CARGO_BUILD_JOBS: "4"
       CARGO_PROFILE_RELEASE_DEBUG: "0"
@@ -212,7 +213,7 @@ jobs:
 
       - *release-base
 
-      - name: Shared scanner hooks (versions, censuses incl. orphan modules, clone differentials)
+      - name: Shared scanner hooks (versions, censuses, clone differentials)
         env:
           CX_DUP_BASE_REF: ${{ env.PRE_COMMIT_FROM_REF }}
         run: |

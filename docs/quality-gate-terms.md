@@ -46,16 +46,21 @@ suppress inline.
 
 ## KISS — this repository's own thresholds
 
-`.kiss/kiss.toml`'s `[python]` table records the enforced KISS 0.4.10 limits.
-Recalibrate a threshold only from a reviewed measurement that explains why the
-metric misrepresents a class of code. Record the methodology beside the value;
-never tune a threshold merely to make the current tree pass.
+`.config/kiss.toml`'s `[python]` table records the enforced KISS limits (kiss
+0.4.12, the fleet's own fork build). Recalibrate a threshold only from a
+reviewed measurement that explains why the metric misrepresents a class of
+code. Record the methodology beside the value; never tune a threshold merely
+to make the current tree pass.
 
 ### Orphan-module rule — enforced
 
-`kiss-census` enforces every KISS finding over the package, and with
-`orphan_module_enabled = true` it also runs one whole-package orphan-module
-pass — see AGENTS.md "Orphan-module wiring gate (Python)".
+`kiss-census` enforces every KISS finding over the package. Orphan modules are
+no longer part of that pass: kiss 0.4.11 moved orphan detection to the
+coverage-linked `kiss test`, a much heavier and differently-scoped operation
+than this repository's wiring gate needs. The `check-orphan-modules`
+pre-commit hook (`scripts/check_wiring.py orphans`) enforces it instead,
+restoring the original structural semantics — see AGENTS.md "Orphan-module
+wiring gate (Python)".
 
 ## Running the scanners
 
@@ -63,7 +68,8 @@ pass — see AGENTS.md "Orphan-module wiring gate (Python)".
 pre-commit run complexity-staged                        # cccc, on the staged diff
 pre-commit run kiss-staged                              # KISS, on the staged diff
 pre-commit run complexity-census --hook-stage manual --all-files
-pre-commit run kiss-census --hook-stage manual --all-files    # whole package + orphan_module
+pre-commit run kiss-census --hook-stage manual --all-files    # whole package
+pre-commit run check-orphan-modules --all-files                # Python wiring gate
 pre-commit run dupehound-changed
 pre-commit run jscpd-differential --hook-stage manual --all-files
 pre-commit run jscpd-census --hook-stage manual --all-files
