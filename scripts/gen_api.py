@@ -442,7 +442,9 @@ def _breaking_changes(before: dict[str, Any], after: dict[str, Any]) -> list[str
 def _check_compat(registry: dict[str, Any], base_ref: str) -> int:
     git = shutil.which("git")
     if git is None:
-        print("gen_api: git is not on PATH; cannot check compatibility", file=sys.stderr)
+        print(
+            "gen_api: git is not on PATH; cannot check compatibility", file=sys.stderr
+        )
         return 1
     subprocess.run(  # nosec B603 -- resolved git executable, fixed argv
         [git, "rev-parse", "--verify", base_ref],
