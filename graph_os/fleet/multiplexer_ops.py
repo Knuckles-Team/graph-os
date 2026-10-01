@@ -117,23 +117,11 @@ class MultiplexerOps:
             evict=evict,
         )
 
-    async def unload(
-        self,
-        caller: Any,
-        items: Iterable[str] = (),
-        servers: Iterable[str] = (),
-        kinds: Iterable[ItemKind] = (),
-        all_items: bool = False,
-    ) -> dict[str, Any]:
+    async def unload(self, caller: Any, **params: Any) -> dict[str, Any]:
+        """Forward to ``unload_tools``; see it for the accepted
+        ``items``/``servers``/``kinds``/``all_items`` keywords."""
         _require_delegate_scope(caller)
-        return await self.unload_tools(
-            caller,
-            self._session_key(caller),
-            items=items,
-            servers=servers,
-            kinds=kinds,
-            all_items=all_items,
-        )
+        return await self.unload_tools(caller, self._session_key(caller), **params)
 
     async def status(self, caller: Any, servers: Iterable[str] = ()) -> dict[str, Any]:
         _require_discover_scope(caller)

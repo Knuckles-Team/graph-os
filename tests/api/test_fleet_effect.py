@@ -54,6 +54,10 @@ def _gateway_and_caller(
     return gateway, SimpleNamespace(**fields)
 
 
+async def _allow_all_policy(_server: str, _tool: str, _caller: object) -> bool:
+    return True
+
+
 def test_child_refusal_uses_structured_code_only() -> None:
     assert (
         _child_error_code(
@@ -154,15 +158,12 @@ async def test_gateway_rechecks_child_scope_and_policy_before_delegation() -> No
     async def tool_for(_server: str, _tool: str, _caller: object) -> AdmittedTool:
         return AdmittedTool(None, None, frozenset({"finance:read"}), "delegated")
 
-    async def policy(_server: str, _tool: str, _caller: object) -> bool:
-        return True
-
     async def delegate(_server: str, _tool: str, _args: object, _caller: object) -> str:
         dispatched.append("called")
         return "ok"
 
     gateway, caller = _gateway_and_caller(
-        tool_for=tool_for, policy=policy, delegate=delegate
+        tool_for=tool_for, policy=_allow_all_policy, delegate=delegate
     )
     with pytest.raises(PermissionError, match="child scopes"):
         await gateway.call(caller, "s", "t", {}, expected_effect=Effect.WRITE)
@@ -179,14 +180,11 @@ async def test_service_credential_child_fails_closed() -> None:
     async def tool_for(_server: str, _tool: str, _caller: object) -> AdmittedTool:
         return AdmittedTool(None, "admin", frozenset(), "service")
 
-    async def policy(_server: str, _tool: str, _caller: object) -> bool:
-        return True
-
     async def delegate(_server: str, _tool: str, _args: object, _caller: object) -> str:
         pytest.fail("service credential child reached delegated dispatcher")
 
     gateway, caller = _gateway_and_caller(
-        tool_for=tool_for, policy=policy, delegate=delegate
+        tool_for=tool_for, policy=_allow_all_policy, delegate=delegate
     )
     with pytest.raises(PermissionError, match="authority changed"):
         await gateway.call(caller, "s", "t", {}, expected_effect=Effect.ADMIN)
@@ -197,14 +195,11 @@ async def test_effect_change_after_preview_refuses_dispatch() -> None:
     async def tool_for(_server: str, _tool: str, _caller: object) -> AdmittedTool:
         return AdmittedTool({"destructiveHint": True}, None, frozenset(), "delegated")
 
-    async def policy(_server: str, _tool: str, _caller: object) -> bool:
-        return True
-
     async def delegate(_server: str, _tool: str, _args: object, _caller: object) -> str:
         pytest.fail("effect change reached child dispatcher")
 
     gateway, caller = _gateway_and_caller(
-        tool_for=tool_for, policy=policy, delegate=delegate, principal=None
+        tool_for=tool_for, policy=_allow_all_policy, delegate=delegate, principal=None
     )
     with pytest.raises(RuntimeError, match="effect changed"):
         await gateway.call(caller, "s", "t", {}, expected_effect=Effect.WRITE)
