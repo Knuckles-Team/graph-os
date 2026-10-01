@@ -91,7 +91,7 @@
     },
     {
       "id": "GRAPHOS-HOST-R009",
-      "title": "GraphOS hosts the agent HTTP server and A2A/ACP endpoints",
+      "title": "GraphOS hosts the agent HTTP server and A2A endpoints",
       "delivery_state": "BUILDING",
       "evidence": [
         {

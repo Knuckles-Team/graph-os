@@ -188,7 +188,7 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R012",
-      "title": "SAML sign-in brokered through an OIDC provider",
+      "title": "Native SAML service provider",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
