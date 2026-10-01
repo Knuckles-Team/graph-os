@@ -27,21 +27,22 @@ way as the chart but as a sibling artifact, never a chart template. Genesis
 provisions or attaches them (Day-0); `graphos-deployment` registers them with
 the engine.
 
-## How the engine uses them: federation sources, not mirrors
+## How the engine uses them today: the mirror path
 
-External databases (Postgres, a graph database, a SQL query engine, a catalog,
-a triple store) are **federation sources** of the epistemic-graph engine: the
-engine registers a tenant-scoped foreign source and plans queries across it.
-Graph OS does not copy its graph into them. The older mirror path
-(`GRAPH_MIRROR_TARGETS` pushing the graph into Postgres/AGE, Neo4j or
-FalkorDB) is retiring; never select a new mirror target. Federation of
-external databases through the engine is **available from train 6 (EH-508)**;
-before it, record the resolved endpoints in the handoff and do not wire a
-mirror to compensate.
+External databases (Postgres/AGE, Neo4j or FalkorDB) are reachable today only
+as an async **mirror** (`GRAPH_MIRROR_TARGETS`): the engine pushes its graph
+into one for interop, BI or disaster recovery. Record the resolved endpoints
+and credential references in the handoff for `graphos-deployment` to wire.
 
-The engine refuses federation to internal addresses unless they are listed in
-its federation allowlist (`EPISTEMIC_GRAPH_FEDERATION_ALLOW`): record every
-internal SQL/HTTP host the plan selects so `graphos-deployment` can allow it.
+**Not available yet:** registering an external database (Postgres, a graph
+database, a SQL query engine, a catalog, a triple store) as a **federation
+source** of the epistemic-graph engine instead of a mirror — the engine
+registering a tenant-scoped foreign source and planning queries across it,
+without Graph OS copying its graph in. Once it ships, the engine refuses
+federation to internal addresses unless they are listed in its federation
+allowlist (`EPISTEMIC_GRAPH_FEDERATION_ALLOW`): record every internal SQL/HTTP
+host the plan selects so `graphos-deployment` can allow it, and stop selecting
+new mirror targets.
 
 ## Discovery — check before assuming missing
 

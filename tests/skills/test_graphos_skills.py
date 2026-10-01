@@ -11,8 +11,20 @@ import yaml
 
 from graph_os.skills import GRAPHOS_SKILLS
 
-SKILLS_ROOT = Path(__file__).resolve().parents[2] / "graph_os" / "skills"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SKILLS_ROOT = REPO_ROOT / "graph_os" / "skills"
 SKILL_DIRS = [SKILLS_ROOT / name for name in GRAPHOS_SKILLS]
+DEPLOY_ROOT = REPO_ROOT / "deploy"
+
+# Private program vocabulary (ticket ids, internal release trains and waves)
+# must never leak into a public-facing skill or deployment artifact: restate
+# the capability it was gating instead (see identity-and-access.md's "Not
+# available yet" section for the pattern).
+PRIVATE_LABEL = (
+    re.compile(r"\bEH-\d+\b"),
+    re.compile(r"\btrain \d+\b"),
+    re.compile(r"\bWave [A-Z]\b"),
+)
 
 # Assembled from parts so this guard's own source is not a matchable literal.
 _SITE_PREFIX = "/home/" + "apps"
@@ -102,10 +114,28 @@ def test_deployment_verifies_the_browser_path() -> None:
 
 
 @pytest.mark.parametrize("skill", SKILL_DIRS, ids=lambda p: p.name)
-def test_unshipped_features_are_marked_with_their_train(skill: Path) -> None:
+def test_unshipped_features_are_in_a_marked_section(skill: Path) -> None:
+    """Capability gaps are named by what they are, never by a private
+    program label (a ticket id, a train number or a wave letter)."""
     corpus = "\n".join(p.read_text(encoding="utf-8") for p in skill.rglob("*.md"))
     if "GRAPHOS_AUTH_MODE" in corpus or "/auth/setup" in corpus:
-        assert "train 7" in corpus
+        assert "## Not available yet" in corpus
+        assert "`none`" in corpus and "`local`" in corpus and "`external`" in corpus
+
+
+@pytest.mark.parametrize(
+    "root", [SKILLS_ROOT, DEPLOY_ROOT], ids=["graph_os/skills", "deploy"]
+)
+def test_no_private_program_labels(root: Path) -> None:
+    """A ticket id, a release train or a wave letter is never public-reader
+    vocabulary: restate the capability it was gating instead."""
+    for path in root.rglob("*"):
+        if not path.is_file() or "__pycache__" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for pattern in PRIVATE_LABEL:
+            match = pattern.search(text)
+            assert match is None, f"{pattern.pattern!r} in {path}: {match}"
 
 
 def test_ingestion_mints_runnable_skills(monkeypatch: pytest.MonkeyPatch) -> None:

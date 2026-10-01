@@ -22,9 +22,12 @@ Environment-neutral: never embed host names, addresses, registries, realm names
 or paths. A private overlay skill for a specific estate may supply those; when
 one is installed, follow it for site facts only.
 
-Features that are not on `main` yet are marked **available from <train>**.
-Check the installed release before relying on one; never report such a
-behaviour as present on an older install.
+Capabilities this skill describes that are not on `main` yet are collected in
+**Not available yet** at the end of this file, and in the matching section of
+[identity-and-access.md](references/identity-and-access.md) and
+[fleet-and-control-plane.md](references/fleet-and-control-plane.md). Check the
+installed release before relying on one; never report such a capability as
+present on an older install.
 
 ## Genesis handoff
 
@@ -58,25 +61,26 @@ infrastructure or rotate credentials.
 
 ### 2. Select the profile and the modes
 
-| Profile | Runtime | Identity mode | Eunomia | Secrets backend |
-|---|---|---|---|---|
-| `tiny` | one host, loopback | `none` | off (`none`) | engine secrets graph |
-| `single-node-prod` | Compose, Docker Swarm or bare metal | `local` | on (`embedded`, shipped policy) | engine secrets graph, or OpenBao |
-| `enterprise` | Kubernetes | `local`, then usually `external` | on (`embedded` or `remote`) | OpenBao / Vault-compatible |
+| Profile | Runtime | Secrets backend |
+|---|---|---|
+| `tiny` | one host, loopback | engine secrets graph |
+| `single-node-prod` | Compose, Docker Swarm or bare metal | engine secrets graph, or OpenBao |
+| `enterprise` | Kubernetes | OpenBao / Vault-compatible |
 
-After the operation-API cutover, GraphOS has no `MCP_TOOL_MODE` setting: the
-six intent verbs and four multiplexer tools are the resident MCP surface in
-all profiles. Standalone connector children may have their own mode setting.
-Select `EUNOMIA_TYPE` by identity mode as shown above; an enabled but
-unavailable policy evaluator fails closed. With Eunomia off, exact scopes and
-principal rules still filter discovery and calls.
+Today every profile authenticates the same way: an external OIDC issuer
+(`AUTH_TYPE=jwt`, `AUTH_JWT_ISSUER`, `AUTH_JWT_JWKS_URI`, `AUTH_JWT_AUDIENCE`),
+and graph-os refuses any non-loopback bind without a configured token
+verifier. `kg:read`/`kg:write`/`kg:admin` (hierarchical) gate graph access;
+`EUNOMIA_TYPE` and a policy document can be configured, but request-time
+policy filtering is not wired into the served surface yet (see
+[identity-and-access.md](references/identity-and-access.md)). Fleet discovery
+and delegation are filtered by the exact scopes `mcp:discover`/`mcp:delegate`
+regardless. The native `graph_*` intent verbs plus the four resident fleet
+multiplexer meta-tools are the MCP surface in all profiles; standalone
+connector children may have their own mode setting.
 
 Rules that hold in every profile:
 
-- the identity mode seeds durable engine state on first boot only; afterwards
-  the stored mode wins and changes only through a mode transition;
-- Eunomia, when on, **fails closed**: an unreachable policy decision point
-  hides the fleet and refuses calls, it never exposes them;
 - no secret value appears in configuration — only references
   (`engine://…`, `vault://…`, `env://…`, a Secret name).
 
@@ -100,16 +104,15 @@ choosing a secrets backend or connecting an external database.
 ### 4. Deploy in dependency order
 
 1. secrets backend and delivery (the runtime Secret: engine HMAC secret,
-   engine secrets, optional setup code, signer keys where the topology needs
-   them);
+   engine secrets, signer keys where the topology needs them);
 2. graph-os and its engine (one unit in the unified topology);
-3. first administrator and identity mode (below);
-4. policy (Eunomia document, when on) and service identities with their exact
-   scopes;
-5. observability: OTLP export, metrics scrape of graph-os `/metrics`, browser
-   RUM relay — see [telemetry.md](references/telemetry.md);
-6. fleet: connectors, the multiplexer configuration and federation sources —
-   see [fleet-and-control-plane.md](references/fleet-and-control-plane.md);
+3. first administrator (below);
+4. policy document (Eunomia configuration) and service identities with their
+   exact scopes;
+5. observability: OTLP export, metrics scrape of graph-os `/metrics` — see
+   [telemetry.md](references/telemetry.md);
+6. fleet: connectors and the multiplexer configuration — see
+   [fleet-and-control-plane.md](references/fleet-and-control-plane.md);
 7. optional scheduled ingestion and background loops (propose-only by default).
 
 Stop a dependent stage when its prerequisite is unhealthy. Use canary rollout
@@ -117,16 +120,11 @@ for multi-node or unfamiliar components.
 
 ### 5. Create the first administrator
 
-- `none` (tiny): the bootstrap administrator exists from first boot; nobody
-  signs in. Leave `none` later with `graph-os-identity claim --username <name>`.
-- `local` / `external`: a fresh instance is unusable until its first
-  administrator exists. Open `/auth/setup` in the web UI and enter the
-  one-time setup code — `GRAPHOS_SETUP_CODE` from the runtime Secret, or the
-  code graph-os writes to its log at start. Only someone who can read the
-  Secret or the log can claim the instance.
-
-Available from train 7 (identity). Before it, the first administrator is the
-IdP user holding `kg:admin` (see identity-and-access).
+The first administrator is the IdP user holding `kg:admin` (see
+[identity-and-access.md](references/identity-and-access.md)): grant it to one
+verified person through the identity provider, then confirm they can reach the
+graph. A local-credential or demo first-administrator flow is not available
+yet — see that reference's **Not available yet** section.
 
 ### 6. Verify
 
@@ -158,6 +156,26 @@ stage the change, keep a rollback. The engine store has one writer: stop the
 old unit completely before the new one opens the store. A binary rollback is
 insufficient after a stored-format change. Repeat the first-boot verification
 after every upgrade or migration.
+
+## Not available yet
+
+These capabilities are described elsewhere in this skill and its references
+for forward planning, but are not served by `main` today — verify against the
+installed release before relying on any of them:
+
+- identity modes `none`/`local`/`external` with a local issuer, a first-run
+  setup code, the `graph-os-identity` CLI, break-glass fallback and the admin
+  UI (see identity-and-access.md);
+- request-time Eunomia policy filtering of MCP/API discovery, load and call
+  (the policy-gate code exists but is not yet mounted into the served
+  surface — see fleet-and-control-plane.md);
+- graph-os's own capacity scopes, `fleet:events`, `identity:authenticate`, and
+  a principal-scoped lease-kind allowlist for the engine;
+- registering an external database as an engine federation source
+  (register/list/probe/share); today an external database is only reachable
+  through the retiring mirror path (see secrets-and-federation.md);
+- browser RUM telemetry and pseudonymized security-audit feeds (see
+  telemetry.md).
 
 ## Guardrails
 

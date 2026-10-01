@@ -18,22 +18,17 @@ Copy both examples, fill them, never commit the copies (the directory's
    with `podman compose`, and enough disk for the engine store.
 2. Choose the image: a unified graph-os image at a digest (see
    [runtime-topology.md](runtime-topology.md), "Images").
-3. Choose the identity mode (applied by `graphos-deployment`):
-   - `local` (default): the first administrator is created in the web UI at
-     `/auth/setup` with a one-time setup code from `GRAPHOS_SETUP_CODE` or the
-     graph-os log;
-   - `none` (demo): set `GRAPHOS_AUTH_MODE=none`, `EUNOMIA_TYPE=none` and the
-     exact acknowledgement `GRAPHOS_AUTH_NONE_EXPOSE=I-UNDERSTAND-ANYONE-WHO-CAN-REACH-THIS-PORT-IS-ADMIN`
-     in `.env` — required because the process inside a container never binds
-     loopback. Keep the `127.0.0.1` port publishing and browse
-     `http://localhost:8080` only; the none-mode Host/Origin guard refuses
-     other names;
-   - `external`: start in `local`, then add an IdP (see `graphos-deployment`).
-   Identity modes are **available from train 7 (identity)**. Before it, a
-   container bind is non-loopback, so graph-os refuses to serve without a real
-   token verifier (`AUTH_TYPE=jwt` against an existing OIDC issuer); for a
-   zero-IdP evaluation on an older release, run graph-os directly on the host
-   in the `tiny` profile instead ([bare-metal.md](bare-metal.md)).
+3. Identity (applied by `graphos-deployment`): a container bind is
+   non-loopback, so graph-os refuses to serve without a real token verifier
+   (`AUTH_TYPE=jwt` against an existing external OIDC issuer) — set it in
+   `.env`. For a zero-IdP evaluation, run graph-os directly on the host in the
+   `tiny` profile instead ([bare-metal.md](bare-metal.md)). A durable,
+   engine-stored identity mode (`none`/`local`/`external` — a one-time setup
+   code at `/auth/setup` for `local`, or the exact acknowledgement
+   `GRAPHOS_AUTH_NONE_EXPOSE=I-UNDERSTAND-ANYONE-WHO-CAN-REACH-THIS-PORT-IS-ADMIN`
+   for a `none` demo) is not available yet; see
+   [identity-and-access.md](../../graphos-deployment/references/identity-and-access.md)'s
+   own **Not available yet** section.
 4. Validate offline, then inspect the rendered model for unresolved values and
    secret leakage:
 

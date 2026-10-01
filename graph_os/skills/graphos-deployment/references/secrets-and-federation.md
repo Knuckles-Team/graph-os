@@ -35,25 +35,33 @@ Rules:
 - A `GRAPH_SERVICE_AUTH_SECRET` that graph-os auto-generated on a tiny install
   must be rotated before the install leaves demo mode (the doctor flags it).
 
-## External databases are federation sources, not mirrors
+## External databases today: the mirror path
 
-The engine is the only durable authority. External databases — Postgres,
-graph databases, SQL query engines, lakehouse catalogs, triple stores — are
-registered as **tenant-scoped federation sources**: the engine plans queries
-across them and records provenance; Graph OS does not copy its graph into
-them.
+The engine is the only durable authority. Today an external database
+(Postgres/AGE, Neo4j or FalkorDB) is only reachable as an async **mirror**
+(`GRAPH_MIRROR_TARGETS`): the engine pushes its graph into it for interop, BI
+or disaster recovery; Graph OS does not read queries back from it. Select a
+mirror target per profile (`single-node-prod` and `enterprise` default to
+`age`); credentials are secret references, never plaintext. Kafka is not a
+mirror target: it stays the task-queue/event backbone
+(`TASK_QUEUE_BACKEND=kafka`, `KAFKA_BOOTSTRAP_SERVERS`) where the profile
+selects it.
 
-- Register sources through the federation operations of the control plane
-  (register / list / probe / share), with credentials as secret references.
-- Allow each internal SQL/HTTP host in the engine's federation allowlist
-  (`EPISTEMIC_GRAPH_FEDERATION_ALLOW`): the engine refuses internal addresses
-  by default to prevent server-side request forgery.
-- Federation of external databases through the engine is **available from
-  train 6 (EH-508)**; the federation API operations from **Wave C**.
-- The retiring mirror path (`GRAPH_MIRROR_TARGETS` pushing into Postgres/AGE,
-  Neo4j or FalkorDB) gets no new targets. An install that still has one keeps
-  it until its federation source replaces it, then removes the mirror target
-  and its credentials in the same change.
-- Kafka is not a federation source: it stays the task-queue/event backbone
-  (`TASK_QUEUE_BACKEND=kafka`, `KAFKA_BOOTSTRAP_SERVERS`) where the profile
-  selects it.
+## Not available yet
+
+Registering an external database (Postgres, a graph database, a SQL query
+engine, a lakehouse catalog, a triple store) as a **tenant-scoped federation
+source** — the engine plans queries across it and records provenance, rather
+than Graph OS copying its graph into a mirror:
+
+- register/list/probe/share operations through the control plane, with
+  credentials as secret references;
+- each internal SQL/HTTP host allowed in the engine's federation allowlist
+  (`EPISTEMIC_GRAPH_FEDERATION_ALLOW`), which refuses internal addresses by
+  default to prevent server-side request forgery;
+- the federation API operations that expose register/list/probe/share over
+  MCP/API/A2A.
+
+Once federation sources ship, the mirror path above stops taking new targets:
+an install that still has one keeps it until its federation source replaces
+it, then removes the mirror target and its credentials in the same change.

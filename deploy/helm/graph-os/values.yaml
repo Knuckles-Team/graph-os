@@ -38,8 +38,11 @@ runtimeSecret:
   name: graph-os-runtime
   optional: false
 
-# Identity (train 7 "identity"). The mode is DURABLE engine state; this value
-# only seeds it on first boot (GRAPHOS_AUTH_MODE) and the stored mode wins after.
+# Identity mode. Forward configuration: graph-os does not read
+# GRAPHOS_AUTH_MODE yet (today it always authenticates through an external
+# OIDC issuer; see the graphos-deployment skill's "Not available yet"
+# section). Once served, the mode is DURABLE engine state; this value only
+# seeds it on first boot and the stored mode wins after.
 identity:
   # none | local | external. A pod never binds loopback only, so `none` renders
   # only with the exact acknowledgement below.

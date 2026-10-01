@@ -41,9 +41,10 @@ Read [runtime-topology.md](references/runtime-topology.md) first. In one line:
 - **Connectors** are MCP servers built on agent-connector-sdk. graph-os reaches
   them through its fleet multiplexer.
 
-Features that are not on `main` yet are marked **available from <train>**.
-Never describe such a feature as present on an install that predates it; check
-the installed release first.
+Capabilities this skill describes that are not on `main` yet are collected in
+**Not available yet** near the end of this file. Never describe such a
+capability as present on an install that predates it; check the installed
+release first.
 
 ## Responsibility boundary
 
@@ -119,11 +120,11 @@ Collect or infer:
 - engine topology: `unified-in-process` (default) or
   `out-of-process-shared`; for unified on Kubernetes, engine placement
   `sidecar` (default) or `child`;
-- identity mode the application will start in: `none`, `local` or `external`
-  (decided with the operator here because it shapes ingress, IdP and secret
-  needs; applied by `graphos-deployment`; identity modes are **available from
-  train 7 (identity)** — before it, an existing OIDC issuer is required for any
-  non-loopback install);
+- identity: today every install needs an existing external OIDC issuer for any
+  non-loopback bind (applied by `graphos-deployment`); a durable, engine-stored
+  identity mode (`none`/`local`/`external`, decided with the operator here
+  because it shapes ingress, IdP and secret needs) is not available yet (see
+  **Not available yet**);
 - identity, secrets, PKI, DNS/ingress, storage, observability, backup and
   GitOps providers, each `deploy`, `use-existing` or `skip`;
 - selected connectors: `core`, named packages, a manifest filter, or `all`;
@@ -324,6 +325,16 @@ Do not declare success until every applicable gate passes:
 Distinguish claims: an `Agent.run` tool loop, a multi-node `pydantic_graph`
 run and a harness workflow are three separate validations; one does not
 prove the others.
+
+## Not available yet
+
+A durable, engine-stored identity mode (`none`/`local`/`external`) is not
+served by `main` today: every install needs an existing external OIDC issuer
+for any non-loopback bind, applied by `graphos-deployment`. The
+`identity_mode` field in the Phase 7 handoff and the chart's `identity.mode`
+value are forward configuration for that capability; see
+[identity-and-access.md](../graphos-deployment/references/identity-and-access.md)'s
+own **Not available yet** section.
 
 ## Output
 

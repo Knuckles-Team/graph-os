@@ -56,12 +56,12 @@ Use `--create-namespace` only when the contract grants namespace creation.
 | `engine.placement` | unified only: `sidecar` (default; native sidecar container, Unix socket on a shared `emptyDir`) or `child` (graph-os supervises the engine in its own container) |
 | `engine.image` | empty = reuse the graph-os unified image; set it for the shared StatefulSet |
 | `engine.tcp.enabled`, `engine.tls.secretName` | expose the engine's TLS listener to in-cluster connectors; required TLS for any non-loopback listener |
-| `identity.mode` | `none`, `local` (default) or `external`; seeds the durable mode on first boot. `none` refuses to render without `identity.noneExposeAck` set to the exact acknowledgement |
-| `identity.issuer`, `identity.tenant` | the issuer URL the engine and clients trust, and the engine tenant |
-| `graphos.config` | extra runtime settings; on releases before train 7 (no identity modes) set `AUTH_TYPE=jwt` and `AUTH_JWT_ISSUER`/`AUTH_JWT_JWKS_URI`/`AUTH_JWT_AUDIENCE` here for the external OIDC issuer |
-| `policy.eunomia.type` | empty derives from the mode: `none` → `none`, `local`/`external` → `embedded`; `remote` needs `remoteUrl` |
+| `identity.mode` | forward configuration only — graph-os does not read it yet (see identity-and-access.md's "Not available yet"); the chart still refuses to render `none` without `identity.noneExposeAck` set to the exact acknowledgement |
+| `identity.issuer`, `identity.tenant` | forward configuration for the same not-yet-served identity mode |
+| `graphos.config` | extra runtime settings; set `AUTH_TYPE=jwt` and `AUTH_JWT_ISSUER`/`AUTH_JWT_JWKS_URI`/`AUTH_JWT_AUDIENCE` here for today's external OIDC issuer |
+| `policy.eunomia.type` | empty derives from `identity.mode`; configured but not yet enforced at request time (see fleet-and-control-plane.md) |
 | `secrets.backend`, `secrets.vaultUrl` | `vault` (OpenBao or another Vault-compatible store, default) or `engine` |
-| `telemetry.*`, `capacity.prometheusUrl` | OTLP export, browser RUM relay, throttle-controller metrics source |
+| `telemetry.*`, `capacity.prometheusUrl` | OTLP export and throttle-controller metrics source; browser RUM relay is not available yet |
 | `runtimeSecret.name` | the existing Secret both containers read (engine HMAC secret, engine secrets, optional setup code) |
 | `ingress.api`, `ingress.webUi` | separate hosts for MCP/REST/A2A and for the browser UI |
 | `graphos.probeHostHeader` | Host header for kubelet probes; it must be an allowed host, or probes get `400 host rejected` |
