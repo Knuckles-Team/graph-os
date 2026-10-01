@@ -83,6 +83,44 @@ embedded
 {{- end -}}
 {{- end }}
 
+{{/* Pod-spec header shared by the engine StatefulSet and the graphos
+     Deployment: service account, service-link opt-out, grace period,
+     security context and optional image pull secrets. Call with
+     `| nindent 6` directly under each template's `spec:`. */}}
+{{- define "graph-os.podSpecHeader" -}}
+serviceAccountName: {{ include "graph-os.serviceAccountName" . }}
+automountServiceAccountToken: false
+enableServiceLinks: {{ .Values.enableServiceLinks }}
+terminationGracePeriodSeconds: 90
+securityContext:
+  {{- toYaml .Values.podSecurityContext | nindent 2 }}
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+
+{{/* The engine container's envFrom: the shared ConfigMap plus the optional
+     runtime secret. Identical whether the engine runs as its own
+     StatefulSet or as the unified pod's sidecar/child container. */}}
+{{- define "graph-os.engineEnvFrom" -}}
+envFrom:
+  - configMapRef:
+      name: {{ include "graph-os.fullname" . }}-engine
+  - secretRef:
+      name: {{ .Values.runtimeSecret.name }}
+      optional: {{ .Values.runtimeSecret.optional }}
+{{- end }}
+
+{{/* The three volume mounts both the unified pod's engine (sidecar/child)
+     and graphos containers share: ephemeral tmp, the engine's local
+     socket, and the unified data volume. */}}
+{{- define "graph-os.sharedVolumeMounts" -}}
+- {name: tmp, mountPath: /tmp}
+- {name: engine-socket, mountPath: /run/epistemic-graph}
+- {name: graphos-data, mountPath: /var/lib/graph-os}
+{{- end }}
+
 {{/* Engine argv shared by the sidecar and the shared StatefulSet. */}}
 {{- define "graph-os.engineArgs" -}}
 - epistemic-graph-server

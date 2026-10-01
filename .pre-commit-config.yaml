@@ -24,6 +24,9 @@ repos:
     exclude: ^(tests/|test/)
   - id: check-yaml
     args: ["--unsafe"]
+    # Helm templates are Go-template text with a .yaml extension, not parsed
+    # as plain YAML until `helm template` renders them.
+    exclude: ^deploy/helm/graph-os/templates/
   - id: check-toml
   - id: check-json
   - id: fix-byte-order-marker

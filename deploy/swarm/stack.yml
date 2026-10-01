@@ -28,7 +28,7 @@ version: "3.9"
 
 services:
   graph-os:
-    image: ${GRAPHOS_IMAGE:?set GRAPHOS_IMAGE to an immutable graph-os image reference}
+    image: ${GRAPHOS_IMAGE:?set GRAPHOS_IMAGE to an immutable graph-os image reference, e.g. registry.example/graph-os@sha256:<digest>}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-

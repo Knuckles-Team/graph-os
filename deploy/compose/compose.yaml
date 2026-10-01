@@ -18,7 +18,7 @@ name: graph-os
 
 services:
   graph-os:
-    image: ${GRAPHOS_IMAGE:?set GRAPHOS_IMAGE to an immutable graph-os image reference}
+    image: ${GRAPHOS_IMAGE:?set GRAPHOS_IMAGE to an immutable graph-os image reference, e.g. registry.example/graph-os@sha256:<digest>}
     command:
       - graph-os
       - --transport
@@ -43,22 +43,13 @@ services:
       # Tiny installs keep secrets in the engine's encrypted secrets graph.
       SECRETS_BACKEND: ${SECRETS_BACKEND:-engine}
       ALLOWED_HOSTS: ${GRAPHOS_ALLOWED_HOSTS:-localhost,127.0.0.1}
-      ENABLE_WEB_UI: "true"
-      GRAPH_OS_WEBUI_PORT: "8080"
-      # Unified topology, child placement: graph-os starts the engine itself.
-      GRAPH_SERVICE_ENDPOINTS: ""
-      GRAPH_SERVICE_PERSIST_DIR: /var/lib/graph-os/engine
-      ENGINE_LIFECYCLE: persistent
-      KG_DAEMON_ROLE: host
-      HOME: /var/lib/graph-os/home
-      XDG_CONFIG_HOME: /var/lib/graph-os/config
-      XDG_DATA_HOME: /var/lib/graph-os/data
-      XDG_STATE_HOME: /var/lib/graph-os/state
-      XDG_CACHE_HOME: /tmp/cache
-      XDG_RUNTIME_DIR: /run/epistemic-graph
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       RUM_OTLP_METRICS_ENDPOINT: ${RUM_OTLP_METRICS_ENDPOINT:-}
     env_file:
+      # Fixed, non-tunable internal wiring for the unified topology (shared
+      # with deploy/swarm/stack.yml, which keeps its own literal copy since
+      # Swarm does not read env_file).
+      - path: ./graphos-runtime.env
       # Secret values (GRAPH_SERVICE_AUTH_SECRET, optional GRAPHOS_SETUP_CODE,
       # provider keys). Optional: without it graph-os generates the engine secret
       # per install and the doctor flags it for rotation.

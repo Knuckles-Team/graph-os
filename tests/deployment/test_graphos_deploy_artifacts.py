@@ -62,6 +62,17 @@ def test_chart_guards_none_mode_and_engine_tls() -> None:
     assert "restartPolicy: Always" in (CHART / "templates" / "graphos.yaml").read_text()
 
 
+def _runtime_env(path: Path) -> dict[str, str]:
+    pairs: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        key, _, value = stripped.partition("=")
+        pairs[key] = value
+    return pairs
+
+
 def test_compose_is_single_writer_loopback_and_secret_free() -> None:
     compose = yaml.safe_load((COMPOSE / "compose.yaml").read_text(encoding="utf-8"))
     services = compose["services"]
@@ -71,7 +82,15 @@ def test_compose_is_single_writer_loopback_and_secret_free() -> None:
     assert "deploy" not in service
     assert service["image"].startswith("${GRAPHOS_IMAGE:?")
     assert all(port.startswith("127.0.0.1:") for port in service["ports"])
-    assert service["environment"]["GRAPH_SERVICE_PERSIST_DIR"].startswith("/var/lib/")
+    # The fixed, non-tunable half of the runtime environment ships as a
+    # tracked env_file (shared in spirit with deploy/swarm/stack.yml, which
+    # cannot use env_file) rather than repeated inline here.
+    runtime_env_paths = {
+        entry["path"] for entry in service["env_file"] if isinstance(entry, dict)
+    }
+    assert "./graphos-runtime.env" in runtime_env_paths
+    runtime_env = _runtime_env(COMPOSE / "graphos-runtime.env")
+    assert runtime_env["GRAPH_SERVICE_PERSIST_DIR"].startswith("/var/lib/")
     environment = json.dumps(service["environment"])
     assert not re.search(r"(SECRET|TOKEN|PASSWORD)\"\s*:\s*\"[^$\"]", environment)
     assert (COMPOSE / ".gitignore").read_text(encoding="utf-8").split() == [

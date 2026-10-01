@@ -20,28 +20,14 @@ spec:
         {{- include "graph-os.labels" . | nindent 8 }}
         app.kubernetes.io/component: engine
     spec:
-      serviceAccountName: {{ include "graph-os.serviceAccountName" . }}
-      automountServiceAccountToken: false
-      enableServiceLinks: {{ .Values.enableServiceLinks }}
-      terminationGracePeriodSeconds: 90
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "graph-os.podSpecHeader" . | nindent 6 }}
       containers:
         - name: engine
           image: {{ include "graph-os.engineImage" . }}
           imagePullPolicy: {{ .Values.engine.image.pullPolicy }}
           command:
             {{- include "graph-os.engineArgs" . | nindent 12 }}
-          envFrom:
-            - configMapRef:
-                name: {{ include "graph-os.fullname" . }}-engine
-            - secretRef:
-                name: {{ .Values.runtimeSecret.name }}
-                optional: {{ .Values.runtimeSecret.optional }}
+          {{- include "graph-os.engineEnvFrom" . | nindent 10 }}
           ports:
             - {name: engine, containerPort: {{ .Values.engine.port }}}
           startupProbe:

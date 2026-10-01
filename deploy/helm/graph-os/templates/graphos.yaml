@@ -26,16 +26,7 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
-      serviceAccountName: {{ include "graph-os.serviceAccountName" . }}
-      automountServiceAccountToken: false
-      enableServiceLinks: {{ .Values.enableServiceLinks }}
-      terminationGracePeriodSeconds: 90
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "graph-os.podSpecHeader" . | nindent 6 }}
       {{- if $sidecar }}
       initContainers:
         # Native sidecar: starts before graph-os, stops after it, restarts on its own.
@@ -45,12 +36,7 @@ spec:
           restartPolicy: Always
           command:
             {{- include "graph-os.engineArgs" . | nindent 12 }}
-          envFrom:
-            - configMapRef:
-                name: {{ include "graph-os.fullname" . }}-engine
-            - secretRef:
-                name: {{ .Values.runtimeSecret.name }}
-                optional: {{ .Values.runtimeSecret.optional }}
+          {{- include "graph-os.engineEnvFrom" . | nindent 10 }}
           {{- if .Values.engine.tcp.enabled }}
           ports:
             - {name: engine, containerPort: {{ .Values.engine.port }}}
@@ -66,9 +52,7 @@ spec:
           resources:
             {{- toYaml .Values.engine.resources | nindent 12 }}
           volumeMounts:
-            - {name: tmp, mountPath: /tmp}
-            - {name: engine-socket, mountPath: /run/epistemic-graph}
-            - {name: graphos-data, mountPath: /var/lib/graph-os}
+            {{- include "graph-os.sharedVolumeMounts" . | nindent 12 }}
             {{- if .Values.engine.tcp.enabled }}
             - {name: engine-tls, mountPath: /etc/graph-os/engine-tls, readOnly: true}
             {{- end }}
@@ -122,9 +106,7 @@ spec:
           resources:
             {{- toYaml .Values.graphos.resources | nindent 12 }}
           volumeMounts:
-            - {name: tmp, mountPath: /tmp}
-            - {name: engine-socket, mountPath: /run/epistemic-graph}
-            - {name: graphos-data, mountPath: /var/lib/graph-os}
+            {{- include "graph-os.sharedVolumeMounts" . | nindent 12 }}
             {{- if and $engineTls (not $sidecar) }}
             - {name: engine-tls, mountPath: /etc/graph-os/engine-tls, readOnly: true}
             {{- end }}
