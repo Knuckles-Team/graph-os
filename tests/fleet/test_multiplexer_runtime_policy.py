@@ -84,6 +84,7 @@ class _SessionContext:
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_runtime_policy_owns_spawn_catalog_call_and_teardown(
     monkeypatch, tmp_path
 ):

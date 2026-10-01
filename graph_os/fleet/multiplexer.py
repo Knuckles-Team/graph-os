@@ -1350,14 +1350,35 @@ async def _run_bounded_probe(
     )
 
 
-def _request_capabilities() -> frozenset[str] | None:
-    """Return verified remote capabilities, or ``None`` for local stdio."""
+def _request_capabilities() -> frozenset[str]:
+    """Return the verified caller's capabilities for every transport.
+
+    A local stdio caller carries no HTTP bearer token; its authority comes
+    instead from the process's own verified actor context (the same context
+    the serving host binds for every stdio tool call), read through its
+    already-resolved effective capability set (``roles`` — role ∪ scope ∪
+    group-derived capabilities). Either path must resolve to a concrete,
+    authenticated capability set: there is no longer a transport that
+    bypasses this check.
+    """
     try:
         from fastmcp.server.dependencies import get_access_token, get_http_request
 
         get_http_request()
     except RuntimeError:
-        return None
+        from agent_utilities.security.brain_context import current_actor
+
+        try:
+            actor = current_actor()
+        except Exception:
+            raise _fastmcp_exceptions.ToolError(
+                "Authenticated local process context required"
+            ) from None
+        if actor.authenticated is not True:
+            raise _fastmcp_exceptions.ToolError(
+                "Authenticated local process context required"
+            ) from None
+        return frozenset(str(role).strip() for role in actor.roles if str(role).strip())
     except Exception:
         raise _fastmcp_exceptions.ToolError(
             "Authenticated HTTP context required"
@@ -1407,10 +1428,10 @@ def _fleet_required_capabilities(kind: str) -> set[str]:
 
 
 def _require_fleet_capability(kind: str, extra_scopes: list[str] | None = None) -> None:
-    """Authorize remote fleet discovery/delegation; local stdio is trusted."""
+    """Authorize fleet discovery/delegation for every transport, local stdio
+    included: the exact same capability check applies regardless of how the
+    caller connected."""
     capabilities = _request_capabilities()
-    if capabilities is None:
-        return
     required = _fleet_required_capabilities(kind)
     if not capabilities.intersection(required):
         raise _fastmcp_exceptions.ToolError(f"MCP fleet {kind} capability required")

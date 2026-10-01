@@ -323,6 +323,7 @@ async def test_mount_child_lazy_and_idempotent(tmp_path):
     assert mux._start_child.await_count == 1
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_recovered_child_replaces_exposed_schema_without_catalog_polling(
     tmp_path,
 ):
@@ -412,6 +413,7 @@ async def test_recovered_child_replaces_exposed_schema_without_catalog_polling(
     await mux.aclose()
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     tmp_path, monkeypatch
 ):
@@ -477,6 +479,7 @@ async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     await mux.aclose()
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_schema_refresh_rolls_back_partial_host_registration_atomically(
     tmp_path, monkeypatch
 ):
@@ -1297,6 +1300,7 @@ async def test_list_catalog_unknown_server(tmp_path):
     assert "error" in cat
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_list_catalog_meta_tool_registered(tmp_path):
     from fastmcp import FastMCP
 
@@ -1513,6 +1517,7 @@ async def _registered_tool_names(mcp) -> set[str]:
     return {t.name for t in tools}
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_meta_tools_registered_and_load_exposes(tmp_path):
     from fastmcp import FastMCP
 
@@ -1544,6 +1549,7 @@ async def test_meta_tools_registered_and_load_exposes(tmp_path):
     assert CNT_PREFIXED in mux._exposed  # still globally registered
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_per_session_disclosure_isolation(tmp_path):
     """Plan Phase 5: one session's load_tools must not leak to another session.
 
@@ -1614,6 +1620,7 @@ async def test_per_session_disclosure_isolation(tmp_path):
     assert {"find_tools", "load_tools"} <= b_tools
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_one_shot_tool_call_prunes_session_visibility_state(tmp_path):
     """Auto-unload must leave no process-global key after the one-shot call."""
     from fastmcp import Client, FastMCP
@@ -1649,6 +1656,7 @@ async def test_one_shot_tool_call_prunes_session_visibility_state(tmp_path):
     assert mux._auto_unload == {}
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_explicit_unload_prunes_session_visibility_state(tmp_path):
     """List-only one-shot sessions retract visibility before termination."""
     from fastmcp import Client, FastMCP
@@ -1669,6 +1677,7 @@ async def test_explicit_unload_prunes_session_visibility_state(tmp_path):
     assert mux._auto_unload == {}
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_find_tools_meta_returns_structured(tmp_path):
     from fastmcp import FastMCP
 
@@ -1867,6 +1876,7 @@ async def test_tool_dispatchable_is_session_scoped_after_expose(tmp_path):
     assert mux.tool_dispatchable(CNT_PREFIXED, session_key="session-B") is False
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_list_catalog_mounted_matches_dispatch_reality_across_sessions(
     tmp_path,
 ):
@@ -1944,6 +1954,7 @@ async def test_list_catalog_mounted_matches_dispatch_reality_across_sessions(
         assert entry_a["mounted"] is True
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_three_concurrent_local_sessions_blast_radius(tmp_path):
     """D-W2-6 blast-radius proof: reproduces the independently-observed symptom
     ("...leaks process-global multiplexer session visibility and creates three
@@ -2153,6 +2164,7 @@ async def test_notify_tools_changed_surfaces_send_failure(monkeypatch, caplog):
     assert any("list_changed" in r.message for r in caplog.records)
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_load_tools_reports_notification_sent_true_inside_a_live_session(
     tmp_path,
 ):
@@ -2196,6 +2208,7 @@ async def test_load_tools_reports_notification_not_sent_outside_a_request_contex
     assert "notified" not in payload
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_load_tools_notification_sent_true_does_not_imply_universal_callability(
     tmp_path,
 ):
@@ -2348,6 +2361,7 @@ async def test_aclose_cancels_a_forced_probe_too(tmp_path):
     assert not mux._probe_tasks
 
 
+@pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_load_tools_changes_the_wire_tool_list_a_live_client_observes(tmp_path):
     """Track 9 of the pydantic-ai native-adoption program (provider prompt-cache
     discipline, CONCEPT:AU-ORCH.optimization.provider-prompt-cache — see
@@ -2452,3 +2466,46 @@ def test_require_fleet_capability_allows_caller_holding_the_extra_scope(monkeypa
         monkeypatch, scopes=["mcp:delegate", "child:special"]
     )
     _require_fleet_capability("delegate", extra_scopes=["child:special"])  # no raise
+
+
+def test_require_fleet_capability_denies_stdio_caller_with_no_verified_actor():
+    """GRAPHOS-FLEET-R021: a local stdio caller is no longer trusted outright
+    -- with no verified process actor bound at all, the exact same check
+    applies and the call is refused, exactly as an unauthenticated remote
+    caller would be."""
+    with pytest.raises(ToolError, match="Authenticated local process context"):
+        _require_fleet_capability("discover")
+
+
+def test_require_fleet_capability_denies_stdio_caller_missing_the_exact_scope():
+    """A verified stdio actor that lacks the fleet's own ``mcp:discover``
+    scope is refused the same way a remote caller without it would be --
+    being local carries no implicit discovery/delegation grant."""
+    from agent_utilities.security.brain_context import ActorContext, use_actor
+
+    actor = ActorContext(
+        actor_id="stdio-caller",
+        roles=("some:other:scope",),
+        tenant_id="test-tenant",
+        authenticated=True,
+    )
+    with use_actor(actor):
+        with pytest.raises(ToolError, match="MCP fleet discover capability required"):
+            _require_fleet_capability("discover")
+
+
+def test_require_fleet_capability_allows_stdio_caller_with_exact_scope():
+    """The correctly scoped stdio path: a verified local actor holding the
+    fleet's own ``mcp:discover`` scope passes -- the same outcome an
+    equally-scoped remote caller gets, proving local stdio runs through the
+    identical check rather than a separate, more permissive one."""
+    from agent_utilities.security.brain_context import ActorContext, use_actor
+
+    actor = ActorContext(
+        actor_id="stdio-caller",
+        roles=("mcp:discover",),
+        tenant_id="test-tenant",
+        authenticated=True,
+    )
+    with use_actor(actor):
+        _require_fleet_capability("discover")  # must not raise
