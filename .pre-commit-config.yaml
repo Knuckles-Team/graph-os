@@ -192,7 +192,7 @@ repos:
   # runs in a fresh clone with no synced environment.
   - id: check-orphan-modules
     name: Wiring — no orphan graph_os module
-    entry: uv run --frozen python scripts/check_wiring.py orphans
+    entry: python3 scripts/check_wiring.py orphans
     language: system
     pass_filenames: false
     always_run: true
