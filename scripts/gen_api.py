@@ -13,7 +13,8 @@ import hashlib
 import importlib
 import importlib.resources
 import json
-import subprocess
+import shutil
+import subprocess  # nosec B404 -- fixed-argv git compatibility check
 import sys
 from pathlib import Path
 from typing import Any
@@ -439,14 +440,18 @@ def _breaking_changes(before: dict[str, Any], after: dict[str, Any]) -> list[str
 
 
 def _check_compat(registry: dict[str, Any], base_ref: str) -> int:
-    subprocess.run(
-        ["git", "rev-parse", "--verify", base_ref],
+    git = shutil.which("git")
+    if git is None:
+        print("gen_api: git is not on PATH; cannot check compatibility", file=sys.stderr)
+        return 1
+    subprocess.run(  # nosec B603 -- resolved git executable, fixed argv
+        [git, "rev-parse", "--verify", base_ref],
         cwd=ROOT,
         check=True,
         capture_output=True,
     )
-    baseline = subprocess.run(
-        ["git", "show", f"{base_ref}:graph_os/api/generated/registry.json"],
+    baseline = subprocess.run(  # nosec B603 -- resolved git executable, fixed argv
+        [git, "show", f"{base_ref}:graph_os/api/generated/registry.json"],
         cwd=ROOT,
         capture_output=True,
         check=False,
