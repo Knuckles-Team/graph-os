@@ -48,12 +48,14 @@ def test_architecture_names_each_supported_ecosystem_entrypoint() -> None:
     )
 
 
-def test_pages_uses_the_immutable_shared_brand_revision() -> None:
+def test_pages_uses_the_sanctioned_shared_brand_reference() -> None:
     pages = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
 
-    # Structural: an immutable commit pin, whichever revision it is.
+    # Knuckles-Team/pipelines is the one sanctioned exception to this repo's
+    # immutable-pin policy: every consumer references it at `main`, never a
+    # commit SHA or tag, so pipeline fixes land automatically.
     assert re.search(
-        r"Knuckles-Team/pipelines/\.github/workflows/pages_pipeline\.yml@[0-9a-f]{40}\b",
+        r"Knuckles-Team/pipelines/\.github/workflows/pages_pipeline\.yml@main\b",
         pages,
     )
     assert "shared_theme_enabled: true" in pages

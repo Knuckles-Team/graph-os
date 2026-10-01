@@ -5,7 +5,7 @@
 #
 # Every repository-agnostic gate -- complexity, KISS, clones, secrets,
 # privacy, hygiene and code shape -- comes from the shared hook repository
-# Knuckles-Team/pipelines at a pinned commit; repository-specific inputs are
+# Knuckles-Team/pipelines at main; repository-specific inputs are
 # declared in pyproject.toml `[tool.pipelines_hooks]`. Hooks that need a
 # sibling checkout or a synced environment (scripts/local_hook.sh) print
 # `SKIPPED (<gate>): <reason>` in a fresh clone and fail closed under CI.
@@ -86,9 +86,9 @@ repos:
     # Hosted release gates verify the frozen lock after pinned source checkout.
     stages: [manual]
 
-# ── Shared gates (Knuckles-Team/pipelines, pinned) ─────────────────────────────
+# ── Shared gates (Knuckles-Team/pipelines, main) ─────────────────────────────
 - repo: https://github.com/Knuckles-Team/pipelines
-  rev: 35209bf6d85569a3c1fe3d5cd31771cacfdc3731 # public-surface gate
+  rev: main # sanctioned first-party exception; public-surface gate
   hooks:
   # scanners (pinned versions; never installed by a hook)
   - id: complexity-staged
@@ -99,8 +99,9 @@ repos:
     stages: [pre-commit, manual]
   - id: complexity-census
     stages: [manual]
-  # also graph-os's Python orphan-module wiring gate (.kiss/kiss.toml
-  # orphan_module_enabled = true): one whole-package pass, enforced
+  # Orphan modules are NOT covered here since kiss 0.4.11 (the check moved
+  # to the coverage-linked `kiss test`); graph-os's Python orphan-module
+  # wiring gate is the check-orphan-modules local hook below.
   - id: kiss-census
     stages: [manual]
   - id: jscpd-differential
@@ -184,6 +185,17 @@ repos:
 
 - repo: local
   hooks:
+  # graph-os's Python orphan-module wiring gate (see .config/kiss.toml
+  # [global] and AGENTS.md "Orphan-module wiring gate (Python)"): a
+  # graph_os/ module with no production fan-in and no production fan-out
+  # (on disk, tracked or not). Needs only the stdlib (ast, tomllib), so it
+  # runs in a fresh clone with no synced environment.
+  - id: check-orphan-modules
+    name: Wiring — no orphan graph_os module
+    entry: python3 scripts/check_wiring.py orphans
+    language: system
+    pass_filenames: false
+    always_run: true
   - id: check-public-specs
     name: Public specs are self-contained and locally linked
     entry: python3 scripts/check_public_specs.py
