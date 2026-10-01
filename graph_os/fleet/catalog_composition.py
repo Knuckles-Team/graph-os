@@ -55,9 +55,11 @@ def compose_multiplexer_ops(
     """Build one operation service without claiming the MCP cutover is wired.
 
     ``reader`` is the process's already-bound ``DeferredFleetCatalogReader``.
-    ``mux`` is the same process singleton used by the MCP server. EH-627 owns
-    ``visible``/``loadable`` and EH-628 owns the native mount/notification
-    hooks; supplying neither cannot silently widen authority.
+    ``mux`` is the same process singleton used by the MCP server. The
+    discovery/load-authorization policy owns ``visible``/``loadable``, and
+    the native MCP tool registration and list-changed notification path owns
+    the ``mount``/``notify`` hooks; supplying neither cannot silently widen
+    authority.
     """
 
     async def live() -> Mapping[str, Mapping[str, Any]]:

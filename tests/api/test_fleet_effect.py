@@ -22,7 +22,10 @@ from graph_os.api.registry import (
 )
 from graph_os.fleet.gateway_ops import (
     AdmittedTool,
+    DelegatedCall,
     FleetGateway,
+    PolicyCheck,
+    ToolFor,
     _child_error_code,
     annotation_effect,
     compose_fleet_gateway,
@@ -35,15 +38,13 @@ from graph_os.fleet.service_child import ServiceChildOutcomeUnknown
 
 def _gateway_and_caller(
     *,
-    tool_for: object,
-    policy: object,
-    delegate: object,
+    tool_for: ToolFor,
+    policy: PolicyCheck,
+    delegate: DelegatedCall,
     principal: str | None = "alice",
 ) -> tuple[FleetGateway, SimpleNamespace]:
     gateway = FleetGateway(
-        tool_for=tool_for,  # type: ignore[arg-type]
-        policy_check=policy,  # type: ignore[arg-type]
-        delegated_call=delegate,  # type: ignore[arg-type]
+        tool_for=tool_for, policy_check=policy, delegated_call=delegate
     )
     fields: dict[str, object] = {
         "effective_scopes": frozenset({"mcp:delegate"}),
@@ -84,9 +85,9 @@ async def test_delegated_child_refusal_keeps_bounded_structured_code(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     api = ModuleType("agent_utilities.api")
-    api.use_session = lambda _session: nullcontext()  # type: ignore[attr-defined]
+    vars(api).update(use_session=lambda _session: nullcontext())
     brain = ModuleType("agent_utilities.security.brain_context")
-    brain.use_actor = lambda _actor: nullcontext()  # type: ignore[attr-defined]
+    vars(brain).update(use_actor=lambda _actor: nullcontext())
     monkeypatch.setitem(sys.modules, "agent_utilities.api", api)
     monkeypatch.setitem(sys.modules, "agent_utilities.security.brain_context", brain)
 
@@ -398,7 +399,7 @@ async def test_service_child_requires_resolved_decision_and_owner(
         credential_mode: str
 
     invoke_module = ModuleType("graph_os.api.invoke")
-    invoke_module.FleetCallDecision = Decision  # type: ignore[attr-defined]
+    vars(invoke_module).update(FleetCallDecision=Decision)
     monkeypatch.setitem(sys.modules, "graph_os.api.invoke", invoke_module)
     descriptor = AdmittedTool(
         None,
