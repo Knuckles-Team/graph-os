@@ -154,16 +154,17 @@
     {
       "id": "GRAPHOS-OPS-R010",
       "title": "Closed error enum and one response envelope",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
-          "kind": "merged_head",
+          "kind": "implementation",
           "result": "passed",
           "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Implemented on the default branch; exercised by tests/api"
+          "description": "The closed error enum, response envelope and fleet error path are on the default branch; exercised by tests/api/test_errors.py."
         }
-      ]
+      ],
+      "remaining": "Engine-sourced errors are refused until the engine contract file is available at the pinned engine revision; the generated engine error table and its tests return then."
     },
     {
       "id": "GRAPHOS-OPS-R011",
