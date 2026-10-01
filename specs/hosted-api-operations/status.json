@@ -169,14 +169,14 @@
     {
       "id": "GRAPHOS-OPS-R011",
       "title": "Six resident MCP verbs with typed discovery",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "47daafff9342fff0625e9be4aefc538a272b2e28",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/47daafff9342fff0625e9be4aefc538a272b2e28",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "ea736715b7fb4ca19e64460381758723d3ee5c28",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/ea736715b7fb4ca19e64460381758723d3ee5c28",
+          "description": "Implemented on the default branch; exercised by tests/api/test_mcp_verbs.py"
         }
       ]
     },
