@@ -69,37 +69,38 @@
     {
       "id": "GRAPHOS-FLEET-R004",
       "title": "Pack annotations carry capability, digest, modality, cost, latency",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-FLEET-R005",
       "title": "A2A task routing with typed work-item and lease operations",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-FLEET-R006",
       "title": "Multiplexer skill and prompt harvest path removed",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-FLEET-R007",
       "title": "Bridge upgraded to FastMCP 4",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( — no hits), so the 'single com"
     },
     {
       "id": "GRAPHOS-FLEET-R008",
       "title": "RUM, security-audit and CI/CD feeds join the catalog",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-FLEET-R009",
       "title": "Run admission evaluates, commits and publishes with capacity control",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
@@ -226,7 +227,8 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/fda058b41780632881d4b281ea71504705cac602",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
-      ]
+      ],
+      "remaining": "find_tools/load_tools/unload_tools/multiplexer_status exist and are tested, but live directly in graph_os/fleet/multiplexer.py rather than api/ops/fleet.py plus graph_os/fleet/{gateway_ops,catalog_items,session_loads}.py (none of which exist); no 64-item/256 hard cap, LRU eviction, or 1-hour idle ex"
     },
     {
       "id": "GRAPHOS-FLEET-R019",
@@ -252,7 +254,8 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/0c1b45a88087432885fd97ad2794986866c8f63d",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
-      ]
+      ],
+      "remaining": "_require_fleet_capability's extra_scopes branch explicitly bypasses the exact-scope check when the caller holds admin/kg:admin/mcp:admin (capabilities.intersection(administrative)), contradicting 'does not accept a broader admin grant'; the function also returns immediately with no check at all when"
     },
     {
       "id": "GRAPHOS-FLEET-R022",
@@ -272,12 +275,13 @@
       "id": "PA-12",
       "title": "Catalog reload rejects invalid candidates, proves replica convergence",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "evidence": [],
+      "remaining": "FleetCatalogReader/FleetCatalogIntegrityError reject duplicate/malformed registrations and stale/digest-mismatched content (tested: cross-tenant, no-longer-current, unresolved provenance, content-revision mismatch, cyclic cursor), but there is no multi-replica convergence reporting by generation+dig"
     },
     {
       "id": "GRAPHOS-FLEET-R023",
       "title": "Connector count pins stay consistent across the fleet",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     }
   ]
