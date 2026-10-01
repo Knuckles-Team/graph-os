@@ -17,7 +17,7 @@
 [dirs]
 ".specify" = "tracked Spec Kit constitution; generated tooling files remain ignored"
 specs = "tracked repository-owned specifications and contribution templates"
-scripts = "contributor bootstrap, pinned scanner installer shared with CI, the sibling-aware local hook runner, and the public-spec validator"
+scripts = "contributor bootstrap, pinned scanner installer shared with CI, the sibling-aware local hook runner, the orphan-module wiring gate, and the public-spec validator"
 graph_os = "the GraphOS Python package: MCP/REST composition, fleet, gateway, control plane, WebUI host, A2A, browser control, deployment, and console entry points"
 tests = "the pytest suite: wiring tests proving the console entry point and every package under graph_os/ are live, imported members of the package"
 deploy = "graph-os deployment profile inputs (dev/test/prod) consumed by graph_os.deployment.genesis_environments"
@@ -26,7 +26,7 @@ docs = "MkDocs source for the public GitHub Pages documentation site"
 overrides = "canonical shared MkDocs Material template overrides for the ecosystem switcher and footer"
 ".github" = "GitHub Actions workflow definitions (release.yml, pages.yml)"
 ".claude" = "Claude Code project settings: the SessionStart hook that runs scripts/bootstrap.sh in cloud sessions"
-".kiss" = "hand-authored KISS structural-rule thresholds (.kiss/kiss.toml); every other entry would be a regenerated analysis cache and stays gitignored"
+".config" = "explicit tool configuration files: this manifest, KISS thresholds (--config), and the reviewed dupehound-distinct register; .kiss/ is a regenerated analysis cache and stays gitignored"
 
 [files]
 "AGENTS.md" = "agent-facing repository architecture, commands, quality gates, and safe-development contract"
@@ -39,7 +39,6 @@ overrides = "canonical shared MkDocs Material template overrides for the ecosyst
 "pyproject.toml" = "package metadata, deployment runtime dependencies/scripts, and the [tool.pipelines_hooks] shared-hook configuration"
 "mkdocs.yml" = "mkdocs site config for the GitHub Pages source in docs/"
 "uv.lock" = "uv lockfile"
-"dupehound-distinct.toml" = "reviewed register of dupehound pairs that are not clones, read by the shared dupehound-changed hook — currently empty (see that file's own header)"
 "vulture_whitelist.py" = "load-bearing keyword-callable Protocol parameter names consumed by the shared vulture hook"
 
 [dotfiles]

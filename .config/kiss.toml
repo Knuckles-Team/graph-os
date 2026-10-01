@@ -1,0 +1,69 @@
+# KISS thresholds for graph-os (kiss 0.4.12, fleet fork build).
+#
+# ═══ THIS FILE IS NOT A BASELINE. ═══════════════════════════════════════════
+# No [python] table was declared when this file was first written: this
+# repository had zero measured functions yet (six docstring-only placeholder
+# packages), so there was nothing to calibrate a threshold against. Every
+# Python rule therefore ran at KISS's own built-in default at the time
+# (verified via `kiss rules` with no --config: e.g. `returns_per_function <=
+# 9`, `statements_per_function <= 119`), written down explicitly below because
+# older kiss versions required an explicit [python] table the moment they
+# scanned any Python file. This migration changes no threshold: every value
+# below is copied forward unchanged. The day a measured recalibration is
+# warranted, follow epistemic-graph's docs/quality-gate-terms.md precedent:
+# recalibrate only against a measured percentile, with the methodology
+# written down next to the number, never against "what currently passes."
+#
+# ⚠ NEVER run bare `kiss check` here -- it writes a self-calibrating
+#   .kissconfig that also disables four global rules. ALWAYS pass
+#   `--config .config/kiss.toml` and ONE path per invocation (kiss reports a
+#   false clean for a multi-path `check`). The shared kiss-staged and
+#   kiss-census hooks (Knuckles-Team/pipelines) do this correctly; go
+#   through them.
+
+[global]
+min_similarity          = 0.9      # ON (KISS's own duplicate-code check).
+duplication_enabled      = true
+comment_removal_enabled  = false
+docs_allowed             = ["./"]  # Every package docstring in this repo
+                                    # states an ownership marker; neutralise
+                                    # `doc == 0` (default [] fires on every
+                                    # docstring in the tree).
+orphan_allowed           = []
+# kiss 0.4.11 moved orphan detection out of [global] (orphan_module_enabled,
+# now an unknown key that makes kiss drop this whole table) to the
+# coverage-linked `kiss test`, which runs the full test suite and reports an
+# orphan only after every test passes -- a much heavier, differently-scoped
+# operation than this repository's wiring gate needs. Orphan-module
+# enforcement now lives in scripts/check_wiring.py orphans (the
+# check-orphan-modules pre-commit hook below runs it), which restores the
+# original, cheap, structural "no production fan-in/fan-out" semantics
+# directly. See AGENTS.md "Orphan-module wiring gate (Python)".
+
+[test]
+orphan_detection         = true
+
+[python]
+statements_per_function      = 119
+positional_args              = 37
+keyword_only_args            = 29
+max_indentation               = 8
+branches_per_function         = 8
+local_variables                = 28
+returns_per_function          = 9
+return_values_per_function    = 9
+nested_function_depth         = 2
+statements_per_try_block      = 28
+boolean_parameters            = 8
+decorators_per_function       = 4
+calls_per_function            = 117
+methods_per_class             = 352
+statements_per_file           = 3210
+lines_per_file                 = 9369
+functions_per_file            = 389
+interface_types_per_file      = 4
+concrete_types_per_file       = 33
+imported_names_per_file       = 88
+cycle_size                     = 30
+indirect_dependencies          = 108
+dependency_depth               = 11
