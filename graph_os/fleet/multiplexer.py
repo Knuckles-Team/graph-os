@@ -117,6 +117,11 @@ _ENGINE_CONFIG_FIELDS = frozenset(
         "pool_size",
         "enabledTools",
         "disabledTools",
+        # Declares a child tool's owner-stamped service-credential path
+        # (GRAPHOS-FLEET-R015/R021; see graph_os.fleet.gateway_ops and
+        # graph_os.fleet.service_child) instead of the caller's own
+        # delegated credential. Absent or any other value means "delegated".
+        "credential_mode",
     }
 )
 _MAX_DELEGATED_VALUE_BYTES = 4 * 1024 * 1024
@@ -1385,13 +1390,20 @@ def _request_capabilities() -> frozenset[str] | None:
 
 
 def _fleet_required_capabilities(kind: str) -> set[str]:
-    """Capability alternatives for one bounded fleet operation kind."""
+    """Capability alternatives for one bounded fleet operation kind.
+
+    ``manage`` has no narrower fleet-specific scope, so an administrative
+    grant is its exact requirement. ``discover`` and ``delegate`` each have
+    their own dedicated fleet scope; a generic ``admin``/``kg:admin``/
+    ``mcp:admin`` grant is a different capability entirely and is never
+    accepted in its place — the exact fleet scope is always required.
+    """
     administrative = {"admin", "kg:admin", "mcp:admin"}
     return {
-        "discover": {"mcp:discover", "mcp:delegate", *administrative},
+        "discover": {"mcp:discover", "mcp:delegate"},
         "manage": administrative,
-        "delegate": {"mcp:delegate", *administrative},
-    }.get(kind, {"mcp:delegate", *administrative})
+        "delegate": {"mcp:delegate"},
+    }.get(kind, {"mcp:delegate"})
 
 
 def _require_fleet_capability(kind: str, extra_scopes: list[str] | None = None) -> None:
@@ -1399,15 +1411,10 @@ def _require_fleet_capability(kind: str, extra_scopes: list[str] | None = None) 
     capabilities = _request_capabilities()
     if capabilities is None:
         return
-    administrative = {"admin", "kg:admin", "mcp:admin"}
     required = _fleet_required_capabilities(kind)
     if not capabilities.intersection(required):
         raise _fastmcp_exceptions.ToolError(f"MCP fleet {kind} capability required")
-    if (
-        extra_scopes
-        and not capabilities.intersection(administrative)
-        and not set(extra_scopes).issubset(capabilities)
-    ):
+    if extra_scopes and not set(extra_scopes).issubset(capabilities):
         raise _fastmcp_exceptions.ToolError("Child MCP capability scope required")
 
 
@@ -6112,12 +6119,16 @@ class MCPMultiplexer:
             return prefixed_name in self._session_loaded.get(key, set())
         if not self.is_serving():
             return False
-        # Unknown to the multiplexer's own bookkeeping entirely — e.g. a
-        # native host tool registered directly on the FastMCP server outside
-        # the progressive-disclosure surface. Nothing here can gate it, so it
-        # is unconditionally callable, matching how the dispatch middleware
-        # (which only ever sees already-registered tool names) treats it.
-        return True
+        # Unknown to the catalog/probe/session-load bookkeeping entirely. The
+        # only remaining legitimate case is a native tool registered directly
+        # on the host FastMCP server outside the progressive-disclosure
+        # surface (e.g. one of this module's own meta-tools, or a host tool
+        # graph-os serves natively) — verify it is ACTUALLY registered there
+        # rather than assume some other layer admits it. No host bound at all
+        # means nothing here can vouch for the name, so it is denied too.
+        if self._host_mcp is None:
+            return False
+        return prefixed_name in _provider_tools(self._host_mcp)
 
     def prune_session_visibility(self, session_key: str) -> None:
         """Drop empty per-session visibility state after explicit retraction."""

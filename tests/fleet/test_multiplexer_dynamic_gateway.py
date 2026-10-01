@@ -22,11 +22,13 @@ from fastmcp.tools import Tool
 from graph_os.fleet.multiplexer import (
     _LOCAL_SESSION_META_KEY,
     SessionVisibilityMiddleware,
+    _fleet_required_capabilities,
     _gated_tool_names,
     _make_forwarder,
     _provider_tools,
     _register_forwarder,
     _register_meta_tools,
+    _require_fleet_capability,
     _session_key,
     _tool_is_verbose,
     get_server_prefix,
@@ -1795,15 +1797,16 @@ async def test_tool_dispatchable_false_for_catalogued_but_unmounted_tool(tmp_pat
     assert mux.tool_dispatchable(CNT_PREFIXED, session_key="any-session") is False
 
 
-def test_tool_dispatchable_true_for_unknown_name_on_a_genuinely_serving_instance(
+def test_tool_dispatchable_false_for_unknown_name_on_a_serving_instance(
     tmp_path,
 ):
-    """The 'unknown to our bookkeeping -> unconditionally callable' fallback
-    still applies for a REAL, serving instance (non-empty catalog) — a name
-    that matches no server at all is presumed a native host tool outside the
-    progressive-disclosure surface, same as before D-SH-6's fix. This is the
-    regression guard: D-SH-6 must not turn INTO a false denial for the
-    legitimate case it always covered.
+    """An unrecognized native host tool must be DENIED by default, even on a
+    REAL, serving instance (non-empty catalog) — a name that matches no
+    server, no global/local visibility set, and no exposed forwarder is not
+    something this bookkeeping can vouch for, so it must not be presumed
+    callable. Default-open here was exactly the gap a caller could use to
+    reach an unregistered host tool the real dispatch middleware never
+    actually admitted.
 
     The EG-backed catalog source (``tests.fleet.catalog_fixture``) composes
     the catalog synchronously at construction, unlike the retired static
@@ -1811,7 +1814,7 @@ def test_tool_dispatchable_true_for_unknown_name_on_a_genuinely_serving_instance
     so a freshly-built fixture with an admissible server is already serving."""
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "a")]})
     assert mux.is_serving() is True  # at least one real server catalogued
-    assert mux.tool_dispatchable("some_native_host_tool") is True
+    assert mux.tool_dispatchable("some_native_host_tool") is False
 
 
 def test_tool_dispatchable_false_for_unknown_name_on_a_non_serving_instance(tmp_path):
@@ -2147,6 +2150,7 @@ async def test_load_tools_reports_notification_sent_true_inside_a_live_session(
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
     mcp = FastMCP("test-mux")
     _register_meta_tools(mcp, mux)
+    mux._host_mcp = mcp
     mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
 
     async with Client(mcp) as client:
@@ -2198,6 +2202,7 @@ async def test_load_tools_notification_sent_true_does_not_imply_universal_callab
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
     mcp = FastMCP("test-mux")
     _register_meta_tools(mcp, mux)
+    mux._host_mcp = mcp
     mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
 
     # The in-memory transport gives no real per-connection identity (see
@@ -2367,6 +2372,7 @@ async def test_load_tools_changes_the_wire_tool_list_a_live_client_observes(tmp_
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
     mcp = FastMCP("test-mux")
     _register_meta_tools(mcp, mux)
+    mux._host_mcp = mcp
     mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
 
     async with Client(mcp) as client:
@@ -2384,3 +2390,61 @@ async def test_load_tools_changes_the_wire_tool_list_a_live_client_observes(tmp_
     # of that array.
     assert after != before
     assert CNT_PREFIXED in after
+
+
+def _mock_authenticated_http_caller(monkeypatch, *, scopes):
+    """Simulate a real, authenticated HTTP/remote caller with exactly ``scopes``."""
+    monkeypatch.setattr(
+        "fastmcp.server.dependencies.get_http_request", lambda: SimpleNamespace()
+    )
+    monkeypatch.setattr(
+        "fastmcp.server.dependencies.get_access_token",
+        lambda: SimpleNamespace(scopes=list(scopes), claims=None),
+    )
+
+
+def test_fleet_required_capabilities_rejects_generic_admin_for_discover_and_delegate():
+    """A broad ``admin``/``kg:admin``/``mcp:admin`` grant is a different
+    capability than the fleet's own ``mcp:discover``/``mcp:delegate`` scopes
+    and must never satisfy either of them. ``manage`` has no narrower
+    fleet-specific scope of its own, so an administrative grant remains its
+    exact requirement."""
+    for admin_scope in ("admin", "kg:admin", "mcp:admin"):
+        assert admin_scope not in _fleet_required_capabilities("discover")
+        assert admin_scope not in _fleet_required_capabilities("delegate")
+        assert admin_scope in _fleet_required_capabilities("manage")
+
+
+def test_require_fleet_capability_denies_admin_only_caller_for_discover(monkeypatch):
+    """The previously over-broad path, now denied: an admin-only caller who
+    holds no ``mcp:discover`` scope must be refused fleet discovery -- a
+    generic administrative grant is not a substitute for the exact fleet
+    scope the requested action declares."""
+    _mock_authenticated_http_caller(monkeypatch, scopes=["admin"])
+    with pytest.raises(ToolError, match="MCP fleet discover capability required"):
+        _require_fleet_capability("discover")
+
+
+def test_require_fleet_capability_allows_exact_scope_caller_for_discover(monkeypatch):
+    """The correctly scoped path, still allowed: a caller holding the fleet's
+    own ``mcp:discover`` scope passes with no administrative grant at all."""
+    _mock_authenticated_http_caller(monkeypatch, scopes=["mcp:discover"])
+    _require_fleet_capability("discover")  # must not raise
+
+
+def test_require_fleet_capability_enforces_extra_scopes_even_for_admin_caller(
+    monkeypatch,
+):
+    """A child's own declared extra-scope requirement must still be enforced
+    even when the caller additionally holds an administrative capability --
+    admin no longer bypasses a declared child capability-scope requirement."""
+    _mock_authenticated_http_caller(monkeypatch, scopes=["mcp:delegate", "admin"])
+    with pytest.raises(ToolError, match="Child MCP capability scope required"):
+        _require_fleet_capability("delegate", extra_scopes=["child:special"])
+
+
+def test_require_fleet_capability_allows_caller_holding_the_extra_scope(monkeypatch):
+    _mock_authenticated_http_caller(
+        monkeypatch, scopes=["mcp:delegate", "child:special"]
+    )
+    _require_fleet_capability("delegate", extra_scopes=["child:special"])  # no raise
