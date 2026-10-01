@@ -3,10 +3,32 @@
   "spec_id": "GRAPHOS-CAPACITY-001",
   "owner_repo": "graph-os",
   "requirement_ids": [
-    "EH-406",
-    "EH-604"
+    "GRAPHOS-CAPACITY-R001",
+    "GRAPHOS-CAPACITY-R002"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": []
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-CAPACITY-R001",
+      "title": "AIMD error-budget throttling that only narrows automatically",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-CAPACITY-R002",
+      "title": "Capacity status and mode operations",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "c4835dbb48f3958a4d9273220fe7a6ff60a4183a",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c4835dbb48f3958a4d9273220fe7a6ff60a4183a",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    }
+  ]
 }

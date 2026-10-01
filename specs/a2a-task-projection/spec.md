@@ -2,6 +2,8 @@
 
 Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. Owner: `graph-os`.
 Related: [Hosted API and intent operations](../hosted-api-operations/spec.md).
+Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
+delivery state and evidence are recorded in [status.json](status.json).
 
 ## Status legend
 
@@ -27,12 +29,12 @@ GraphOS owns the transport, authenticated projection, operation adapter and serv
 
 | IDs | GraphOS obligation | Delivery |
 |---|---|---|
-| EH-218, RF-030 | First-party native A2A facade over public engine and agent ports | NOT ACCEPTED |
-| EH-219 | Authenticated inbound routing and caller-filtered assembly/tool subset | NOT ACCEPTED |
-| EH-590 | Durable human tool-call approval exchange and fail-closed activation | NOT ACCEPTED |
-| EH-601 | `graphos.op/invoke`, `graphos.plan/confirm`, shared operation registry and error projection | NOT ACCEPTED |
-| EH-220, EH-221 | No fleet skill/prompt harvest duplicate; FastMCP 4 served bridge and one owner loop | NOT ACCEPTED |
-| EH-658 | Pre-effect audit reservation and outcome linkage for approved effects | NOT ACCEPTED |
+| GRAPHOS-A2A-R001, GRAPHOS-A2A-R008 | First-party native A2A facade over public engine and agent ports | NOT ACCEPTED |
+| GRAPHOS-A2A-R002 | Authenticated inbound routing and caller-filtered assembly/tool subset | NOT ACCEPTED |
+| GRAPHOS-A2A-R005 | Durable human tool-call approval exchange and fail-closed activation | NOT ACCEPTED |
+| GRAPHOS-A2A-R006 | `graphos.op/invoke`, `graphos.plan/confirm`, shared operation registry and error projection | NOT ACCEPTED |
+| GRAPHOS-A2A-R003, GRAPHOS-A2A-R004 | No fleet skill/prompt harvest duplicate; FastMCP 4 served bridge and one owner loop | NOT ACCEPTED |
+| GRAPHOS-A2A-R007 | Pre-effect audit reservation and outcome linkage for approved effects | NOT ACCEPTED |
 
 ## Acceptance
 

@@ -1,6 +1,8 @@
 # GraphOS host composition and ownership boundary
 
-**Owner:** graph-os. **Program IDs:** RF-028, RF-029, EH-334, EH-335, EH-426, EH-476, EH-478, EH-479, EH-488, EH-489, EH-490, EH-491, EH-492, EH-514, EH-515. **Delivery:** implemented in part; **acceptance:** pending. Existing package extraction is released, while the strict import boundary, retired duplicate hosts, and served parity have not been verified as a set.
+**Owner:** graph-os. **Requirement IDs:** GRAPHOS-HOST-R014, GRAPHOS-HOST-R015, GRAPHOS-HOST-R001, GRAPHOS-HOST-R002, GRAPHOS-HOST-R003, GRAPHOS-HOST-R004, GRAPHOS-HOST-R005, GRAPHOS-HOST-R006, GRAPHOS-HOST-R007, GRAPHOS-HOST-R008, GRAPHOS-HOST-R009, GRAPHOS-HOST-R010, GRAPHOS-HOST-R011, GRAPHOS-HOST-R012, GRAPHOS-HOST-R013. **Delivery:** implemented in part; **acceptance:** pending. Existing package extraction is released, while the strict import boundary, retired duplicate hosts, and served parity have not been verified as a set.
+Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
+delivery state and evidence are recorded in [status.json](status.json).
 
 ## State legend
 

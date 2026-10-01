@@ -17,4 +17,4 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 
 ## Source ID coverage
 
-`EH-405`, `EH-541`–`EH-556`, `EH-602`, `EH-603`, `EH-616`, `EH-625`, `EH-629`, and `EH-716` map to IA requirements in `spec.md`. Source IDs identify intended work, not completion. Cross-repository owners implement their side of the contract stated in this spec; GraphOS tasks cannot close their delivery without their own accepted evidence.
+`GRAPHOS-IDENTITY-R001`, `GRAPHOS-IDENTITY-R002`–`GRAPHOS-IDENTITY-R017`, `GRAPHOS-IDENTITY-R018`, `GRAPHOS-IDENTITY-R019`, `GRAPHOS-IDENTITY-R020`, `GRAPHOS-IDENTITY-R021`, `GRAPHOS-IDENTITY-R022`, and `GRAPHOS-IDENTITY-R023` map to IA requirements in `spec.md`. Source IDs identify intended work, not completion. Cross-repository owners implement their side of the contract stated in this spec; GraphOS tasks cannot close their delivery without their own accepted evidence.

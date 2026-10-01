@@ -3,31 +3,282 @@
   "spec_id": "GRAPHOS-FLEET-001",
   "owner_repo": "graph-os",
   "requirement_ids": [
-    "EH-213",
-    "EH-215",
-    "EH-216",
-    "EH-217",
-    "EH-219",
-    "EH-220",
-    "EH-221",
-    "EH-410",
-    "EH-461",
-    "EH-475",
-    "EH-594",
-    "EH-595",
-    "EH-598",
-    "EH-599",
-    "EH-611",
-    "EH-614",
-    "EH-615",
-    "EH-626",
-    "EH-627",
-    "EH-628",
-    "EH-629",
-    "RF-021",
-    "PA-12"
+    "GRAPHOS-FLEET-R001",
+    "GRAPHOS-FLEET-R002",
+    "GRAPHOS-FLEET-R003",
+    "GRAPHOS-FLEET-R004",
+    "GRAPHOS-FLEET-R005",
+    "GRAPHOS-FLEET-R006",
+    "GRAPHOS-FLEET-R007",
+    "GRAPHOS-FLEET-R008",
+    "GRAPHOS-FLEET-R009",
+    "GRAPHOS-FLEET-R010",
+    "GRAPHOS-FLEET-R011",
+    "GRAPHOS-FLEET-R012",
+    "GRAPHOS-FLEET-R013",
+    "GRAPHOS-FLEET-R014",
+    "GRAPHOS-FLEET-R015",
+    "GRAPHOS-FLEET-R016",
+    "GRAPHOS-FLEET-R017",
+    "GRAPHOS-FLEET-R018",
+    "GRAPHOS-FLEET-R019",
+    "GRAPHOS-FLEET-R020",
+    "GRAPHOS-FLEET-R021",
+    "GRAPHOS-FLEET-R022",
+    "PA-12",
+    "GRAPHOS-FLEET-R023"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": []
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-FLEET-R001",
+      "title": "Typed pack publisher replaces placeholder ContentPack",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "77c458a53654b105fcb270b49d6300807e02b74d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/77c458a53654b105fcb270b49d6300807e02b74d",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R002",
+      "title": "Tool schema fingerprints recomputed from served schemas",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003",
+      "title": "D18 write-back exposed only as a typed, previewed operation",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "9a9b3f5c8ecb3e62f99ab79770ed06d015fb0365",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/9a9b3f5c8ecb3e62f99ab79770ed06d015fb0365",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R004",
+      "title": "Pack annotations carry capability, digest, modality, cost, latency",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R005",
+      "title": "A2A task routing with typed work-item and lease operations",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006",
+      "title": "Multiplexer skill and prompt harvest path removed",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R007",
+      "title": "Bridge upgraded to FastMCP 4",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R008",
+      "title": "RUM, security-audit and CI/CD feeds join the catalog",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009",
+      "title": "Run admission evaluates, commits and publishes with capacity control",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R010",
+      "title": "Assembly result parsing reads the full agents list",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "bcad17a6bba4d50f3c832b42d7f2348a6483b6e9",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/bcad17a6bba4d50f3c832b42d7f2348a6483b6e9",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R011",
+      "title": "Registry core computes a canonical digest and authorized find",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "c904072a652daea84dbaf53fdf995f826c33a831",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c904072a652daea84dbaf53fdf995f826c33a831",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R012",
+      "title": "EG-direct binding generator with reviewed exclusions",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "758392eb53ece6299e18855530bdc323ba1c1b1f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/758392eb53ece6299e18855530bdc323ba1c1b1f",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R013",
+      "title": "MCP projection exposes the six verbs with typed schemas",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "47daafff9342fff0625e9be4aefc538a272b2e28",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/47daafff9342fff0625e9be4aefc538a272b2e28",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R014",
+      "title": "Resolver ranks catalog items with partitioned feedback",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "4af96764619d2d9b6859ee51d6ec5859a7276b65",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4af96764619d2d9b6859ee51d6ec5859a7276b65",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R015",
+      "title": "Typed operations cover agents, browser and fleet calls",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "e632abb7eab0398f2890a5441b8588d6b467a9b9",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e632abb7eab0398f2890a5441b8588d6b467a9b9",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R016",
+      "title": "Automated gates catch API surface and compatibility drift",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "1f3b30ff69312556daa87e636d543d1f1ad9f391",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/1f3b30ff69312556daa87e636d543d1f1ad9f391",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R017",
+      "title": "Authority-parity oracle validates principal, operation and surface",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "fb06321fe19358019f09ba390a8498a0ec80610b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fb06321fe19358019f09ba390a8498a0ec80610b",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R018",
+      "title": "Multiplexer exposes four resident fleet tools over one catalog",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "fda058b41780632881d4b281ea71504705cac602",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fda058b41780632881d4b281ea71504705cac602",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R019",
+      "title": "Eunomia narrows authority at discover, load and call",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R020",
+      "title": "Multiplexer meta-tools register as the four resident tools",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R021",
+      "title": "Fleet capability checks require exact scopes, deny unknown tools",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "0c1b45a88087432885fd97ad2794986866c8f63d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0c1b45a88087432885fd97ad2794986866c8f63d",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R022",
+      "title": "Catalog reconciliation re-ingests via durable replay",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "3f5f354a36dc57548d4b1521828f78ae825dd7d0",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3f5f354a36dc57548d4b1521828f78ae825dd7d0",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "PA-12",
+      "title": "Catalog reload rejects invalid candidates, proves replica convergence",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R023",
+      "title": "Connector count pins stay consistent across the fleet",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    }
+  ]
 }

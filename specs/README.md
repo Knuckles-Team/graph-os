@@ -10,7 +10,12 @@ Delivery status is recorded here with exact merged revision and test evidence.
 
 Create `specs/<stable-id>/` with `spec.md` (user outcome, requirements, acceptance), `plan.md`
 (architecture, reuse, interfaces, live wiring, decisions), `test-spec.md` (positive, negative,
-integration, quality and release proof), and `tasks.md` (ordered implementation and verification), plus `status.json` (machine-readable delivery, acceptance, and public receipts).
+integration, quality and release proof), `tasks.md` (ordered implementation and verification),
+`requirements.md` (the definition of every requirement ID the spec owns), and `status.json`
+(machine-readable delivery, acceptance, and public receipts). `status.json`'s `requirements` array
+carries one entry per requirement ID defined in `requirements.md`, each with its own
+`delivery_state` and evidence; a requirement counts as delivered only with a merged-head commit on
+the default branch.
 Start from [`_template/`](_template/). Keep status and evidence explicit; a planned or tested item
 is not a landed item. Put durable evidence links in the spec directory, never local scratch output.
 This follows GitHub Spec Kit's specify/plan/tasks flow with an explicit test contract. The tracked [constitution](../.specify/memory/constitution.md) records this repository's governing principles.
@@ -35,6 +40,24 @@ or `IN REVIEW` may describe current work, but they do not prove delivery.
 `ACCEPTED` additionally requires the checked-in test and consumer or release receipts.
 Record public issue, PR, check, and commit links in the owner spec and evidence array.
 An obligation can be landed while acceptance remains open.
+
+## Specification index
+
+| Directory | Spec ID | Owned requirement IDs |
+|---|---|---|
+| [`a2a-task-projection/spec.md`](a2a-task-projection/spec.md) | `GRAPHOS-A2A-001` | `A2A-01`–`A2A-07` (defined in [requirements.md](a2a-task-projection/requirements.md) as `GRAPHOS-A2A-R001`–`R008`) |
+| [`adaptive-capacity/spec.md`](adaptive-capacity/spec.md) | `GRAPHOS-CAPACITY-001` | `GRAPHOS-CAPACITY-R001`–`R002` |
+| [`data-and-market-projections/spec.md`](data-and-market-projections/spec.md) | `GRAPHOS-DATA-MARKET-001` | `GRAPHOS-DATA-MARKET-R001`–`R006` |
+| [`dependency-ordered-release/spec.md`](dependency-ordered-release/spec.md) | `GRAPHOS-RELEASE-001` | `RL-01`–`RL-07` (defined in [requirements.md](dependency-ordered-release/requirements.md) as `GRAPHOS-RELEASE-R001`–`R003`) |
+| [`fleet-catalog-and-tools/spec.md`](fleet-catalog-and-tools/spec.md) | `GRAPHOS-FLEET-001` | `GRAPHOS-FLEET-R001`–`R023`, `PA-12` |
+| [`host-composition-boundary/spec.md`](host-composition-boundary/spec.md) | `GRAPHOS-HOST-001` | `GRAPHOS-HOST-R001`–`R016` |
+| [`hosted-api-operations/spec.md`](hosted-api-operations/spec.md) | `GRAPHOS-OPS-001` | `HO-01`–`HO-11` (defined in [requirements.md](hosted-api-operations/requirements.md) as `GRAPHOS-OPS-R001`–`R038`) |
+| [`identity-access/spec.md`](identity-access/spec.md) | `GRAPHOS-IDENTITY-001` | `IA-01`–`IA-16` (defined in [requirements.md](identity-access/requirements.md) as `GRAPHOS-IDENTITY-R001`–`R024`) |
+| [`portable-deployment/spec.md`](portable-deployment/spec.md) | `GRAPHOS-DEPLOY-001` | `GRAPHOS-DEPLOY-R001`–`R015` |
+| [`public-ingress-identity/spec.md`](public-ingress-identity/spec.md) | `GRAPHOS-INGRESS-001` | `IN-01`–`IN-06` (defined in [requirements.md](public-ingress-identity/requirements.md) as `GRAPHOS-INGRESS-R001`) |
+
+Each directory's `requirements.md` is the authoritative definition of its requirement IDs; each
+`status.json` records their current delivery state and evidence.
 
 ## Graph OS owner map
 

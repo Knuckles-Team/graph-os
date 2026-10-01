@@ -2,8 +2,32 @@
   "schema_version": 1,
   "spec_id": "GRAPHOS-RELEASE-001",
   "owner_repo": "graph-os",
-  "requirement_ids": ["EH-247"],
+  "requirement_ids": [
+    "GRAPHOS-RELEASE-R001",
+    "GRAPHOS-RELEASE-R002",
+    "GRAPHOS-RELEASE-R003"
+  ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": []
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-RELEASE-R001",
+      "title": "Dependency-ordered, digest-verified release promotion",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R002",
+      "title": "Local Kubernetes validation gates every push",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003",
+      "title": "Exit-criteria matrix maps readiness to tests",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    }
+  ]
 }

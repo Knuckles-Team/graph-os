@@ -2,6 +2,8 @@
 
 Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. Owner: `graph-os`.
 Related: [A2A task projection](../a2a-task-projection/spec.md).
+Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
+delivery state and evidence are recorded in [status.json](status.json).
 
 ## Status legend
 
@@ -31,23 +33,23 @@ The historical IDs below are stable trace IDs only; every requirement needed to 
 
 | IDs | GraphOS deliverable | Delivery |
 |---|---|---|
-| EH-592, EH-593 | Consume packaged engine `methods`, `errors`, `scopes`, schemas, and wire-callable flags; reject absent/inconsistent contracts | NOT ACCEPTED |
-| EH-594, EH-595 | Operation registry, digest, engine binding and explicit exclusions | NOT ACCEPTED |
-| EH-596, EH-597, EH-658 | Single invocation/authority/effect/audit path and typed error envelope | NOT ACCEPTED |
-| EH-598, EH-599 | Six MCP intent verbs, typed discovery, bounded resolver, preview-only natural-language mutation | NOT ACCEPTED |
-| EH-600 | Generated `/api/v1` HTTP projection and protocol-route inventory | NOT ACCEPTED |
-| EH-602, EH-603, EH-604, EH-605 | Identity/admin, access, capacity, finance and markets operation families | NOT ACCEPTED |
-| EH-606, EH-607, EH-608, EH-609 | Query/ontology/analytics, federation, ingestion, decision/retrieval/policy operation families | NOT ACCEPTED |
-| EH-610, EH-611, EH-612 | Work/evolution, agents/browser, telemetry/security/usage/memory/graph operation families | NOT ACCEPTED |
-| EH-613, EH-614, EH-615, EH-616 | Generated clients and artifacts; drift, scope, authority and compatibility tests | NOT ACCEPTED |
-| EH-617, EH-623 | Atomic serving cutover, accurate public API documentation, old-route retirement | NOT ACCEPTED |
-| EH-625 | Identity dependency inversion through public ports and one serving composition root | NOT ACCEPTED |
-| EH-626, EH-627, EH-628 | Multi-kind dynamic fleet, Eunomia enforcement, resident multiplexer cutover | NOT ACCEPTED |
-| EH-218, EH-219, EH-220, EH-221 | Native MCP/REST host, A2A and agent assembly interface, removal of harvest duplication, FastMCP 4 bridge | NOT ACCEPTED |
-| EH-624 | GraphOS publishes a complete legacy-verb/tool-to-op or intentional-drop inventory for the agent owner; removal of its former tool code is accepted separately by that repository | NOT ACCEPTED |
-| RF-030 | Final GraphOS facade over public engine/agent/connector contracts | NOT ACCEPTED |
+| GRAPHOS-OPS-R005, GRAPHOS-OPS-R006 | Consume packaged engine `methods`, `errors`, `scopes`, schemas, and wire-callable flags; reject absent/inconsistent contracts | NOT ACCEPTED |
+| GRAPHOS-OPS-R007, GRAPHOS-OPS-R008 | Operation registry, digest, engine binding and explicit exclusions | NOT ACCEPTED |
+| GRAPHOS-OPS-R009, GRAPHOS-OPS-R010, GRAPHOS-OPS-R036 | Single invocation/authority/effect/audit path and typed error envelope | NOT ACCEPTED |
+| GRAPHOS-OPS-R011, GRAPHOS-OPS-R012 | Six MCP intent verbs, typed discovery, bounded resolver, preview-only natural-language mutation | NOT ACCEPTED |
+| GRAPHOS-OPS-R013 | Generated `/api/v1` HTTP projection and protocol-route inventory | NOT ACCEPTED |
+| GRAPHOS-OPS-R014, GRAPHOS-OPS-R015, GRAPHOS-OPS-R016, GRAPHOS-OPS-R017 | Identity/admin, access, capacity, finance and markets operation families | NOT ACCEPTED |
+| GRAPHOS-OPS-R018, GRAPHOS-OPS-R019, GRAPHOS-OPS-R020, GRAPHOS-OPS-R021 | Query/ontology/analytics, federation, ingestion, decision/retrieval/policy operation families | NOT ACCEPTED |
+| GRAPHOS-OPS-R022, GRAPHOS-OPS-R023, GRAPHOS-OPS-R024 | Work/evolution, agents/browser, telemetry/security/usage/memory/graph operation families | NOT ACCEPTED |
+| GRAPHOS-OPS-R025, GRAPHOS-OPS-R026, GRAPHOS-OPS-R027, GRAPHOS-OPS-R028 | Generated clients and artifacts; drift, scope, authority and compatibility tests | NOT ACCEPTED |
+| GRAPHOS-OPS-R029, GRAPHOS-OPS-R030 | Atomic serving cutover, accurate public API documentation, old-route retirement | NOT ACCEPTED |
+| GRAPHOS-OPS-R032 | Identity dependency inversion through public ports and one serving composition root | NOT ACCEPTED |
+| GRAPHOS-OPS-R033, GRAPHOS-OPS-R034, GRAPHOS-OPS-R035 | Multi-kind dynamic fleet, Eunomia enforcement, resident multiplexer cutover | NOT ACCEPTED |
+| GRAPHOS-OPS-R001, GRAPHOS-OPS-R002, GRAPHOS-OPS-R003, GRAPHOS-OPS-R004 | Native MCP/REST host, A2A and agent assembly interface, removal of harvest duplication, FastMCP 4 bridge | NOT ACCEPTED |
+| GRAPHOS-OPS-R031 | GraphOS publishes a complete legacy-verb/tool-to-op or intentional-drop inventory for the agent owner; removal of its former tool code is accepted separately by that repository | NOT ACCEPTED |
+| GRAPHOS-OPS-R037 | Final GraphOS facade over public engine/agent/connector contracts | NOT ACCEPTED |
 
-EH-601 and EH-590 are specified in [A2A task projection](../a2a-task-projection/spec.md). Browser and terminal client migrations are downstream consumer contracts; the server must publish a generated client and keep both surfaces equivalent.
+GRAPHOS-A2A-R006 and GRAPHOS-A2A-R005 are specified in [A2A task projection](../a2a-task-projection/spec.md). Browser and terminal client migrations are downstream consumer contracts; the server must publish a generated client and keep both surfaces equivalent.
 
 ## Required operation families
 

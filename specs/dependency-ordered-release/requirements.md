@@ -1,0 +1,12 @@
+# GRAPHOS-RELEASE-001 requirements
+
+Every requirement this specification owns, with the proof that closes it. Delivery state and
+public evidence for each ID are recorded in [`status.json`](status.json); this file defines what
+each ID means. The design is in [`spec.md`](spec.md) and [`plan.md`](plan.md), the test contract
+in [`test-spec.md`](test-spec.md), and the work order in [`tasks.md`](tasks.md).
+
+| ID | Requirement | Verification |
+|---|---|---|
+| `GRAPHOS-RELEASE-R001` | **Dependency-ordered, digest-verified release promotion.** GraphOS validates digest-pinned candidate images in a dedicated Kubernetes test namespace before promoting them, and performs its dependency-ordered pushes to each repository in sequence, checking that repository's continuous-integration result before advancing to the next. | An integration test against a fixture dependency graph confirms the rollout stops before the next stage when a predecessor's digest or CI result is missing. |
+| `GRAPHOS-RELEASE-R002` | **Local Kubernetes validation gates every push.** GraphOS runs local Kubernetes validation in a dedicated test namespace as part of release qualification, and the release process refuses to push or deploy until the repository's local gates report green. | A negative integration test confirms a push is blocked while a local gate is failing and proceeds once all local gates report green. |
+| `GRAPHOS-RELEASE-R003` | **Exit-criteria matrix maps readiness to tests.** GraphOS maintains an exit-criteria matrix mapping each release-readiness obligation to an executable test, including ingestion receipts, proofs over SPARQL and natural-language queries, one complete multi-agent orchestration graph, connector certification, one write-back receipt, a browser-and-identity-provider login probe, and a typed-abstention response to an agent-capability question. | A test-suite audit confirms every row of the exit-criteria matrix resolves to a passing automated test. |

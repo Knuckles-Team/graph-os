@@ -1,6 +1,8 @@
 # GRAPHOS-DATA-MARKET — Schema context, source admission, and finance projection
 
 Status: **READY TO BUILD**. Owner: `graph-os`. Delivery: **WAITING**. Acceptance: **NOT VERIFIED**.
+Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
+delivery state and evidence are recorded in [status.json](status.json).
 
 ## Status legend
 
@@ -30,7 +32,7 @@ broker, or notification channel.
 
 ## User stories and functional requirements
 
-### Schema context (DB-5.7 / EH-693)
+### Schema context (GRAPHOS-DATA-MARKET-R005)
 
 - **FR-01:** Authenticated REST and MCP callers can ask `schema_context` with
   `source_id`, `schema`, `object`, and `intent` (`definition`, `joins`, `ontology`,
@@ -47,7 +49,7 @@ broker, or notification channel.
   or the source has no approved catalog snapshot, GraphOS returns typed
   `UNAVAILABLE` with no fabricated empty graph or ontology match.
 
-### Application admission (DB-7.12 / DB-6.5 / EH-683)
+### Application admission (GRAPHOS-DATA-MARKET-R004)
 
 - **FR-04:** An authorized operator can dry-run admission of a named application
   and source into a shared data plane. The plan lists source dialect and version,
@@ -63,7 +65,7 @@ broker, or notification channel.
   the tenant, its mapping is unapproved, conformance is missing, or rollback is
   unproven. No migration of application-owned tables is implied by admission.
 
-### Finance projection and scheduling (EH-416 / EH-419 / EH-605 / EH-705)
+### Finance projection and scheduling (GRAPHOS-DATA-MARKET-R001 / GRAPHOS-DATA-MARKET-R002 / GRAPHOS-DATA-MARKET-R003 / GRAPHOS-DATA-MARKET-R006)
 
 - **FR-07:** GraphOS exposes tenant-scoped market reads through one application
   service shared by REST and MCP. Each price, trend, portfolio, and positions

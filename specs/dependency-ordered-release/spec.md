@@ -1,6 +1,8 @@
 # GRAPHOS-RELEASE-001 — Dependency-ordered, digest-pinned GraphOS rollout
 
-**Owner:** graph-os. **Program ID:** EH-247 (GraphOS deployment-consumer partition). **Delivery:** SPECIFIED. **Acceptance:** NOT_AUDITED.
+**Owner:** graph-os. **Requirement ID:** GRAPHOS-RELEASE-R001 (GraphOS deployment-consumer partition). **Delivery:** SPECIFIED. **Acceptance:** NOT_AUDITED.
+Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
+delivery state and evidence are recorded in [status.json](status.json).
 
 ## Purpose and user stories
 
@@ -30,12 +32,12 @@ Out of scope: a particular CI vendor, image builder, registry, orchestrator, clo
 
 ## Success criteria and traceability
 
-| Requirement | Program ID | Design | Tests | Acceptance evidence |
+| Requirement | Requirement ID | Design | Tests | Acceptance evidence |
 |---|---|---|---|---|
-| RL-01 | EH-247 | [Manifest](plan.md#candidate-manifest-and-compatibility) | T-RL-01, T-RL-02 | signed manifest/digest |
-| RL-02 | EH-247 | [Ordering](plan.md#rollout-state-machine) | T-RL-03, T-RL-04 | ordered stage receipt |
-| RL-03 | EH-247 | [Ordering](plan.md#rollout-state-machine) | T-RL-05, T-RL-06 | live predecessor probes |
-| RL-04 | EH-247 | [Existing path](plan.md#existing-system-and-reuse) | T-RL-07 | canary and served receipt |
-| RL-05 | EH-247 | [Failure](plan.md#failure-and-rollback) | T-RL-08 | rollback or pending incident |
-| RL-06 | EH-247 | [Gates](plan.md#quality-and-release-gates) | T-RL-09 | public CI and release checks |
-| RL-07 | EH-247 | [Evidence](plan.md#candidate-manifest-and-compatibility) | T-RL-10 | redacted receipt |
+| RL-01 | GRAPHOS-RELEASE-R001 | [Manifest](plan.md#candidate-manifest-and-compatibility) | T-RL-01, T-RL-02 | signed manifest/digest |
+| RL-02 | GRAPHOS-RELEASE-R001 | [Ordering](plan.md#rollout-state-machine) | T-RL-03, T-RL-04 | ordered stage receipt |
+| RL-03 | GRAPHOS-RELEASE-R001 | [Ordering](plan.md#rollout-state-machine) | T-RL-05, T-RL-06 | live predecessor probes |
+| RL-04 | GRAPHOS-RELEASE-R001 | [Existing path](plan.md#existing-system-and-reuse) | T-RL-07 | canary and served receipt |
+| RL-05 | GRAPHOS-RELEASE-R001 | [Failure](plan.md#failure-and-rollback) | T-RL-08 | rollback or pending incident |
+| RL-06 | GRAPHOS-RELEASE-R001 | [Gates](plan.md#quality-and-release-gates) | T-RL-09 | public CI and release checks |
+| RL-07 | GRAPHOS-RELEASE-R001 | [Evidence](plan.md#candidate-manifest-and-compatibility) | T-RL-10 | redacted receipt |
