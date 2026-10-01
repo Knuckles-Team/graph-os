@@ -20,13 +20,13 @@
     {
       "id": "GRAPHOS-RELEASE-R002",
       "title": "Local Kubernetes validation gates every push",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-RELEASE-R003",
       "title": "Exit-criteria matrix maps readiness to tests",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     }
   ]

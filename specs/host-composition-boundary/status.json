@@ -33,7 +33,7 @@
     {
       "id": "GRAPHOS-HOST-R002",
       "title": "Graph engine client exposes the session/discovery surface",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
@@ -62,7 +62,8 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/fb06321fe19358019f09ba390a8498a0ec80610b",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
-      ]
+      ],
+      "remaining": "graph-os-daemon script is still declared in pyproject.toml and asserted by tests/deployment/test_entrypoints.py (not dropped); the AU-side agent_utilities/gateway duplicate removal and registry_api.py port remain staged, uncommitted-to-main work (see origin/feat/t5-mcpi31-composed-20260925 @ fb06321"
     },
     {
       "id": "GRAPHOS-HOST-R005",
@@ -100,7 +101,8 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
-      ]
+      ],
+      "remaining": "No ACP-adapter protocol module exists anywhere under graph_os/ on main (zero 'acp' matches); A2A-config/A2A-graph-skill as distinct migrated modules are not identifiable; AU-side retirement of its HTTP server and second task-store broker is not verifiable from this checkout."
     },
     {
       "id": "GRAPHOS-HOST-R010",
@@ -111,13 +113,13 @@
     {
       "id": "GRAPHOS-HOST-R011",
       "title": "GraphOS serves the messaging channel and routing layer",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "c8bb82b0b398b5fb78cb97b78ea072d934f70b48",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c8bb82b0b398b5fb78cb97b78ea072d934f70b48",
+          "commit": "6e13692cdaaaa022213080532a7d75f906f4374b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/6e13692cdaaaa022213080532a7d75f906f4374b",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -137,8 +139,9 @@
     {
       "id": "GRAPHOS-HOST-R014",
       "title": "Agent runtime split into connector SDK, GraphOS and engine",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "pyproject.toml dependencies pin agent-utilities/agent-connector-sdk/epistemic-graph via PEP508 floors (good), but [tool.uv.sources] still resolves agent-utilities, agent-connector-sdk and agent-webui to local editable .uv-workspace-siblings paths, and no test in this checkout asserts manifest-only ("
     },
     {
       "id": "GRAPHOS-HOST-R015",

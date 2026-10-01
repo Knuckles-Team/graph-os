@@ -40,8 +40,8 @@
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "6270f4dfafb2b627893089f22cb6f23c5ea213c6",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/6270f4dfafb2b627893089f22cb6f23c5ea213c6",
+          "commit": "4b6f2a45d707cd01c566fffb1017c4d7f6402fc6",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b6f2a45d707cd01c566fffb1017c4d7f6402fc6",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -49,19 +49,27 @@
     {
       "id": "GRAPHOS-IDENTITY-R002",
       "title": "Domain scopes consume the generated scope registry",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-IDENTITY-R003",
-      "title": "Persistent local token issuer with secret-backed key",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "779f6415b1485906d2dfcae74ebfdc66ddb3834e",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/779f6415b1485906d2dfcae74ebfdc66ddb3834e",
+          "commit": "51bf4fd51111a15493c561e33836e64d20f01c89",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/51bf4fd51111a15493c561e33836e64d20f01c89",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R003",
+      "title": "Persistent local token issuer with secret-backed key",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "3da6fc31887d0fb87d129922e424f2c7faa1ba8c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3da6fc31887d0fb87d129922e424f2c7faa1ba8c",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -69,25 +77,41 @@
     {
       "id": "GRAPHOS-IDENTITY-R004",
       "title": "Loopback bootstrap principal with origin guarding",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-IDENTITY-R005",
-      "title": "Local account lifecycle with server-side sessions",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-IDENTITY-R006",
-      "title": "Optional MFA with TOTP, WebAuthn, and recovery codes",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "2f0b06fd3785290b417dd8ca206b898de58fb646",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/2f0b06fd3785290b417dd8ca206b898de58fb646",
+          "commit": "3da6fc31887d0fb87d129922e424f2c7faa1ba8c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3da6fc31887d0fb87d129922e424f2c7faa1ba8c",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R005",
+      "title": "Local account lifecycle with server-side sessions",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "3da6fc31887d0fb87d129922e424f2c7faa1ba8c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3da6fc31887d0fb87d129922e424f2c7faa1ba8c",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R006",
+      "title": "Optional MFA with TOTP, WebAuthn, and recovery codes",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "22d9b125817ea1bb8f24949f1e854a0889c3e01e",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/22d9b125817ea1bb8f24949f1e854a0889c3e01e",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -95,55 +119,103 @@
     {
       "id": "GRAPHOS-IDENTITY-R007",
       "title": "Admin console tabs with mapping dry-run and mode wizard",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "22d9b125817ea1bb8f24949f1e854a0889c3e01e",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/22d9b125817ea1bb8f24949f1e854a0889c3e01e",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R008",
       "title": "API keys and service accounts replace static MCP tokens",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "52b422fd1f708a59f2b44d792f103c314aba81f2",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/52b422fd1f708a59f2b44d792f103c314aba81f2",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R009",
       "title": "Multi-provider OIDC with mapping rules and JIT policy",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "ab4de71595f9976088026616a050b9b55d860924",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/ab4de71595f9976088026616a050b9b55d860924",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R010",
       "title": "LDAPS bind with nested group sync",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "08af0611ecc4f8af8894a14b4e8d6f520045fee8",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/08af0611ecc4f8af8894a14b4e8d6f520045fee8",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R011",
       "title": "SCIM 2.0 provisioning server",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "08af0611ecc4f8af8894a14b4e8d6f520045fee8",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/08af0611ecc4f8af8894a14b4e8d6f520045fee8",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R012",
       "title": "SAML sign-in brokered through an OIDC provider",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-IDENTITY-R013",
       "title": "Identity CLI commands and doctor diagnostics",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-IDENTITY-R014",
-      "title": "Shared RBAC decision oracle across identity modes",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "af0bec41770a930a687dd1490f869b2721796516",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/af0bec41770a930a687dd1490f869b2721796516",
+          "commit": "7593ae73270e379f1c5d9730bfbf664310644f4c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/7593ae73270e379f1c5d9730bfbf664310644f4c",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R014",
+      "title": "Shared RBAC decision oracle across identity modes",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "9a51dc6f4c871f7fdc204d8cc167d4b12b5a33a6",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/9a51dc6f4c871f7fdc204d8cc167d4b12b5a33a6",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -165,8 +237,16 @@
     {
       "id": "GRAPHOS-IDENTITY-R016",
       "title": "Optional SMTP adapter for identity email",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "08af0611ecc4f8af8894a14b4e8d6f520045fee8",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/08af0611ecc4f8af8894a14b4e8d6f520045fee8",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R017",
@@ -177,13 +257,13 @@
     {
       "id": "GRAPHOS-IDENTITY-R018",
       "title": "Identity administration operations for self, admin, config",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "2f0b06fd3785290b417dd8ca206b898de58fb646",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/2f0b06fd3785290b417dd8ca206b898de58fb646",
+          "commit": "f296e9c75e143d7f1fd97d35d05b01154ca37829",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/f296e9c75e143d7f1fd97d35d05b01154ca37829",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -191,13 +271,13 @@
     {
       "id": "GRAPHOS-IDENTITY-R019",
       "title": "Access operations for elevation and approval decisions",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
+          "commit": "9f238618e6e9aaa68cb37abde6ac25be6980db08",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/9f238618e6e9aaa68cb37abde6ac25be6980db08",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -205,13 +285,13 @@
     {
       "id": "GRAPHOS-IDENTITY-R020",
       "title": "Domain scope registry covers finance, fleet, loops, ops",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "fb06321fe19358019f09ba390a8498a0ec80610b",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fb06321fe19358019f09ba390a8498a0ec80610b",
+          "commit": "51bf4fd51111a15493c561e33836e64d20f01c89",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/51bf4fd51111a15493c561e33836e64d20f01c89",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -219,7 +299,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R021",
       "title": "Identity wiring depends only on identity ports",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",

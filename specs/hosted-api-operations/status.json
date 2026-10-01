@@ -55,20 +55,46 @@
     {
       "id": "GRAPHOS-OPS-R002",
       "title": "Scoped A2A task routing and fleet tool exposure",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "implementation",
+          "result": "passed",
+          "commit": "20f773df9ddd416e10f1111cb7e35d245ce93f3b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/20f773df9ddd416e10f1111cb7e35d245ce93f3b",
+          "description": "Part of the requirement is implemented on the default branch."
+        }
+      ],
+      "remaining": "Inbound A2A routing and per-caller/session tool filtering exist and are tested on main, but typed GetWorkItem/ListWorkItems bound by control leases and read classification are not found anywhere in the repo."
     },
     {
       "id": "GRAPHOS-OPS-R003",
       "title": "Remove multiplexer skill/prompt harvest path",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "b5222cf9bbec1779c328e60085bc48d7b654e0ba",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/b5222cf9bbec1779c328e60085bc48d7b654e0ba",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R004",
       "title": "FastMCP 4 bridge for the MCP server",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "implementation",
+          "result": "passed",
+          "commit": "a7947166d00acd71360a13cf83cbd8b2c4d09b95",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/a7947166d00acd71360a13cf83cbd8b2c4d09b95",
+          "description": "Part of the requirement is implemented on the default branch."
+        }
+      ],
+      "remaining": "fastmcp 4.0.5 is already required/locked and exercised by tests on main, but shared_multiplexer.py's own docstring states the FastMCP transport and the WebUI ASGI co-service still run on two different event loops, not one consolidated loop; native WebMCP support unconfirmed."
     },
     {
       "id": "GRAPHOS-OPS-R005",
@@ -127,7 +153,7 @@
     {
       "id": "GRAPHOS-OPS-R010",
       "title": "Closed error enum and one response envelope",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -141,7 +167,7 @@
     {
       "id": "GRAPHOS-OPS-R011",
       "title": "Six resident MCP verbs with typed discovery",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -183,7 +209,7 @@
     {
       "id": "GRAPHOS-OPS-R014",
       "title": "Identity self-service and admin operations",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -197,13 +223,13 @@
     {
       "id": "GRAPHOS-OPS-R015",
       "title": "Access elevation, approval, and lease operations",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
+          "commit": "9f238618e6e9aaa68cb37abde6ac25be6980db08",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/9f238618e6e9aaa68cb37abde6ac25be6980db08",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -211,7 +237,7 @@
     {
       "id": "GRAPHOS-OPS-R016",
       "title": "Capacity status and throttle mode operations",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -225,7 +251,7 @@
     {
       "id": "GRAPHOS-OPS-R017",
       "title": "Finance and markets operations with tenant isolation",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -245,7 +271,7 @@
     {
       "id": "GRAPHOS-OPS-R019",
       "title": "Federation source registration and sharing operations",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -259,13 +285,13 @@
     {
       "id": "GRAPHOS-OPS-R020",
       "title": "Ingest operations through a typed SDK runner facade",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "99894f076a0a07737b97e262381955c758767680",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/99894f076a0a07737b97e262381955c758767680",
+          "commit": "68a2364fda13b26117e06bf8c823ddaf4881deed",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/68a2364fda13b26117e06bf8c823ddaf4881deed",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -273,7 +299,7 @@
     {
       "id": "GRAPHOS-OPS-R021",
       "title": "Decision, retrieval, and policy operations",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -287,7 +313,7 @@
     {
       "id": "GRAPHOS-OPS-R022",
       "title": "Work and evolution loop operations",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -301,7 +327,7 @@
     {
       "id": "GRAPHOS-OPS-R023",
       "title": "Agent, browser, RLM, and fleet call operations",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -315,7 +341,7 @@
     {
       "id": "GRAPHOS-OPS-R024",
       "title": "Telemetry, security, usage, and admin operations",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -329,7 +355,7 @@
     {
       "id": "GRAPHOS-OPS-R025",
       "title": "Generated registry, OpenAPI, and client artifacts",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -343,7 +369,7 @@
     {
       "id": "GRAPHOS-OPS-R026",
       "title": "API surface and compatibility drift gates",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -357,13 +383,13 @@
     {
       "id": "GRAPHOS-OPS-R027",
       "title": "Authority-parity test across principals and surfaces",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "fb06321fe19358019f09ba390a8498a0ec80610b",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fb06321fe19358019f09ba390a8498a0ec80610b",
+          "commit": "990b75e50a5b07b4b156f0d7b470a94f042f027b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/990b75e50a5b07b4b156f0d7b470a94f042f027b",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -371,13 +397,13 @@
     {
       "id": "GRAPHOS-OPS-R028",
       "title": "Exported domain scope classes",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "fb06321fe19358019f09ba390a8498a0ec80610b",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fb06321fe19358019f09ba390a8498a0ec80610b",
+          "commit": "9a4eb52552f814ea2ddf70597ad8c7fac2bd7a47",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/9a4eb52552f814ea2ddf70597ad8c7fac2bd7a47",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
@@ -385,7 +411,7 @@
     {
       "id": "GRAPHOS-OPS-R029",
       "title": "Single resident-tool server cutover",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -419,7 +445,7 @@
     {
       "id": "GRAPHOS-OPS-R032",
       "title": "Identity dependency inversion via ports",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -436,13 +462,14 @@
       "delivery_state": "BUILDING",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "implementation",
           "result": "passed",
-          "commit": "fda058b41780632881d4b281ea71504705cac602",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fda058b41780632881d4b281ea71504705cac602",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "b9141334e1baec2ba1d75ebf4a1e472cc49a743e",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/b9141334e1baec2ba1d75ebf4a1e472cc49a743e",
+          "description": "Part of the requirement is implemented on the default branch."
         }
-      ]
+      ],
+      "remaining": "find_tools/load_tools/unload_tools/multiplexer_status exist and are tested on main, but find_tools has no browse=true (list_catalog remains a separate tool), and no evidence of the 64/256 load cap, 1h idle expiry, or opt-in LRU eviction."
     },
     {
       "id": "GRAPHOS-OPS-R034",
@@ -459,7 +486,7 @@
     {
       "id": "GRAPHOS-OPS-R036",
       "title": "Pre-dispatch audit reservation for governed effects",
-      "delivery_state": "BUILDING",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -473,21 +500,21 @@
     {
       "id": "GRAPHOS-OPS-R037",
       "title": "Native first-party A2A facade",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "1f3b30ff69312556daa87e636d543d1f1ad9f391",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/1f3b30ff69312556daa87e636d543d1f1ad9f391",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "20f773df9ddd416e10f1111cb7e35d245ce93f3b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/20f773df9ddd416e10f1111cb7e35d245ce93f3b",
+          "description": "Implemented on the default branch; exercised by tests/a2a/test_application.py::test_json_rpc_unary_methods_use_typed_shared_contract"
         }
       ]
     },
     {
       "id": "GRAPHOS-OPS-R038",
       "title": "Generated OpenAPI served through Swagger UI",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     }
   ]

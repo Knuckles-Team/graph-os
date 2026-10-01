@@ -26,20 +26,21 @@
     {
       "id": "GRAPHOS-DEPLOY-R001",
       "title": "Worker topology manifest is digest-pinned",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R002",
       "title": "Executable release-qualification runbook",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R003",
       "title": "Pre-push hooks always run the full gate suite",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Pre-push hook is installed and resolves to .pre-commit-config.yaml, and CI (release.yml) runs 'pre-commit run --hook-stage pre-push' directly, bypassing shim risk; but no committed test invokes the generated shim itself to prove it never silently no-ops on a relocated/missing config, as the requirem"
     },
     {
       "id": "GRAPHOS-DEPLOY-R004",
@@ -96,13 +97,14 @@
     {
       "id": "GRAPHOS-DEPLOY-R010",
       "title": "Ecosystem and repository development skills are published",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "graph_os/skills/graph-os-development/SKILL.md exists and covers ecosystem ownership boundaries, but AGENTS.md (200 lines) is not trimmed to a navigation pointer -- it still duplicates setup/gates/branching procedure; no separate ecosystem-wide skill distinct from the repo skill; contract-regeneratio"
     },
     {
       "id": "GRAPHOS-DEPLOY-R011",
       "title": "Deployment layout test suite passes in full",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
@@ -136,13 +138,21 @@
     {
       "id": "GRAPHOS-DEPLOY-R014",
       "title": "Agent runtime split into connector SDK, GraphOS and engine",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fe7c5c9a4a322c1bc033ed867561424e93df6492",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fe7c5c9a4a322c1bc033ed867561424e93df6492",
+          "description": "Implemented on the default branch; exercised by tests/deployment/test_release_workflow_sources.py"
+        }
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R015",
       "title": "AVX2 guard test runs on any hosted runner",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     }
   ]

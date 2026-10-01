@@ -25,20 +25,22 @@
     {
       "id": "GRAPHOS-A2A-R002",
       "title": "Inbound task routing with caller-filtered tool exposure",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Work-item routing is implemented and tested, but caller-filtered tool-subset exposure is not: dispatch() raises A2AAssemblyUnavailable whenever decision.selected_tools is non-empty instead of restricting exposure, per an explicit comment that the carrier cannot enforce it."
     },
     {
       "id": "GRAPHOS-A2A-R003",
       "title": "No duplicate skill or prompt harvesting in the multiplexer",
-      "delivery_state": "UNKNOWN",
+      "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-A2A-R004",
       "title": "Served MCP bridge runs FastMCP 4, matching its declared version",
-      "delivery_state": "UNKNOWN",
-      "evidence": []
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "No live-deployment probe confirming the served FastMCP version exists in the repo (no probe script/test found anywhere); only the declared/locked-version match (fastmcp 4.0.5) and local composition/semantic tests are present."
     },
     {
       "id": "GRAPHOS-A2A-R005",
@@ -77,14 +79,14 @@
     {
       "id": "GRAPHOS-A2A-R008",
       "title": "First-party A2A facade, not a vendored wrapper",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "1f3b30ff69312556daa87e636d543d1f1ad9f391",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/1f3b30ff69312556daa87e636d543d1f1ad9f391",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "20f773df9ddd416e10f1111cb7e35d245ce93f3b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/20f773df9ddd416e10f1111cb7e35d245ce93f3b",
+          "description": "Implemented on the default branch; exercised by tests/a2a/test_application.py::test_json_rpc_unary_methods_use_typed_shared_contract"
         }
       ]
     }
