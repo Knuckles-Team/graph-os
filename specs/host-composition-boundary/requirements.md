@@ -1,10 +1,5 @@
 # GRAPHOS-HOST-001 requirements
 
-Every requirement this specification owns, with the proof that closes it. Delivery state and
-public evidence for each ID are recorded in [`status.json`](status.json); this file defines what
-each ID means. The design is in [`spec.md`](spec.md) and [`plan.md`](plan.md), the test contract
-in [`test-spec.md`](test-spec.md), and the work order in [`tasks.md`](tasks.md).
-
 | ID | Requirement | Verification |
 |---|---|---|
 | `GRAPHOS-HOST-R001` | **Cross-repository composition boundary assignment.** GraphOS composes its runtime gateway on top of boundary contracts in which the graph engine owns ontology, SHACL and durable graph records, the connector SDK owns connector transport, and the agent runtime exposes only its public agent control-plane API; the web UI consumes this composed boundary rather than any internal package. | An import-boundary census confirms each dependency is reached only through its published public API, enforced as a continuous-integration check. |

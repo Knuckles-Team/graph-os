@@ -41,3 +41,5 @@ Out of scope: provisioning a specific DNS provider, certificate authority, OIDC 
 | IN-06 | GRAPHOS-INGRESS-R001 | [Observability](plan.md#security-and-failure-handling) | T-IN-10 | redacted served receipt |
 
 This spec represents only the GraphOS consumer contract of GRAPHOS-INGRESS-R001. Infrastructure manifests and provider registrations have their own owners and must satisfy this contract before a hosted cutover can be accepted.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

@@ -1,10 +1,5 @@
 # GRAPHOS-A2A-001 requirements
 
-Every requirement this specification owns, with the proof that closes it. Delivery state and
-public evidence for each ID are recorded in [`status.json`](status.json); this file defines what
-each ID means. The design is in [`spec.md`](spec.md) and [`plan.md`](plan.md), the test contract
-in [`test-spec.md`](test-spec.md), and the work order in [`tasks.md`](tasks.md).
-
 | ID | Requirement | Verification |
 |---|---|---|
 | `GRAPHOS-A2A-R001` | **A2A facade over the engine and agent services.** graph-os implements A2A as a facade over the public graph-engine and agent-utilities services exposed through MCP and REST, starting with unary agent-card discovery and task send/get/list/cancel, then adding durable task streaming and resubscribe without a second task store. | Proven by contract tests covering the unary task operations and a durable stream/resubscribe fixture. |

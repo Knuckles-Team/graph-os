@@ -1,10 +1,5 @@
 # GRAPHOS-DATA-MARKET-001 requirements
 
-Every requirement this specification owns, with the proof that closes it. Delivery state and
-public evidence for each ID are recorded in [`status.json`](status.json); this file defines what
-each ID means. The design is in [`spec.md`](spec.md) and [`plan.md`](plan.md), the test contract
-in [`test-spec.md`](test-spec.md), and the work order in [`tasks.md`](tasks.md).
-
 | ID | Requirement | Verification |
 |---|---|---|
 | `GRAPHOS-DATA-MARKET-R001` | **Durable, deduplicated flip alert delivery.** graph-os subscribes durably to the finance flip event topic and delivers alerts to configured notification channels, deduplicating by tenant, event ID, and subscriber so a restart cannot cause a duplicate user-visible alert. An alert never authorizes an order or changes a portfolio. | Proven by a restart/redelivery test confirming at-least-once transport with idempotent, deduplicated delivery. |

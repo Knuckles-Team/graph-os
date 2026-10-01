@@ -41,3 +41,5 @@ Out of scope: a particular CI vendor, image builder, registry, orchestrator, clo
 | RL-05 | GRAPHOS-RELEASE-R001 | [Failure](plan.md#failure-and-rollback) | T-RL-08 | rollback or pending incident |
 | RL-06 | GRAPHOS-RELEASE-R001 | [Gates](plan.md#quality-and-release-gates) | T-RL-09 | public CI and release checks |
 | RL-07 | GRAPHOS-RELEASE-R001 | [Evidence](plan.md#candidate-manifest-and-compatibility) | T-RL-10 | redacted receipt |
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

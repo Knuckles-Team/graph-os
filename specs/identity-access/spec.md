@@ -1,9 +1,5 @@
 # GRAPHOS-IDENTITY-ACCESS — identity, authorization, and access operations
 
-Owner: graph-os. Delivery state: **READY FOR IMPLEMENTATION**. Acceptance state: **NOT ACCEPTED**. Last reviewed: 2026-09-28.
-Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
-delivery state and evidence are recorded in [status.json](status.json).
-
 ## State legend
 
 | State | Meaning |
@@ -64,3 +60,5 @@ GraphOS does not store durable identity tables, evaluate final graph RBAC, own s
 ## Completion rule
 
 Mark LANDED only with an exact default-branch commit containing all GraphOS behavior in scope. Mark ACCEPTED only when the contract, negative security, browser/MCP/CLI, three-mode oracle, quality, and release tests in `test-spec.md` pass on that commit and the evidence is recorded. A partial implementation must retain an explicit gap and cannot advertise its operation as complete.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

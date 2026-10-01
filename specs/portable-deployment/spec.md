@@ -28,3 +28,5 @@ An external contributor can clone only GraphOS, install published dependencies, 
 - A missing secret, unrecognized profile key, non-writable runtime path, unpinned production image, absent engine contract, unsafe identity mode or failed functional check stops apply before claiming success.
 - Recovery from failed startup and rollback to a prior pinned release preserve durable state and report the exact reason. No action log includes a token or private endpoint.
 - Every required gate has a portable CI execution path; external-integration probes remain available in a separate opt-in workflow with recorded environment identity.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

@@ -1,10 +1,5 @@
 # A2A task and approval projection
 
-Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. Owner: `graph-os`.
-Related: [Hosted API and intent operations](../hosted-api-operations/spec.md).
-Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
-delivery state and evidence are recorded in [status.json](status.json).
-
 ## Status legend
 
 `READY FOR IMPLEMENTATION` describes this build contract, not working code. `BUILDING` means source is in progress. `SOURCE LANDED` means it is on the default branch. `ACCEPTED` requires exact default-branch contract, security, and served-path evidence from [test-spec.md](test-spec.md). Do not infer acceptance from a focused test or an A2A card alone.
@@ -42,3 +37,5 @@ GraphOS owns the transport, authenticated projection, operation adapter and serv
 2. A representative operation has identical authorization and error result through A2A, MCP and HTTP. A loaded child tool and A2A operation share one policy/audit path.
 3. Human approval succeeds once across a pause/restart/replica boundary, and every negative case in [test-spec.md](test-spec.md) proves zero effect. The feature stays unavailable until that proof exists.
 4. Quality gates pass at the exact default-branch revision with no duplicate task store, authority shim, private dependency, or scanner suppression.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

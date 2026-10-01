@@ -1,10 +1,5 @@
 # GRAPHOS-RELEASE-001 requirements
 
-Every requirement this specification owns, with the proof that closes it. Delivery state and
-public evidence for each ID are recorded in [`status.json`](status.json); this file defines what
-each ID means. The design is in [`spec.md`](spec.md) and [`plan.md`](plan.md), the test contract
-in [`test-spec.md`](test-spec.md), and the work order in [`tasks.md`](tasks.md).
-
 | ID | Requirement | Verification |
 |---|---|---|
 | `GRAPHOS-RELEASE-R001` | **Dependency-ordered, digest-verified release promotion.** GraphOS validates digest-pinned candidate images in a dedicated Kubernetes test namespace before promoting them, and performs its dependency-ordered pushes to each repository in sequence, checking that repository's continuous-integration result before advancing to the next. | An integration test against a fixture dependency graph confirms the rollout stops before the next stage when a predecessor's digest or CI result is missing. |

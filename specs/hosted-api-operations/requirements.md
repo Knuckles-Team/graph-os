@@ -1,10 +1,5 @@
 # GRAPHOS-OPS-001 requirements
 
-Every requirement this specification owns, with the proof that closes it. Delivery state and
-public evidence for each ID are recorded in [`status.json`](status.json); this file defines what
-each ID means. The design is in [`spec.md`](spec.md) and [`plan.md`](plan.md), the test contract
-in [`test-spec.md`](test-spec.md), and the work order in [`tasks.md`](tasks.md).
-
 | ID | Requirement | Verification |
 |---|---|---|
 | `GRAPHOS-OPS-R001` | **Native MCP/REST facade with A2A unary operations then streaming.** GraphOS provides a native MCP and REST host that fronts the engine and agent-utilities services, first exposing unary A2A operations (card, send, get, list, cancel) and then adding durable streaming on top of the same handlers. | Integration tests exercise the A2A unary endpoints against a fixture engine, followed by a separate test proving durable streaming delivery. |

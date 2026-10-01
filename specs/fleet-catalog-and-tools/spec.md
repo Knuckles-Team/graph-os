@@ -4,9 +4,6 @@
 
 **Owner:** graph-os
 
-Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
-delivery state and evidence are recorded in [status.json](status.json).
-
 **State:** READY FOR IMPLEMENTATION — architecture and acceptance specified; no claim that the full surface is deployed or accepted.
 **Scope IDs:** GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R004, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007, GRAPHOS-FLEET-R008, GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010, GRAPHOS-FLEET-R011, GRAPHOS-FLEET-R012, GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017, GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R020, GRAPHOS-FLEET-R021, GRAPHOS-FLEET-R022, PA-12.
 
@@ -68,3 +65,5 @@ Acceptance requires every functional rule above, the positive/negative matrix in
 - `fleet.catalog.reload` is the public control ID and its request/result fields are specified above. Dry-run validates and reports a candidate without swapping the active pointer.
 - Use the engine's generated durable event contract for catalog delta receipts and replay; graph-os supplies a local fixture adapter for contributor tests. Event keys include tenant, generation, sequence, and item ID to make replays idempotent.
 - Ship a local embedded policy and allow/deny fixtures in this repository so a fresh checkout exercises policy without a remote PDP.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

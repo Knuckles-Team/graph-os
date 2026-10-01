@@ -1,9 +1,5 @@
 # GRAPHOS-DATA-MARKET — Schema context, source admission, and finance projection
 
-Status: **READY TO BUILD**. Owner: `graph-os`. Delivery: **WAITING**. Acceptance: **NOT VERIFIED**.
-Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
-delivery state and evidence are recorded in [status.json](status.json).
-
 ## Status legend
 
 `DRAFT` needs design decisions; `READY TO BUILD` has a complete contract;
@@ -135,3 +131,5 @@ broker, or notification channel.
   exactly-once claim.
 - The account binding authority for paper trading must be documented and
   verified before that operation can change from `UNAVAILABLE` to enabled.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

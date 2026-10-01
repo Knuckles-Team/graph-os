@@ -1,10 +1,5 @@
 # GRAPHOS-DEPLOY-001 requirements
 
-Every requirement this specification owns, with the proof that closes it. Delivery state and
-public evidence for each ID are recorded in [`status.json`](status.json); this file defines what
-each ID means. The design is in [`spec.md`](spec.md) and [`plan.md`](plan.md), the test contract
-in [`test-spec.md`](test-spec.md), and the work order in [`tasks.md`](tasks.md).
-
 | ID | Requirement | Verification |
 |---|---|---|
 | `GRAPHOS-DEPLOY-R001` | **Worker topology manifest is digest-pinned.** GraphOS's Kubernetes worker-topology manifest pins its dispatch, ingest and other worker workloads, their horizontal pod autoscalers, and its stateful set to an exact image digest rather than a floating tag. | A manifest lint check fails any workload image reference in the manifest that is not digest-pinned. |

@@ -1,10 +1,5 @@
 # Hosted API and intent operations
 
-Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. Owner: `graph-os`.
-Related: [A2A task projection](../a2a-task-projection/spec.md).
-Every requirement ID this spec owns is defined in [requirements.md](requirements.md); its current
-delivery state and evidence are recorded in [status.json](status.json).
-
 ## Status legend
 
 `DRAFT` means requirements still need decisions; `READY FOR IMPLEMENTATION` means a contributor can implement the stated contract; `BUILDING` means a branch exists but has not met acceptance; `SOURCE LANDED` means code is on the default branch; `ACCEPTED` means the exact default-branch revision passed the contract, quality, and served-path tests in [test-spec.md](test-spec.md). A spec document being complete never changes delivery state. Evidence must name a commit, test command, result, and public CI or release URL. Individual capabilities can advance separately in the [coverage table](#capability-coverage); this document makes no blanket claim that earlier foundation code is accepted.
@@ -77,3 +72,5 @@ The GraphOS contribution includes a machine-readable former-tool inventory: each
 2. A denied, revoked, stale, or ambiguous mutation creates no effect; a successful governed effect has reservation and outcome evidence.
 3. The generated contract, package, and fresh-checkout gates pass at the exact default-branch commit; an ephemeral served call proves MCP and HTTP reach the same handler and durable owner.
 4. The scoped quality gates in [test-spec.md](test-spec.md) pass without suppressions, copied authority logic, or undisclosed private environment dependencies.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

@@ -1,10 +1,5 @@
 # GRAPHOS-FLEET-001 requirements
 
-Every requirement this specification owns, with the proof that closes it. Delivery state and
-public evidence for each ID are recorded in [`status.json`](status.json); this file defines what
-each ID means. The design is in [`spec.md`](spec.md) and [`plan.md`](plan.md), the test contract
-in [`test-spec.md`](test-spec.md), and the work order in [`tasks.md`](tasks.md).
-
 | ID | Requirement | Verification |
 |---|---|---|
 | `GRAPHOS-FLEET-R001` | **Typed pack publisher replaces placeholder ContentPack.** graph-os publishes fleet content packs using the engine-generated SQL record types instead of the placeholder `ContentPack` structure, so SQL and market-data connector items carry real typed schemas when they are added to the catalog. | Integration test asserts published packs use the generated types and that no code path constructs the placeholder `ContentPack`. |

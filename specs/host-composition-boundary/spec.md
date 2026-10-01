@@ -32,3 +32,5 @@ One GraphOS process authenticates, authorizes, composes, routes, supervises and 
 ## Public dependencies
 
 This contract uses the published `epistemic-graph`, `agent-connector-sdk` and `agent-utilities` package APIs. Their own specifications explain implementation of the durable engine, connector effects and agent runtime; the GraphOS request, composition and parity obligations above are complete here.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.
