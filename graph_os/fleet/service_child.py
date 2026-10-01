@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
 from typing import Any, Protocol
+
+logger = logging.getLogger(__name__)
 
 
 class ServiceChildOutcomeUnknown(RuntimeError):
@@ -214,8 +217,14 @@ class ServiceChildAdapter:
                 await self._journal.outcome_unknown(
                     record_id, type(exc).__name__, caller
                 )
-            except Exception:
-                pass
+            except Exception as journal_exc:
+                logger.warning(
+                    "service child outcome_unknown journal write failed "
+                    "(record_id=%s, exception_type=%s); the primary "
+                    "ServiceChildOutcomeUnknown is raised regardless",
+                    record_id,
+                    type(journal_exc).__name__,
+                )
             raise ServiceChildOutcomeUnknown(
                 "service child outcome requires recovery",
                 recovery_ref=reservation.recovery_ref,
@@ -228,8 +237,14 @@ class ServiceChildAdapter:
         if child_error:
             try:
                 await self._journal.outcome_unknown(record_id, "child_error", caller)
-            except Exception:
-                pass
+            except Exception as journal_exc:
+                logger.warning(
+                    "service child outcome_unknown journal write failed "
+                    "(record_id=%s, exception_type=%s); the primary "
+                    "ServiceChildOutcomeUnknown is raised regardless",
+                    record_id,
+                    type(journal_exc).__name__,
+                )
             raise ServiceChildOutcomeUnknown(
                 "service child reported an uncertain effect",
                 recovery_ref=reservation.recovery_ref,
@@ -241,8 +256,14 @@ class ServiceChildAdapter:
                 await self._journal.outcome_unknown(
                     record_id, "result_persist_failed", caller
                 )
-            except Exception:
-                pass
+            except Exception as journal_exc:
+                logger.warning(
+                    "service child outcome_unknown journal write failed "
+                    "(record_id=%s, exception_type=%s); the primary "
+                    "ServiceChildOutcomeUnknown is raised regardless",
+                    record_id,
+                    type(journal_exc).__name__,
+                )
             raise ServiceChildOutcomeUnknown(
                 "service child result was not persisted",
                 recovery_ref=reservation.recovery_ref,
@@ -252,8 +273,14 @@ class ServiceChildAdapter:
                 await self._journal.outcome_unknown(
                     record_id, "result_persist_failed", caller
                 )
-            except Exception:
-                pass
+            except Exception as journal_exc:
+                logger.warning(
+                    "service child outcome_unknown journal write failed "
+                    "(record_id=%s, exception_type=%s); the primary "
+                    "ServiceChildOutcomeUnknown is raised regardless",
+                    record_id,
+                    type(journal_exc).__name__,
+                )
             raise ServiceChildOutcomeUnknown(
                 "service child result was not persisted",
                 recovery_ref=reservation.recovery_ref,
