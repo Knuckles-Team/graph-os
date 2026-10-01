@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Awaitable, Callable, Iterable, Iterator
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from .digest import canonical_registry
 from .spec import OpSpec, PrincipalRule, Surface, Verb
@@ -25,6 +25,13 @@ class Caller(Protocol):
 
 
 PolicyDecision = Callable[[OpSpec, Caller], bool]
+
+# The single invocation chokepoint (GRAPHOS-OPS-R007): one op id, its params,
+# a verified caller and the serving surface in, an OpResult or OpError-shaped
+# outcome out. Surface adapters depend on this shape rather than importing
+# the invocation pipeline's own module, so an HTTP or MCP projection can land
+# and be tested against a fake before that pipeline exists.
+Invoke = Callable[..., Awaitable[Any]]
 
 
 def authorized(op: OpSpec, caller: Caller, *, policy: PolicyDecision) -> bool:

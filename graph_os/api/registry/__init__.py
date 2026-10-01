@@ -1,7 +1,7 @@
 """Public operation-registry contract for GraphOS surfaces and generators."""
 
 from .digest import canonical_op, canonical_registry, registry_digest
-from .registry import Caller, PolicyDecision, Registry, authorized
+from .registry import Caller, Invoke, PolicyDecision, Registry, authorized
 from .spec import (
     AuditClass,
     Composite,
@@ -32,6 +32,7 @@ __all__ = [
     "Executor",
     "HttpShape",
     "Idempotency",
+    "Invoke",
     "OpSpec",
     "PolicyDecision",
     "PrincipalRule",
