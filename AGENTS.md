@@ -136,8 +136,10 @@ a threshold; gates check behaviour or a contract derived from its source of
 truth, never a hand-kept count, pin copy or golden digest. Scanner acceptance
 rules live in `docs/quality-gate-terms.md`.
 
-Shared hooks come from `Knuckles-Team/pipelines` at the immutable revision in
-`.pre-commit-config.yaml`; CI and local checks use that same revision. A local
+Shared hooks come from `Knuckles-Team/pipelines` at `main` — the one sanctioned
+exception to this repository's immutable-pin policy, so pipeline fixes land
+automatically; every reference in `.pre-commit-config.yaml` and the GitHub
+Actions workflows names the default branch, never a commit or tag. A local
 checkout substitution must be command-local and must never mutate repository
 or global Git configuration.
 

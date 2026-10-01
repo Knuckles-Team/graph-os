@@ -5,7 +5,7 @@
 #
 # Every repository-agnostic gate -- complexity, KISS, clones, secrets,
 # privacy, hygiene and code shape -- comes from the shared hook repository
-# Knuckles-Team/pipelines at a pinned commit; repository-specific inputs are
+# Knuckles-Team/pipelines at main; repository-specific inputs are
 # declared in pyproject.toml `[tool.pipelines_hooks]`. Hooks that need a
 # sibling checkout or a synced environment (scripts/local_hook.sh) print
 # `SKIPPED (<gate>): <reason>` in a fresh clone and fail closed under CI.
@@ -86,9 +86,9 @@ repos:
     # Hosted release gates verify the frozen lock after pinned source checkout.
     stages: [manual]
 
-# ── Shared gates (Knuckles-Team/pipelines, pinned) ─────────────────────────────
+# ── Shared gates (Knuckles-Team/pipelines, main) ─────────────────────────────
 - repo: https://github.com/Knuckles-Team/pipelines
-  rev: 35209bf6d85569a3c1fe3d5cd31771cacfdc3731 # public-surface gate
+  rev: main # sanctioned first-party exception; public-surface gate
   hooks:
   # scanners (pinned versions; never installed by a hook)
   - id: complexity-staged

@@ -217,7 +217,7 @@ jobs:
           CX_DUP_BASE_REF: ${{ env.PRE_COMMIT_FROM_REF }}
         run: |
           set -euo pipefail
-          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@35209bf6d85569a3c1fe3d5cd31771cacfdc3731' \
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' \
             pipelines-hook scanner-versions cccc kiss dupehound jscpd
           for hook in complexity-census kiss-census dupehound-changed jscpd-differential jscpd-census; do
             uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
