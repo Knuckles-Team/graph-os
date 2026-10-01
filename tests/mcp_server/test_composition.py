@@ -108,12 +108,13 @@ def test_console_script_targets_native_serving_entrypoint() -> None:
 
 
 def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
-    """GraphOS serves its shapes and packaged skill as SDK connector content.
+    """GraphOS serves its shapes and packaged skills as SDK connector content.
 
-    The public ``graph-os-development`` skill ships under ``graph_os/skills``
-    (package data plus the ``agent_utilities.skill_providers`` entry point), so
-    the SDK registers exactly one skills-directory provider rooted there and
-    nothing else: no prompts, and one runtime shapes resource.
+    The public ``graph-os-development``, ``graphos-deployment`` and
+    ``graphos-genesis`` skills ship under ``graph_os/skills`` (package data
+    plus the ``agent_utilities.skill_providers`` entry point), so the SDK
+    registers exactly one skills-directory provider rooted there and nothing
+    else: no prompts, and one runtime shapes resource.
     """
     import anyio
     from agent_connector_sdk.mcp.content import register_connector_content
@@ -140,7 +141,7 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
     registration = register_connector_content(mcp, connector_content())
 
     assert (registration.skills, registration.prompts, registration.resources) == (
-        1,
+        3,
         0,
         1,
     )
@@ -149,7 +150,9 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
     assert type(provider) is SkillsDirectoryProvider
     skills_root = Path(graph_os.skills.__file__).resolve().parent
     assert sorted(path.parent.name for path in skills_root.glob("*/SKILL.md")) == [
-        "graph-os-development"
+        "graph-os-development",
+        "graphos-deployment",
+        "graphos-genesis",
     ]
     skill_uris = sorted(
         str(resource.uri) for resource in anyio.run(provider.list_resources)
@@ -157,6 +160,10 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
     assert skill_uris == [
         "skill://graph-os-development/SKILL.md",
         "skill://graph-os-development/_manifest",
+        "skill://graphos-deployment/SKILL.md",
+        "skill://graphos-deployment/_manifest",
+        "skill://graphos-genesis/SKILL.md",
+        "skill://graphos-genesis/_manifest",
     ]
 
     assert len(mcp.resources) == 1

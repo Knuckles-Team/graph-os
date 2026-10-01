@@ -169,16 +169,9 @@
     {
       "id": "GRAPHOS-OPS-R011",
       "title": "Six resident MCP verbs with typed discovery",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "ea736715b7fb4ca19e64460381758723d3ee5c28",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/ea736715b7fb4ca19e64460381758723d3ee5c28",
-          "description": "Implemented on the default branch; exercised by tests/api/test_mcp_verbs.py"
-        }
-      ]
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "The six MCP verbs, typed discovery, resources and the registry digest are implemented and unit-tested on the default branch (tests/api/test_mcp_verbs.py), but nothing mounts the MCP projection into the served application yet: the live MCP surface is still the multiplexer. Remaining: mount it, with a test through the served entry point."
     },
     {
       "id": "GRAPHOS-OPS-R012",
