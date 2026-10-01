@@ -1,6 +1,6 @@
 # Portable GraphOS development and deployment
 
-**Owner:** graph-os. **Program IDs:** EH-253, EH-254, EH-357, EH-388, EH-426, EH-432, EH-477, EH-489, EH-491, EH-518, EH-585, EH-589, EH-630, RF-028. **Delivery:** implemented in part; **acceptance:** pending. The existing deployment utilities are real source, but a clean contributor install, all profile variants and first-boot proof are not accepted here.
+**Owner:** graph-os. **Requirement IDs:** GRAPHOS-DEPLOY-R001, GRAPHOS-DEPLOY-R002, GRAPHOS-DEPLOY-R003, GRAPHOS-DEPLOY-R004, GRAPHOS-DEPLOY-R005, GRAPHOS-DEPLOY-R006, GRAPHOS-DEPLOY-R007, GRAPHOS-DEPLOY-R008, GRAPHOS-DEPLOY-R009, GRAPHOS-DEPLOY-R010, GRAPHOS-DEPLOY-R011, GRAPHOS-DEPLOY-R012, GRAPHOS-DEPLOY-R013, GRAPHOS-DEPLOY-R014. **Delivery:** implemented in part; **acceptance:** pending. The existing deployment utilities are real source, but a clean contributor install, all profile variants and first-boot proof are not accepted here.
 
 ## State legend
 
@@ -26,3 +26,5 @@ An external contributor can clone only GraphOS, install published dependencies, 
 - A missing secret, unrecognized profile key, non-writable runtime path, unpinned production image, absent engine contract, unsafe identity mode or failed functional check stops apply before claiming success.
 - Recovery from failed startup and rollback to a prior pinned release preserve durable state and report the exact reason. No action log includes a token or private endpoint.
 - Every required gate has a portable CI execution path; external-integration probes remain available in a separate opt-in workflow with recorded environment identity.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

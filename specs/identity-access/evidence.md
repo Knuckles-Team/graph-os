@@ -1,6 +1,6 @@
 # Evidence — GRAPHOS-IDENTITY-ACCESS
 
-As of 2026-09-28 this is a design artifact. GraphOS delivery is **READY FOR IMPLEMENTATION** and acceptance is **NOT ACCEPTED**. The checked-out default-branch base used to author this spec does not contain the proposed `graph_os.identity`, `graph_os.access` or `graph_os.api.ops` packages. Historical source checkpoints and row labels are not proof that a current default-branch contract or served behavior exists.
+As of 2026-09-28 this is a design artifact. GraphOS delivery is **READY FOR IMPLEMENTATION** and acceptance is **NOT ACCEPTED**. The checked-out default-branch base used to author this spec does not contain the proposed `graph_os.identity`, `graph_os.access` or `graph_os.api.ops` packages. Prior source snapshots and row labels are not proof that a current default-branch contract or served behavior exists.
 
 | Claim | Exact commit / job / fixture | Result |
 |---|---|---|

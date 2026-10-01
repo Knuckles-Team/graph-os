@@ -5,7 +5,7 @@
 **Owner:** graph-os
 
 **State:** READY FOR IMPLEMENTATION — architecture and acceptance specified; no claim that the full surface is deployed or accepted.
-**Scope IDs:** EH-213, EH-215, EH-216, EH-217, EH-219, EH-220, EH-221, EH-410, EH-461, EH-475, EH-594, EH-595, EH-598, EH-599, EH-611, EH-614, EH-615, EH-626, EH-627, EH-628, EH-629, RF-021, PA-12.
+**Scope IDs:** GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R004, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007, GRAPHOS-FLEET-R008, GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010, GRAPHOS-FLEET-R011, GRAPHOS-FLEET-R012, GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017, GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R020, GRAPHOS-FLEET-R021, GRAPHOS-FLEET-R022, PA-12.
 
 ## Outcome and state legend
 
@@ -20,7 +20,7 @@ An authenticated caller can discover only usable graph-os operations and fleet i
 | ACCEPTED | All listed functional and release proofs pass against the landed revision | Evidence with revision, environment, and result |
 | BLOCKED | A named dependency prevents the next acceptance step | Dependency, owner, and retry condition |
 
-Status is per deliverable; a source commit, a green unit test, or a historical checkpoint never implies ACCEPTED. Update the evidence table in this spec at each transition.
+Status is per deliverable; a source commit, a green unit test, or a prior status label never implies ACCEPTED. Update the evidence table in this spec at each transition.
 
 ## Functional contract
 
@@ -38,12 +38,12 @@ Status is per deliverable; a source commit, a green unit test, or a historical c
 
 | Slice | IDs | Acceptance boundary |
 |---|---|---|
-| Registry and generated binding | EH-594, EH-595, EH-614 | Exact engine coverage, stable digest, artifact drift checks |
-| Intent and discovery | EH-598, EH-599, EH-219, EH-220, EH-221 | Ten resident tools, typed schemas, no legacy harvest, FastMCP 4 protocol proof |
-| Connector and fleet item inputs | EH-213, EH-215, EH-216, EH-217, EH-410 | Real schema pins, pack annotations, typed write-back, sanitized feed metadata |
-| Fleet invocation and safety | EH-611, EH-626, EH-627, EH-628, EH-629 | Native load/call, exact scopes, policy, no bypass, parity |
-| Orchestration correctness | EH-461, EH-475 | Atomic admission, correct generated assembly agents |
-| Reload and acceptance | RF-021, PA-12, EH-615 | Atomic handoff, re-ingestion, negative cases, replica/served proof |
+| Registry and generated binding | GRAPHOS-FLEET-R011, GRAPHOS-FLEET-R012, GRAPHOS-FLEET-R016 | Exact engine coverage, stable digest, artifact drift checks |
+| Intent and discovery | GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007 | Ten resident tools, typed schemas, no legacy harvest, FastMCP 4 protocol proof |
+| Connector and fleet item inputs | GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R004, GRAPHOS-FLEET-R008 | Real schema pins, pack annotations, typed write-back, sanitized feed metadata |
+| Fleet invocation and safety | GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R020, GRAPHOS-FLEET-R021 | Native load/call, exact scopes, policy, no bypass, parity |
+| Orchestration correctness | GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010 | Atomic admission, correct generated assembly agents |
+| Reload and acceptance | GRAPHOS-FLEET-R022, PA-12, GRAPHOS-FLEET-R017 | Atomic generation swap, re-ingestion, negative cases, replica/served proof |
 
 The engine owns its durable records and method contract; the connector SDK owns pack and connector certification; graph-os owns serving composition, registry projection, fleet policy, session loading, and reload. A contributor may replace a missing external service with the fixtures and local fake adapters described in [test-spec.md](test-spec.md).
 
@@ -65,3 +65,5 @@ Acceptance requires every functional rule above, the positive/negative matrix in
 - `fleet.catalog.reload` is the public control ID and its request/result fields are specified above. Dry-run validates and reports a candidate without swapping the active pointer.
 - Use the engine's generated durable event contract for catalog delta receipts and replay; graph-os supplies a local fixture adapter for contributor tests. Event keys include tenant, generation, sequence, and item ID to make replays idempotent.
 - Ship a local embedded policy and allow/deny fixtures in this repository so a fresh checkout exercises policy without a remote PDP.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

@@ -3,23 +3,162 @@
   "spec_id": "GRAPHOS-HOST-001",
   "owner_repo": "graph-os",
   "requirement_ids": [
-    "EH-334",
-    "EH-335",
-    "EH-426",
-    "EH-476",
-    "EH-478",
-    "EH-479",
-    "EH-488",
-    "EH-489",
-    "EH-490",
-    "EH-491",
-    "EH-492",
-    "EH-514",
-    "EH-515",
-    "RF-028",
-    "RF-029"
+    "GRAPHOS-HOST-R001",
+    "GRAPHOS-HOST-R002",
+    "GRAPHOS-HOST-R003",
+    "GRAPHOS-HOST-R004",
+    "GRAPHOS-HOST-R005",
+    "GRAPHOS-HOST-R006",
+    "GRAPHOS-HOST-R007",
+    "GRAPHOS-HOST-R008",
+    "GRAPHOS-HOST-R009",
+    "GRAPHOS-HOST-R010",
+    "GRAPHOS-HOST-R011",
+    "GRAPHOS-HOST-R012",
+    "GRAPHOS-HOST-R013",
+    "GRAPHOS-HOST-R014",
+    "GRAPHOS-HOST-R015",
+    "GRAPHOS-HOST-R016"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": []
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-HOST-R001",
+      "title": "Cross-repository composition boundary assignment",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R002",
+      "title": "Graph engine client exposes the session/discovery surface",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R003",
+      "title": "Web UI rename cutover across GraphOS",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "ebb644b377cd8b0a92c5863f1d0213cf68a85095",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/ebb644b377cd8b0a92c5863f1d0213cf68a85095",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R004",
+      "title": "Single gateway implementation under graph_os/gateway",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "fb06321fe19358019f09ba390a8498a0ec80610b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fb06321fe19358019f09ba390a8498a0ec80610b",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R005",
+      "title": "graph_os.mcp_server.runtime serves retired MCP actions",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R006",
+      "title": "graph_os.fleet is the sole multiplexer and host owner",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007",
+      "title": "Agent runtime imported only through its public API",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R008",
+      "title": "GraphOS hosts its own boundary modules",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R009",
+      "title": "GraphOS hosts the agent HTTP server and A2A/ACP endpoints",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R010",
+      "title": "GraphOS owns hosting/deployment configuration settings",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R011",
+      "title": "GraphOS serves the messaging channel and routing layer",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "c8bb82b0b398b5fb78cb97b78ea072d934f70b48",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c8bb82b0b398b5fb78cb97b78ea072d934f70b48",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R012",
+      "title": "Component registry carries GraphOS and SDK boundary entries",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R013",
+      "title": "Front ends import only public GraphOS/agent-runtime surfaces",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R014",
+      "title": "Agent runtime split into connector SDK, GraphOS and engine",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R015",
+      "title": "Layered agent capability model with a harness abstraction",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R016",
+      "title": "main branch includes the published dependency composition",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "20f773df9ddd416e10f1111cb7e35d245ce93f3b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/20f773df9ddd416e10f1111cb7e35d245ce93f3b",
+          "description": "Implementing commit is reachable from the default branch."
+        }
+      ]
+    }
+  ]
 }

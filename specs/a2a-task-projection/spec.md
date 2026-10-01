@@ -1,8 +1,5 @@
 # A2A task and approval projection
 
-Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. Owner: `graph-os`.
-Related: [Hosted API and intent operations](../hosted-api-operations/spec.md).
-
 ## Status legend
 
 `READY FOR IMPLEMENTATION` describes this build contract, not working code. `BUILDING` means source is in progress. `SOURCE LANDED` means it is on the default branch. `ACCEPTED` requires exact default-branch contract, security, and served-path evidence from [test-spec.md](test-spec.md). Do not infer acceptance from a focused test or an A2A card alone.
@@ -27,12 +24,12 @@ GraphOS owns the transport, authenticated projection, operation adapter and serv
 
 | IDs | GraphOS obligation | Delivery |
 |---|---|---|
-| EH-218, RF-030 | First-party native A2A facade over public engine and agent ports | NOT ACCEPTED |
-| EH-219 | Authenticated inbound routing and caller-filtered assembly/tool subset | NOT ACCEPTED |
-| EH-590 | Durable human tool-call approval exchange and fail-closed activation | NOT ACCEPTED |
-| EH-601 | `graphos.op/invoke`, `graphos.plan/confirm`, shared operation registry and error projection | NOT ACCEPTED |
-| EH-220, EH-221 | No fleet skill/prompt harvest duplicate; FastMCP 4 served bridge and one owner loop | NOT ACCEPTED |
-| EH-658 | Pre-effect audit reservation and outcome linkage for approved effects | NOT ACCEPTED |
+| GRAPHOS-A2A-R001, GRAPHOS-A2A-R008 | First-party native A2A facade over public engine and agent ports | NOT ACCEPTED |
+| GRAPHOS-A2A-R002 | Authenticated inbound routing and caller-filtered assembly/tool subset | NOT ACCEPTED |
+| GRAPHOS-A2A-R005 | Durable human tool-call approval exchange and fail-closed activation | NOT ACCEPTED |
+| GRAPHOS-A2A-R006 | `graphos.op/invoke`, `graphos.plan/confirm`, shared operation registry and error projection | NOT ACCEPTED |
+| GRAPHOS-A2A-R003, GRAPHOS-A2A-R004 | No fleet skill/prompt harvest duplicate; FastMCP 4 served bridge and one owner loop | NOT ACCEPTED |
+| GRAPHOS-A2A-R007 | Pre-effect audit reservation and outcome linkage for approved effects | NOT ACCEPTED |
 
 ## Acceptance
 
@@ -40,3 +37,5 @@ GraphOS owns the transport, authenticated projection, operation adapter and serv
 2. A representative operation has identical authorization and error result through A2A, MCP and HTTP. A loaded child tool and A2A operation share one policy/audit path.
 3. Human approval succeeds once across a pause/restart/replica boundary, and every negative case in [test-spec.md](test-spec.md) proves zero effect. The feature stays unavailable until that proof exists.
 4. Quality gates pass at the exact default-branch revision with no duplicate task store, authority shim, private dependency, or scanner suppression.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

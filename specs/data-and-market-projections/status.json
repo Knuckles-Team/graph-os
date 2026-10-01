@@ -3,14 +3,76 @@
   "spec_id": "GRAPHOS-DATA-MARKET-001",
   "owner_repo": "graph-os",
   "requirement_ids": [
-    "EH-416",
-    "EH-419",
-    "EH-605",
-    "EH-683",
-    "EH-693",
-    "EH-705"
+    "GRAPHOS-DATA-MARKET-R001",
+    "GRAPHOS-DATA-MARKET-R002",
+    "GRAPHOS-DATA-MARKET-R003",
+    "GRAPHOS-DATA-MARKET-R004",
+    "GRAPHOS-DATA-MARKET-R005",
+    "GRAPHOS-DATA-MARKET-R006"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": []
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-DATA-MARKET-R001",
+      "title": "Durable, deduplicated flip alert delivery",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "ebbc7e3e38470d3027668843d61b7332079a963d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/ebbc7e3e38470d3027668843d61b7332079a963d",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-DATA-MARKET-R002",
+      "title": "Scheduled finance backfill, scan, and explanation jobs",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "35bc4b06650e1cd7a5f55e518ef524321bb755e2",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/35bc4b06650e1cd7a5f55e518ef524321bb755e2",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-DATA-MARKET-R003",
+      "title": "Server-side finance and markets reads and paper order submission",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-DATA-MARKET-R004",
+      "title": "One-at-a-time application admission with rollback",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DATA-MARKET-R005",
+      "title": "schema_context query surface for tables and ontology mappings",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DATA-MARKET-R006",
+      "title": "Recurring DCA plans with deterministic, non-duplicating proposals",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    }
+  ]
 }

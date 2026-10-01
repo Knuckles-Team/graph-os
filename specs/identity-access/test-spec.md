@@ -1,6 +1,6 @@
 # Test contract — GRAPHOS-IDENTITY-ACCESS
 
-Delivery state: READY FOR IMPLEMENTATION. Test result: **NOT RUN for this spec**. No pass is inferred from historical source checkpoints.
+Delivery state: READY FOR IMPLEMENTATION. Test result: **NOT RUN for this spec**. No pass is inferred from prior source snapshots.
 
 ## Portable fixture
 

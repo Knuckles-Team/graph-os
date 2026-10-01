@@ -1,6 +1,6 @@
 # Adaptive capacity control
 
-**Owner:** graph-os. **Program IDs:** EH-406; GraphOS interface EH-604. **Spec state:** ready to build. **Delivery state:** source not verified. **Acceptance state:** not accepted.
+**Owner:** graph-os. **Requirement IDs:** GRAPHOS-CAPACITY-R001; GraphOS interface GRAPHOS-CAPACITY-R002. **Spec state:** ready to build. **Delivery state:** source not verified. **Acceptance state:** not accepted.
 
 ## State legend
 
@@ -22,3 +22,5 @@ GraphOS protects each admitted child/service and tenant from an error cascade by
 ## Acceptance
 
 A clean-checkout deterministic fixture demonstrates decrease, gradual recovery, ceiling/floor bounds, tenant isolation and observe/enforce parity. A disposable served test proves one child with injected retryable failures is throttled while another tenant/child remains unaffected. Exact revision, quality-gate results and decision receipts are required before marking this accepted.
+
+Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.

@@ -3,16 +3,90 @@
   "spec_id": "GRAPHOS-A2A-001",
   "owner_repo": "graph-os",
   "requirement_ids": [
-    "EH-218",
-    "EH-219",
-    "EH-220",
-    "EH-221",
-    "EH-590",
-    "EH-601",
-    "EH-658",
-    "RF-030"
+    "GRAPHOS-A2A-R001",
+    "GRAPHOS-A2A-R002",
+    "GRAPHOS-A2A-R003",
+    "GRAPHOS-A2A-R004",
+    "GRAPHOS-A2A-R005",
+    "GRAPHOS-A2A-R006",
+    "GRAPHOS-A2A-R007",
+    "GRAPHOS-A2A-R008"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": []
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-A2A-R001",
+      "title": "A2A facade over the engine and agent services",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R002",
+      "title": "Inbound task routing with caller-filtered tool exposure",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R003",
+      "title": "No duplicate skill or prompt harvesting in the multiplexer",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R004",
+      "title": "Served MCP bridge runs FastMCP 4, matching its declared version",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R005",
+      "title": "Durable, fail-closed A2A approval exchange for tool calls",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "ebe2d828e5454d363df3e01a65d9aa684682f01c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/ebe2d828e5454d363df3e01a65d9aa684682f01c",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R006",
+      "title": "Operation invoke and plan-confirm methods for A2A",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R007",
+      "title": "Pre-effect audit reservation for every governed write",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "5d86560021f51048cf14f1d399d76c2f95912f09",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/5d86560021f51048cf14f1d399d76c2f95912f09",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R008",
+      "title": "First-party A2A facade, not a vendored wrapper",
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "1f3b30ff69312556daa87e636d543d1f1ad9f391",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/1f3b30ff69312556daa87e636d543d1f1ad9f391",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    }
+  ]
 }

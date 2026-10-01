@@ -3,22 +3,147 @@
   "spec_id": "GRAPHOS-DEPLOY-001",
   "owner_repo": "graph-os",
   "requirement_ids": [
-    "EH-253",
-    "EH-254",
-    "EH-357",
-    "EH-388",
-    "EH-426",
-    "EH-432",
-    "EH-477",
-    "EH-489",
-    "EH-491",
-    "EH-518",
-    "EH-585",
-    "EH-589",
-    "EH-630",
-    "RF-028"
+    "GRAPHOS-DEPLOY-R001",
+    "GRAPHOS-DEPLOY-R002",
+    "GRAPHOS-DEPLOY-R003",
+    "GRAPHOS-DEPLOY-R004",
+    "GRAPHOS-DEPLOY-R005",
+    "GRAPHOS-DEPLOY-R006",
+    "GRAPHOS-DEPLOY-R007",
+    "GRAPHOS-DEPLOY-R008",
+    "GRAPHOS-DEPLOY-R009",
+    "GRAPHOS-DEPLOY-R010",
+    "GRAPHOS-DEPLOY-R011",
+    "GRAPHOS-DEPLOY-R012",
+    "GRAPHOS-DEPLOY-R013",
+    "GRAPHOS-DEPLOY-R014",
+    "GRAPHOS-DEPLOY-R015"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": []
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-DEPLOY-R001",
+      "title": "Worker topology manifest is digest-pinned",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R002",
+      "title": "Executable release-qualification runbook",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R003",
+      "title": "Pre-push hooks always run the full gate suite",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R004",
+      "title": "mypy hook type-checks the test suite",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "f3af52a802623cc941205534dfe9073a66b54ef1",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/f3af52a802623cc941205534dfe9073a66b54ef1",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R005",
+      "title": "Web UI rename cutover across GraphOS",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "ebb644b377cd8b0a92c5863f1d0213cf68a85095",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/ebb644b377cd8b0a92c5863f1d0213cf68a85095",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R006",
+      "title": "gateway-widgets extra pins a compatible connector floor",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R007",
+      "title": "GraphOS hosts deployment doctor and skill certification",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R008",
+      "title": "GraphOS hosts its own boundary modules",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R009",
+      "title": "GraphOS owns hosting/deployment configuration settings",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R010",
+      "title": "Ecosystem and repository development skills are published",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R011",
+      "title": "Deployment layout test suite passes in full",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R012",
+      "title": "Pipelines dependency is referenced at main, never pinned",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "e59e430549fad5c7b3aad4142321eb86a65b8006",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e59e430549fad5c7b3aad4142321eb86a65b8006",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R013",
+      "title": "Development and production deployment profiles",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "16459dde686d682cde617e94292a9a722ea1fb5c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/16459dde686d682cde617e94292a9a722ea1fb5c",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R014",
+      "title": "Agent runtime split into connector SDK, GraphOS and engine",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R015",
+      "title": "AVX2 guard test runs on any hosted runner",
+      "delivery_state": "UNKNOWN",
+      "evidence": []
+    }
+  ]
 }

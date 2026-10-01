@@ -2,15 +2,16 @@
 
 Check a task only after its linked code and tests land. A checked source task is not acceptance; the final release task records served evidence.
 
-- [ ] T01 — Inventory existing fleet/MCP code and generated engine/SDK contracts; record current behavior and one owner per interface. Cover EH-213, EH-215, EH-217, EH-220, EH-221.
-- [ ] T02 — Define frozen `OpSpec`, stable IDs, exact scope/effect metadata, canonical digest, reviewed engine exclusions, and generator checks. Cover EH-594, EH-595, EH-614.
-- [ ] T03 — Implement typed `invoke` with caller validation, narrowing policy, service executor, effect plans, audit, and stable errors; move child dispatch behind one fleet gateway. Cover EH-611, EH-629, EH-216.
-- [ ] T04 — Project the six intent verbs and four resident fleet tools, generated schemas/resources, cross-surface discovery, and bounded resolver. Remove obsolete harvest and granular registration in the same cutover. Cover EH-598, EH-599, EH-219, EH-220, EH-221, EH-628.
-- [ ] T05 — Build one filtered catalog for all six item kinds, native per-session mounts, cap/expiry/eviction, queued notifications, fallback calls, and credential delegation. Cover EH-626, EH-213, EH-217.
-- [ ] T06 — Install embedded/remote Eunomia policy in graph-os; prove exact scopes and principal rules at discover/load/call and fail-closed outage behavior. Cover EH-627, EH-629.
-- [ ] T07 — Add atomic generation refresh, durable ordered delta receipts, last-known-good fallback, in-flight drain, replay, and replica convergence. Cover RF-021 and PA-12.
-- [ ] T08 — Certify actual connector schemas and annotations; expose typed write-back and sanitized telemetry/security/CI feed metadata through registry ops. Cover EH-215, EH-216, EH-410.
-- [ ] T09 — Correct generated assembly agent parsing and all-or-nothing capacity admission, one re-decision, and release on stop. Cover EH-461, EH-475.
-- [ ] T10 — Run clean-checkout format/lint/types/tests, generated artifact and public-surface checks, CCCC, KISS, jscpd, dupehound, authority parity, and local served protocol matrix. Cover EH-614, EH-615.
+- [ ] T01 — Inventory existing fleet/MCP code and generated engine/SDK contracts; record current behavior and one owner per interface. Cover GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R004, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007.
+- [ ] T02 — Define frozen `OpSpec`, stable IDs, exact scope/effect metadata, canonical digest, reviewed engine exclusions, and generator checks. Cover GRAPHOS-FLEET-R011, GRAPHOS-FLEET-R012, GRAPHOS-FLEET-R016.
+- [ ] T03 — Implement typed `invoke` with caller validation, narrowing policy, service executor, effect plans, audit, and stable errors; move child dispatch behind one fleet gateway. Cover GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R021, GRAPHOS-FLEET-R003.
+- [ ] T04 — Project the six intent verbs and four resident fleet tools, generated schemas/resources, cross-surface discovery, and bounded resolver. Remove obsolete harvest and granular registration in the same cutover. Cover GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007, GRAPHOS-FLEET-R020.
+- [ ] T05 — Build one filtered catalog for all six item kinds, native per-session mounts, cap/expiry/eviction, queued notifications, fallback calls, and credential delegation. Cover GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R004.
+- [ ] T06 — Install embedded/remote Eunomia policy in graph-os; prove exact scopes and principal rules at discover/load/call and fail-closed outage behavior. Cover GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R021.
+- [ ] T07 — Add atomic generation refresh, durable ordered delta receipts, last-known-good fallback, in-flight drain, replay, and replica convergence. Cover GRAPHOS-FLEET-R022 and PA-12.
+- [ ] T08 — Certify actual connector schemas and annotations; expose typed write-back and sanitized telemetry/security/CI feed metadata through registry ops. Cover GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R008.
+- [ ] T09 — Correct generated assembly agent parsing and all-or-nothing capacity admission, one re-decision, and release on stop. Cover GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010.
+- [ ] T10 — Run clean-checkout format/lint/types/tests, generated artifact and public-surface checks, CCCC, KISS, jscpd, dupehound, authority parity, and local served protocol matrix. Cover GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017.
 - [ ] T11 — Land reviewed code and record merge commits per slice in `spec.md`; do not mark ACCEPTED on source evidence alone.
 - [ ] T12 — Run the disposable two-replica reload and fault probe against the landed revision; attach generation, receipt, trace, timing, and policy evidence; then mark only passing slices ACCEPTED.
+- [ ] T13 — Add or verify a check script that scans every fleet connector count-pin site (compatibility matrix, bundle-catalog schema, check scripts, `ontology.lock`, federated IRI, `genesis.yaml`) and fails when any site disagrees with the live connector count. Cover GRAPHOS-FLEET-R023, not covered by T01–T12.

@@ -2,8 +2,18 @@
   "schema_version": 1,
   "spec_id": "GRAPHOS-INGRESS-001",
   "owner_repo": "graph-os",
-  "requirement_ids": ["EH-427"],
+  "requirement_ids": [
+    "GRAPHOS-INGRESS-R001"
+  ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": []
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-INGRESS-R001",
+      "title": "Public ingress rename with Keycloak and OpenBao cutover",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    }
+  ]
 }
