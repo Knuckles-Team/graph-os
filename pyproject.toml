@@ -38,6 +38,10 @@ dependencies = [
     "epistemic-graph>=2.27.0,<3.0.0",
     "fastapi>=0.139.2",
     "filelock>=3.32.0",
+    # The policy gate evaluates eunomia-core decision schemas directly; it is
+    # already resolved transitively but is declared explicitly since this
+    # package imports it by name.
+    "eunomia-core>=0.3.10,<1.0.0",
     "prometheus-client>=0.25.0",
     "pydantic>=2.13.4,<3.0.0",
     "PyYAML>=6.0.3",
