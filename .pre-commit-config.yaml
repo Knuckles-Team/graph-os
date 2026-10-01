@@ -186,10 +186,10 @@ repos:
 - repo: local
   hooks:
   # graph-os's Python orphan-module wiring gate (see .config/kiss.toml
-  # [global] and AGENTS.md "Orphan-module wiring gate (Python)"): a tracked
-  # graph_os/ module with no production fan-in and no production fan-out.
-  # Needs only the stdlib (ast, tomllib) plus git, so it runs in a fresh
-  # clone with no synced environment.
+  # [global] and AGENTS.md "Orphan-module wiring gate (Python)"): a
+  # graph_os/ module with no production fan-in and no production fan-out
+  # (on disk, tracked or not). Needs only the stdlib (ast, tomllib), so it
+  # runs in a fresh clone with no synced environment.
   - id: check-orphan-modules
     name: Wiring — no orphan graph_os module
     entry: uv run --frozen python scripts/check_wiring.py orphans

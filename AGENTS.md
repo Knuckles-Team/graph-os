@@ -146,8 +146,9 @@ or global Git configuration.
 ### Orphan-module wiring gate (Python)
 
 `scripts/check_wiring.py orphans` (the `check-orphan-modules` pre-commit
-hook) is this repository's Python wiring gate: a tracked module under
-`graph_os/` fails when it has neither production fan-in (nothing in the
+hook) is this repository's Python wiring gate: any `.py` module on disk under
+`graph_os/` (tracked or not, so a new module is caught before it is ever
+staged) fails when it has neither production fan-in (nothing in the
 package imports it) nor production fan-out (it imports nothing from the
 package), and is not a declared root (the top-level `graph_os` package or a
 `[project.scripts]` / `[project.entry-points]` target). A dynamically

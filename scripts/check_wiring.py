@@ -9,10 +9,12 @@ after every test passes -- a materially different, much heavier operation
 than a structural reachability scan. This script restores the original,
 cheap, structural semantics directly, independent of the native scanner:
 
-A tracked module under ``graph_os/`` is an orphan when it is isolated: it
-neither imports, nor is imported by, any other tracked package module
-(absolute or relative, including function-local imports) -- mirroring the
-retired ``kiss`` rule's own definition ("no production fan-in/fan-out").
+A module under ``graph_os/`` is an orphan when it is isolated: it neither
+imports, nor is imported by, any other package module (absolute or relative,
+including function-local imports) -- mirroring the retired ``kiss`` rule's
+own definition ("no production fan-in/fan-out"). Every ``.py`` file on disk
+under ``graph_os/`` is in scope, tracked or not (stricter: a new module is
+caught before it is ever staged).
 Dynamically dispatched modules (for example ``graph_os.gateway.registry``'s
 string-keyed widget loader) are not orphans under this definition as long as
 they import something from the package themselves (every widget imports its
@@ -30,8 +32,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import shutil
-import subprocess  # nosec B404 -- fixed-argv git compatibility check
 import sys
 import tomllib
 from pathlib import Path
@@ -43,27 +43,19 @@ class GateError(RuntimeError):
     """The gate could not establish its universe."""
 
 
-def tracked_modules(root: Path) -> dict[str, Path]:
-    git = shutil.which("git")
-    if git is None:
-        raise GateError("git is not on PATH")
-    result = subprocess.run(  # nosec B603 -- resolved git executable, fixed argv
-        [git, "-C", str(root), "ls-files", "--cached", "-z", "--", f"{PACKAGE}/*.py"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise GateError(f"git ls-files failed: {result.stderr.strip()[:200]}")
+def discovered_modules(root: Path) -> dict[str, Path]:
+    """Every ``.py`` file on disk under ``graph_os/``, by dotted module name."""
+    base = root / PACKAGE
     modules: dict[str, Path] = {}
-    for rel in filter(None, result.stdout.split("\0")):
-        path = root / rel
-        parts = list(Path(rel).with_suffix("").parts)
+    for path in sorted(base.rglob("*.py")) if base.is_dir() else []:
+        if "__pycache__" in path.parts:
+            continue
+        parts = list(path.relative_to(root).with_suffix("").parts)
         if parts[-1] == "__init__":
             parts.pop()
         modules[".".join(parts)] = path
     if not modules:
-        raise GateError(f"no tracked modules under {PACKAGE}/")
+        raise GateError(f"no modules found under {PACKAGE}/")
     return modules
 
 
@@ -93,7 +85,7 @@ def _import_targets(node: ast.AST, base: list[str]) -> set[str]:
 
 
 def imports(name: str, path: Path, modules: dict[str, Path]) -> set[str]:
-    """The tracked package modules ``name`` imports anywhere in its body."""
+    """The package modules ``name`` imports anywhere in its body."""
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     base = name.split(".") if path.name == "__init__.py" else name.split(".")[:-1]
     found = set().union(*(_import_targets(node, base) for node in ast.walk(tree)))
@@ -101,8 +93,8 @@ def imports(name: str, path: Path, modules: dict[str, Path]) -> set[str]:
 
 
 def orphans(root: Path) -> list[str]:
-    """Tracked modules with zero fan-in and zero fan-out (isolated)."""
-    modules = tracked_modules(root)
+    """Modules with zero fan-in and zero fan-out (isolated)."""
+    modules = discovered_modules(root)
     roots = declared_roots(root)
     missing = sorted(r for r in roots if r.startswith(PACKAGE) and r not in modules)
     if missing:
