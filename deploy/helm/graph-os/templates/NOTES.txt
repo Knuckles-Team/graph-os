@@ -1,0 +1,14 @@
+This chart rendered the Graph OS workload (topology: {{ .Values.topology }}{{ if include "graph-os.unified" . }}, engine placement: {{ .Values.engine.placement }}{{ end }}).
+
+The default images use registry.invalid and are render-only. Before applying:
+  1. set approved immutable image digests;
+  2. create/synchronize Secret {{ .Values.runtimeSecret.name }} (GRAPH_SERVICE_AUTH_SECRET, engine secrets, optional GRAPHOS_SETUP_CODE);
+  3. add explicit egress for identity, models, secret store and connectors;
+  4. run helm lint/template, policy checks and a server-side dry-run;
+  5. follow the graphos-deployment skill for application values and first-boot verification.
+
+Identity mode seeded on first boot: {{ .Values.identity.mode }} (Eunomia: {{ include "graph-os.eunomiaType" . }}).
+{{- if ne .Values.identity.mode "none" }}
+First boot: read the setup code from the graph-os log (or GRAPHOS_SETUP_CODE) and create the first administrator at /auth/setup in the web UI.
+{{- end }}
+Graph OS service: {{ include "graph-os.fullname" . }}-graphos.{{ .Release.Namespace }}.svc

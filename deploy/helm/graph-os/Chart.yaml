@@ -1,0 +1,14 @@
+apiVersion: v2
+name: graph-os
+description: >-
+  Graph OS runtime with its epistemic-graph engine in the same pod (unified
+  topology) or against a shared engine service, plus optional fleet connectors.
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+# Native sidecar containers (initContainers with restartPolicy: Always).
+kubeVersion: ">=1.29.0-0"
+annotations:
+  artifacthub.io/changes: |
+    - kind: changed
+      description: Moved from the agent-utilities agent-os-genesis skill into graph-os; engine sidecar placement, identity/Eunomia/secrets/telemetry values, split API and web UI ingress.

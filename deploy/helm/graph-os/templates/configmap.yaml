@@ -1,0 +1,87 @@
+{{- include "graph-os.validate" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "graph-os.fullname" . }}-graphos
+  labels:
+    {{- include "graph-os.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.graphos.config }}
+  {{ $key }}: {{ $value | toString | quote }}
+  {{- end }}
+  ENABLE_WEB_UI: {{ .Values.graphos.webUi | toString | quote }}
+  GRAPH_OS_WEBUI_PORT: {{ .Values.graphos.webUiPort | toString | quote }}
+  GRAPHOS_AUTH_MODE: {{ .Values.identity.mode | quote }}
+  {{- with .Values.identity.issuer }}
+  GRAPHOS_IDENTITY_ISSUER: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.identity.tenant }}
+  GRAPHOS_IDENTITY_TENANT: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.identity.noneExposeAck }}
+  GRAPHOS_AUTH_NONE_EXPOSE: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.identity.noneHostname }}
+  GRAPHOS_AUTH_NONE_HOSTNAME: {{ . | quote }}
+  {{- end }}
+  EUNOMIA_TYPE: {{ include "graph-os.eunomiaType" . | quote }}
+  {{- with .Values.policy.eunomia.policyFile }}
+  EUNOMIA_POLICY_FILE: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.policy.eunomia.remoteUrl }}
+  EUNOMIA_REMOTE_URL: {{ . | quote }}
+  {{- end }}
+  SECRETS_BACKEND: {{ .Values.secrets.backend | quote }}
+  {{- with .Values.secrets.vaultUrl }}
+  SECRETS_VAULT_URL: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.telemetry.otlpEndpoint }}
+  ENABLE_OTEL: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.telemetry.rumOtlpMetricsEndpoint }}
+  RUM_OTLP_METRICS_ENDPOINT: {{ . | quote }}
+  {{- end }}
+  {{- with .Values.capacity.prometheusUrl }}
+  SCALING_PROMETHEUS_URL: {{ . | quote }}
+  {{- end }}
+  XDG_CONFIG_HOME: /var/lib/graph-os/config
+  XDG_DATA_HOME: /var/lib/graph-os/data
+  XDG_STATE_HOME: /var/lib/graph-os/state
+  XDG_CACHE_HOME: /tmp/cache
+  XDG_RUNTIME_DIR: /run/epistemic-graph
+  {{- if not (include "graph-os.unified" .) }}
+  GRAPH_SERVICE_ENDPOINTS: {{ printf "tls://%s-engine:%v" (include "graph-os.fullname" .) .Values.engine.port | quote }}
+  KG_DAEMON_ROLE: "client"
+  {{- else if include "graph-os.sidecar" . }}
+  GRAPH_SERVICE_ENDPOINTS: "unix:///run/epistemic-graph/epistemic-graph.sock"
+  KG_DAEMON_ROLE: "host"
+  {{- else }}
+  # child placement: graph-os starts and supervises the engine itself.
+  GRAPH_SERVICE_ENDPOINTS: ""
+  GRAPH_SERVICE_PERSIST_DIR: "/var/lib/graph-os/engine"
+  ENGINE_LIFECYCLE: "persistent"
+  KG_DAEMON_ROLE: "host"
+  {{- if .Values.engine.tcp.enabled }}
+  GRAPH_SERVICE_TCP_ADDR: {{ printf "0.0.0.0:%v" .Values.engine.port | quote }}
+  GRAPH_SERVICE_TLS_CERT: "/etc/graph-os/engine-tls/tls.crt"
+  GRAPH_SERVICE_TLS_KEY: "/etc/graph-os/engine-tls/tls.key"
+  {{- end }}
+  GRAPH_SERVICE_METRICS_ADDR: "127.0.0.1:9101"
+  {{- range $key, $value := .Values.engine.config }}
+  {{ $key }}: {{ $value | toString | quote }}
+  {{- end }}
+  {{- end }}
+{{- if or (include "graph-os.sidecar" .) (not (include "graph-os.unified" .)) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "graph-os.fullname" . }}-engine
+  labels:
+    {{- include "graph-os.labels" . | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.engine.config }}
+  {{ $key }}: {{ $value | toString | quote }}
+  {{- end }}
+{{- end }}

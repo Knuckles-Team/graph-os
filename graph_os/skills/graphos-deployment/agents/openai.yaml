@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph OS Deployment"
+  short_description: "Install, configure and verify a Graph OS runtime"
+  default_prompt: "Use $graphos-deployment to plan this Graph OS installation change, apply only authorized steps, and verify the browser sign-in path and the MCP/API control plane."

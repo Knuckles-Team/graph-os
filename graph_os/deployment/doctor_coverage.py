@@ -59,7 +59,7 @@ def _check_workspace_config() -> dict[str, Any]:
                 "validate entries against docs/guides/workspace-config.md and the "
                 "annotated template in docs/examples/workspace.yml"
             ),
-            skill="agent-utilities-deployment",
+            skill="graphos-deployment",
             data=data,
         )
     detail = f"workspace.yml valid — {rep['repo_count']} repositories"
@@ -100,7 +100,7 @@ def _check_skills() -> dict[str, Any]:
             "fail",
             f"current skill resolution failed ({type(exc).__name__})",
             remediation="reconcile provider registrations and run `agent-utilities install`",
-            skill="agent-utilities-deployment",
+            skill="graphos-deployment",
             data={"ready": False, "redacted": True},
         )
 
@@ -111,7 +111,7 @@ def _check_skills() -> dict[str, Any]:
             "warn",
             f"{len(missing)} of {len(BUNDLED_SKILLS)} pre-bundled workflow skills are missing",
             remediation="`agent-utilities install` (installs the thirteen-skill workflow toolkit)",
-            skill="agent-utilities-deployment",
+            skill="graphos-deployment",
             data={"installed": len(installed_names), "missing": missing},
         )
     return _result(
@@ -320,7 +320,7 @@ def _unified_install_result(
             "fail",
             f"current provider sources cannot be validated ({tally.unresolved} issue(s))",
             remediation="repair provider distributions before materialization",
-            skill="agent-utilities-deployment",
+            skill="graphos-deployment",
             data=data,
         )
     issues = (
@@ -338,7 +338,7 @@ def _unified_install_result(
                 "`agent-utilities install` (materializes current providers, marks "
                 "ownership, and prunes removed managed providers)"
             ),
-            skill="agent-utilities-deployment",
+            skill="graphos-deployment",
             data=data,
         )
     return _result(
@@ -405,7 +405,7 @@ def _check_unified_install() -> dict[str, Any]:
                 "fail",
                 f"provider registry invalid ({type(exc).__name__})",
                 remediation="remove duplicate or invalid provider registrations",
-                skill="agent-utilities-deployment",
+                skill="graphos-deployment",
                 data={"ready": False, "redacted": True},
             )
         expected_counts[leg] = _sweep_install_leg(leg, root, registrations, tally)

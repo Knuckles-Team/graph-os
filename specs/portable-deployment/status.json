@@ -110,30 +110,23 @@
     {
       "id": "GRAPHOS-DEPLOY-R012",
       "title": "Pipelines dependency is referenced at main, never pinned",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "e59e430549fad5c7b3aad4142321eb86a65b8006",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/e59e430549fad5c7b3aad4142321eb86a65b8006",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "6c4b89f91732edb2af6953803685deea250882d2",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/6c4b89f91732edb2af6953803685deea250882d2",
+          "description": "Implemented on the default branch; exercised by tests/deployment/test_release_workflow_sources.py"
         }
       ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R013",
       "title": "Development and production deployment profiles",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "16459dde686d682cde617e94292a9a722ea1fb5c",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/16459dde686d682cde617e94292a9a722ea1fb5c",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ]
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "The Compose profile, the Helm chart, the Swarm stack and the genesis and deployment skills are on the default branch, with rendered-artifact tests (helm lint and template for both topologies, compose config). Remaining: the first-boot test that provisions each profile and confirms readiness, administrator creation and the selected secrets backend before accepting traffic; identity-mode enforcement depends on the identity work that is not on the default branch yet."
     },
     {
       "id": "GRAPHOS-DEPLOY-R014",

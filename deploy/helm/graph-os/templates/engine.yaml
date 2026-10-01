@@ -1,0 +1,97 @@
+{{- if not (include "graph-os.unified" .) }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "graph-os.fullname" . }}-engine
+  labels:
+    {{- include "graph-os.labels" . | nindent 4 }}
+    app.kubernetes.io/component: engine
+spec:
+  serviceName: {{ include "graph-os.fullname" . }}-engine
+  replicas: {{ .Values.engine.replicas }}
+  podManagementPolicy: OrderedReady
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: engine
+  template:
+    metadata:
+      labels:
+        {{- include "graph-os.labels" . | nindent 8 }}
+        app.kubernetes.io/component: engine
+    spec:
+      {{- include "graph-os.podSpecHeader" . | nindent 6 }}
+      containers:
+        - name: engine
+          image: {{ include "graph-os.engineImage" . }}
+          imagePullPolicy: {{ .Values.engine.image.pullPolicy }}
+          command:
+            {{- include "graph-os.engineArgs" . | nindent 12 }}
+          {{- include "graph-os.engineEnvFrom" . | nindent 10 }}
+          ports:
+            - {name: engine, containerPort: {{ .Values.engine.port }}}
+          startupProbe:
+            tcpSocket: {port: engine}
+            failureThreshold: 360
+            periodSeconds: 5
+          readinessProbe:
+            tcpSocket: {port: engine}
+            failureThreshold: 3
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: {port: engine}
+            failureThreshold: 3
+            periodSeconds: 20
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.engine.resources | nindent 12 }}
+          volumeMounts:
+            - {name: engine-data, mountPath: /var/lib/epistemic-graph/data}
+            - {name: engine-tls, mountPath: /etc/graph-os/engine-tls, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: engine-tls
+          secret:
+            secretName: {{ .Values.engine.tls.secretName }}
+      {{- with .Values.engine.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.engine.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.engine.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: engine-data
+      spec:
+        accessModes:
+          {{- toYaml .Values.engine.persistence.accessModes | nindent 10 }}
+        {{- with .Values.engine.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.engine.persistence.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "graph-os.fullname" . }}-engine
+  labels:
+    {{- include "graph-os.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: engine
+  ports:
+    - {name: engine, port: {{ .Values.engine.port }}, targetPort: engine}
+{{- end }}
