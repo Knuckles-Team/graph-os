@@ -1350,42 +1350,33 @@ async def _run_bounded_probe(
     )
 
 
-def _request_capabilities() -> frozenset[str]:
-    """Return the verified caller's capabilities for every transport.
-
-    A local stdio caller carries no HTTP bearer token; its authority comes
-    instead from the process's own verified actor context (the same context
-    the serving host binds for every stdio tool call), read through its
-    already-resolved effective capability set (``roles`` — role ∪ scope ∪
-    group-derived capabilities). Either path must resolve to a concrete,
-    authenticated capability set: there is no longer a transport that
-    bypasses this check.
+def _stdio_capabilities() -> frozenset[str]:
+    """Capabilities for a local stdio caller: the process's own verified
+    actor context (the same context the serving host binds for every stdio
+    tool call), read through its already-resolved effective capability set
+    (``roles`` — role ∪ scope ∪ group-derived capabilities). An unbound or
+    unauthenticated actor is refused exactly like an unauthenticated remote
+    caller — stdio carries no implicit trust.
     """
+    from agent_utilities.security.brain_context import current_actor
+
     try:
-        from fastmcp.server.dependencies import get_access_token, get_http_request
-
-        get_http_request()
-    except RuntimeError:
-        from agent_utilities.security.brain_context import current_actor
-
-        try:
-            actor = current_actor()
-        except Exception:
-            raise _fastmcp_exceptions.ToolError(
-                "Authenticated local process context required"
-            ) from None
-        if actor.authenticated is not True:
-            raise _fastmcp_exceptions.ToolError(
-                "Authenticated local process context required"
-            ) from None
-        return frozenset(str(role).strip() for role in actor.roles if str(role).strip())
+        actor = current_actor()
     except Exception:
         raise _fastmcp_exceptions.ToolError(
-            "Authenticated HTTP context required"
+            "Authenticated local process context required"
         ) from None
-    token = get_access_token()
-    if token is None:
-        raise _fastmcp_exceptions.ToolError("Authenticated HTTP context required")
+    if actor.authenticated is not True:
+        raise _fastmcp_exceptions.ToolError(
+            "Authenticated local process context required"
+        ) from None
+    return frozenset(str(role).strip() for role in actor.roles if str(role).strip())
+
+
+def _http_capabilities(token: _typing.Any) -> frozenset[str]:
+    """Capabilities for a verified HTTP bearer token: its own declared
+    scopes plus any identity-group-derived capabilities its claims map to.
+    """
     capabilities = {
         str(scope).strip()
         for scope in (getattr(token, "scopes", None) or [])
@@ -1408,6 +1399,28 @@ def _request_capabilities() -> frozenset[str]:
                 "Verified capability mapping unavailable"
             ) from None
     return frozenset(capabilities)
+
+
+def _request_capabilities() -> frozenset[str]:
+    """Return the verified caller's capabilities for every transport.
+
+    Either path (stdio or HTTP) must resolve to a concrete, authenticated
+    capability set: there is no longer a transport that bypasses this check.
+    """
+    try:
+        from fastmcp.server.dependencies import get_access_token, get_http_request
+
+        get_http_request()
+    except RuntimeError:
+        return _stdio_capabilities()
+    except Exception:
+        raise _fastmcp_exceptions.ToolError(
+            "Authenticated HTTP context required"
+        ) from None
+    token = get_access_token()
+    if token is None:
+        raise _fastmcp_exceptions.ToolError("Authenticated HTTP context required")
+    return _http_capabilities(token)
 
 
 def _fleet_required_capabilities(kind: str) -> set[str]:
