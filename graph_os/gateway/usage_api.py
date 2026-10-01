@@ -9,7 +9,10 @@ transport (CONCEPT:AU-ECO.mcp.client-side-chat-session): clients parse local log
 POST normalized
 bundles so a central engine never needs filesystem access to the client.
 
-Mountable by any FastAPI backend::
+Mounted by :func:`graph_os.gateway.graph_api.register_graph_routes`, which
+calls :func:`register_usage_routes` below alongside this gateway's other
+``register_*_routes`` functions. Any other FastAPI backend can mount it the
+same way::
 
     from graph_os.gateway.usage_api import usage_router
     app.include_router(usage_router, prefix="/api/observability")
@@ -359,3 +362,13 @@ def sync_now() -> dict:
     except Exception as exc:  # noqa: BLE001
         logger.warning("usage_sync_failed error_type=%s", exc)
         return {"status": "error", "detail": "usage sync failed"}
+
+
+def register_usage_routes(app, prefix: str = "/api") -> None:
+    """Mount the usage/cost/observability surface onto ``app``.
+
+    Mirrors this gateway's other ``register_*_routes`` functions; ``prefix``
+    defaults to ``/api`` so the routes land at ``/api/observability`` as this
+    module's own docstring documents.
+    """
+    app.include_router(usage_router, prefix=f"{prefix}/observability")

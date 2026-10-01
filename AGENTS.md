@@ -128,7 +128,7 @@ uv build --wheel --out-dir dist
 
 The scanner job provisions the exact native scanner versions with
 `scripts/install_scanners.sh` (also `scripts/bootstrap.sh --scanners`) and
-reports census findings as advisory. On release tags, repository-manager's
+blocks on any census finding. On release tags, repository-manager's
 external-index `dependency-readiness` hook blocks build and publication. The
 `uv-lock` and scanner census hooks remain available at the `manual` stage. Do
 not bypass a failure, add an inline suppression, freeze a baseline, or weaken
@@ -136,10 +136,29 @@ a threshold; gates check behaviour or a contract derived from its source of
 truth, never a hand-kept count, pin copy or golden digest. Scanner acceptance
 rules live in `docs/quality-gate-terms.md`.
 
-Shared hooks come from `Knuckles-Team/pipelines` at the immutable revision in
-`.pre-commit-config.yaml`; CI and local checks use that same revision. A local
+Shared hooks come from `Knuckles-Team/pipelines` at `main` — the one sanctioned
+exception to this repository's immutable-pin policy, so pipeline fixes land
+automatically; every reference in `.pre-commit-config.yaml` and the GitHub
+Actions workflows names the default branch, never a commit or tag. A local
 checkout substitution must be command-local and must never mutate repository
 or global Git configuration.
+
+### Orphan-module wiring gate (Python)
+
+`scripts/check_wiring.py orphans` (the `check-orphan-modules` pre-commit
+hook) is this repository's Python wiring gate: a tracked module under
+`graph_os/` fails when it has neither production fan-in (nothing in the
+package imports it) nor production fan-out (it imports nothing from the
+package), and is not a declared root (the top-level `graph_os` package or a
+`[project.scripts]` / `[project.entry-points]` target). A dynamically
+dispatched module — for example `graph_os.gateway.registry`'s string-keyed
+widget loader — is not an orphan as long as it imports something from the
+package itself (every widget imports its shared `base` module), matching
+this gate's structural, not reachability, definition. There is no allowlist:
+an isolated module is wired in, reached by another module, or deleted. This
+restores the semantics `kiss check`'s own `orphan_module_enabled` provided
+before kiss 0.4.11 moved orphan detection to the coverage-linked `kiss test`
+(see `.config/kiss.toml`).
 
 ## Development rules
 

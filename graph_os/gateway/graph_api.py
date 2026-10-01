@@ -357,6 +357,11 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     register_remote_oauth_routes(app, prefix=prefix)
 
+    # Usage/cost/observability surface, consumed by all three frontends.
+    from graph_os.gateway.usage_api import register_usage_routes
+
+    register_usage_routes(app, prefix=prefix)
+
     logger.info(
         "Mounted centralized Knowledge Graph REST routes + fleet supervisory "
         "plane under %r (graph-os MCP is now a thin wrapper).",
