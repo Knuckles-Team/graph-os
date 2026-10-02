@@ -76,6 +76,24 @@ async def _collect_telegram_attachments(msg: Any) -> list[MediaAttachment]:
     return attachments
 
 
+def _render_telegram_text(text: str, metadata: dict[str, Any] | None) -> tuple[str, str]:
+    """Markdown -> Telegram's HTML subset, unless the caller opts out.
+
+    The universal agent replies in Markdown; Telegram renders only a small HTML
+    subset, so by default we convert Markdown -> that subset and send with
+    ``parse_mode=HTML`` — otherwise ``**bold**`` / ``## heading`` / `` `code` ``
+    arrive as raw markers (the "markdown didn't render" bug). A caller may pass
+    ``metadata={"preformatted": True}`` or a different ``parse_mode`` to send
+    the text as-is.
+    """
+    parse_mode = (metadata or {}).get("parse_mode", "HTML")
+    if parse_mode == "HTML" and not (metadata or {}).get("preformatted"):
+        from agent_utilities.messaging.render import markdown_to_telegram_html
+
+        return markdown_to_telegram_html(text), parse_mode
+    return text, parse_mode
+
+
 def _telegram_inbound_event(
     msg: Any, attachments: list[MediaAttachment]
 ) -> InboundEvent:
@@ -216,13 +234,7 @@ class TelegramBackend(MessagingBackend):
         if reply_to_id:
             base["reply_to_message_id"] = int(reply_to_id)
 
-        parse_mode = (metadata or {}).get("parse_mode", "HTML")
-        if parse_mode == "HTML" and not (metadata or {}).get("preformatted"):
-            from agent_utilities.messaging.render import markdown_to_telegram_html
-
-            send_text = markdown_to_telegram_html(text)
-        else:
-            send_text = text
+        send_text, parse_mode = _render_telegram_text(text, metadata)
 
         try:
             msg = await self._app.bot.send_message(
@@ -273,13 +285,7 @@ class TelegramBackend(MessagingBackend):
         NEVER raises — it returns an unsuccessful ``SendResult`` so the caller can fall back to
         sending the final reply as a new message.
         """
-        parse_mode = (metadata or {}).get("parse_mode", "HTML")
-        if parse_mode == "HTML" and not (metadata or {}).get("preformatted"):
-            from agent_utilities.messaging.render import markdown_to_telegram_html
-
-            send_text = markdown_to_telegram_html(text)
-        else:
-            send_text = text
+        send_text, parse_mode = _render_telegram_text(text, metadata)
 
         base: dict[str, Any] = {
             "chat_id": int(channel_id),
