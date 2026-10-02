@@ -298,8 +298,12 @@ def _tool(
         input_schema=input_schema,
         output_schema=output_schema,
         schema_digest=schema_sha256(input_schema, output_schema),
-        mutation_class="local-ui-mutation" if mutation else "read",
-        confirmation_policy="exact-request" if mutation else "none",
+        mutation_class=MutationClass.LOCAL_UI_MUTATION
+        if mutation
+        else MutationClass.READ,
+        confirmation_policy=ConfirmationPolicy.EXACT_REQUEST
+        if mutation
+        else ConfirmationPolicy.NONE,
         required_roles=("user",),
         source_ref="agent-webui:src/lib/webmcp/tools.ts",
     )

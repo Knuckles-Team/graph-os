@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -13,11 +15,14 @@ from graph_os.fleet.service_child import (
     DurableReservation,
     ServiceChildAdapter,
     ServiceChildOutcomeUnknown,
+    ServiceChildRecord,
     service_child_call_for_mux,
 )
 
 
 class Journal:
+    """A fake structurally satisfying ``graph_os.fleet.service_child.ServiceChildJournal``."""
+
     def __init__(
         self,
         *,
@@ -28,11 +33,13 @@ class Journal:
         self.created = created
         self.mismatched = mismatched
         self.engine_id = engine_id
-        self.records = []
-        self.succeeded_ids = []
-        self.unknown = []
+        self.records: list[ServiceChildRecord] = []
+        self.succeeded_ids: list[tuple[str, str]] = []
+        self.unknown: list[tuple[str, str]] = []
 
-    async def reserve(self, record, caller):
+    async def reserve(
+        self, record: ServiceChildRecord, caller: Any
+    ) -> DurableReservation:
         assert caller.principal == "alice"
         self.records.append(record)
         return DurableReservation(
@@ -46,24 +53,32 @@ class Journal:
             created=self.created,
         )
 
-    async def succeeded(self, record_id, result_digest, caller):
+    async def get(self, record_id: str, caller: Any) -> Mapping[str, Any] | None:
+        assert caller.principal == "alice"
+        return None
+
+    async def succeeded(self, record_id: str, result_digest: str, caller: Any) -> bool:
         assert caller.principal == "alice"
         self.succeeded_ids.append((record_id, result_digest))
         return True
 
-    async def outcome_unknown(self, record_id, reason, caller):
+    async def outcome_unknown(self, record_id: str, reason: str, caller: Any) -> bool:
         assert caller.principal == "alice"
         self.unknown.append((record_id, reason))
         return True
 
 
 class Transport:
-    def __init__(self, *, fail: bool = False, result=None):
+    """A fake structurally satisfying ``graph_os.fleet.service_child.ServiceChildTransport``."""
+
+    def __init__(self, *, fail: bool = False, result: Any = None):
         self.fail = fail
         self.result = {"ok": True} if result is None else result
-        self.calls = []
+        self.calls: list[tuple[ServiceChildRecord, Mapping[str, Any]]] = []
 
-    async def call_service_child_once(self, record, arguments):
+    async def call_service_child_once(
+        self, record: ServiceChildRecord, arguments: Mapping[str, Any]
+    ) -> Any:
         self.calls.append((record, arguments))
         if self.fail:
             raise ConnectionError("child may have executed")

@@ -11,7 +11,9 @@ from graph_os.mcp_server.composition import CoServiceSupervisor
 
 
 def test_native_supervisor_preserves_ambient_context() -> None:
-    authority = contextvars.ContextVar("test_co_service_authority")
+    authority: contextvars.ContextVar[str] = contextvars.ContextVar(
+        "test_co_service_authority"
+    )
     authority.set("verified")
     observed: list[str] = []
     started = threading.Event()

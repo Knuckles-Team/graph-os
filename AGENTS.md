@@ -106,7 +106,7 @@ After `scripts/bootstrap.sh`, run focused development checks with:
 ```bash
 uv run --no-sync pytest tests/<area>
 uv run --no-sync ruff check .
-uv run --no-sync mypy graph_os
+uv run --no-sync mypy graph_os tests
 ```
 
 ## Quality gates

@@ -48,7 +48,6 @@ repos:
   - id: mypy
     additional_dependencies: [pydantic==2.13.4, types-PyYAML==6.0.12.20260906]
     args: ["--ignore-missing-imports"]
-    exclude: ^(tests/|test/)
 
 - repo: https://github.com/jendrikseipp/vulture
   rev: b0f67ba0044693aa9ec0d38fe460590facc98004 # v2.16

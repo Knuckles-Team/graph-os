@@ -53,7 +53,7 @@ async def test_concurrent_first_loads_start_exactly_one_child(tmp_path) -> None:
         session = AsyncMock()
         return server_name, session, tools, cfg
 
-    mux._start_child = AsyncMock(side_effect=slow_start_child)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=slow_start_child)
 
     task_a = asyncio.create_task(mux.mount_child(CNT))
     await entered.wait()  # the leader is now inside _start_child, blocked
@@ -98,7 +98,7 @@ async def test_many_concurrent_first_loads_still_start_exactly_one_child(
         session = AsyncMock()
         return server_name, session, tools, cfg
 
-    mux._start_child = AsyncMock(side_effect=slow_start_child)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=slow_start_child)
 
     tasks = [asyncio.create_task(mux.mount_child(CNT)) for _ in range(10)]
     await entered.wait()
@@ -137,7 +137,7 @@ async def test_different_servers_mount_fully_in_parallel(tmp_path) -> None:
         session = AsyncMock()
         return server_name, session, tools, cfg
 
-    mux._start_child = AsyncMock(side_effect=slow_start_child)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=slow_start_child)
 
     task_a = asyncio.create_task(mux.mount_child(CNT))
     task_b = asyncio.create_task(mux.mount_child(other))
@@ -169,7 +169,7 @@ async def test_retry_after_failed_leader_starts_a_fresh_attempt(tmp_path) -> Non
         session = AsyncMock()
         return server_name, session, tools, cfg
 
-    mux._start_child = AsyncMock(side_effect=flaky_start_child)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=flaky_start_child)
 
     first = await mux.mount_child(CNT)
     assert first == []
@@ -197,7 +197,7 @@ async def test_retry_after_cancelled_leader_starts_a_fresh_attempt(tmp_path) -> 
         await hang.wait()  # never released — simulates a stuck handshake
         raise AssertionError("unreachable")
 
-    mux._start_child = AsyncMock(side_effect=hanging_start_child)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=hanging_start_child)
 
     leader_task = asyncio.create_task(mux.mount_child(CNT))
     await entered.wait()
@@ -213,7 +213,7 @@ async def test_retry_after_cancelled_leader_starts_a_fresh_attempt(tmp_path) -> 
         session = AsyncMock()
         return server_name, session, tools, cfg
 
-    mux._start_child = AsyncMock(side_effect=fast_start_child)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=fast_start_child)
     result = await mux.mount_child(CNT)
     assert [t.name for t in result] == [CNT_PREFIXED]
     assert CNT in mux.children
@@ -237,7 +237,7 @@ async def test_follower_observes_leader_exception_without_retrying_itself(
         await release.wait()
         raise RuntimeError("synthetic child-start failure")
 
-    mux._start_child = AsyncMock(side_effect=exploding_start_child)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=exploding_start_child)
 
     task_a = asyncio.create_task(mux.mount_child(CNT))
     await entered.wait()
@@ -257,6 +257,6 @@ async def test_follower_observes_leader_exception_without_retrying_itself(
         session = AsyncMock()
         return server_name, session, tools, cfg
 
-    mux._start_child = AsyncMock(side_effect=fast_start_child)  # type: ignore[method-assign]
+    mux._start_child = AsyncMock(side_effect=fast_start_child)
     result = await mux.mount_child(CNT)
     assert [t.name for t in result] == [CNT_PREFIXED]

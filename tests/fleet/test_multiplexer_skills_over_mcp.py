@@ -104,7 +104,7 @@ async def test_probe_server_captures_skill_resources_alongside_tools(tmp_path):
             [_fake_skill_resource("skill://onboarding/SKILL.md", "onboard a user")],
         )
 
-    mux._open_one_session = AsyncMock(side_effect=_open)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=_open)
     info = await mux.probe_server(CNT)
 
     assert info["error"] is None
@@ -164,7 +164,7 @@ async def test_probe_server_degrades_when_list_resources_unsupported(tmp_path):
         sess.list_resources = AsyncMock(side_effect=RuntimeError("no such method"))
         return sess
 
-    mux._open_one_session = AsyncMock(side_effect=_open)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=_open)
     info = await mux.probe_server(CNT)
 
     assert info["error"] is None
@@ -187,7 +187,7 @@ async def test_probe_server_degrades_on_malformed_skill_catalog(tmp_path):
         sess.list_resources = AsyncMock(return_value=resources_result)
         return sess
 
-    mux._open_one_session = AsyncMock(side_effect=_open)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=_open)
     info = await mux.probe_server(CNT)
 
     assert info["error"] is None
@@ -202,7 +202,7 @@ async def test_probe_server_degrades_on_malformed_skill_catalog(tmp_path):
 
 async def test_discover_tools_ranks_skills_and_tools_in_one_result_set(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage docker containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
         "tools": [
             {
@@ -246,7 +246,7 @@ async def test_discover_tools_skill_absent_when_server_has_no_skills(tmp_path):
     """A server with no skill:// resources contributes no skill entries — the
     ``skills`` probe key is optional and must default to empty, not error."""
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage docker containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
         "tools": [
             {
@@ -280,7 +280,7 @@ async def test_semantic_scoring_covers_skills_not_only_tools(tmp_path):
     be symmetric.
     """
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage docker containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
         "tools": [
             {"name": CNT_TOOL, "description": "alpha", "inputSchema": {}},
@@ -309,7 +309,7 @@ async def test_semantic_scoring_covers_skills_not_only_tools(tmp_path):
                 out.append([1.0, 0.0])  # the query
         return out
 
-    mux._embed_fn = _embed  # type: ignore[assignment]
+    mux._embed_fn = _embed
 
     semantic: dict[str, float] = {}
     await mux._embed_semantic_scores("beta runbook", mux._probe_cache, semantic)
@@ -331,7 +331,7 @@ async def test_semantic_cache_key_separates_a_skill_from_a_same_named_tool(tmp_p
     """A skill and a tool may share a name on one server; they must not share
     one cached embedding."""
     mux = _mux_with_children(tmp_path, {CNT: [("deploy", "tool description")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
         "tools": [{"name": "deploy", "description": "tool description"}],
         "skills": [{"name": "deploy", "description": "skill description"}],
@@ -343,7 +343,7 @@ async def test_semantic_cache_key_separates_a_skill_from_a_same_named_tool(tmp_p
         embedded.extend(texts)
         return [[1.0, 0.0] for _ in texts]
 
-    mux._embed_fn = _embed  # type: ignore[assignment]
+    mux._embed_fn = _embed
     await mux._embed_semantic_scores("deploy", mux._probe_cache, {})
 
     assert f"{CNT}::tools::deploy" in mux._tool_embeddings

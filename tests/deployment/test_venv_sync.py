@@ -16,6 +16,7 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
@@ -725,7 +726,7 @@ class TestProcessActivityProbeInheritedVirtualEnv:
             stdin=subprocess.DEVNULL,
         )
         try:
-            records = ()
+            records: Sequence[ActivityRecord] = ()
             for _ in range(50):
                 records = ProcessActivityProbe().busy(workspace)
                 if any(r.identifier == f"pid {proc.pid}" for r in records):
