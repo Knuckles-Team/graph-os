@@ -66,7 +66,9 @@ def test_graph_query_federated_accepts_string_params() -> None:
 
 def test_graph_query_federated_rejects_unknown_field() -> None:
     with pytest.raises(ValidationError):
-        schemas.GraphQueryFederatedRequest(query="MATCH (n) RETURN n", bogus_field="x")
+        schemas.GraphQueryFederatedRequest.model_validate(
+            dict(query="MATCH (n) RETURN n", bogus_field="x")
+        )
 
 
 def test_evidence_bundle_envelope_accepts_a_real_bundle() -> None:
@@ -77,7 +79,9 @@ def test_evidence_bundle_envelope_accepts_a_real_bundle() -> None:
 
 def test_evidence_bundle_envelope_rejects_bad_status() -> None:
     with pytest.raises(ValidationError):
-        schemas.EvidenceBundleEnvelope(status="failed", result=EvidenceBundle())
+        schemas.EvidenceBundleEnvelope.model_validate(
+            dict(status="failed", result=EvidenceBundle())
+        )
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -94,14 +98,16 @@ def test_graph_code_request_valid() -> None:
 
 def test_graph_code_request_rejects_unknown_action() -> None:
     with pytest.raises(ValidationError):
-        schemas.GraphCodeRequest(action="not_a_real_action")
+        schemas.GraphCodeRequest.model_validate(dict(action="not_a_real_action"))
 
 
 def test_graph_code_request_rejects_unknown_field() -> None:
     """Proves the factory's blind `**body` splat is strict in practice — the
     target tool has no `**kwargs`, so `_execute_tool` 400s an unknown field."""
     with pytest.raises(ValidationError):
-        schemas.GraphCodeRequest(action="code_context", connection="default")
+        schemas.GraphCodeRequest.model_validate(
+            dict(action="code_context", connection="default")
+        )
 
 
 def test_graph_research_request_valid() -> None:
@@ -111,7 +117,7 @@ def test_graph_research_request_valid() -> None:
 
 def test_graph_research_request_rejects_unknown_action() -> None:
     with pytest.raises(ValidationError):
-        schemas.GraphResearchRequest(action="does_not_exist")
+        schemas.GraphResearchRequest.model_validate(dict(action="does_not_exist"))
 
 
 def test_graph_evaluate_request_valid() -> None:
@@ -121,7 +127,7 @@ def test_graph_evaluate_request_valid() -> None:
 
 def test_graph_evaluate_request_rejects_unknown_action() -> None:
     with pytest.raises(ValidationError):
-        schemas.GraphEvaluateRequest(action="quant_bogus")
+        schemas.GraphEvaluateRequest.model_validate(dict(action="quant_bogus"))
 
 
 def test_graph_explain_request_valid() -> None:
@@ -133,7 +139,7 @@ def test_graph_explain_request_valid() -> None:
 
 def test_graph_explain_request_rejects_unknown_action() -> None:
     with pytest.raises(ValidationError):
-        schemas.GraphExplainRequest(action="summarize")
+        schemas.GraphExplainRequest.model_validate(dict(action="summarize"))
 
 
 def test_graph_observe_request_valid() -> None:
@@ -145,7 +151,7 @@ def test_graph_observe_request_valid() -> None:
 
 def test_graph_observe_request_rejects_unknown_action() -> None:
     with pytest.raises(ValidationError):
-        schemas.GraphObserveRequest(action="not_an_action")
+        schemas.GraphObserveRequest.model_validate(dict(action="not_an_action"))
 
 
 def test_graph_observe_response_accepts_dict_result() -> None:
@@ -191,12 +197,16 @@ def test_graph_orchestrate_request_valid_full() -> None:
 
 def test_graph_orchestrate_request_rejects_bad_execution_mode() -> None:
     with pytest.raises(ValidationError):
-        schemas.GraphOrchestrateRequest(task="x", execution_mode="nonsense")
+        schemas.GraphOrchestrateRequest.model_validate(
+            dict(task="x", execution_mode="nonsense")
+        )
 
 
 def test_graph_orchestrate_request_rejects_unknown_field() -> None:
     with pytest.raises(ValidationError):
-        schemas.GraphOrchestrateRequest(task="x", agent="not-a-real-field")
+        schemas.GraphOrchestrateRequest.model_validate(
+            dict(task="x", agent="not-a-real-field")
+        )
 
 
 def test_graph_orchestrate_response_free_form_result() -> None:
@@ -218,7 +228,9 @@ def test_graph_configure_request_valid() -> None:
 
 def test_graph_configure_request_rejects_unknown_field() -> None:
     with pytest.raises(ValidationError):
-        schemas.GraphConfigureRequest(action="doctor", extra_thing="nope")
+        schemas.GraphConfigureRequest.model_validate(
+            dict(action="doctor", extra_thing="nope")
+        )
 
 
 def test_graph_configure_response_permissive_result() -> None:
@@ -236,10 +248,11 @@ def test_graph_configure_secret_request_valid() -> None:
 def test_graph_configure_secret_request_allows_unknown_field() -> None:
     """PROVEN permissive: the handler reads only config_key/config_value off
     the body; anything else is ignored, not rejected."""
-    req = schemas.GraphConfigureSecretRequest(
-        config_key="K", config_value="V", irrelevant="ignored"
+    req = schemas.GraphConfigureSecretRequest.model_validate(
+        dict(config_key="K", config_value="V", irrelevant="ignored")
     )
-    assert req.irrelevant == "ignored"
+    assert req.model_extra is not None
+    assert req.model_extra["irrelevant"] == "ignored"
 
 
 def test_set_secret_result_never_carries_the_value() -> None:
@@ -250,8 +263,8 @@ def test_set_secret_result_never_carries_the_value() -> None:
 
 def test_set_secret_result_rejects_unknown_field() -> None:
     with pytest.raises(ValidationError):
-        schemas.SetSecretResult(
-            status="success", action="set_secret", stored=True, value="leak"
+        schemas.SetSecretResult.model_validate(
+            dict(status="success", action="set_secret", stored=True, value="leak")
         )
 
 
@@ -297,25 +310,29 @@ def test_hook_doctor_entry_valid() -> None:
 
 def test_hook_doctor_entry_rejects_bad_status() -> None:
     with pytest.raises(ValidationError):
-        schemas.HookDoctorEntry(name="x", path=None, status="bogus")
+        schemas.HookDoctorEntry.model_validate(
+            dict(name="x", path=None, status="bogus")
+        )
 
 
 def test_graph_configure_doctor_response_valid() -> None:
-    resp = schemas.GraphConfigureDoctorResponse(
-        status="success",
-        result={
-            "claude-code": {
-                "name": "Claude Code",
-                "path": "/x/.claude.json",
-                "status": "healthy",
-                "size_bytes": 42,
+    resp = schemas.GraphConfigureDoctorResponse.model_validate(
+        dict(
+            status="success",
+            result={
+                "claude-code": {
+                    "name": "Claude Code",
+                    "path": "/x/.claude.json",
+                    "status": "healthy",
+                    "size_bytes": 42,
+                },
+                "agent-terminal-ui": {
+                    "name": "agent-terminal-ui",
+                    "path": None,
+                    "status": "integrated",
+                },
             },
-            "agent-terminal-ui": {
-                "name": "agent-terminal-ui",
-                "path": None,
-                "status": "integrated",
-            },
-        },
+        )
     )
     assert resp.result["agent-terminal-ui"].status == "integrated"
 
@@ -364,12 +381,14 @@ def test_goal_record_from_kg_fallback_producer_omits_created_at() -> None:
 
 def test_goal_record_rejects_missing_required_field() -> None:
     with pytest.raises(ValidationError):
-        schemas.GoalRecord(session_id="s3", status="running", objective="x")
+        schemas.GoalRecord.model_validate(
+            dict(session_id="s3", status="running", objective="x")
+        )
 
 
 def test_create_goal_request_requires_objective() -> None:
     with pytest.raises(ValidationError):
-        schemas.CreateGoalRequest()
+        schemas.CreateGoalRequest.model_validate(dict())
 
 
 def test_create_goal_request_valid() -> None:
@@ -383,8 +402,11 @@ def test_create_goal_request_valid() -> None:
 
 
 def test_create_goal_request_allows_unknown_field() -> None:
-    req = schemas.CreateGoalRequest(objective="x", unexpected="ignored")
-    assert req.unexpected == "ignored"
+    req = schemas.CreateGoalRequest.model_validate(
+        dict(objective="x", unexpected="ignored")
+    )
+    assert req.model_extra is not None
+    assert req.model_extra["unexpected"] == "ignored"
 
 
 def test_create_goal_response_valid() -> None:
@@ -429,7 +451,7 @@ def test_cancel_goal_response_valid() -> None:
 
 def test_cancel_goal_response_rejects_missing_message() -> None:
     with pytest.raises(ValidationError):
-        schemas.CancelGoalResponse(status="success")
+        schemas.CancelGoalResponse.model_validate(dict(status="success"))
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -449,32 +471,38 @@ def test_connector_run_request_valid() -> None:
 
 
 def test_connector_run_request_defaults_and_allows_unknown_field() -> None:
-    req = schemas.ConnectorRunRequest(bogus="ignored")
+    req = schemas.ConnectorRunRequest.model_validate(dict(bogus="ignored"))
     assert req.source_type == ""
     assert req.contextual is True
-    assert req.bogus == "ignored"
+    assert req.model_extra is not None
+    assert req.model_extra["bogus"] == "ignored"
 
 
 def test_connector_run_result_valid_with_extra_details() -> None:
-    result = schemas.ConnectorRunResult(
-        status="success",
-        error=None,
-        nodes_created=3,
-        edges_created=5,
-        documents_ingested=2,
+    result = schemas.ConnectorRunResult.model_validate(
+        dict(
+            status="success",
+            error=None,
+            nodes_created=3,
+            edges_created=5,
+            documents_ingested=2,
+        )
     )
-    assert result.documents_ingested == 2
+    assert result.model_extra is not None
+    assert result.model_extra["documents_ingested"] == 2
 
 
 def test_connector_run_response_valid() -> None:
-    resp = schemas.ConnectorRunResponse(
-        status="success",
-        result={
-            "status": "success",
-            "error": None,
-            "nodes_created": 1,
-            "edges_created": 1,
-        },
+    resp = schemas.ConnectorRunResponse.model_validate(
+        dict(
+            status="success",
+            result={
+                "status": "success",
+                "error": None,
+                "nodes_created": 1,
+                "edges_created": 1,
+            },
+        )
     )
     assert resp.result.nodes_created == 1
 
@@ -486,12 +514,12 @@ def test_connector_sources_result_valid() -> None:
 
 def test_connector_sources_result_rejects_unknown_field() -> None:
     with pytest.raises(ValidationError):
-        schemas.ConnectorSourcesResult(connectors=[], extra="nope")
+        schemas.ConnectorSourcesResult.model_validate(dict(connectors=[], extra="nope"))
 
 
 def test_connector_sources_response_valid() -> None:
-    resp = schemas.ConnectorSourcesResponse(
-        status="success", result={"connectors": ["filesystem"]}
+    resp = schemas.ConnectorSourcesResponse.model_validate(
+        dict(status="success", result={"connectors": ["filesystem"]})
     )
     assert resp.result.connectors == ["filesystem"]
 
@@ -524,18 +552,22 @@ def test_session_record_valid() -> None:
 
 def test_session_record_rejects_missing_required_field() -> None:
     with pytest.raises(ValidationError):
-        schemas.SessionRecord(id="sess-1", created_at=1.0, updated_at=1.0)
+        schemas.SessionRecord.model_validate(
+            dict(id="sess-1", created_at=1.0, updated_at=1.0)
+        )
 
 
 def test_session_record_rejects_unknown_field() -> None:
     with pytest.raises(ValidationError):
-        schemas.SessionRecord(
-            id="sess-1",
-            created_at=1.0,
-            updated_at=1.0,
-            background=False,
-            needs_input=False,
-            extra_column="nope",
+        schemas.SessionRecord.model_validate(
+            dict(
+                id="sess-1",
+                created_at=1.0,
+                updated_at=1.0,
+                background=False,
+                needs_input=False,
+                extra_column="nope",
+            )
         )
 
 

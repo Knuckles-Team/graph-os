@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import sys
-from contextlib import nullcontext
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass
 from types import ModuleType, SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -183,6 +184,7 @@ async def test_service_credential_child_fails_closed() -> None:
 
     async def delegate(_server: str, _tool: str, _args: object, _caller: object) -> str:
         pytest.fail("service credential child reached delegated dispatcher")
+        raise AssertionError("unreachable")
 
     gateway, caller = _gateway_and_caller(
         tool_for=tool_for, policy=_allow_all_policy, delegate=delegate
@@ -198,6 +200,7 @@ async def test_effect_change_after_preview_refuses_dispatch() -> None:
 
     async def delegate(_server: str, _tool: str, _args: object, _caller: object) -> str:
         pytest.fail("effect change reached child dispatcher")
+        raise AssertionError("unreachable")
 
     gateway, caller = _gateway_and_caller(
         tool_for=tool_for, policy=_allow_all_policy, delegate=delegate, principal=None
@@ -317,16 +320,17 @@ async def test_oauth_callback_uses_matching_verified_actor(
     import agent_utilities.security.brain_context as brain_context
 
     bound: list[object] = []
-    monkeypatch.setattr(
-        agent_utilities.api,
-        "use_session",
-        lambda session: (bound.append(session), nullcontext())[1],
-    )
-    monkeypatch.setattr(
-        brain_context,
-        "use_actor",
-        lambda actor: (bound.append(actor), nullcontext())[1],
-    )
+
+    def fake_use_session(session: object) -> AbstractContextManager[None]:
+        bound.append(session)
+        return nullcontext()
+
+    def fake_use_actor(actor: object) -> AbstractContextManager[None]:
+        bound.append(actor)
+        return nullcontext()
+
+    monkeypatch.setattr(agent_utilities.api, "use_session", fake_use_session)
+    monkeypatch.setattr(brain_context, "use_actor", fake_use_actor)
 
     class Mux:
         async def call_oauth_gated_tool(self, server: str, tool: str, arguments: dict):
@@ -418,6 +422,7 @@ async def test_service_child_requires_resolved_decision_and_owner(
 
     async def delegated(*_args: object) -> object:
         pytest.fail("service tool reached delegated path")
+        raise AssertionError("unreachable")
 
     stamped: list[str] = []
 
@@ -490,5 +495,8 @@ async def test_service_child_requires_resolved_decision_and_owner(
 
 
 def test_gateway_composition_requires_all_authorities() -> None:
+    async def policy_check(server: str, tool: str, caller: Any) -> bool:
+        return True
+
     with pytest.raises(ValueError, match="authorities are required"):
-        compose_fleet_gateway(ops=None, mux=object(), policy_check=lambda *_: True)
+        compose_fleet_gateway(ops=None, mux=object(), policy_check=policy_check)

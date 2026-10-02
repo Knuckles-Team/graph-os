@@ -14,8 +14,6 @@ forwarded calls.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
-
 import mcp.types
 import pytest
 
@@ -24,7 +22,10 @@ from graph_os.fleet.multiplexer import (
     _make_forwarder,
     _tool_result_from_child,
 )
-from tests.fleet.catalog_fixture import multiplexer_from_fixture
+from tests.fleet.catalog_fixture import (
+    multiplexer_from_fixture,
+    patch_call_proxied_tool,
+)
 
 
 def _child_result_with_annotations_and_meta() -> mcp.types.CallToolResult:
@@ -36,17 +37,17 @@ def _child_result_with_annotations_and_meta() -> mcp.types.CallToolResult:
                 annotations=mcp.types.Annotations(audience=["assistant"], priority=0.8),
             )
         ],
-        isError=False,
+        is_error=False,
         _meta={"readOnlyHint": True, "child_trace_id": "abc123"},
     )
 
 
 @pytest.mark.asyncio
-async def test_forwarded_result_preserves_content_annotations(tmp_path) -> None:
+async def test_forwarded_result_preserves_content_annotations(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    mux.call_proxied_tool = AsyncMock(
-        return_value=_child_result_with_annotations_and_meta()
-    )
+    patch_call_proxied_tool(monkeypatch, mux, _child_result_with_annotations_and_meta())
 
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
 
@@ -58,13 +59,13 @@ async def test_forwarded_result_preserves_content_annotations(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_forwarded_result_preserves_meta(tmp_path) -> None:
+async def test_forwarded_result_preserves_meta(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The wire ``_meta`` — including a readOnlyHint-style key — must survive
     the child -> multiplexer -> host conversion, not be silently dropped."""
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    mux.call_proxied_tool = AsyncMock(
-        return_value=_child_result_with_annotations_and_meta()
-    )
+    patch_call_proxied_tool(monkeypatch, mux, _child_result_with_annotations_and_meta())
 
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
 
@@ -72,14 +73,16 @@ async def test_forwarded_result_preserves_meta(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_direct_vs_forwarded_parity(tmp_path) -> None:
+async def test_direct_vs_forwarded_parity(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """A direct wrap of the child's raw result and the multiplexer-forwarded
     result must agree on content, annotations, and meta — no semantic drift
     between calling a child directly and calling it through the fleet
     gateway."""
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     raw_result = _child_result_with_annotations_and_meta()
-    mux.call_proxied_tool = AsyncMock(return_value=raw_result)
+    patch_call_proxied_tool(monkeypatch, mux, raw_result)
 
     direct = ToolResult.from_mcp_result(raw_result)
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
@@ -94,14 +97,18 @@ async def test_direct_vs_forwarded_parity(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_structured_content_still_forwarded(tmp_path) -> None:
+async def test_structured_content_still_forwarded(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    mux.call_proxied_tool = AsyncMock(
-        return_value=mcp.types.CallToolResult(
+    patch_call_proxied_tool(
+        monkeypatch,
+        mux,
+        mcp.types.CallToolResult(
             content=[mcp.types.TextContent(type="text", text="ok")],
-            structuredContent={"key": "value"},
-            isError=False,
-        )
+            structured_content={"key": "value"},
+            is_error=False,
+        ),
     )
 
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
@@ -121,7 +128,7 @@ def test_annotation_change_after_reconnect_is_visible_in_forwarded_results() -> 
                 annotations=mcp.types.Annotations(priority=0.2),
             )
         ],
-        isError=False,
+        is_error=False,
     )
     after = mcp.types.CallToolResult(
         content=[
@@ -131,14 +138,18 @@ def test_annotation_change_after_reconnect_is_visible_in_forwarded_results() -> 
                 annotations=mcp.types.Annotations(priority=0.9),
             )
         ],
-        isError=False,
+        is_error=False,
     )
 
     forwarded_before = _tool_result_from_child(before)
     forwarded_after = _tool_result_from_child(after)
 
-    assert forwarded_before.content[0].annotations.priority == 0.2
-    assert forwarded_after.content[0].annotations.priority == 0.9
+    before_annotations = forwarded_before.content[0].annotations
+    after_annotations = forwarded_after.content[0].annotations
+    assert before_annotations is not None
+    assert after_annotations is not None
+    assert before_annotations.priority == 0.2
+    assert after_annotations.priority == 0.9
 
 
 def test_fallback_still_forwards_meta_when_from_mcp_result_unavailable(
@@ -155,4 +166,6 @@ def test_fallback_still_forwards_meta_when_from_mcp_result_unavailable(
     forwarded = _tool_result_from_child(result)
 
     assert forwarded.meta == {"readOnlyHint": True, "child_trace_id": "abc123"}
-    assert forwarded.content[0].annotations.audience == ["assistant"]
+    annotations = forwarded.content[0].annotations
+    assert annotations is not None
+    assert annotations.audience == ["assistant"]

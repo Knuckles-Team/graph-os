@@ -3,12 +3,14 @@
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pytest
 from pydantic import BaseModel, ValidationError
 
 from graph_os.api.registry import (
     AuditClass,
+    Caller,
     Composite,
     Confirm,
     Effect,
@@ -35,14 +37,16 @@ class Output(BaseModel):
 
 
 @dataclass(frozen=True)
-class Caller:
+class _FakeCaller:
+    """A concrete stand-in structurally satisfying ``graph_os.api.registry.Caller``."""
+
     effective_scopes: frozenset[str]
     principal_kind: str = "human"
     delegated: bool = False
 
 
-def make_op(op_id: str = "identity.users.disable", **changes: object) -> OpSpec:
-    values: dict[str, object] = {
+def make_op(op_id: str = "identity.users.disable", **changes: Any) -> OpSpec:
+    values: dict[str, Any] = {
         "id": op_id,
         "verb": Verb.MANAGE,
         "summary": "Disable a user",
@@ -112,22 +116,22 @@ def test_eg_generated_method_id_preserves_contract_case() -> None:
 def test_discovery_requires_principal_scopes_policy_and_surface() -> None:
     op = make_op()
     registry = Registry([op])
-    authorized = Caller(frozenset({"identity:admin"}))
+    authorized = _FakeCaller(frozenset({"identity:admin"}))
     assert registry.find(
         authorized, policy=allow_all, verb=Verb.MANAGE, surface=Surface.MCP
     ) == (op,)
     assert registry.find(authorized, policy=allow_all, surface=Surface.CONSOLE) == ()
     assert registry.find(authorized, policy=lambda _op, _caller: False) == ()
-    assert registry.find(Caller(frozenset()), policy=allow_all) == ()
+    assert registry.find(_FakeCaller(frozenset()), policy=allow_all) == ()
     assert (
         registry.find(
-            Caller(authorized.effective_scopes, delegated=True), policy=allow_all
+            _FakeCaller(authorized.effective_scopes, delegated=True), policy=allow_all
         )
         == ()
     )
     assert (
         registry.find(
-            Caller(authorized.effective_scopes, principal_kind="service"),
+            _FakeCaller(authorized.effective_scopes, principal_kind="service"),
             policy=allow_all,
         )
         == ()
@@ -140,7 +144,7 @@ def test_policy_failure_closes_discovery() -> None:
 
     assert (
         Registry([make_op()]).find(
-            Caller(frozenset({"identity:admin"})), policy=unavailable
+            _FakeCaller(frozenset({"identity:admin"})), policy=unavailable
         )
         == ()
     )

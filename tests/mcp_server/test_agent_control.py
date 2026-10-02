@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Callable
 from types import SimpleNamespace
 from typing import Any
 
@@ -16,11 +17,13 @@ from graph_os.mcp_server.agent_control import register_graph_rlm
 
 
 class Mcp:
+    """A fake structurally satisfying ``graph_os.mcp_server.agent_control.ToolRegistrar``."""
+
     def __init__(self) -> None:
         self.tools: dict[str, Any] = {}
 
-    def tool(self, *, name: str, **kwargs: Any):
-        del kwargs
+    def tool(self, **kwargs: Any) -> Callable[[Any], Any]:
+        name = kwargs["name"]
 
         def decorate(function: Any) -> Any:
             self.tools[name] = function

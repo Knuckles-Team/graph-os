@@ -96,6 +96,7 @@ async def test_foreign_loop_dispatch_preserves_verified_session(
                     "attended": True,
                 },
             )
+        assert isinstance(receipt, BrowserLeaseReceipt)
         assert receipt.status == "active"
         assert service.seen_session == session
     finally:

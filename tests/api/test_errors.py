@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -22,10 +23,12 @@ CONTEXT = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass
 class InvokeError:
+    """A fake structurally satisfying ``graph_os.api.errors.OpErrorLike``."""
+
     code: str
-    details: dict[str, Any] = field(default_factory=dict)
+    details: Mapping[str, Any] = field(default_factory=dict)
     source: str = "graphos"
 
 

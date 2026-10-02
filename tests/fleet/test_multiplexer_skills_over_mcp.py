@@ -21,6 +21,12 @@ from tests.fleet.test_multiplexer_dynamic_gateway import (
     _mux_with_children,
 )
 
+_DOCKER_CONTAINERS_TOOL_ENTRY = {
+    "name": CNT_TOOL,
+    "description": "manage docker containers",
+    "inputSchema": {},
+}
+
 
 def _fake_skill_resource(uri: str, description: str = ""):
     resource = MagicMock()
@@ -55,6 +61,26 @@ def _fake_session_with_resources(tools, resources, bodies=None):
 
     sess.read_resource = AsyncMock(side_effect=_read)
     return sess
+
+
+def _fake_session_with_only_tools() -> AsyncMock:
+    """A child session that serves ``CNT_TOOL`` but has no usable resources
+    endpoint yet -- the caller still sets ``list_resources`` to its own
+    degrade behavior."""
+    sess = AsyncMock()
+    tools_result = MagicMock()
+    tools_result.tools = [_fake_tool(CNT_TOOL, "manage containers")]
+    sess.list_tools = AsyncMock(return_value=tools_result)
+    return sess
+
+
+async def _probe_server_info(tmp_path, open_fn):
+    """Mount ``CNT`` with ``open_fn`` installed as ``_open_one_session`` and
+    probe it -- shared scaffold for the best-effort-skills degrade tests
+    below."""
+    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
+    mux._open_one_session = AsyncMock(side_effect=open_fn)
+    return await mux.probe_server(CNT)
 
 
 # --------------------------------------------------------------------------- #
@@ -104,7 +130,7 @@ async def test_probe_server_captures_skill_resources_alongside_tools(tmp_path):
             [_fake_skill_resource("skill://onboarding/SKILL.md", "onboard a user")],
         )
 
-    mux._open_one_session = AsyncMock(side_effect=_open)  # type: ignore[method-assign]
+    mux._open_one_session = AsyncMock(side_effect=_open)
     info = await mux.probe_server(CNT)
 
     assert info["error"] is None
@@ -154,18 +180,13 @@ async def test_probe_server_lists_skills_for_an_already_mounted_child(tmp_path):
 async def test_probe_server_degrades_when_list_resources_unsupported(tmp_path):
     """A server (or an mcp SDK build) with no ``resources/list`` support must
     still yield its tools — Skills-over-MCP is optional, never load-bearing."""
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
 
     async def _open(server, cfg, stack):
-        sess = AsyncMock()
-        tools_result = MagicMock()
-        tools_result.tools = [_fake_tool(CNT_TOOL, "manage containers")]
-        sess.list_tools = AsyncMock(return_value=tools_result)
+        sess = _fake_session_with_only_tools()
         sess.list_resources = AsyncMock(side_effect=RuntimeError("no such method"))
         return sess
 
-    mux._open_one_session = AsyncMock(side_effect=_open)  # type: ignore[method-assign]
-    info = await mux.probe_server(CNT)
+    info = await _probe_server_info(tmp_path, _open)
 
     assert info["error"] is None
     assert info["tools"][0]["name"] == CNT_TOOL
@@ -175,20 +196,15 @@ async def test_probe_server_degrades_when_list_resources_unsupported(tmp_path):
 async def test_probe_server_degrades_on_malformed_skill_catalog(tmp_path):
     """A malformed resource catalog must not fail the (already-succeeded) tool
     probe — best-effort skills, load-bearing tools."""
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
 
     async def _open(server, cfg, stack):
-        sess = AsyncMock()
-        tools_result = MagicMock()
-        tools_result.tools = [_fake_tool(CNT_TOOL, "manage containers")]
-        sess.list_tools = AsyncMock(return_value=tools_result)
+        sess = _fake_session_with_only_tools()
         resources_result = MagicMock()
         resources_result.resources = "not-a-list"  # malformed
         sess.list_resources = AsyncMock(return_value=resources_result)
         return sess
 
-    mux._open_one_session = AsyncMock(side_effect=_open)  # type: ignore[method-assign]
-    info = await mux.probe_server(CNT)
+    info = await _probe_server_info(tmp_path, _open)
 
     assert info["error"] is None
     assert info["tools"][0]["name"] == CNT_TOOL
@@ -202,15 +218,9 @@ async def test_probe_server_degrades_on_malformed_skill_catalog(tmp_path):
 
 async def test_discover_tools_ranks_skills_and_tools_in_one_result_set(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage docker containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
-        "tools": [
-            {
-                "name": CNT_TOOL,
-                "description": "manage docker containers",
-                "inputSchema": {},
-            }
-        ],
+        "tools": [_DOCKER_CONTAINERS_TOOL_ENTRY],
         "skills": [
             {
                 "name": "container-runbook",
@@ -246,15 +256,9 @@ async def test_discover_tools_skill_absent_when_server_has_no_skills(tmp_path):
     """A server with no skill:// resources contributes no skill entries — the
     ``skills`` probe key is optional and must default to empty, not error."""
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage docker containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
-        "tools": [
-            {
-                "name": CNT_TOOL,
-                "description": "manage docker containers",
-                "inputSchema": {},
-            }
-        ],
+        "tools": [_DOCKER_CONTAINERS_TOOL_ENTRY],
         "error": None,
         # no "skills" key at all — mirrors a probe_server in-process-mounted
         # branch or a pre-Skills-over-MCP probe cache entry.
@@ -280,7 +284,7 @@ async def test_semantic_scoring_covers_skills_not_only_tools(tmp_path):
     be symmetric.
     """
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage docker containers")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
         "tools": [
             {"name": CNT_TOOL, "description": "alpha", "inputSchema": {}},
@@ -309,7 +313,7 @@ async def test_semantic_scoring_covers_skills_not_only_tools(tmp_path):
                 out.append([1.0, 0.0])  # the query
         return out
 
-    mux._embed_fn = _embed  # type: ignore[assignment]
+    mux._embed_fn = _embed
 
     semantic: dict[str, float] = {}
     await mux._embed_semantic_scores("beta runbook", mux._probe_cache, semantic)
@@ -331,7 +335,7 @@ async def test_semantic_cache_key_separates_a_skill_from_a_same_named_tool(tmp_p
     """A skill and a tool may share a name on one server; they must not share
     one cached embedding."""
     mux = _mux_with_children(tmp_path, {CNT: [("deploy", "tool description")]})
-    mux._kg_call = AsyncMock(return_value=None)  # type: ignore[method-assign]
+    mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
         "tools": [{"name": "deploy", "description": "tool description"}],
         "skills": [{"name": "deploy", "description": "skill description"}],
@@ -343,7 +347,7 @@ async def test_semantic_cache_key_separates_a_skill_from_a_same_named_tool(tmp_p
         embedded.extend(texts)
         return [[1.0, 0.0] for _ in texts]
 
-    mux._embed_fn = _embed  # type: ignore[assignment]
+    mux._embed_fn = _embed
     await mux._embed_semantic_scores("deploy", mux._probe_cache, {})
 
     assert f"{CNT}::tools::deploy" in mux._tool_embeddings
