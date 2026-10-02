@@ -42,6 +42,71 @@ from agent_utilities.messaging.models import (
 logger = logging.getLogger(__name__)
 
 
+async def _collect_telegram_attachments(msg: Any) -> list[MediaAttachment]:
+    """Fetch file info for each attachment kind Telegram delivered on this message."""
+    attachments: list[MediaAttachment] = []
+    if msg.photo:
+        best = msg.photo[-1]
+        file = await best.get_file()
+        attachments.append(
+            MediaAttachment(media_type=MediaType.IMAGE, url=file.file_path or "")
+        )
+    if msg.document:
+        file = await msg.document.get_file()
+        attachments.append(
+            MediaAttachment(
+                media_type=MediaType.FILE,
+                url=file.file_path or "",
+                filename=msg.document.file_name or "",
+            )
+        )
+    if msg.voice:  # CONCEPT:AU-ECO.messaging.telegram-voice-note — voice note → transcribed downstream
+        file = await msg.voice.get_file()
+        attachments.append(
+            MediaAttachment(media_type=MediaType.VOICE_NOTE, url=file.file_path or "")
+        )
+    if msg.audio:
+        file = await msg.audio.get_file()
+        attachments.append(
+            MediaAttachment(
+                media_type=MediaType.AUDIO,
+                url=file.file_path or "",
+                filename=getattr(msg.audio, "file_name", "") or "",
+            )
+        )
+    return attachments
+
+
+def _telegram_inbound_event(
+    msg: Any, attachments: list[MediaAttachment]
+) -> InboundEvent:
+    """Normalize a ``python-telegram-bot`` ``Message`` into the shared InboundEvent shape."""
+    user = msg.from_user
+    user_id = str(user.id) if user else ""
+    user_name = user.full_name if user else ""
+    content = msg.text or msg.caption or ""
+    return InboundEvent(
+        event_type=EventType.MESSAGE,
+        platform=PlatformId.TELEGRAM,
+        channel_id=str(msg.chat_id),
+        thread_id=str(msg.message_thread_id) if msg.message_thread_id else "",
+        user_id=user_id,
+        user_name=user_name,
+        content=content,
+        message=Message(
+            id=str(msg.message_id),
+            content=content,
+            channel_id=str(msg.chat_id),
+            author_id=user_id,
+            author_name=user_name,
+            platform=PlatformId.TELEGRAM,
+            direction=MessageDirection.INBOUND,
+            attachments=attachments,
+        ),
+        raw={"chat_type": msg.chat.type},
+    )
+
+
 class TelegramBackend(MessagingBackend):
     """Telegram messaging backend using ``python-telegram-bot``. CONCEPT:AU-ECO.messaging.native-backend-abstraction"""
 
@@ -84,62 +149,8 @@ class TelegramBackend(MessagingBackend):
             msg = update.message
             if not msg:
                 return
-            attachments = []
-            if msg.photo:
-                best = msg.photo[-1]
-                file = await best.get_file()
-                attachments.append(
-                    MediaAttachment(
-                        media_type=MediaType.IMAGE, url=file.file_path or ""
-                    )
-                )
-            if msg.document:
-                file = await msg.document.get_file()
-                attachments.append(
-                    MediaAttachment(
-                        media_type=MediaType.FILE,
-                        url=file.file_path or "",
-                        filename=msg.document.file_name or "",
-                    )
-                )
-            if msg.voice:  # CONCEPT:AU-ECO.messaging.telegram-voice-note — voice note → transcribed downstream
-                file = await msg.voice.get_file()
-                attachments.append(
-                    MediaAttachment(
-                        media_type=MediaType.VOICE_NOTE, url=file.file_path or ""
-                    )
-                )
-            if msg.audio:
-                file = await msg.audio.get_file()
-                attachments.append(
-                    MediaAttachment(
-                        media_type=MediaType.AUDIO,
-                        url=file.file_path or "",
-                        filename=getattr(msg.audio, "file_name", "") or "",
-                    )
-                )
-
-            event = InboundEvent(
-                event_type=EventType.MESSAGE,
-                platform=PlatformId.TELEGRAM,
-                channel_id=str(msg.chat_id),
-                thread_id=str(msg.message_thread_id) if msg.message_thread_id else "",
-                user_id=str(msg.from_user.id) if msg.from_user else "",
-                user_name=msg.from_user.full_name if msg.from_user else "",
-                content=msg.text or msg.caption or "",
-                message=Message(
-                    id=str(msg.message_id),
-                    content=msg.text or msg.caption or "",
-                    channel_id=str(msg.chat_id),
-                    author_id=str(msg.from_user.id) if msg.from_user else "",
-                    author_name=msg.from_user.full_name if msg.from_user else "",
-                    platform=PlatformId.TELEGRAM,
-                    direction=MessageDirection.INBOUND,
-                    attachments=attachments,
-                ),
-                raw={"chat_type": msg.chat.type},
-            )
-            await self._event_queue.put(event)
+            attachments = await _collect_telegram_attachments(msg)
+            await self._event_queue.put(_telegram_inbound_event(msg, attachments))
 
         self._app.add_handler(MessageHandler(filters.ALL, on_message))
         await self._app.initialize()

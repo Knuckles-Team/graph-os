@@ -62,6 +62,21 @@ from agent_utilities.messaging.models import (
 logger = logging.getLogger(__name__)
 
 
+def _parse_mattermost_url(url: str) -> tuple[str, str, int, str]:
+    """Split a configured Mattermost URL into (host, scheme, port, basepath).
+
+    ``mattermostdriver`` wants these pre-split rather than taking one URL.
+    """
+    parsed = urlparse(url if "://" in url else f"https://{url}")
+    scheme = parsed.scheme or "https"
+    host = parsed.hostname or url
+    port = parsed.port or (443 if scheme == "https" else 80)
+    basepath = (
+        parsed.path.rstrip("/") + "/api/v4" if parsed.path.strip("/") else "/api/v4"
+    )
+    return host, scheme, port, basepath
+
+
 class MattermostBackend(MessagingBackend):
     """Mattermost backend via mattermostdriver. CONCEPT:AU-ECO.messaging.native-backend-abstraction/4.90.
 
@@ -109,13 +124,7 @@ class MattermostBackend(MessagingBackend):
             raise ValueError("Set MATTERMOST_URL and MATTERMOST_TOKEN.")
 
         # Derive host/scheme/port from the configured URL (mattermostdriver wants them split).
-        parsed = urlparse(url if "://" in url else f"https://{url}")
-        scheme = parsed.scheme or "https"
-        host = parsed.hostname or url
-        port = parsed.port or (443 if scheme == "https" else 80)
-        basepath = (
-            parsed.path.rstrip("/") + "/api/v4" if parsed.path.strip("/") else "/api/v4"
-        )
+        host, scheme, port, basepath = _parse_mattermost_url(url)
 
         self._driver = Driver(
             {
@@ -132,21 +141,25 @@ class MattermostBackend(MessagingBackend):
 
         # Resolve the bot's own user id so the inbound stream can drop its own posts.
         configured_bot = str(setting("MATTERMOST_BOT_USER", "")).strip()
-        try:
-            me = await asyncio.to_thread(self._driver.users.get_user, "me")
-            self._bot_user_id = str(me.get("id", ""))
-        except Exception as exc:  # best-effort bot-id resolution; falls back to MATTERMOST_BOT_USER, connect() still succeeds
-            logger.debug(
-                "[CONCEPT:AU-ECO.messaging.mattermost-backend] could not resolve bot user id: %s",
-                exc,
-            )
-            self._bot_user_id = configured_bot
+        self._bot_user_id = await self._resolve_bot_user_id(configured_bot)
 
         self._connected = True
         logger.info(
             "[CONCEPT:AU-ECO.messaging.mattermost-backend] Mattermost backend connected (send-ready, bot=%s).",
             self._bot_user_id or configured_bot or "?",
         )
+
+    async def _resolve_bot_user_id(self, configured_bot: str) -> str:
+        """Look up the bot's own user id; fall back to the configured one on failure."""
+        try:
+            me = await asyncio.to_thread(self._driver.users.get_user, "me")
+            return str(me.get("id", ""))
+        except Exception as exc:  # best-effort bot-id resolution; falls back to MATTERMOST_BOT_USER, connect() still succeeds
+            logger.debug(
+                "[CONCEPT:AU-ECO.messaging.mattermost-backend] could not resolve bot user id: %s",
+                exc,
+            )
+            return configured_bot
 
     async def disconnect(self) -> None:
         if self._driver:

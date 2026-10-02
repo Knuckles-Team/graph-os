@@ -229,6 +229,65 @@ def _release_intake_lease(engine: Any, lease: IntakeLease) -> None:
         )
 
 
+def _renew_interval(leases: tuple[IntakeLease, ...]) -> float:
+    """How often to re-heartbeat, bounded between the floor and the ceiling."""
+    return min(
+        _RENEW_INTERVAL_MAX_S,
+        max(_RENEW_INTERVAL_MIN_S, min(lease.lease_ttl_s for lease in leases) / 3),
+    )
+
+
+def _still_leased(
+    leases: tuple[IntakeLease, ...],
+    platform_stop_events: dict[str, threading.Event],
+) -> list[IntakeLease]:
+    """Leases whose platform has not already been dropped from polling."""
+    return [
+        lease for lease in leases if not platform_stop_events[lease.platform].is_set()
+    ]
+
+
+def _renew_one(engine: Any, lease: IntakeLease) -> bool:
+    """Heartbeat one lease; a renewal error counts as lost (fail closed)."""
+    try:
+        return heartbeat(
+            engine, lease.item_id, lease.claim, lease_ttl_s=lease.lease_ttl_s
+        )
+    except Exception as exc:  # losing a lease must stop that platform's polling
+        logger.error(
+            "messaging intake lease renewal failed: platform=%s error=%s",
+            lease.platform,
+            exc,
+        )
+        return False
+
+
+def _handle_lease_loss(
+    lease: IntakeLease,
+    leases: tuple[IntakeLease, ...],
+    platform_stop_events: dict[str, threading.Event],
+    state_lock: threading.Lock,
+    stop_event: threading.Event,
+) -> None:
+    """Drop one platform's polling; stop the whole intake once none remain leased."""
+    with state_lock:
+        platform_stop_events[lease.platform].set()
+        remaining = _still_leased(leases, platform_stop_events)
+    if remaining:
+        logger.error(
+            "messaging intake lease lost: platform=%s; dropping it "
+            "from inbound polling, other platforms continue",
+            lease.platform,
+        )
+        return
+    logger.error(
+        "messaging intake lease lost: platform=%s; no platform "
+        "holds a lease, stopping inbound polling",
+        lease.platform,
+    )
+    stop_event.set()
+
+
 def run_with_intake_leases(
     engine: Any,
     leases: tuple[IntakeLease, ...],
@@ -261,59 +320,18 @@ def run_with_intake_leases(
     renew_stop = threading.Event()
 
     def _renew() -> None:
-        interval = min(
-            _RENEW_INTERVAL_MAX_S,
-            max(_RENEW_INTERVAL_MIN_S, min(lease.lease_ttl_s for lease in leases) / 3),
-        )
+        interval = _renew_interval(leases)
         while not renew_stop.wait(interval):
             if stop_event.is_set():
                 return
-            still_leased = [
-                lease
-                for lease in leases
-                if not platform_stop_events[lease.platform].is_set()
-            ]
+            still_leased = _still_leased(leases, platform_stop_events)
             if not still_leased:
                 return
             for lease in still_leased:
-                try:
-                    renewed = heartbeat(
-                        engine,
-                        lease.item_id,
-                        lease.claim,
-                        lease_ttl_s=lease.lease_ttl_s,
+                if not _renew_one(engine, lease):
+                    _handle_lease_loss(
+                        lease, leases, platform_stop_events, state_lock, stop_event
                     )
-                except (
-                    Exception
-                ) as exc:  # losing a lease must stop that platform's polling
-                    logger.error(
-                        "messaging intake lease renewal failed: platform=%s error_type=%s",
-                        lease.platform,
-                        type(exc).__name__,
-                    )
-                    renewed = False
-                if renewed:
-                    continue
-                with state_lock:
-                    platform_stop_events[lease.platform].set()
-                    remaining = [
-                        other
-                        for other in leases
-                        if not platform_stop_events[other.platform].is_set()
-                    ]
-                if remaining:
-                    logger.error(
-                        "messaging intake lease lost: platform=%s; dropping it "
-                        "from inbound polling, other platforms continue",
-                        lease.platform,
-                    )
-                else:
-                    logger.error(
-                        "messaging intake lease lost: platform=%s; no platform "
-                        "holds a lease, stopping inbound polling",
-                        lease.platform,
-                    )
-                    stop_event.set()
 
     # threading.Thread does NOT inherit contextvars (unlike asyncio.Task), so
     # the renewal thread would otherwise run with an EMPTY context — losing
