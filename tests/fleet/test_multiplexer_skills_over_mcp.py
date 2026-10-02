@@ -74,6 +74,15 @@ def _fake_session_with_only_tools() -> AsyncMock:
     return sess
 
 
+async def _probe_server_info(tmp_path, open_fn):
+    """Mount ``CNT`` with ``open_fn`` installed as ``_open_one_session`` and
+    probe it -- shared scaffold for the best-effort-skills degrade tests
+    below."""
+    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
+    mux._open_one_session = AsyncMock(side_effect=open_fn)
+    return await mux.probe_server(CNT)
+
+
 # --------------------------------------------------------------------------- #
 # _bounded_skill_catalog
 # --------------------------------------------------------------------------- #
@@ -171,15 +180,13 @@ async def test_probe_server_lists_skills_for_an_already_mounted_child(tmp_path):
 async def test_probe_server_degrades_when_list_resources_unsupported(tmp_path):
     """A server (or an mcp SDK build) with no ``resources/list`` support must
     still yield its tools — Skills-over-MCP is optional, never load-bearing."""
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
 
     async def _open(server, cfg, stack):
         sess = _fake_session_with_only_tools()
         sess.list_resources = AsyncMock(side_effect=RuntimeError("no such method"))
         return sess
 
-    mux._open_one_session = AsyncMock(side_effect=_open)
-    info = await mux.probe_server(CNT)
+    info = await _probe_server_info(tmp_path, _open)
 
     assert info["error"] is None
     assert info["tools"][0]["name"] == CNT_TOOL
@@ -189,7 +196,6 @@ async def test_probe_server_degrades_when_list_resources_unsupported(tmp_path):
 async def test_probe_server_degrades_on_malformed_skill_catalog(tmp_path):
     """A malformed resource catalog must not fail the (already-succeeded) tool
     probe — best-effort skills, load-bearing tools."""
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
 
     async def _open(server, cfg, stack):
         sess = _fake_session_with_only_tools()
@@ -198,8 +204,7 @@ async def test_probe_server_degrades_on_malformed_skill_catalog(tmp_path):
         sess.list_resources = AsyncMock(return_value=resources_result)
         return sess
 
-    mux._open_one_session = AsyncMock(side_effect=_open)
-    info = await mux.probe_server(CNT)
+    info = await _probe_server_info(tmp_path, _open)
 
     assert info["error"] is None
     assert info["tools"][0]["name"] == CNT_TOOL

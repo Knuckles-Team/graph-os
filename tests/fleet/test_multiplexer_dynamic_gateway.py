@@ -225,6 +225,26 @@ async def _list_session_tool_names(client: Any, session_id: str) -> set[str]:
     return {t.name for t in result.tools}
 
 
+def _mux_with_meta_tools_host(tmp_path):
+    """A mux wired to a fresh FastMCP host with meta-tools registered and
+    ``SessionVisibilityMiddleware`` attached -- shared setup for the
+    session-visibility dynamic-gateway tests below. Returns ``(mux, mcp)``."""
+    from fastmcp import FastMCP
+
+    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
+    mcp = FastMCP("test-mux")
+    _register_meta_tools(mcp, mux)
+    mux._global_visible = {
+        "find_tools",
+        "list_catalog",
+        "load_tools",
+        "unload_tools",
+        "multiplexer_status",
+    }
+    mcp.add_middleware(SessionVisibilityMiddleware(mux))
+    return mux, mcp
+
+
 async def _wait_for_condition(predicate, timeout: float = 1.0) -> None:
     deadline = asyncio.get_running_loop().time() + timeout
     while not predicate():
@@ -1581,19 +1601,9 @@ async def test_per_session_disclosure_isolation(tmp_path):
     ``tools/list`` (via the low-level ``ClientSession.list_tools(params=...)``
     — the high-level ``Client.list_tools()`` wrapper doesn't expose ``meta``).
     """
-    from fastmcp import Client, FastMCP
+    from fastmcp import Client
 
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mux._global_visible = {
-        "find_tools",
-        "list_catalog",
-        "load_tools",
-        "unload_tools",
-        "multiplexer_status",
-    }
-    mcp.add_middleware(SessionVisibilityMiddleware(mux))
+    mux, mcp = _mux_with_meta_tools_host(tmp_path)
 
     async with Client(mcp) as a:
         # Session A loads the container server's tools.
@@ -1976,19 +1986,9 @@ async def test_three_concurrent_local_sessions_blast_radius(tmp_path):
     checked separately, since a name-only leak is a much lower-severity finding
     than one that also lets a session invoke a tool it never loaded.
     """
-    from fastmcp import Client, FastMCP
+    from fastmcp import Client
 
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mux._global_visible = {
-        "find_tools",
-        "list_catalog",
-        "load_tools",
-        "unload_tools",
-        "multiplexer_status",
-    }
-    mcp.add_middleware(SessionVisibilityMiddleware(mux))
+    mux, mcp = _mux_with_meta_tools_host(tmp_path)
 
     async with (
         Client(mcp) as owner,
