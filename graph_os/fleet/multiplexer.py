@@ -5759,6 +5759,29 @@ class MCPMultiplexer:
         self._local_skill_probe_cache = info
         return info
 
+    @staticmethod
+    def _fleet_skills_without_local_duplicates(
+        server: str, info: dict, local_names: set[str]
+    ) -> list[dict] | None:
+        """One server's skills with a local-duplicate name dropped, logged.
+
+        Returns ``None`` when nothing collided, so the caller can keep the
+        original entry untouched rather than rebuild an identical one.
+        """
+        skills = info.get("skills") or []
+        kept = [s for s in skills if s.get("name") not in local_names]
+        if len(kept) == len(skills):
+            return None
+        for dropped in skills:
+            if dropped.get("name") in local_names:
+                logger.info(
+                    "Fleet-harvested skill %r from %r shadowed by a local "
+                    "skill of the same name",
+                    dropped.get("name"),
+                    server,
+                )
+        return kept
+
     def _dedup_fleet_skills_against_local(
         self, probe: dict, local_names: set[str]
     ) -> dict:
@@ -5777,19 +5800,11 @@ class MCPMultiplexer:
         for server, info in probe.items():
             if server == LOCAL_SKILLS_SERVER:
                 continue
-            skills = info.get("skills") or []
-            kept = [s for s in skills if s.get("name") not in local_names]
-            if len(kept) == len(skills):
-                continue
-            for dropped in skills:
-                if dropped.get("name") in local_names:
-                    logger.info(
-                        "Fleet-harvested skill %r from %r shadowed by a local "
-                        "skill of the same name",
-                        dropped.get("name"),
-                        server,
-                    )
-            deduped[server] = {**info, "skills": kept}
+            kept = self._fleet_skills_without_local_duplicates(
+                server, info, local_names
+            )
+            if kept is not None:
+                deduped[server] = {**info, "skills": kept}
         return deduped
 
     async def discover_tools(
