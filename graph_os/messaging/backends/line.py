@@ -54,9 +54,7 @@ class LINEBackend(MessagingBackend):
         try:
             from linebot.v3.messaging import ApiClient, Configuration, MessagingApi
         except ImportError:
-            raise ImportError(
-                "Install: pip install graph-os[messaging-line]"
-            ) from None
+            raise ImportError("Install: pip install graph-os[messaging-line]") from None
 
         token = self.config.token or setting("LINE_CHANNEL_ACCESS_TOKEN", "")
         if not token:

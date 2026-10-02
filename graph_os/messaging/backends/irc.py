@@ -55,9 +55,7 @@ class IRCBackend(MessagingBackend):
         try:
             import irc.client
         except ImportError:
-            raise ImportError(
-                "Install: pip install graph-os[messaging-irc]"
-            ) from None
+            raise ImportError("Install: pip install graph-os[messaging-irc]") from None
 
         server = self.config.extra.get("server", setting("IRC_SERVER", ""))
         port = int(self.config.extra.get("port", setting("IRC_PORT", "6667")))

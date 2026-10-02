@@ -200,10 +200,10 @@ def acquire_intake_leases(
             )
         except Exception as exc:  # intake must fail closed on any lease error
             logger.error(
-                "messaging intake lease unavailable: platform=%s error_type=%s; "
+                "messaging intake lease unavailable: platform=%s error=%s; "
                 "refusing inbound polling",
                 platform,
-                type(exc).__name__,
+                exc,
             )
             continue
         if lease is not None:
@@ -223,9 +223,9 @@ def _release_intake_lease(engine: Any, lease: IntakeLease) -> None:
         )
     except Exception as exc:  # expiry is the durable crash fallback
         logger.debug(
-            "messaging intake lease release deferred to expiry: platform=%s error_type=%s",
+            "messaging intake lease release deferred to expiry: platform=%s error=%s",
             lease.platform,
-            type(exc).__name__,
+            exc,
         )
 
 
@@ -283,7 +283,9 @@ def run_with_intake_leases(
                         lease.claim,
                         lease_ttl_s=lease.lease_ttl_s,
                     )
-                except Exception as exc:  # losing a lease must stop that platform's polling
+                except (
+                    Exception
+                ) as exc:  # losing a lease must stop that platform's polling
                     logger.error(
                         "messaging intake lease renewal failed: platform=%s error_type=%s",
                         lease.platform,

@@ -226,8 +226,12 @@ class DiscordBackend(MessagingBackend):
                 try:
                     ref_msg = await channel.fetch_message(int(reply_to_id))
                     kwargs["reference"] = ref_msg
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug(
+                        "discord: reply reference %s unavailable, sending without it: %s",
+                        reply_to_id,
+                        exc,
+                    )
 
             if metadata and "embed" in metadata:
                 import discord

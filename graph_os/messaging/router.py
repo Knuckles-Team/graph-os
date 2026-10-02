@@ -348,8 +348,8 @@ class InboundRouter:
                 backend_id,
                 {"delay_s": round(delay, 2), "ran_for_s": round(ran_for, 2)},
             )
-        except Exception:  # emission must never affect supervision
-            pass
+        except Exception as exc:  # emission must never affect supervision
+            logger.debug("listener-restart signal emission skipped: %s", exc)
 
     async def _listen_loop(self, backend: MessagingBackend) -> None:
         """One ``listen()`` attempt for a single backend — consumes its event stream.

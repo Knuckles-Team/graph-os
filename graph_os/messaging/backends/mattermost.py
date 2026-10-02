@@ -386,8 +386,11 @@ class MattermostBackend(MessagingBackend):
                 raw = (
                     json.loads(message) if isinstance(message, str | bytes) else message
                 )
-            except (ValueError, TypeError) as exc:  # malformed single WS frame is dropped; listener continues, no state advanced
-                logger.debug("mattermost: dropping unparseable WS frame: %s", exc)
+            except (
+                ValueError,
+                TypeError,
+            ) as exc:  # malformed single WS frame is dropped; listener continues, no state advanced
+                logger.warning("mattermost: dropping unparsable WS frame: %s", exc)
                 return
             event = self._normalize_post_event(raw or {})
             if event is not None:
