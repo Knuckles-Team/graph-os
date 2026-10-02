@@ -85,8 +85,9 @@ kept current by ingestion, where a stale local checkout is not.
 `graph_orchestrate(task, agent_name="", skill_name="", tool_server="",
 execution_mode="auto", allowed_tools=..., ...)` resolves an ingested
 skill/workflow/agent for `task` and runs it on the governed delegation
-runtime (`agent_utilities/mcp/tools/analysis_tools.py`, `name=
-"graph_orchestrate"`). Leave `agent_name`/`skill_name` empty to let the
+runtime (registered under that exact name in agent-utilities; dispatched from
+graph-os through `graph_os/mcp_server/runtime.py`'s `_execute_tool`). Leave
+`agent_name`/`skill_name` empty to let the
 knowledge graph's own capability ranking pick the best skill, workflow, or
 fleet tool for the task; pass `agent_name` (or an exact `skill_name` +
 `tool_server`) to pin a specific one. The result carries the resolution,
