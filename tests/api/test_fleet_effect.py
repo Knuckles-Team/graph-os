@@ -184,6 +184,7 @@ async def test_service_credential_child_fails_closed() -> None:
 
     async def delegate(_server: str, _tool: str, _args: object, _caller: object) -> str:
         pytest.fail("service credential child reached delegated dispatcher")
+        raise AssertionError("unreachable")
 
     gateway, caller = _gateway_and_caller(
         tool_for=tool_for, policy=_allow_all_policy, delegate=delegate
@@ -199,6 +200,7 @@ async def test_effect_change_after_preview_refuses_dispatch() -> None:
 
     async def delegate(_server: str, _tool: str, _args: object, _caller: object) -> str:
         pytest.fail("effect change reached child dispatcher")
+        raise AssertionError("unreachable")
 
     gateway, caller = _gateway_and_caller(
         tool_for=tool_for, policy=_allow_all_policy, delegate=delegate, principal=None
@@ -420,6 +422,7 @@ async def test_service_child_requires_resolved_decision_and_owner(
 
     async def delegated(*_args: object) -> object:
         pytest.fail("service tool reached delegated path")
+        raise AssertionError("unreachable")
 
     stamped: list[str] = []
 

@@ -1209,9 +1209,7 @@ async def test_probe_server_uses_live_tools_when_mounted(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
     await mux.mount_child(CNT)
     # Should NOT reconnect for an already-mounted child.
-    mux._open_one_session = AsyncMock(
-        side_effect=AssertionError("must not reconnect")
-    )
+    mux._open_one_session = AsyncMock(side_effect=AssertionError("must not reconnect"))
     info = await mux.probe_server(CNT)
     assert info["error"] is None
     assert info["tools"][0]["name"] == CNT_TOOL
@@ -1240,9 +1238,7 @@ async def test_probe_server_preserves_an_mcp_apps_tool_descriptor_meta(tmp_path)
 
     mux._start_child = AsyncMock(side_effect=fake_start_child)
     await mux.mount_child(CNT)
-    mux._open_one_session = AsyncMock(
-        side_effect=AssertionError("must not reconnect")
-    )
+    mux._open_one_session = AsyncMock(side_effect=AssertionError("must not reconnect"))
 
     info = await mux.probe_server(CNT)
 
