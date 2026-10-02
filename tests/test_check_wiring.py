@@ -147,7 +147,11 @@ def test_unreachable_follows_the_static_chain_the_function_local_import_and_the_
 
     result = _run("unreachable", tmp_path)
 
-    reached = {"graph_os.reached.leaf", "graph_os.func_local", "graph_os.dynamic_target"}
+    reached = {
+        "graph_os.reached.leaf",
+        "graph_os.func_local",
+        "graph_os.dynamic_target",
+    }
     assert reached.isdisjoint(_findings(result))
 
 

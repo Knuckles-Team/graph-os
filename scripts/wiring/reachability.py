@@ -29,7 +29,9 @@ def _expand_ancestors(targets: set[str], modules: dict[str, Path]) -> set[str]:
     for target in targets:
         parts = target.split(".")
         expanded.update(
-            ".".join(parts[:n]) for n in range(1, len(parts)) if ".".join(parts[:n]) in modules
+            ".".join(parts[:n])
+            for n in range(1, len(parts))
+            if ".".join(parts[:n]) in modules
         )
     return expanded
 
