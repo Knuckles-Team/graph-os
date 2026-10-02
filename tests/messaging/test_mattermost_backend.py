@@ -20,6 +20,8 @@ from typing import Any
 import pytest
 from agent_utilities.messaging.models import EventType, PlatformId
 
+from ._fakes import FakeMessagingBackend
+
 # ── A fake mattermostdriver transport ────────────────────────────────
 
 
@@ -332,7 +334,7 @@ async def test_reach_user_routes_to_mattermost_last_active(
 ) -> None:
     """``reach_user`` follows the user to a Mattermost channel they were last active on —
     proving Mattermost is a first-class target of the platform-agnostic reach service."""
-    from agent_utilities.messaging.models import InboundEvent, SendResult
+    from agent_utilities.messaging.models import InboundEvent
 
     from graph_os.messaging.service import MessagingService
 
@@ -347,27 +349,9 @@ async def test_reach_user_routes_to_mattermost_last_active(
             n = self.nodes.get(p.get("id", ""))
             return [{"p": {"properties": n}}] if n else []
 
-    class _FakeBackend:
-        def __init__(self) -> None:
-            self.id = "mattermost"
-            self._connected = True
-            self.sent: list[tuple[str, str]] = []
-
-        @property
-        def is_connected(self) -> bool:
-            return self._connected
-
-        async def send_message(
-            self, channel_id: str, text: str, **_: Any
-        ) -> SendResult:
-            self.sent.append((channel_id, text))
-            return SendResult(
-                success=True, platform="mattermost", channel_id=channel_id
-            )
-
     MessagingService._instance = None
     svc = MessagingService.instance(_Eng())
-    backend = _FakeBackend()
+    backend = FakeMessagingBackend(platform="mattermost")
     svc.register_connected(backend)
     monkeypatch.setattr(svc, "get_backend", lambda _p: _wrap(backend))
     monkeypatch.setattr(

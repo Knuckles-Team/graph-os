@@ -22,6 +22,8 @@ from agent_utilities.messaging.models import (
 from graph_os.messaging import service as service_module
 from graph_os.messaging.service import MessagingService
 
+from ._fakes import FakeMessagingBackend as _FakeBackend
+
 
 def test_inbound_inbox_uses_only_bound_host_engine() -> None:
     class Engine:
@@ -63,30 +65,6 @@ def test_inbound_inbox_uses_only_bound_host_engine() -> None:
 
 async def _immediate_policy(operation: Any) -> Any:
     return operation()
-
-
-class _FakeBackend:
-    """Minimal connected backend that records sends and supports reply_to."""
-
-    def __init__(self) -> None:
-        self.id = "telegram"
-        self._connected = True
-        self.sent: list[tuple[str, str]] = []
-        self.replies: list[tuple[str, str, str]] = []
-
-    @property
-    def is_connected(self) -> bool:
-        return self._connected
-
-    async def send_message(self, channel_id: str, text: str, **_: Any) -> SendResult:
-        self.sent.append((channel_id, text))
-        return SendResult(
-            success=True, message_id="m1", platform="telegram", channel_id=channel_id
-        )
-
-    async def reply_to(self, channel_id: str, message_id: str, text: str, **_: Any):
-        self.replies.append((channel_id, message_id, text))
-        return SendResult(success=True, platform="telegram", channel_id=channel_id)
 
 
 class _FakeEngine:
