@@ -14,8 +14,6 @@ forwarded calls.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
-
 import mcp.types
 import pytest
 
@@ -24,7 +22,10 @@ from graph_os.fleet.multiplexer import (
     _make_forwarder,
     _tool_result_from_child,
 )
-from tests.fleet.catalog_fixture import multiplexer_from_fixture
+from tests.fleet.catalog_fixture import (
+    multiplexer_from_fixture,
+    patch_call_proxied_tool,
+)
 
 
 def _child_result_with_annotations_and_meta() -> mcp.types.CallToolResult:
@@ -46,11 +47,7 @@ async def test_forwarded_result_preserves_content_annotations(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    monkeypatch.setattr(
-        mux,
-        "call_proxied_tool",
-        AsyncMock(return_value=_child_result_with_annotations_and_meta()),
-    )
+    patch_call_proxied_tool(monkeypatch, mux, _child_result_with_annotations_and_meta())
 
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
 
@@ -68,11 +65,7 @@ async def test_forwarded_result_preserves_meta(
     """The wire ``_meta`` — including a readOnlyHint-style key — must survive
     the child -> multiplexer -> host conversion, not be silently dropped."""
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    monkeypatch.setattr(
-        mux,
-        "call_proxied_tool",
-        AsyncMock(return_value=_child_result_with_annotations_and_meta()),
-    )
+    patch_call_proxied_tool(monkeypatch, mux, _child_result_with_annotations_and_meta())
 
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
 
@@ -89,7 +82,7 @@ async def test_direct_vs_forwarded_parity(
     gateway."""
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     raw_result = _child_result_with_annotations_and_meta()
-    monkeypatch.setattr(mux, "call_proxied_tool", AsyncMock(return_value=raw_result))
+    patch_call_proxied_tool(monkeypatch, mux, raw_result)
 
     direct = ToolResult.from_mcp_result(raw_result)
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
@@ -108,15 +101,13 @@ async def test_structured_content_still_forwarded(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    monkeypatch.setattr(
+    patch_call_proxied_tool(
+        monkeypatch,
         mux,
-        "call_proxied_tool",
-        AsyncMock(
-            return_value=mcp.types.CallToolResult(
-                content=[mcp.types.TextContent(type="text", text="ok")],
-                structured_content={"key": "value"},
-                is_error=False,
-            )
+        mcp.types.CallToolResult(
+            content=[mcp.types.TextContent(type="text", text="ok")],
+            structured_content={"key": "value"},
+            is_error=False,
         ),
     )
 

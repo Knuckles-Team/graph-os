@@ -35,7 +35,10 @@ from graph_os.fleet.multiplexer import (
     _tool_is_verbose,
     get_server_prefix,
 )
-from tests.fleet.catalog_fixture import multiplexer_from_fixture
+from tests.fleet.catalog_fixture import (
+    multiplexer_from_fixture,
+    patch_call_proxied_tool,
+)
 
 CNT = "container-manager-mcp"
 CNT_TOOL = "cm_container_operations"
@@ -73,16 +76,12 @@ async def test_forwarder_preserves_child_tool_error_as_outer_error(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    monkeypatch.setattr(
+    patch_call_proxied_tool(
+        monkeypatch,
         mux,
-        "call_proxied_tool",
-        AsyncMock(
-            return_value=mcp.types.CallToolResult(
-                content=[
-                    mcp.types.TextContent(type="text", text="private child detail")
-                ],
-                is_error=True,
-            )
+        mcp.types.CallToolResult(
+            content=[mcp.types.TextContent(type="text", text="private child detail")],
+            is_error=True,
         ),
     )
 
@@ -193,6 +192,37 @@ def _schema_tool(name: str, property_name: str) -> mcp.types.Tool:
             "properties": {property_name: {"type": "string"}},
         },
     )
+
+
+async def _reconnect_mounted(mux, server_name: str, generations: list):
+    """Install ``generations`` as a queue of canned sessions behind
+    ``_open_one_session``, bind a fresh FastMCP host, and mount the server --
+    the shared reconnect scaffold for the schema-refresh regression tests
+    below."""
+    from fastmcp import FastMCP
+
+    async def fake_open_one_session(*_args):
+        return generations.pop(0)
+
+    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)
+    host = FastMCP("schema-refresh-host")
+    mux._host_mcp = host
+    mounted = await mux.mount_child(server_name)
+    return host, mounted
+
+
+async def _list_session_tool_names(client: Any, session_id: str) -> set[str]:
+    """List tool names visible to ``client`` under ``session_id`` -- shared
+    by the session-visibility dynamic-gateway tests below."""
+    from mcp.types import PaginatedRequestParams, RequestParamsMeta
+
+    # ``RequestParamsMeta`` is declared ``extra_items=Any`` (an open map per
+    # the MCP spec); mypy does not yet implement PEP 728's ``extra_items``,
+    # so the reserved session key is cast to the TypedDict's own declared
+    # type rather than widened to ``Any``.
+    meta = cast(RequestParamsMeta, {_LOCAL_SESSION_META_KEY: session_id})
+    result = await client.session.list_tools(params=PaginatedRequestParams(_meta=meta))
+    return {t.name for t in result.tools}
 
 
 async def _wait_for_condition(predicate, timeout: float = 1.0) -> None:
@@ -347,8 +377,6 @@ async def test_recovered_child_replaces_exposed_schema_without_catalog_polling(
     equivalent recycle proves ordinary calls and no-op generations do not
     cause provider introspection or cache churn.
     """
-    from fastmcp import FastMCP
-
     server_name = "schema-mcp"
     config_path = _write_config(
         tmp_path,
@@ -366,13 +394,7 @@ async def test_recovered_child_replaces_exposed_schema_without_catalog_polling(
     generations = [legacy, refreshed, equivalent]
     mux = multiplexer_from_fixture(config_path)
 
-    async def fake_open_one_session(*_args):
-        return generations.pop(0)
-
-    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)
-    host = FastMCP("schema-refresh-host")
-    mux._host_mcp = host
-    mounted = await mux.mount_child(server_name)
+    host, mounted = await _reconnect_mounted(mux, server_name, generations)
     assert len(mounted) == 1
     prefixed_name = mounted[0].name
     _register_forwarder(host, mux, mounted[0])
@@ -430,8 +452,6 @@ async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     tmp_path, monkeypatch
 ):
     """A persistent host add failure keeps the old live FastMCP tool intact."""
-    from fastmcp import FastMCP
-
     server_name = "schema-mcp"
     mux = multiplexer_from_fixture(
         _write_config(
@@ -447,13 +467,7 @@ async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     )
     generations = [stale, recovered]
 
-    async def fake_open_one_session(*_args):
-        return generations.pop(0)
-
-    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)
-    host = FastMCP("schema-refresh-host")
-    mux._host_mcp = host
-    mounted = await mux.mount_child(server_name)
+    host, mounted = await _reconnect_mounted(mux, server_name, generations)
     prefixed_name = mounted[0].name
     _register_forwarder(host, mux, mounted[0])
     assert (await host.get_tool(prefixed_name)).parameters["properties"] == {
@@ -502,8 +516,6 @@ async def test_schema_refresh_rolls_back_partial_host_registration_atomically(
     second one.  The multiplexer must restore the exact pre-refresh SDK
     component registry without calling the now-failing ``add_tool`` path.
     """
-    from fastmcp import FastMCP
-
     server_name = "schema-mcp"
     mux = multiplexer_from_fixture(
         _write_config(
@@ -528,13 +540,7 @@ async def test_schema_refresh_rolls_back_partial_host_registration_atomically(
     )
     generations = [stale, recovered]
 
-    async def fake_open_one_session(*_args):
-        return generations.pop(0)
-
-    mux._open_one_session = AsyncMock(side_effect=fake_open_one_session)
-    host = FastMCP("schema-refresh-host")
-    mux._host_mcp = host
-    mounted = await mux.mount_child(server_name)
+    host, mounted = await _reconnect_mounted(mux, server_name, generations)
     prefixed_by_original = {
         original: prefixed
         for prefixed, (_server, original) in mux.tool_to_server.items()
@@ -1372,12 +1378,20 @@ def _seed_disabled(mux, server, disabled):
     mux.load_catalog()[server]["disabledTools"] = disabled
 
 
-async def test_list_catalog_splits_enabled_disabled(tmp_path):
+def _mux_with_one_disabled_tool(tmp_path):
+    """A mux with ``CNT`` mounted, ``cm_info_operations`` disabled, and the
+    KG call stubbed out -- the shared setup for the catalog/discovery tests
+    below, which each seed their own probe cache."""
     mux = _mux_with_children(
         tmp_path, {CNT: [(CNT_TOOL, "a"), ("cm_info_operations", "b")]}
     )
     _seed_disabled(mux, CNT, ["cm_info_operations"])
     mux._kg_call = AsyncMock(return_value=None)
+    return mux
+
+
+async def test_list_catalog_splits_enabled_disabled(tmp_path):
+    mux = _mux_with_one_disabled_tool(tmp_path)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "containers"), ("cm_info_operations", "info")]})
 
     cat = await mux.list_catalog()
@@ -1390,11 +1404,7 @@ async def test_list_catalog_splits_enabled_disabled(tmp_path):
 
 
 async def test_list_catalog_drilldown_enabled_flag(tmp_path):
-    mux = _mux_with_children(
-        tmp_path, {CNT: [(CNT_TOOL, "a"), ("cm_info_operations", "b")]}
-    )
-    _seed_disabled(mux, CNT, ["cm_info_operations"])
-    mux._kg_call = AsyncMock(return_value=None)
+    mux = _mux_with_one_disabled_tool(tmp_path)
     _seed_probe(mux, {CNT: [(CNT_TOOL, "c"), ("cm_info_operations", "i")]})
 
     cat = await mux.list_catalog(server=CNT)
@@ -1404,11 +1414,7 @@ async def test_list_catalog_drilldown_enabled_flag(tmp_path):
 
 
 async def test_discover_skips_disabled_tools(tmp_path):
-    mux = _mux_with_children(
-        tmp_path, {CNT: [(CNT_TOOL, "a"), ("cm_info_operations", "b")]}
-    )
-    _seed_disabled(mux, CNT, ["cm_info_operations"])
-    mux._kg_call = AsyncMock(return_value=None)
+    mux = _mux_with_one_disabled_tool(tmp_path)
     _seed_probe(
         mux,
         {CNT: [(CNT_TOOL, "manage docker"), ("cm_info_operations", "manage docker")]},
@@ -1576,7 +1582,6 @@ async def test_per_session_disclosure_isolation(tmp_path):
     — the high-level ``Client.list_tools()`` wrapper doesn't expose ``meta``).
     """
     from fastmcp import Client, FastMCP
-    from mcp.types import PaginatedRequestParams, RequestParamsMeta
 
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
     mcp = FastMCP("test-mux")
@@ -1590,17 +1595,6 @@ async def test_per_session_disclosure_isolation(tmp_path):
     }
     mcp.add_middleware(SessionVisibilityMiddleware(mux))
 
-    async def _list_tool_names(client: Client, session_id: str) -> set[str]:
-        # ``RequestParamsMeta`` is declared ``extra_items=Any`` (an open
-        # map per the MCP spec); mypy does not yet implement PEP 728's
-        # ``extra_items``, so the reserved session key is cast to the
-        # TypedDict's own declared type rather than widened to ``Any``.
-        meta = cast(RequestParamsMeta, {_LOCAL_SESSION_META_KEY: session_id})
-        result = await client.session.list_tools(
-            params=PaginatedRequestParams(_meta=meta)
-        )
-        return {t.name for t in result.tools}
-
     async with Client(mcp) as a:
         # Session A loads the container server's tools.
         await a.call_tool(
@@ -1608,10 +1602,10 @@ async def test_per_session_disclosure_isolation(tmp_path):
             {"servers": [CNT]},
             meta={_LOCAL_SESSION_META_KEY: "session-A"},
         )
-        a_tools = await _list_tool_names(a, "session-A")
+        a_tools = await _list_session_tool_names(a, "session-A")
         # A fresh session B has loaded nothing.
         async with Client(mcp) as b:
-            b_tools = await _list_tool_names(b, "session-B")
+            b_tools = await _list_session_tool_names(b, "session-B")
             # B cannot even call A's tool (gated until B loads it). Matched on
             # the SessionVisibilityMiddleware's own gate message (not just
             # "any ToolError") — this test's fixture forwards to a mocked
@@ -1983,7 +1977,6 @@ async def test_three_concurrent_local_sessions_blast_radius(tmp_path):
     than one that also lets a session invoke a tool it never loaded.
     """
     from fastmcp import Client, FastMCP
-    from mcp.types import PaginatedRequestParams, RequestParamsMeta
 
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
     mcp = FastMCP("test-mux")
@@ -1997,13 +1990,6 @@ async def test_three_concurrent_local_sessions_blast_radius(tmp_path):
     }
     mcp.add_middleware(SessionVisibilityMiddleware(mux))
 
-    async def _tool_names(client: Client, session_id: str) -> set[str]:
-        meta = cast(RequestParamsMeta, {_LOCAL_SESSION_META_KEY: session_id})
-        result = await client.session.list_tools(
-            params=PaginatedRequestParams(_meta=meta)
-        )
-        return {t.name for t in result.tools}
-
     async with (
         Client(mcp) as owner,
         Client(mcp) as sibling_one,
@@ -2015,12 +2001,16 @@ async def test_three_concurrent_local_sessions_blast_radius(tmp_path):
             {"servers": [CNT]},
             meta={_LOCAL_SESSION_META_KEY: "task-owner"},
         )
-        owner_tools = await _tool_names(owner, "task-owner")
+        owner_tools = await _list_session_tool_names(owner, "task-owner")
 
         # Two SIBLING task sessions, spawned alongside the owner in the same
         # public-task dispatch, never loaded it.
-        sibling_one_tools = await _tool_names(sibling_one, "task-sibling-1")
-        sibling_two_tools = await _tool_names(sibling_two, "task-sibling-2")
+        sibling_one_tools = await _list_session_tool_names(
+            sibling_one, "task-sibling-1"
+        )
+        sibling_two_tools = await _list_session_tool_names(
+            sibling_two, "task-sibling-2"
+        )
 
         # Severity finding 1: NAME DISCLOSURE — siblings must not see the tool.
         assert CNT_PREFIXED in owner_tools

@@ -29,6 +29,14 @@ from tests.fleet.test_multiplexer_dynamic_gateway import (
 )
 
 
+async def _fast_start_child(server_name, cfg):
+    """A ``_start_child`` fake that mounts immediately, with no artificial
+    delay -- used to prove a retry after a failed/cancelled leader succeeds."""
+    tools = [_fake_tool(CNT_TOOL, "containers")]
+    session = AsyncMock()
+    return server_name, session, tools, cfg
+
+
 @pytest.mark.asyncio
 async def test_concurrent_first_loads_start_exactly_one_child(tmp_path) -> None:
     """Two callers racing ``mount_child(CNT)`` while it is still unmounted
@@ -208,12 +216,7 @@ async def test_retry_after_cancelled_leader_starts_a_fresh_attempt(tmp_path) -> 
     assert mux._mount_inflight == {}, "a cancelled leader must release ownership"
 
     # A fresh, non-hanging attempt now succeeds.
-    async def fast_start_child(server_name, cfg):
-        tools = [_fake_tool(CNT_TOOL, "containers")]
-        session = AsyncMock()
-        return server_name, session, tools, cfg
-
-    mux._start_child = AsyncMock(side_effect=fast_start_child)
+    mux._start_child = AsyncMock(side_effect=_fast_start_child)
     result = await mux.mount_child(CNT)
     assert [t.name for t in result] == [CNT_PREFIXED]
     assert CNT in mux.children
@@ -252,11 +255,6 @@ async def test_follower_observes_leader_exception_without_retrying_itself(
     assert mux._start_child.await_count == 1
 
     # And a later retry is still possible (ownership was released).
-    async def fast_start_child(server_name, cfg):
-        tools = [_fake_tool(CNT_TOOL, "containers")]
-        session = AsyncMock()
-        return server_name, session, tools, cfg
-
-    mux._start_child = AsyncMock(side_effect=fast_start_child)
+    mux._start_child = AsyncMock(side_effect=_fast_start_child)
     result = await mux.mount_child(CNT)
     assert [t.name for t in result] == [CNT_PREFIXED]

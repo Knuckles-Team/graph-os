@@ -21,6 +21,12 @@ from tests.fleet.test_multiplexer_dynamic_gateway import (
     _mux_with_children,
 )
 
+_DOCKER_CONTAINERS_TOOL_ENTRY = {
+    "name": CNT_TOOL,
+    "description": "manage docker containers",
+    "inputSchema": {},
+}
+
 
 def _fake_skill_resource(uri: str, description: str = ""):
     resource = MagicMock()
@@ -54,6 +60,17 @@ def _fake_session_with_resources(tools, resources, bodies=None):
         return _fake_resource_body(bodies.get(str(uri), f"# {uri}\n\nbody"))
 
     sess.read_resource = AsyncMock(side_effect=_read)
+    return sess
+
+
+def _fake_session_with_only_tools() -> AsyncMock:
+    """A child session that serves ``CNT_TOOL`` but has no usable resources
+    endpoint yet -- the caller still sets ``list_resources`` to its own
+    degrade behavior."""
+    sess = AsyncMock()
+    tools_result = MagicMock()
+    tools_result.tools = [_fake_tool(CNT_TOOL, "manage containers")]
+    sess.list_tools = AsyncMock(return_value=tools_result)
     return sess
 
 
@@ -157,10 +174,7 @@ async def test_probe_server_degrades_when_list_resources_unsupported(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
 
     async def _open(server, cfg, stack):
-        sess = AsyncMock()
-        tools_result = MagicMock()
-        tools_result.tools = [_fake_tool(CNT_TOOL, "manage containers")]
-        sess.list_tools = AsyncMock(return_value=tools_result)
+        sess = _fake_session_with_only_tools()
         sess.list_resources = AsyncMock(side_effect=RuntimeError("no such method"))
         return sess
 
@@ -178,10 +192,7 @@ async def test_probe_server_degrades_on_malformed_skill_catalog(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
 
     async def _open(server, cfg, stack):
-        sess = AsyncMock()
-        tools_result = MagicMock()
-        tools_result.tools = [_fake_tool(CNT_TOOL, "manage containers")]
-        sess.list_tools = AsyncMock(return_value=tools_result)
+        sess = _fake_session_with_only_tools()
         resources_result = MagicMock()
         resources_result.resources = "not-a-list"  # malformed
         sess.list_resources = AsyncMock(return_value=resources_result)
@@ -204,13 +215,7 @@ async def test_discover_tools_ranks_skills_and_tools_in_one_result_set(tmp_path)
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage docker containers")]})
     mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
-        "tools": [
-            {
-                "name": CNT_TOOL,
-                "description": "manage docker containers",
-                "inputSchema": {},
-            }
-        ],
+        "tools": [_DOCKER_CONTAINERS_TOOL_ENTRY],
         "skills": [
             {
                 "name": "container-runbook",
@@ -248,13 +253,7 @@ async def test_discover_tools_skill_absent_when_server_has_no_skills(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage docker containers")]})
     mux._kg_call = AsyncMock(return_value=None)
     mux._probe_cache[CNT] = {
-        "tools": [
-            {
-                "name": CNT_TOOL,
-                "description": "manage docker containers",
-                "inputSchema": {},
-            }
-        ],
+        "tools": [_DOCKER_CONTAINERS_TOOL_ENTRY],
         "error": None,
         # no "skills" key at all — mirrors a probe_server in-process-mounted
         # branch or a pre-Skills-over-MCP probe cache entry.
