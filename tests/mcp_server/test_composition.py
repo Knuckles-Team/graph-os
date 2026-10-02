@@ -83,6 +83,40 @@ def test_webui_co_service_uses_graph_os_host(monkeypatch: pytest.MonkeyPatch) ->
     assert started[0][1].__module__ == "graph_os.webui_host.webui_co_service"
 
 
+def test_messaging_co_service_reaches_graphos_owned_intake(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GraphOS, not the agent runtime, admits configured channels to the host.
+
+    Proves requirement GRAPHOS-HOST-R011's host wiring: ``start_composed_services``
+    reaches ``graph_os.messaging.intake.start_messaging_intake`` for the
+    "messaging" co-service rather than the agent runtime's own daemon.
+    """
+    calls: list[tuple[Any, Any, tuple[str, ...]]] = []
+
+    def fake_start(supervisor: Any, engine: Any, session: Any, platforms: Any) -> None:
+        calls.append((engine, session, tuple(platforms)))
+
+    monkeypatch.setattr(
+        "graph_os.mcp_server.composition.detect_composition",
+        lambda engine, **kwargs: SimpleNamespace(
+            messaging_intake_configured=True,
+            messaging_configured=True,
+            messaging_platforms=("telegram",),
+            web_ui_enabled=False,
+        ),
+    )
+    monkeypatch.setattr(
+        "graph_os.mcp_server.composition.start_messaging_intake", fake_start
+    )
+
+    engine = object()
+    session = object()
+    start_composed_services(session, engine)
+
+    assert calls == [(engine, session, ("telegram",))]
+
+
 def test_gateway_adapter_satisfies_runtime_protocol() -> None:
     from graph_os.gateway.ports import GatewayApplicationPort
 

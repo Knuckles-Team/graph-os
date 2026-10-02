@@ -113,7 +113,7 @@
     {
       "id": "GRAPHOS-HOST-R011",
       "title": "GraphOS serves the messaging channel and routing layer",
-      "delivery_state": "BUILT",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "branch",
@@ -122,7 +122,8 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/6e13692cdaaaa022213080532a7d75f906f4374b",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
-      ]
+      ],
+      "remaining": "The shared channel layer (routing, intake, leases, polling, governed send, reach) is served by the host, with the Telegram and Mattermost adapters registered as optional extras (tests/messaging/). Remaining: the other fifteen platform adapters, which first need one shared adapter base so they do not repeat each other; and the agent runtime side that consumes the reach port."
     },
     {
       "id": "GRAPHOS-HOST-R012",

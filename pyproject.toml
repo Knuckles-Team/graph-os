@@ -27,6 +27,10 @@ dependencies = [
     # authenticated epistemic-graph client through the SDK's public injection
     # seam and never imports connector implementations.
     "agent-connector-sdk>=0.1.0,<1.0.0",
+    # The messaging channel layer's HTTP alert intake (graph_os/messaging/alert_intake.py)
+    # imports aiohttp.web directly for its small webhook listener; platform-agnostic,
+    # so unlike the chat-platform SDKs below this is not conditioned on a messaging extra.
+    "aiohttp>=3.14.1",
     # The fleet gateway imports the MCP protocol/client and FastMCP middleware
     # directly; keep these first-party runtime requirements explicit rather
     # than relying on AU's optional extra to expose them transitively.
@@ -68,6 +72,17 @@ webui = [
     "agent-webui>=2.6.0,<3.0.0",
     "uvicorn>=0.51.0",
 ]
+# Messaging channel adapters (CONCEPT:AU-ECO.messaging.native-backend-abstraction):
+# each chat platform SDK is its own extra so importing graph_os.messaging never
+# requires every platform's client library to be installed. Further platforms
+# (Discord, Slack, WhatsApp, Teams, Google Chat/Meet, Matrix, IRC, Signal,
+# iMessage, LINE, Twitch, Synology Chat, voice calls, Nextcloud Talk) follow
+# the same adapter shape and remain to be landed.
+messaging-telegram = ["python-telegram-bot>=22.8"]
+messaging-mattermost = ["mattermostdriver>=7.3.2"]
+messaging = [
+    "graph-os[messaging-telegram,messaging-mattermost]"
+]
 
 [project.scripts]
 graph-os = "graph_os.mcp_server.server:mcp_server"
@@ -80,6 +95,14 @@ agent-utilities-venv = "graph_os.deployment.venv_sync:main"
 
 [project.entry-points."agent_utilities.skill_providers"]
 graph-os = "graph_os.skills"
+
+[project.entry-points."agent_utilities.messaging"]
+telegram = "graph_os.messaging.backends.telegram:TelegramBackend"
+mattermost = "graph_os.messaging.backends.mattermost:MattermostBackend"
+
+[project.entry-points."agent_utilities.messaging.reach"]
+notify_sync = "graph_os.messaging.reach:notify_sync"
+service = "graph_os.messaging.reach:service_port"
 
 # Portable development binding for the not-yet-published AU 2.5 release.
 # The path is ignored and supplied as a local symlink; package metadata keeps
