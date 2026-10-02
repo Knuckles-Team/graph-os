@@ -161,6 +161,26 @@ restores the semantics `kiss check`'s own `orphan_module_enabled` provided
 before kiss 0.4.11 moved orphan detection to the coverage-linked `kiss test`
 (see `.config/kiss.toml`).
 
+### Reachability report (Python) — staged, not-yet-served code
+
+`scripts/check_wiring.py unreachable` (the `check-unreachable-modules`
+pre-commit hook, **manual stage only** — it never runs at `pre-commit` or
+`pre-push` and never blocks CI) asks a stricter question than the orphan
+gate above: starting from the same declared roots, which `graph_os` modules
+does walking every import edge — static (including a function-local
+`import`) and dynamic/name-based (a string literal anywhere in a module that
+names another discovered module, absolute or relative, the way
+`graph_os.deployment`'s lazy-submodule facade and
+`graph_os.gateway.registry`'s widget loader both select a module by value)
+— never reach? A cluster of modules that only import each other has nonzero
+fan-in/fan-out, so it passes `check-orphan-modules`, but can still be served
+by no running process. This command lists exactly that: code that exists,
+is wired to itself, and is reached by nothing real. It is intentionally a
+report, not a gate: landing it does not mean every module it lists is a bug
+to fix today, only that wiring it in, registering it, or deleting it is
+separate, deliberate, tracked work. See `scripts/wiring/reachability.py` and
+`docs/quality-gate-terms.md`.
+
 ## Development rules
 
 - Confirm that a change belongs to GraphOS and identify its public entrypoint.

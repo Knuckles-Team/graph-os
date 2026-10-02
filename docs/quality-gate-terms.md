@@ -62,6 +62,20 @@ pre-commit hook (`scripts/check_wiring.py orphans`) enforces it instead,
 restoring the original structural semantics — see AGENTS.md "Orphan-module
 wiring gate (Python)".
 
+### Reachability report — informational, manual stage only
+
+A module with nonzero fan-in/fan-out passes the orphan check above even when
+no running process ever reaches it (it only imports, and is imported by,
+other equally unserved modules). `scripts/check_wiring.py unreachable` (the
+`check-unreachable-modules` pre-commit hook) reports every `graph_os` module
+that walking every import edge — static and dynamic/name-based — from the
+declared roots (`pyproject.toml`'s `[project.scripts]` / `[project.entry-points]`
+and the top-level package) never reaches. It runs at the `manual` stage
+only, so it never blocks `pre-commit` or `pre-push` and CI's blocking gate
+set is unchanged; it exists to make staged, not-yet-served code visible and
+trackable, not to force an immediate fix. See AGENTS.md "Reachability report
+(Python) — staged, not-yet-served code".
+
 ## Running the scanners
 
 ```bash
@@ -70,6 +84,7 @@ pre-commit run kiss-staged                              # KISS, on the staged di
 pre-commit run complexity-census --hook-stage manual --all-files
 pre-commit run kiss-census --hook-stage manual --all-files    # whole package
 pre-commit run check-orphan-modules --all-files                # Python wiring gate
+pre-commit run check-unreachable-modules --hook-stage manual --all-files  # reachability report
 pre-commit run dupehound-changed
 pre-commit run jscpd-differential --hook-stage manual --all-files
 pre-commit run jscpd-census --hook-stage manual --all-files

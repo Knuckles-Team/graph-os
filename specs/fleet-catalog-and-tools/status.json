@@ -121,30 +121,16 @@
     {
       "id": "GRAPHOS-FLEET-R011",
       "title": "Registry core computes a canonical digest and authorized find",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Implemented on the default branch; exercised by tests/api"
-        }
-      ]
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Implemented and unit-tested on the default branch under graph_os/api/. The reachability report shows no served entry point imports that package yet. Remaining: compose it into the served application, with a test through the served entry point."
     },
     {
       "id": "GRAPHOS-FLEET-R012",
       "title": "EG-direct binding generator with reviewed exclusions",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "6b63aeb7ba0310277885d69a4a2da516000aa23f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/6b63aeb7ba0310277885d69a4a2da516000aa23f",
-          "description": "Implemented on the default branch; exercised by tests/api/test_eg_binding.py"
-        }
-      ]
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "The engine-binding generator and its exclusions file are on the default branch with tests (tests/api/test_eg_binding.py). The reachability report shows no served entry point imports graph_os/api/registry yet. Remaining: compose the registry into the served application."
     },
     {
       "id": "GRAPHOS-FLEET-R013",
