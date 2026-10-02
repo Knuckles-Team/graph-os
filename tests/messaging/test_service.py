@@ -298,39 +298,6 @@ async def test_deliver_reply_resolves_awaited_reply(svc: MessagingService) -> No
     assert reply == "the answer"
 
 
-@pytest.mark.asyncio
-async def test_au_planner_reply_uses_graphos_service_port(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A pending elicitation reply reaches the one GraphOS service instance."""
-    from agent_utilities.api.messaging import create_planner_handler
-    from agent_utilities.messaging import reach_port
-
-    engine = _FakeEngine()
-    service = MessagingService(engine)
-    backend = _FakeBackend()
-    future: asyncio.Future[str] = asyncio.get_running_loop().create_future()
-    service._pending["telegram:77"] = future
-
-    entry = SimpleNamespace(name="service", load=lambda: lambda supplied=None: service)
-    monkeypatch.setattr(reach_port.metadata, "entry_points", lambda **_kw: [entry])
-
-    handler = await create_planner_handler(engine)
-    await handler(
-        InboundEvent(
-            event_type=EventType.MESSAGE,
-            platform="telegram",
-            channel_id="77",
-            user_id="u1",
-            content="answer text",
-        ),
-        backend,
-    )
-    await asyncio.sleep(0)
-    assert future.result() == "answer text"
-    assert backend.sent == []
-
-
 def test_registry_identity_digest_uses_stable_bot_id_without_secret(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

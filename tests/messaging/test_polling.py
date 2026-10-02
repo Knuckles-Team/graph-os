@@ -26,8 +26,8 @@ import threading
 import time
 from typing import Any
 
-from agent_utilities.api import messaging as au_messaging_api
 from agent_utilities.messaging import commands
+from agent_utilities.messaging import router as au_messaging_router
 
 from graph_os.messaging import polling
 from graph_os.messaging import router as graphos_router
@@ -75,7 +75,7 @@ def test_graphos_poller_connects_backend_and_au_command_handler(monkeypatch) -> 
 
     monkeypatch.setattr(MessagingService, "instance", lambda _engine: Service())
     monkeypatch.setattr(graphos_router, "InboundRouter", FakeRouter)
-    monkeypatch.setattr(au_messaging_api, "create_planner_handler", make_handler)
+    monkeypatch.setattr(au_messaging_router, "create_planner_handler", make_handler)
     monkeypatch.setattr(commands, "command_specs", lambda _kind: ["help"])
 
     box: dict[str, Any] = {}

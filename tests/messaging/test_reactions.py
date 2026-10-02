@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from agent_utilities.orchestration.messaging_handler import (
+from agent_utilities.messaging.router import (
     _decide_reaction,
     _react_in_background,
 )

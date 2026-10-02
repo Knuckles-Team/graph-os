@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from agent_utilities.api import messaging as au_messaging_api
 from agent_utilities.core import config
+from agent_utilities.messaging import router as au_messaging_router
 from agent_utilities.messaging.models import SendResult
 
 from graph_os.messaging import inbox
@@ -59,7 +59,7 @@ async def test_reaper_uses_au_reply_port_and_preserves_send_result(
     router._backends.append(Backend())
     monkeypatch.setattr(config, "setting", lambda *_args: "0")
     monkeypatch.setattr(MessagingService, "instance", lambda: Service())
-    monkeypatch.setattr(au_messaging_api, "graph_agent_reply", reply)
+    monkeypatch.setattr(au_messaging_router, "_graph_agent_reply", reply)
     monkeypatch.setattr(inbox, "retry_unanswered", retry)
 
     await router._inbox_reaper_loop()
