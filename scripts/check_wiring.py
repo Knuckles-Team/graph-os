@@ -34,9 +34,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from wiring.discovery import GateError  # noqa: E402
-from wiring.orphans import orphans as find_orphans  # noqa: E402
-from wiring.reachability import unreachable as find_unreachable  # noqa: E402
+from wiring.discovery import GateError
+from wiring.orphans import orphans as find_orphans
+from wiring.reachability import unreachable as find_unreachable
 
 _CHECKS = {
     "orphans": (
