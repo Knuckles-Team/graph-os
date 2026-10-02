@@ -34,8 +34,8 @@ def fake_telegram(monkeypatch: pytest.MonkeyPatch) -> type[Exception]:
     class Conflict(Exception):
         pass
 
-    err.Conflict = Conflict
-    tg.error = err
+    vars(err).update(Conflict=Conflict)
+    vars(tg).update(error=err)
     monkeypatch.setitem(sys.modules, "telegram", tg)
     monkeypatch.setitem(sys.modules, "telegram.error", err)
     return Conflict

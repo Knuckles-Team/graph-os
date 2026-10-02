@@ -78,7 +78,7 @@ class _FakeDriver:
 def _fake_mattermost(monkeypatch: pytest.MonkeyPatch) -> None:
     """Install a fake ``mattermostdriver`` module so the backend imports without the dep."""
     mod = types.ModuleType("mattermostdriver")
-    mod.Driver = _FakeDriver
+    vars(mod).update(Driver=_FakeDriver)
     monkeypatch.setitem(sys.modules, "mattermostdriver", mod)
     monkeypatch.setenv("MATTERMOST_URL", "https://mm.example.com")
 
