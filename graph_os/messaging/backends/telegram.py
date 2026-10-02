@@ -42,35 +42,34 @@ from agent_utilities.messaging.models import (
 logger = logging.getLogger(__name__)
 
 
+async def _attachment_from(
+    source: Any, media_type: MediaType, *, filename: str = ""
+) -> MediaAttachment:
+    """Resolve one Telegram file handle into a shared :class:`MediaAttachment`."""
+    file = await source.get_file()
+    return MediaAttachment(
+        media_type=media_type, url=file.file_path or "", filename=filename
+    )
+
+
 async def _collect_telegram_attachments(msg: Any) -> list[MediaAttachment]:
     """Fetch file info for each attachment kind Telegram delivered on this message."""
     attachments: list[MediaAttachment] = []
     if msg.photo:
-        best = msg.photo[-1]
-        file = await best.get_file()
-        attachments.append(
-            MediaAttachment(media_type=MediaType.IMAGE, url=file.file_path or "")
-        )
+        attachments.append(await _attachment_from(msg.photo[-1], MediaType.IMAGE))
     if msg.document:
-        file = await msg.document.get_file()
         attachments.append(
-            MediaAttachment(
-                media_type=MediaType.FILE,
-                url=file.file_path or "",
-                filename=msg.document.file_name or "",
+            await _attachment_from(
+                msg.document, MediaType.FILE, filename=msg.document.file_name or ""
             )
         )
     if msg.voice:  # CONCEPT:AU-ECO.messaging.telegram-voice-note — voice note → transcribed downstream
-        file = await msg.voice.get_file()
-        attachments.append(
-            MediaAttachment(media_type=MediaType.VOICE_NOTE, url=file.file_path or "")
-        )
+        attachments.append(await _attachment_from(msg.voice, MediaType.VOICE_NOTE))
     if msg.audio:
-        file = await msg.audio.get_file()
         attachments.append(
-            MediaAttachment(
-                media_type=MediaType.AUDIO,
-                url=file.file_path or "",
+            await _attachment_from(
+                msg.audio,
+                MediaType.AUDIO,
                 filename=getattr(msg.audio, "file_name", "") or "",
             )
         )
