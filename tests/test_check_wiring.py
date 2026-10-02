@@ -23,6 +23,8 @@ import sys
 import textwrap
 from pathlib import Path
 
+import pytest
+
 _SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_wiring.py"
 
 
@@ -155,25 +157,20 @@ def test_unreachable_follows_the_static_chain_the_function_local_import_and_the_
     assert reached.isdisjoint(_findings(result))
 
 
-def test_orphans_on_a_clean_tree_is_zero_findings(tmp_path: Path) -> None:
-    _build_fixture(tmp_path)
-    (tmp_path / "graph_os" / "isolated.py").unlink()
-    (tmp_path / "graph_os" / "cluster_a.py").unlink()
-    (tmp_path / "graph_os" / "cluster_b.py").unlink()
-
-    result = _run("orphans", tmp_path)
-
-    assert result.returncode == 0
-    assert _findings(result) == set()
+def _build_fully_wired_fixture(root: Path) -> None:
+    """The same fixture with the isolated module and the unreachable cluster
+    removed -- every remaining module is both non-orphan and reachable."""
+    _build_fixture(root)
+    (root / "graph_os" / "isolated.py").unlink()
+    (root / "graph_os" / "cluster_a.py").unlink()
+    (root / "graph_os" / "cluster_b.py").unlink()
 
 
-def test_unreachable_on_a_fully_wired_tree_is_zero_findings(tmp_path: Path) -> None:
-    _build_fixture(tmp_path)
-    (tmp_path / "graph_os" / "isolated.py").unlink()
-    (tmp_path / "graph_os" / "cluster_a.py").unlink()
-    (tmp_path / "graph_os" / "cluster_b.py").unlink()
+@pytest.mark.parametrize("check", ["orphans", "unreachable"])
+def test_a_fully_wired_tree_is_zero_findings(tmp_path: Path, check: str) -> None:
+    _build_fully_wired_fixture(tmp_path)
 
-    result = _run("unreachable", tmp_path)
+    result = _run(check, tmp_path)
 
     assert result.returncode == 0
     assert _findings(result) == set()
