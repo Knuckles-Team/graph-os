@@ -199,6 +199,19 @@ repos:
     language: system
     pass_filenames: false
     always_run: true
+  # Reports graph_os/ modules no declared root (console script, entry point,
+  # or the top-level package) reaches by any import edge -- static or
+  # dynamic/name-based (see scripts/wiring/reachability.py). This is staged,
+  # not-yet-served code: nonzero fan-in/fan-out lets a module pass
+  # check-orphan-modules above even when nothing running ever reaches it.
+  # Manual stage only -- it reports, it never blocks CI.
+  - id: check-unreachable-modules
+    name: Wiring — report graph_os modules no entry point reaches (not served yet)
+    entry: python3 scripts/check_wiring.py unreachable
+    language: system
+    pass_filenames: false
+    always_run: true
+    stages: [manual]
   - id: check-public-specs
     name: Public specs are self-contained and locally linked
     entry: python3 scripts/check_public_specs.py
