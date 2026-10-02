@@ -82,12 +82,18 @@ async def test_duplicate_connector_provider_fails_before_import(
         "graph_os.semantic_content.provision_connector_content", provision
     )
 
+    async def reproject(connector: str) -> None:
+        return None
+
+    async def attach(connector: str) -> None:
+        return None
+
     with pytest.raises(ValueError, match="unique connectors"):
         await provision_semantic_content(
             (provider, provider),
             sink=object(),
-            reproject_pack=lambda connector: None,  # type: ignore[arg-type]
-            attach_pack=lambda connector: None,  # type: ignore[arg-type]
+            reproject_pack=reproject,
+            attach_pack=attach,
         )
     assert calls == 0
 

@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import sys
 import time
+from collections.abc import Sequence
 from types import ModuleType, SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from graph_os.api.http.app import _subapp_path, create_api_application
 from graph_os.api.http.auth import AmbientHTTPAuthenticator
@@ -31,7 +33,7 @@ from graph_os.api.registry import Surface
 def request(
     method: str,
     path: str,
-    headers: list[tuple[bytes, bytes]] = (),
+    headers: Sequence[tuple[bytes, bytes]] = (),
     body: bytes = b"",
     state: dict | None = None,
 ) -> Request:
@@ -123,7 +125,7 @@ def test_v1_subapp_mount_has_one_prefix(monkeypatch: pytest.MonkeyPatch) -> None
         authenticator=Auth(),
         invoke=_unused_invoke,
     )
-    assert "/identity/users" in {route.path for route in child.routes}
+    assert "/identity/users" in {getattr(route, "path", None) for route in child.routes}
     parent = FastAPI()
     parent.mount("/api/v1", child)
     with TestClient(parent) as client:
@@ -199,9 +201,7 @@ async def test_console_projection_passes_only_verified_surface() -> None:
         services=SimpleNamespace(registry=SimpleNamespace(digest="digest")),
         authenticate=lambda _: _return_caller(caller),
         invoke=fake_invoke,
-        response=lambda outcome, op, request_id: SimpleNamespace(
-            outcome=outcome, op=op, request_id=request_id
-        ),
+        response=lambda outcome, op, request_id: JSONResponse({}),
         generic=True,
         is_console_request=lambda req, _: (
             req.headers.get("origin") == "https://console.example.test"

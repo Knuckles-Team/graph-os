@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -260,9 +262,13 @@ async def test_composition_binds_verified_reader_without_starting_probe() -> Non
             return SimpleNamespace(servers=())
 
     class Mux:
-        _probe_cache = {"unregistered": {"tools": [{"name": "leak"}]}}
+        """A fake structurally satisfying ``catalog_composition.CachedProbe``."""
 
-        def status_snapshot(self):
+        _probe_cache: Mapping[str, Mapping[str, Any]] = {
+            "unregistered": {"tools": [{"name": "leak"}]}
+        }
+
+        def status_snapshot(self) -> Mapping[str, Any]:
             return {"children": {"s": {"healthy": True}}}
 
     async def sdk():

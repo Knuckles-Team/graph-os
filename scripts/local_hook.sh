@@ -51,7 +51,7 @@ require_synced_env() {
 case "$gate" in
   mypy-env)
     require_synced_env
-    exec uv run --no-sync mypy graph_os
+    exec uv run --no-sync mypy graph_os tests
     ;;
   pytest)
     require_synced_env

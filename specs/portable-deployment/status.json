@@ -45,14 +45,14 @@
     {
       "id": "GRAPHOS-DEPLOY-R004",
       "title": "mypy hook type-checks the test suite",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "f3af52a802623cc941205534dfe9073a66b54ef1",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/f3af52a802623cc941205534dfe9073a66b54ef1",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "9d8a787b8495fd7aa8dffd3955653f1542858134",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/9d8a787b8495fd7aa8dffd3955653f1542858134",
+          "description": "Implemented on the default branch."
         }
       ]
     },

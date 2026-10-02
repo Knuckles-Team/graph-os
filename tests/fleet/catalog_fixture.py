@@ -10,6 +10,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from unittest.mock import AsyncMock
+
+import pytest
 
 from graph_os.fleet.multiplexer import MCPMultiplexer, attach_fleet_loader
 
@@ -46,3 +49,13 @@ def multiplexer_from_fixture(path: Path) -> MCPMultiplexer:
 
 def attach_multiplexer_from_fixture(host: Any, path: Path) -> MCPMultiplexer:
     return _install(attach_fleet_loader(host, catalog_reader=_NeverRead()), path)
+
+
+def patch_call_proxied_tool(
+    monkeypatch: pytest.MonkeyPatch, mux: MCPMultiplexer, result: Any
+) -> None:
+    """Replace ``call_proxied_tool`` with an ``AsyncMock`` returning
+    ``result`` -- shared by tests exercising the forwarder's result
+    translation (``_make_forwarder`` / ``_tool_result_from_child``) against a
+    canned child ``CallToolResult``."""
+    monkeypatch.setattr(mux, "call_proxied_tool", AsyncMock(return_value=result))
