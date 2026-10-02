@@ -76,7 +76,9 @@ async def _collect_telegram_attachments(msg: Any) -> list[MediaAttachment]:
     return attachments
 
 
-def _render_telegram_text(text: str, metadata: dict[str, Any] | None) -> tuple[str, str]:
+def _render_telegram_text(
+    text: str, metadata: dict[str, Any] | None
+) -> tuple[str, str]:
     """Markdown -> Telegram's HTML subset, unless the caller opts out.
 
     The universal agent replies in Markdown; Telegram renders only a small HTML
