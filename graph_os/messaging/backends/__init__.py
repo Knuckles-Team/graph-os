@@ -6,29 +6,18 @@ for a specific messaging platform. Backends are lazily imported via
 dependencies unless explicitly installed.
 
 Supported backends:
-    - ``discord`` — Discord via ``discord.py``
-    - ``slack`` — Slack via ``slack-bolt``
     - ``telegram`` — Telegram via ``python-telegram-bot``
-    - ``whatsapp`` — WhatsApp via ``neonize`` + Business API
-    - ``teams`` — Microsoft Teams via ``botbuilder-core``
-    - ``googlechat`` — Google Chat via ``google-api-python-client``
-    - ``googlemeet`` — Google Meet via ``google-api-python-client``
     - ``mattermost`` — Mattermost via ``mattermostdriver``
-    - ``matrix`` — Matrix via ``matrix-nio``
-    - ``irc`` — IRC via ``irc``
-    - ``signal`` — Signal via ``semaphore-bot``
-    - ``imessage`` — iMessage via AppleScript bridge
-    - ``line`` — LINE via ``line-bot-sdk``
-    - ``twitch`` — Twitch via ``twitchio``
-    - ``synology`` — Synology Chat via webhook/httpx
-    - ``voicecall`` — Voice Call via ``twilio``
-    - ``nextcloud`` — Nextcloud Talk via httpx REST
+
+Further platforms (Discord, Slack, WhatsApp, Teams, Google Chat/Meet,
+Matrix, IRC, Signal, iMessage, LINE, Twitch, Synology Chat, voice calls,
+Nextcloud Talk) follow the same adapter shape and remain to be landed.
 
 Install individual backends with::
 
-    pip install graph-os[messaging-discord]
+    pip install graph-os[messaging-telegram]
 
-Or install all with::
+Or install all currently-shipped backends with::
 
     pip install graph-os[messaging]
 """

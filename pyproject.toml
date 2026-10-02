@@ -27,6 +27,10 @@ dependencies = [
     # authenticated epistemic-graph client through the SDK's public injection
     # seam and never imports connector implementations.
     "agent-connector-sdk>=0.1.0,<1.0.0",
+    # The messaging channel layer's HTTP alert intake (graph_os/messaging/alert_intake.py)
+    # imports aiohttp.web directly for its small webhook listener; platform-agnostic,
+    # so unlike the chat-platform SDKs below this is not conditioned on a messaging extra.
+    "aiohttp>=3.14.1",
     # The fleet gateway imports the MCP protocol/client and FastMCP middleware
     # directly; keep these first-party runtime requirements explicit rather
     # than relying on AU's optional extra to expose them transitively.
@@ -70,26 +74,14 @@ webui = [
 ]
 # Messaging channel adapters (CONCEPT:AU-ECO.messaging.native-backend-abstraction):
 # each chat platform SDK is its own extra so importing graph_os.messaging never
-# requires every platform's client library to be installed.
-messaging-discord = ["discord.py>=2.7.1"]
-messaging-slack = ["slack-bolt>=1.30.0"]
+# requires every platform's client library to be installed. Further platforms
+# (Discord, Slack, WhatsApp, Teams, Google Chat/Meet, Matrix, IRC, Signal,
+# iMessage, LINE, Twitch, Synology Chat, voice calls, Nextcloud Talk) follow
+# the same adapter shape and remain to be landed.
 messaging-telegram = ["python-telegram-bot>=22.8"]
-messaging-whatsapp = ["neonize>=0.4.3.post0", "httpx>=0.28.1"]
-messaging-teams = ["botbuilder-core>=4.17.1"]
-messaging-googlechat = ["google-api-python-client>=2.198.0", "google-auth>=2.56.1"]
-messaging-googlemeet = ["google-api-python-client>=2.198.0", "google-auth>=2.56.1"]
 messaging-mattermost = ["mattermostdriver>=7.3.2"]
-messaging-matrix = ["matrix-nio>=0.25.2"]
-messaging-irc = ["irc>=20.5.0"]
-messaging-signal = []
-messaging-imessage = []  # macOS-only, AppleScript bridge
-messaging-line = ["line-bot-sdk>=3.25.0"]
-messaging-twitch = ["twitchio>=3.2.2"]
-messaging-synology = ["httpx>=0.28.1"]
-messaging-voicecall = ["twilio>=9.10.9"]
-messaging-nextcloud = ["httpx>=0.28.1"]
 messaging = [
-    "graph-os[messaging-discord,messaging-slack,messaging-telegram,messaging-whatsapp,messaging-teams,messaging-googlechat,messaging-googlemeet,messaging-mattermost,messaging-matrix,messaging-irc,messaging-signal,messaging-line,messaging-twitch,messaging-synology,messaging-voicecall,messaging-nextcloud]"
+    "graph-os[messaging-telegram,messaging-mattermost]"
 ]
 
 [project.scripts]
@@ -105,23 +97,8 @@ agent-utilities-venv = "graph_os.deployment.venv_sync:main"
 graph-os = "graph_os.skills"
 
 [project.entry-points."agent_utilities.messaging"]
-discord = "graph_os.messaging.backends.discord:DiscordBackend"
-slack = "graph_os.messaging.backends.slack:SlackBackend"
 telegram = "graph_os.messaging.backends.telegram:TelegramBackend"
-whatsapp = "graph_os.messaging.backends.whatsapp:WhatsAppBackend"
-teams = "graph_os.messaging.backends.teams:TeamsBackend"
-googlechat = "graph_os.messaging.backends.googlechat:GoogleChatBackend"
-googlemeet = "graph_os.messaging.backends.googlemeet:GoogleMeetBackend"
 mattermost = "graph_os.messaging.backends.mattermost:MattermostBackend"
-matrix = "graph_os.messaging.backends.matrix:MatrixBackend"
-irc = "graph_os.messaging.backends.irc:IRCBackend"
-signal = "graph_os.messaging.backends.signal:SignalBackend"
-imessage = "graph_os.messaging.backends.imessage:IMessageBackend"
-line = "graph_os.messaging.backends.line:LINEBackend"
-twitch = "graph_os.messaging.backends.twitch:TwitchBackend"
-synology = "graph_os.messaging.backends.synology:SynologyChatBackend"
-voicecall = "graph_os.messaging.backends.voicecall:VoiceCallBackend"
-nextcloud = "graph_os.messaging.backends.nextcloud:NextcloudTalkBackend"
 
 [project.entry-points."agent_utilities.messaging.reach"]
 notify_sync = "graph_os.messaging.reach:notify_sync"
