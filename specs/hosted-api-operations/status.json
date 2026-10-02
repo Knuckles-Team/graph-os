@@ -111,16 +111,9 @@
     {
       "id": "GRAPHOS-OPS-R007",
       "title": "Immutable operation registry with digest and authorization",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Implemented on the default branch; exercised by tests/api"
-        }
-      ]
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Implemented and unit-tested on the default branch under graph_os/api/. The reachability report shows no served entry point imports that package yet. Remaining: compose it into the served application, with a test through the served entry point."
     },
     {
       "id": "GRAPHOS-OPS-R008",
@@ -470,16 +463,9 @@
     {
       "id": "GRAPHOS-OPS-R034",
       "title": "Eunomia narrowing-only policy enforcement",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Implemented on the default branch; exercised by tests/api"
-        }
-      ]
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Implemented and unit-tested on the default branch under graph_os/api/. The reachability report shows no served entry point imports that package yet. Remaining: compose it into the served application, with a test through the served entry point."
     },
     {
       "id": "GRAPHOS-OPS-R035",
