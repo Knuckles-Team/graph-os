@@ -175,7 +175,7 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
     registration = register_connector_content(mcp, connector_content())
 
     assert (registration.skills, registration.prompts, registration.resources) == (
-        3,
+        4,
         0,
         1,
     )
