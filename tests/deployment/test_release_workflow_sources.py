@@ -49,6 +49,40 @@ def _locked_paths() -> set[str]:
     }
 
 
+_SHELL_VAR = re.compile(r'^\s*(\w+)="\$GITHUB_WORKSPACE/([^"]+)"\s*$', re.MULTILINE)
+_SYMLINK = re.compile(r'ln -s "\$(\w+)" "\$(\w+)/([^"]+)"')
+
+
+def _materialized_paths(steps: list[dict[str, Any]], checkouts: set[str]) -> set[str]:
+    """Nested editable paths the workflow backs with a symlink, not a checkout.
+
+    ``agent-connector-sdk`` is declared as an editable path source by both
+    graph-os and agent-utilities (which needs it directly too); ``agent-utilities``
+    likewise by both graph-os and agent-webui. Both declarations resolve the
+    same real directory, so uv's resolver may record either project's
+    relative path in uv.lock for the same package -- this repository's own
+    "Materialize nested pinned source paths" step symlinks the nested
+    location to the already-checked-out flat one so `uv sync` succeeds
+    either way. Reading that step's own shell variables (rather than
+    hard-coding the paths here a second time) keeps this test correct when
+    the step's variable names change, and additionally verifies every
+    symlink's target is itself one of the checked-out paths -- a dangling
+    symlink would otherwise go unnoticed.
+    """
+    script = steps[_step_index(steps, "ln -s")]["run"]
+    var_paths = dict(_SHELL_VAR.findall(script))
+
+    materialized: set[str] = set()
+    for target_var, link_dir_var, suffix in _SYMLINK.findall(script):
+        target = var_paths[target_var]
+        assert target in checkouts, (
+            f"ln -s target ${target_var} ({target}) is not one of the "
+            "checked-out paths -- it would dangle"
+        )
+        materialized.add(f"{var_paths[link_dir_var]}/{suffix}")
+    return materialized
+
+
 def _manual_hook_ids() -> set[str]:
     config = yaml.safe_load(
         (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
@@ -81,8 +115,11 @@ def test_release_workflow_materializes_uv_path_sources_before_sync() -> None:
     }
 
     assert _declared_paths() <= set(checkouts)
-    provisioning_plan = yaml.safe_dump(before_sync)
-    assert all(path in provisioning_plan for path in _locked_paths())
+    # "." is this checkout itself (the job's initial actions/checkout, always
+    # present); every other locked editable path must be either a dedicated
+    # checkout above or a symlink the workflow creates onto one.
+    provisioned = {".", *checkouts, *_materialized_paths(before_sync, set(checkouts))}
+    assert _locked_paths() <= provisioned
     for step in checkouts.values():
         assert SHA.fullmatch(step["with"]["ref"]), step["with"]
         assert step["with"]["persist-credentials"] is False
