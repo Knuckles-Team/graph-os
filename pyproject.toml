@@ -68,6 +68,29 @@ webui = [
     "agent-webui>=2.6.0,<3.0.0",
     "uvicorn>=0.51.0",
 ]
+# Messaging channel adapters (CONCEPT:AU-ECO.messaging.native-backend-abstraction):
+# each chat platform SDK is its own extra so importing graph_os.messaging never
+# requires every platform's client library to be installed.
+messaging-discord = ["discord.py>=2.7.1"]
+messaging-slack = ["slack-bolt>=1.30.0"]
+messaging-telegram = ["python-telegram-bot>=22.8"]
+messaging-whatsapp = ["neonize>=0.4.3.post0", "httpx>=0.28.1"]
+messaging-teams = ["botbuilder-core>=4.17.1"]
+messaging-googlechat = ["google-api-python-client>=2.198.0", "google-auth>=2.56.1"]
+messaging-googlemeet = ["google-api-python-client>=2.198.0", "google-auth>=2.56.1"]
+messaging-mattermost = ["mattermostdriver>=7.3.2"]
+messaging-matrix = ["matrix-nio>=0.25.2"]
+messaging-irc = ["irc>=20.5.0"]
+messaging-signal = []
+messaging-imessage = []  # macOS-only, AppleScript bridge
+messaging-line = ["line-bot-sdk>=3.25.0"]
+messaging-twitch = ["twitchio>=3.2.2"]
+messaging-synology = ["httpx>=0.28.1"]
+messaging-voicecall = ["twilio>=9.10.9"]
+messaging-nextcloud = ["httpx>=0.28.1"]
+messaging = [
+    "graph-os[messaging-discord,messaging-slack,messaging-telegram,messaging-whatsapp,messaging-teams,messaging-googlechat,messaging-googlemeet,messaging-mattermost,messaging-matrix,messaging-irc,messaging-signal,messaging-line,messaging-twitch,messaging-synology,messaging-voicecall,messaging-nextcloud]"
+]
 
 [project.scripts]
 graph-os = "graph_os.mcp_server.server:mcp_server"
@@ -80,6 +103,29 @@ agent-utilities-venv = "graph_os.deployment.venv_sync:main"
 
 [project.entry-points."agent_utilities.skill_providers"]
 graph-os = "graph_os.skills"
+
+[project.entry-points."agent_utilities.messaging"]
+discord = "graph_os.messaging.backends.discord:DiscordBackend"
+slack = "graph_os.messaging.backends.slack:SlackBackend"
+telegram = "graph_os.messaging.backends.telegram:TelegramBackend"
+whatsapp = "graph_os.messaging.backends.whatsapp:WhatsAppBackend"
+teams = "graph_os.messaging.backends.teams:TeamsBackend"
+googlechat = "graph_os.messaging.backends.googlechat:GoogleChatBackend"
+googlemeet = "graph_os.messaging.backends.googlemeet:GoogleMeetBackend"
+mattermost = "graph_os.messaging.backends.mattermost:MattermostBackend"
+matrix = "graph_os.messaging.backends.matrix:MatrixBackend"
+irc = "graph_os.messaging.backends.irc:IRCBackend"
+signal = "graph_os.messaging.backends.signal:SignalBackend"
+imessage = "graph_os.messaging.backends.imessage:IMessageBackend"
+line = "graph_os.messaging.backends.line:LINEBackend"
+twitch = "graph_os.messaging.backends.twitch:TwitchBackend"
+synology = "graph_os.messaging.backends.synology:SynologyChatBackend"
+voicecall = "graph_os.messaging.backends.voicecall:VoiceCallBackend"
+nextcloud = "graph_os.messaging.backends.nextcloud:NextcloudTalkBackend"
+
+[project.entry-points."agent_utilities.messaging.reach"]
+notify_sync = "graph_os.messaging.reach:notify_sync"
+service = "graph_os.messaging.reach:service_port"
 
 # Portable development binding for the not-yet-published AU 2.5 release.
 # The path is ignored and supplied as a local symlink; package metadata keeps
