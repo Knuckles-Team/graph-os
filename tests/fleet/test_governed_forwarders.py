@@ -96,3 +96,58 @@ def test_gateway_effect_returns_only_canonical_authoritative_decisions() -> None
             await gateway.effect(None, {"server": "s", "tool": "read"}, caller)
 
     asyncio.run(run())
+
+
+def test_delegated_catalog_subject_is_not_service_executor_authority() -> None:
+    import asyncio
+    from types import SimpleNamespace
+
+    from graph_os.fleet.catalog_items import CatalogItem
+    from graph_os.fleet.catalog_sources import (
+        _merge_probed_item,
+        _verified_server_policy,
+    )
+    from graph_os.fleet.gateway_ops import FleetGateway, tool_for_multiplexer_ops
+
+    item = CatalogItem(
+        "fleet:tool:s/read",
+        "tool",
+        "read",
+        server="s",
+        annotations={"readOnlyHint": True},
+    )
+    policy = _verified_server_policy(
+        b'{"credential_mode":"delegated","required_scopes":["data:read"]}'
+    )
+    merged = {}
+    _merge_probed_item(
+        merged, item, policy=policy, subject_id="verified-server-component"
+    )
+
+    async def admitted(*_args):
+        return merged[item.id]
+
+    async def allowed(*_args):
+        return True
+
+    async def forbidden(*_args):
+        pytest.fail("classification must not dispatch")
+
+    adapter = tool_for_multiplexer_ops(SimpleNamespace(admitted_tool=admitted))
+    gateway = FleetGateway(
+        tool_for=adapter, policy_check=allowed, delegated_call=forbidden
+    )
+    caller = SimpleNamespace(
+        effective_scopes=frozenset({"mcp:delegate", "data:read"}), session=object()
+    )
+
+    async def run():
+        descriptor = await adapter("s", "read", caller)
+        decision = await gateway.effect(None, {"server": "s", "tool": "read"}, caller)
+        assert merged[item.id].subject_id == "verified-server-component"
+        assert descriptor.subject_id is None
+        assert decision.subject_id is None
+        assert decision.credential_mode == "delegated"
+        assert decision.required_scopes == frozenset({"data:read"})
+
+    asyncio.run(run())

@@ -177,7 +177,9 @@ def tool_for_multiplexer_ops(ops: Any) -> ToolFor:
             required_scopes=scopes,
             credential_mode=mode,
             executor_scopes=executor_scopes,
-            subject_id=subject_id,
+            # Catalog component identity also exists for delegated children;
+            # it is not a service-executor subject grant.
+            subject_id=subject_id if mode == "service" else None,
         )
 
     return tool_for
