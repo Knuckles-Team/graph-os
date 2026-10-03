@@ -5,7 +5,12 @@ from __future__ import annotations
 from inspect import iscoroutinefunction
 
 from graph_os.api.registry import Composite, OpSpec, Registry
-from graph_os.api.registry.eg_binding import load_eg_bindings
+from graph_os.api.registry.eg_binding import (
+    EgContractError,
+    _contract_root,
+    _load_scopes,
+    load_eg_bindings,
+)
 
 
 def get_registry() -> Registry:
@@ -29,5 +34,13 @@ def get_registry() -> Registry:
                         f"{op.id}: unsupported or unbound handler {op.binding.handler}"
                     )
             curated.append(op)
-    generated = load_eg_bindings(curated_ops=curated)
+    root = _contract_root(None)
+    scopes = _load_scopes(root)
+    for op in curated:
+        missing = (op.scopes | op.executor_scopes) - scopes.keys()
+        if missing:
+            raise EgContractError(
+                f"{op.id}: unregistered curated EG scopes: {', '.join(sorted(missing))}"
+            )
+    generated = load_eg_bindings(contract_root=root, curated_ops=curated)
     return Registry((*curated, *generated))

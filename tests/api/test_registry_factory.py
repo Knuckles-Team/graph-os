@@ -9,7 +9,13 @@ from pathlib import Path
 import pytest
 
 from graph_os.api.ops import agents, browser, fleet, get_registry
-from graph_os.api.registry import Composite, EgMethod
+from graph_os.api.registry import (
+    Composite,
+    EgMethod,
+    Executor,
+    SubjectRef,
+    SubjectSource,
+)
 from graph_os.api.registry.eg_binding import EgContractError
 from tests.api.test_eg_binding import _curated, _fixture
 
@@ -20,6 +26,14 @@ def provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pat
     from graph_os.api.registry import eg_binding
 
     contract, exclusions = _fixture(tmp_path)
+    # Synthetic approved scope evidence; production classifications are provider-owned.
+    scope_path = contract / "scopes.json"
+    document = json.loads(scope_path.read_text())
+    document["scopes"].extend(
+        {"scope": scope, "class": "user"}
+        for scope in ("kg:read", "kg:write", "mcp:discover", "mcp:delegate")
+    )
+    scope_path.write_text(json.dumps(document))
     monkeypatch.setattr("importlib.resources.files", lambda package: contract.parent)
     monkeypatch.setattr(eg_binding, "_EXCLUSIONS", exclusions)
     return contract, exclusions
@@ -158,4 +172,65 @@ def test_curated_and_generated_id_collision_is_rejected(
     op = agents.operations()[0].model_copy(update={"id": "eg.query.Read"})
     monkeypatch.setattr(agents, "operations", lambda: (op,))
     with pytest.raises(ValueError, match="duplicate operation id"):
+        get_registry()
+
+
+@pytest.mark.parametrize(
+    "scope", ["kg:read", "kg:write", "mcp:discover", "mcp:delegate"]
+)
+def test_missing_composite_caller_scope_fails_before_canonicalization(
+    provider: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch, scope: str
+) -> None:
+    from graph_os.api.ops import registry_factory
+
+    contract, _ = provider
+    path = contract / "scopes.json"
+    document = json.loads(path.read_text())
+    document["scopes"] = [row for row in document["scopes"] if row["scope"] != scope]
+    path.write_text(json.dumps(document))
+
+    def unexpected_registry(*args: object, **kwargs: object) -> None:
+        pytest.fail("unregistered scope reached canonical registry construction")
+
+    monkeypatch.setattr(registry_factory, "Registry", unexpected_registry)
+    with pytest.raises(
+        EgContractError, match=f"unregistered curated EG scopes: {scope}"
+    ):
+        get_registry()
+
+
+def test_composite_executor_scope_requires_provider_evidence(
+    provider: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    op = agents.operations()[0].model_copy(
+        update={
+            "executor": Executor.SERVICE,
+            "executor_scopes": frozenset({"fixture:executor"}),
+            "subject": SubjectRef(source=SubjectSource.CALLER_TENANT),
+        }
+    )
+    monkeypatch.setattr(agents, "operations", lambda: (op,))
+    with pytest.raises(
+        EgContractError, match="unregistered curated EG scopes: fixture:executor"
+    ):
+        get_registry()
+    contract, _ = provider
+    path = contract / "scopes.json"
+    document = json.loads(path.read_text())
+    document["scopes"].append({"scope": "fixture:executor", "class": "service-only"})
+    path.write_text(json.dumps(document))
+    assert get_registry()[op.id] == op
+
+
+def test_curated_scope_evidence_uses_provider_class_validation(
+    provider: tuple[Path, Path],
+) -> None:
+    contract, _ = provider
+    path = contract / "scopes.json"
+    document = json.loads(path.read_text())
+    for row in document["scopes"]:
+        if row["scope"] == "mcp:delegate":
+            row["class"] = "unapproved"
+    path.write_text(json.dumps(document))
+    with pytest.raises(EgContractError, match="invalid EG scope class"):
         get_registry()
