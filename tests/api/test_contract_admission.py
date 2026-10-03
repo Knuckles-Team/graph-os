@@ -1,15 +1,20 @@
-"""Partial registry admission checks; generated error/pin admission is pending."""
+"""Admission contract tests with explicitly synthetic provider/error evidence."""
 
 from __future__ import annotations
 
 import json
+import sys
 from importlib.resources.abc import Traversable
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
 from graph_os.api.registry import EgMethod, PrincipalRule, Registry, eg_binding
-from graph_os.api.registry.contract_admission import _validate_registry_bindings
+from graph_os.api.registry.contract_admission import (
+    _validate_registry_bindings,
+    validate_contract_admission,
+)
 from graph_os.api.registry.eg_binding import EgContractError, load_eg_bindings
 from tests.api.test_api_registry import make_op
 from tests.api.test_eg_binding import _fixture
@@ -241,3 +246,217 @@ def test_bound_method_cannot_skip_provider_validation(
         load_eg_bindings()
     with pytest.raises(EgContractError):
         _validate_registry_bindings(registry)
+
+
+class _SyntheticMismatch(RuntimeError):
+    """Test-only provider refusal; no production receipt algorithm is modeled."""
+
+
+class _SyntheticMissing(_SyntheticMismatch):
+    pass
+
+
+@pytest.fixture
+def startup_evidence(
+    installed_contract: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[Registry, ModuleType, ModuleType]:
+    """Explicitly synthetic modules; never generated or installed provider proof."""
+    registry = _registry()
+    errors = {
+        "contract_version": 1,
+        "errors": [
+            {"code": "SYNTHETIC_REFUSAL", "http_status_hint": 409, "retryable": False}
+        ],
+    }
+    (installed_contract / "errors.json").write_text(json.dumps(errors))
+    pinned_bytes = {p: p.read_bytes() for p in installed_contract.rglob("*.json")}
+    pin = "a" * 64
+
+    def verify_receipt(expected: str) -> None:
+        if expected != pin:
+            raise _SyntheticMismatch("synthetic pin mismatch")
+        for path, expected_bytes in pinned_bytes.items():
+            if not path.exists():
+                raise _SyntheticMissing("synthetic missing contract")
+            if path.read_bytes() != expected_bytes:
+                raise _SyntheticMismatch("synthetic contract content mismatch")
+
+    provider = ModuleType("epistemic_graph.contract")
+    provider.ContractDigestMismatch = _SyntheticMismatch
+    provider.verify_receipt = verify_receipt
+    generated = ModuleType("graph_os.api.generated.engine_errors")
+    generated.REGISTRY_DIGEST = registry.digest
+    generated.EG_RECEIPT_DIGEST = pin
+    generated.ENGINE_ERRORS = {"SYNTHETIC_REFUSAL": (409, False)}
+    monkeypatch.setitem(sys.modules, provider.__name__, provider)
+    monkeypatch.setitem(sys.modules, generated.__name__, generated)
+    return registry, generated, provider
+
+
+def test_public_admission_accepts_matching_synthetic_evidence(startup_evidence) -> None:
+    registry, _, _ = startup_evidence
+    assert validate_contract_admission(registry) is None
+
+
+@pytest.mark.parametrize(
+    "symbol", ["REGISTRY_DIGEST", "EG_RECEIPT_DIGEST", "ENGINE_ERRORS"]
+)
+def test_missing_generated_symbol_preserves_cause(
+    startup_evidence, symbol: str
+) -> None:
+    registry, generated, _ = startup_evidence
+    delattr(generated, symbol)
+    with pytest.raises(EgContractError) as caught:
+        validate_contract_admission(registry)
+    assert isinstance(caught.value.__cause__, AttributeError)
+
+
+@pytest.mark.parametrize("symbol", ["REGISTRY_DIGEST", "EG_RECEIPT_DIGEST"])
+@pytest.mark.parametrize("value", [None, "", "invalid", "A" * 64])
+def test_malformed_generated_digest_fails(startup_evidence, symbol: str, value) -> None:
+    registry, generated, _ = startup_evidence
+    setattr(generated, symbol, value)
+    with pytest.raises(EgContractError, match="SHA-256"):
+        validate_contract_admission(registry)
+
+
+def test_registry_identity_mismatch_fails(startup_evidence) -> None:
+    registry, generated, _ = startup_evidence
+    generated.REGISTRY_DIGEST = "b" * 64
+    with pytest.raises(EgContractError, match="registry differs"):
+        validate_contract_admission(registry)
+
+
+@pytest.mark.parametrize("failure", [_SyntheticMismatch, _SyntheticMissing])
+def test_provider_refusal_preserves_exact_cause(startup_evidence, failure) -> None:
+    registry, _, provider = startup_evidence
+    cause = failure("synthetic provider evidence failure")
+
+    def refuse(pin: str) -> None:
+        raise cause
+
+    provider.verify_receipt = refuse
+    with pytest.raises(EgContractError) as caught:
+        validate_contract_admission(registry)
+    assert caught.value.__cause__ is cause
+
+
+def test_unrelated_provider_runtime_failure_is_not_reclassified(
+    startup_evidence,
+) -> None:
+    registry, _, provider = startup_evidence
+    cause = RuntimeError("provider implementation bug")
+
+    def broken(pin: str) -> None:
+        raise cause
+
+    provider.verify_receipt = broken
+    with pytest.raises(RuntimeError) as caught:
+        validate_contract_admission(registry)
+    assert caught.value is cause
+
+
+def test_valid_semantic_mutates_flip_requires_pinned_evidence(
+    installed_contract: Path, startup_evidence
+) -> None:
+    registry, _, _ = startup_evidence
+    _change_method(
+        installed_contract,
+        policy={"authz_action": "query:read", "mutates": True, "idempotent": True},
+    )
+    # Both shape checks accept this valid new policy; trusted provider evidence
+    # must reject it against the generator's original pin before serving.
+    load_eg_bindings()
+    assert _validate_registry_bindings(registry) is None
+    with pytest.raises(EgContractError) as caught:
+        validate_contract_admission(registry)
+    assert isinstance(caught.value.__cause__, _SyntheticMismatch)
+
+
+@pytest.mark.parametrize(
+    "mapping",
+    [
+        {},
+        {"OTHER": (409, False)},
+        {"SYNTHETIC_REFUSAL": (403, False)},
+        {"SYNTHETIC_REFUSAL": (409, True)},
+        {"SYNTHETIC_REFUSAL": (True, False)},
+        {"SYNTHETIC_REFUSAL": (409, 0)},
+        {"SYNTHETIC_REFUSAL": [409, False]},
+        {"SYNTHETIC_REFUSAL": (409, False), "EXTRA": (500, True)},
+    ],
+)
+def test_generated_error_evidence_must_match_exactly(startup_evidence, mapping) -> None:
+    registry, generated, _ = startup_evidence
+    generated.ENGINE_ERRORS = mapping
+    with pytest.raises(EgContractError):
+        validate_contract_admission(registry)
+
+
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [],
+        [None],
+        [{"code": "X", "http_status_hint": 409}],
+        [{"code": "X", "http_status_hint": True, "retryable": False}],
+        [{"code": "X", "http_status_hint": 409, "retryable": 0}],
+        [{"code": "X", "http_status_hint": 409, "retryable": False}] * 2,
+    ],
+)
+def test_malformed_installed_error_rows_fail_even_if_provider_verifies(
+    installed_contract: Path, startup_evidence, rows
+) -> None:
+    registry, _, provider = startup_evidence
+    # Isolate error-table validation from the independently tested verifier seam.
+    provider.verify_receipt = lambda pin: None
+    (installed_contract / "errors.json").write_text(
+        json.dumps({"contract_version": 1, "errors": rows})
+    )
+    with pytest.raises(EgContractError):
+        validate_contract_admission(registry)
+
+
+@pytest.mark.parametrize(
+    "module", ["graph_os.api.generated.engine_errors", "epistemic_graph.contract"]
+)
+def test_missing_contract_module_fails_closed(
+    startup_evidence, monkeypatch, module
+) -> None:
+    registry, _, _ = startup_evidence
+    monkeypatch.setitem(sys.modules, module, None)
+    with pytest.raises(EgContractError) as caught:
+        validate_contract_admission(registry)
+    assert isinstance(caught.value.__cause__, ImportError)
+
+
+def test_wrong_generated_provider_pin_is_refused(startup_evidence) -> None:
+    registry, generated, _ = startup_evidence
+    generated.EG_RECEIPT_DIGEST = "b" * 64
+    with pytest.raises(EgContractError) as caught:
+        validate_contract_admission(registry)
+    assert isinstance(caught.value.__cause__, _SyntheticMismatch)
+
+
+def test_missing_error_file_preserves_provider_missing_failure(
+    installed_contract: Path, startup_evidence
+) -> None:
+    registry, _, _ = startup_evidence
+    (installed_contract / "errors.json").unlink()
+    with pytest.raises(EgContractError) as caught:
+        validate_contract_admission(registry)
+    assert isinstance(caught.value.__cause__, _SyntheticMissing)
+
+
+@pytest.mark.parametrize("version", [None, True, "1", 2])
+def test_unsupported_error_contract_version_fails(
+    installed_contract: Path, startup_evidence, version
+) -> None:
+    registry, _, provider = startup_evidence
+    provider.verify_receipt = lambda pin: None
+    path = installed_contract / "errors.json"
+    document = json.loads(path.read_text())
+    document["contract_version"] = version
+    path.write_text(json.dumps(document))
+    with pytest.raises(EgContractError, match="unsupported engine error contract"):
+        validate_contract_admission(registry)
