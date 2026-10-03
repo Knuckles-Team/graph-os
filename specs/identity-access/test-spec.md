@@ -41,3 +41,12 @@ private credential digests and request/session-instance substitution, including
 mutation across an await. Source fixtures do not qualify the EG producer, local
 signing keys, session persistence, installed generated bindings or mounted
 HTTP/MCP/WebUI serving. Those acceptance requirements remain outstanding.
+
+Additional source tests verify RS256 signatures using ephemeral in-memory test
+keys read through the injected existing key-store port, refusal without key
+provisioning, and current-authority changes during issuance. Request-lifecycle
+fixtures exercise the actual WebUI evidence/export class with synthetic backend
+and token-verifier owners: same caller-instance resolution, after-await request
+mutation, rotation/revocation, refresh invalidation, cancellation cleanup and
+concurrent same-subject isolation. These establish the composed source behavior
+only; no real EG/session/key-store binding or mounted deployment is qualified.

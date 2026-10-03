@@ -70,10 +70,13 @@ One engine-backed authority eliminates local/engine disagreement. Unavailable en
 ## Bounded producer implementation
 
 `identity.engine` parses and freezes the authoritative response shape;
-`identity.issuer` prepares consistent local claims and narrowed context without
-signing or manufacturing provenance. `identity.browser` validates the exact
-cookie/Origin/CSRF transport and captures private immutable request bindings.
-These are preparation primitives, not a mounted authentication implementation.
+`identity.issuer` prepares consistent local claims and narrowed context and
+signs through the existing read-only secret-backed key-ring port. Its injected
+credential authority is checked before signing and again before returning the
+token. It never generates, writes or rotates a deployment key or grants broker
+authority. `identity.browser` validates exact cookie/Origin/CSRF transport and
+captures private immutable request bindings. These source components are not
+a mounted authentication implementation.
 
 The serving composition must still inject qualified EG credential resolution,
 current policy, source expiry, an existing broker and signing authority. Browser
@@ -94,3 +97,25 @@ context does not yet supply source credential expiry or browser-session proof;
 these remain separate required authority inputs, never guessed from the policy
 version or a successful context parse. Source-aligned synthetic wire fixtures
 are not evidence that Rust serialization or generated bindings ran.
+
+`identity.ports` defines injected composition facts with mandatory source expiry;
+these are not new EG wire fields or a replacement WebUI evidence DTO.
+`UnavailableIdentityAuthority` explicitly refuses until qualified EG adapters
+supply those facts. `GraphOSBrowserAuthority` implements the existing WebUI port
+using a private per-request registry, exact caller-session instance, original
+credential and forwarded-token pairing. It checks snapshots after awaited
+owner calls, rechecks current authority before exporting evidence, and removes
+bindings on rotation/refusal/cancellation or context-manager exit. Refresh must
+invalidate the old binding before establishing a new one.
+
+E owns the integration sequence: enter `BrowserAdmission.request` with the
+original request; this producer rejects incoming cookie-plus-bearer ambiguity,
+issues the token from that exact cookie and obtains C's current caller session
+from that token before creating a private binding. Hand its returned normalized
+scope to C, inject this owner's `session_for_request` into C and this owner as
+the WebUI authority; call `before_invocation` with
+the resulting exact caller session immediately before dispatch; exit the
+context manager on every outcome. Request state cannot create authority. The
+owner is intentionally task-bound: a task handoff must be qualified explicitly,
+not repaired with an ambient or shared process session. This lifecycle does not
+implement persistent session creation/rotation or mount any route.
