@@ -196,3 +196,48 @@ def test_service_only_binding_cannot_be_relaxed(installed_contract: Path) -> Non
     ]
     with pytest.raises(EgContractError, match="service-only EG method exposed"):
         _validate_registry_bindings(Registry(ops))
+
+
+@pytest.mark.parametrize("curated_alias", [False, True])
+@pytest.mark.parametrize(
+    "updates",
+    [
+        {"domain": "invalid-domain"},
+        {"policy": {"authz_action": "query:read", "idempotent": True}},
+        {
+            "policy": {
+                "authz_action": "query:read",
+                "mutates": "false",
+                "idempotent": True,
+            }
+        },
+        {"replay_class": "Unknown"},
+        {"stability": "unknown"},
+        {"note": "   "},
+        {"request_schema": None},
+        {
+            "request_schema": {
+                "schema": "contract/schemas/method.request.json#/methods/Missing"
+            }
+        },
+        {
+            "result_schema": {
+                "schema": "contract/schemas/result.query.json#/methods/Missing"
+            }
+        },
+        {"result_schema": {"schema": "contract/schemas/missing.json#/methods/Read"}},
+    ],
+)
+def test_bound_method_cannot_skip_provider_validation(
+    installed_contract: Path, updates: dict, curated_alias: bool
+) -> None:
+    ops = list(load_eg_bindings())
+    if curated_alias:
+        ops = [op.model_copy(update={"id": f"alias.{op.id}"}) for op in ops]
+    registry = Registry(ops)
+    _change_method(installed_contract, **updates)
+    # The same invalid evidence is already rejected during fresh generation.
+    with pytest.raises(EgContractError):
+        load_eg_bindings()
+    with pytest.raises(EgContractError):
+        _validate_registry_bindings(registry)
