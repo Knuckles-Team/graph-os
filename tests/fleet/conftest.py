@@ -9,6 +9,20 @@ check fails closed. Opt in explicitly per test
 (``@pytest.mark.usefixtures("stdio_fleet_authority")``) rather than
 autouse, so tests that specifically exercise the denied/unauthenticated path
 keep seeing that path.
+
+``_empty_local_skill_catalog_by_default`` isolates every test in this
+directory from the local-skill source (CONCEPT:AU-KG.retrieval.unified-
+capability-contract, ``graph_os.fleet.local_skill_catalog``): the real
+``build_local_skill_catalog`` resolves whatever is actually installed in
+THIS process (agent-utilities' own bundled skills, graph-os's own, any
+sibling package declaring the same entry point, …), which would otherwise
+leak into every ``discover_tools``/``_catalog_fleet_probe`` call
+non-deterministically and couple this suite's results to the synced
+environment's exact package set. Unlike ``stdio_fleet_authority`` this one
+IS autouse, since no test in this directory wants that leakage; a test that
+specifically exercises the merge (``tests/fleet/test_local_skill_catalog.py``,
+``tests/fleet/test_local_skill_discovery.py``) overrides it with its own
+``monkeypatch.setattr`` call after this fixture has already run.
 """
 
 from __future__ import annotations
@@ -17,6 +31,8 @@ from collections.abc import Iterator
 
 import pytest
 from agent_utilities.security.brain_context import ActorContext, use_actor
+
+import graph_os.fleet.multiplexer as _multiplexer_module
 
 # Covers every discover/delegate call these tests drive; no test in this
 # directory currently needs the "manage"-kind operation, so no administrative
@@ -35,3 +51,10 @@ def stdio_fleet_authority() -> Iterator[None]:
     )
     with use_actor(actor):
         yield
+
+
+@pytest.fixture(autouse=True)
+def _empty_local_skill_catalog_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        _multiplexer_module, "build_local_skill_catalog", lambda: ([], [])
+    )
