@@ -66,3 +66,21 @@ One engine-backed authority eliminates local/engine disagreement. Unavailable en
 4. Add identity/access operations and exact scope registry wiring; only then advertise routes.
 5. Add OIDC/LDAP/SCIM/brokered SAML/optional SMTP adapters and CLI/doctor.
 6. Run the three-mode decision oracle, browser/MCP/CLI flows, scanner and release gates; record exact evidence.
+
+## Bounded producer implementation
+
+`identity.engine` parses and freezes the authoritative response shape;
+`identity.issuer` prepares consistent local claims and narrowed context without
+signing or manufacturing provenance. `identity.browser` validates the exact
+cookie/Origin/CSRF transport and captures private immutable request bindings.
+These are preparation primitives, not a mounted authentication implementation.
+
+The serving composition must still inject qualified EG credential resolution,
+current policy, source expiry, an existing broker and signing authority. Browser
+session reference/expiry/MFA fields require a separately qualified EG response.
+No adapter may invent those fields or use a bare user lookup. Until the public
+generated binding and actual owners supply them, issuance and browser admission
+remain unavailable. Use the existing WebUI evidence class and C adapter; E must
+supply the exact caller-session instance bound by the producer. If scope-only
+verification cannot enforce that pairing, revise the C-owned interface before
+activation. No self-minted broker or parked implementation fallback is present.
