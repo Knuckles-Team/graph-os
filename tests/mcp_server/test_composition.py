@@ -175,7 +175,7 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
     registration = register_connector_content(mcp, connector_content())
 
     assert (registration.skills, registration.prompts, registration.resources) == (
-        4,
+        14,
         0,
         1,
     )
@@ -184,7 +184,17 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
     assert type(provider) is SkillsDirectoryProvider
     skills_root = Path(graph_os.skills.__file__).resolve().parent
     assert sorted(path.parent.name for path in skills_root.glob("*/SKILL.md")) == [
+        "agent-utilities-source-integration",
+        "autonomous-contribution",
+        "graph-engine-and-modalities",
+        "graph-ingestion-and-integration",
+        "graph-modeling-and-mutation",
+        "graph-orchestration-and-automation",
         "graph-os-development",
+        "graph-os-evolution",
+        "graph-query-and-explanation",
+        "graph-research-and-analysis",
+        "graph-runtime-and-governance",
         "graphos-deployment",
         "graphos-genesis",
         "using-graph-os",
@@ -193,8 +203,28 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
         str(resource.uri) for resource in anyio.run(provider.list_resources)
     )
     assert skill_uris == [
+        "skill://agent-utilities-source-integration/SKILL.md",
+        "skill://agent-utilities-source-integration/_manifest",
+        "skill://autonomous-contribution/SKILL.md",
+        "skill://autonomous-contribution/_manifest",
+        "skill://graph-engine-and-modalities/SKILL.md",
+        "skill://graph-engine-and-modalities/_manifest",
+        "skill://graph-ingestion-and-integration/SKILL.md",
+        "skill://graph-ingestion-and-integration/_manifest",
+        "skill://graph-modeling-and-mutation/SKILL.md",
+        "skill://graph-modeling-and-mutation/_manifest",
+        "skill://graph-orchestration-and-automation/SKILL.md",
+        "skill://graph-orchestration-and-automation/_manifest",
         "skill://graph-os-development/SKILL.md",
         "skill://graph-os-development/_manifest",
+        "skill://graph-os-evolution/SKILL.md",
+        "skill://graph-os-evolution/_manifest",
+        "skill://graph-query-and-explanation/SKILL.md",
+        "skill://graph-query-and-explanation/_manifest",
+        "skill://graph-research-and-analysis/SKILL.md",
+        "skill://graph-research-and-analysis/_manifest",
+        "skill://graph-runtime-and-governance/SKILL.md",
+        "skill://graph-runtime-and-governance/_manifest",
         "skill://graphos-deployment/SKILL.md",
         "skill://graphos-deployment/_manifest",
         "skill://graphos-genesis/SKILL.md",
