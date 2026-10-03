@@ -187,6 +187,7 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
         "graph-os-development",
         "graphos-deployment",
         "graphos-genesis",
+        "using-graph-os",
     ]
     skill_uris = sorted(
         str(resource.uri) for resource in anyio.run(provider.list_resources)
@@ -198,6 +199,8 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
         "skill://graphos-deployment/_manifest",
         "skill://graphos-genesis/SKILL.md",
         "skill://graphos-genesis/_manifest",
+        "skill://using-graph-os/SKILL.md",
+        "skill://using-graph-os/_manifest",
     ]
 
     assert len(mcp.resources) == 1
