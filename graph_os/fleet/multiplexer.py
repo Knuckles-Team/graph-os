@@ -6347,22 +6347,46 @@ def _tool_result_from_child(result: MCPCallToolResult) -> _fastmcp_tools.ToolRes
     )
 
 
+def make_governed_tool_mount(mcp, mux: MCPMultiplexer, native_name):
+    """Prepare MultiplexerOps' tool mount callback without activating the host.
+
+    Non-tool native mounts need their own verified read adapter. The process
+    owner composes that adapter rather than pretending a resource is a tool.
+    """
+    from graph_os.api.mcp.registration import RESIDENT_NAMES
+
+    async def mount(item, _forwarder):
+        if item.kind != "tool":
+            raise RuntimeError("governed non-tool mount adapter is required")
+        name = native_name(item)
+        if name in RESIDENT_NAMES:
+            raise ValueError("native fleet name collides with a resident tool")
+        tool = _fastmcp_tools.FunctionTool(
+            name=name,
+            description=item.description,
+            parameters=dict(item.schema),
+            fn=_make_forwarder(mux, name),
+        )
+        mcp.add_tool(tool)
+        attached = await mcp.get_tool(name)
+        if attached is None or getattr(attached, "fn", None) is not tool.fn:
+            raise RuntimeError("native fleet tool attachment was incomplete")
+
+    return mount
+
+
 def _make_forwarder(mux: MCPMultiplexer, prefixed_name: str):
-    """Build the async fn that forwards a prefixed tool call to its child."""
+    """Build a native tool whose only call path is governed fleet.call.
+
+    The process owner binds the prepared registration after validating live
+    authorities. An absent binding never falls back to a shared child credential.
+    """
 
     async def _forward(**kwargs: _typing.Any) -> _fastmcp_tools.ToolResult:
-        if mux._authority_scope is None:
-            result = await mux.call_proxied_tool(prefixed_name, kwargs)
-        else:
-            with mux._authority_scope():
-                result = await mux.call_proxied_tool(prefixed_name, kwargs)
-        if bool(getattr(result, "is_error", False)):
-            # ``_fastmcp_tools.ToolResult`` has no error bit. Returning one here silently
-            # converts a child MCP failure into an outer success, so raise the
-            # framework's typed error exactly as FastMCP's native proxy does.
-            # Keep the public message stable and free of child response data.
-            raise _fastmcp_exceptions.ToolError("delegated_child_tool_failed")
-        return _tool_result_from_child(result)
+        binding = getattr(mux, "_governed_fleet", None)
+        if binding is None:
+            raise _fastmcp_exceptions.ToolError("governed_fleet_unavailable")
+        return await binding.call_native(prefixed_name, kwargs)
 
     return _forward
 

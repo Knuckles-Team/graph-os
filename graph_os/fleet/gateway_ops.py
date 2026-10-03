@@ -11,10 +11,13 @@ import hashlib
 import re
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from graph_os.api.errors import FleetRefusal
 from graph_os.api.registry import Confirm, Effect, Executor, PrincipalRule
+
+if TYPE_CHECKING:
+    from graph_os.api.invoke import FleetCallDecision
 
 _CHILD_CODE = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,127}\Z")
 
@@ -123,6 +126,31 @@ def _require_service_authority(
         or not subject_id
     ):
         raise RuntimeError("service child authority metadata is incomplete")
+
+
+def _require_descriptor_authority(descriptor: AdmittedTool) -> None:
+    if (
+        not isinstance(descriptor, AdmittedTool)
+        or not isinstance(descriptor.required_scopes, frozenset)
+        or not all(
+            isinstance(scope, str) and scope for scope in descriptor.required_scopes
+        )
+        or descriptor.credential_mode not in {"delegated", "service"}
+        or not isinstance(descriptor.executor_scopes, frozenset)
+        or not all(
+            isinstance(scope, str) and scope for scope in descriptor.executor_scopes
+        )
+    ):
+        raise RuntimeError("fleet tool authority metadata is incomplete")
+    _require_service_authority(
+        descriptor.credential_mode, descriptor.executor_scopes, descriptor.subject_id
+    )
+    if descriptor.credential_mode == "service" and not descriptor.required_scopes:
+        raise RuntimeError("service child caller scopes are required")
+    if descriptor.credential_mode == "delegated" and (
+        descriptor.executor_scopes or descriptor.subject_id is not None
+    ):
+        raise RuntimeError("delegated child cannot carry service authority")
 
 
 def tool_for_multiplexer_ops(ops: Any) -> ToolFor:
@@ -309,27 +337,29 @@ class FleetGateway:
             caller, "mcp:delegate", session_required=True
         ).unload(caller, **params)
 
-    async def effect(self, _op: Any, params: Mapping[str, Any], caller: Any) -> Any:
+    async def effect(
+        self, _op: Any, params: Mapping[str, Any], caller: Any
+    ) -> FleetCallDecision:
+        """Resolve B's canonical decision using current admitted authority only."""
+        from graph_os.api.invoke import FleetCallDecision
+
         descriptor = await self._admitted_tool(caller, params["server"], params["tool"])
         effect, confirm, principal = annotation_effect(
             descriptor.annotations, override=descriptor.effect_override
         )
-        if descriptor.credential_mode == "service":
-            if self._service_call is None:
-                raise RuntimeError("owner-stamped service child adapter is unavailable")
-            from graph_os.api.invoke import FleetCallDecision
-
-            return FleetCallDecision(
-                effect=effect,
-                confirm=confirm,
-                principals=principal,
-                executor=Executor.SERVICE,
-                required_scopes=descriptor.required_scopes,
-                executor_scopes=descriptor.executor_scopes,
-                subject_id=descriptor.subject_id,
-                credential_mode="service",
-            )
-        return effect, confirm, principal
+        service = descriptor.credential_mode == "service"
+        if service and self._service_call is None:
+            raise RuntimeError("owner-stamped service child adapter is unavailable")
+        return FleetCallDecision(
+            effect=effect,
+            confirm=confirm,
+            principals=principal,
+            executor=Executor.SERVICE if service else Executor.CALLER,
+            required_scopes=descriptor.required_scopes,
+            executor_scopes=descriptor.executor_scopes,
+            subject_id=descriptor.subject_id,
+            credential_mode=descriptor.credential_mode,
+        )
 
     async def _admitted_tool(self, caller: Any, server: str, tool: str) -> AdmittedTool:
         if "mcp:delegate" not in caller.effective_scopes:
@@ -337,6 +367,7 @@ class FleetGateway:
         if caller.session is None:
             raise PermissionError("verified fleet session is required")
         descriptor = await self._tool_for(server, tool, caller)
+        _require_descriptor_authority(descriptor)
         if not descriptor.required_scopes.issubset(caller.effective_scopes):
             raise PermissionError("child scopes are required")
         if await self._policy_check(server, tool, caller) is not True:
@@ -357,7 +388,10 @@ class FleetGateway:
         fleet_decision: Any = None,
         registry_digest: str = "",
     ) -> Any:
-        descriptor = await self._admitted_tool(caller, server, tool)
+        try:
+            descriptor = await self._admitted_tool(caller, server, tool)
+        except RuntimeError as exc:
+            raise PermissionError("fleet authority changed before dispatch") from exc
         current_effect, _, _ = annotation_effect(
             descriptor.annotations, override=descriptor.effect_override
         )
@@ -414,7 +448,11 @@ def fleet_effect_for(
 ) -> Callable[
     [Any, Mapping[str, Any], Any], Awaitable[tuple[Effect, Confirm, PrincipalRule]]
 ]:
-    """Bind the invoke hook to a caller-filtered, fresh catalog lookup."""
+    """Legacy annotation classifier, not the canonical FleetEffect port.
+
+    Serving composition binds FleetGateway.effect instead: annotations alone
+    cannot establish credential mode, exact scopes, or service subject authority.
+    """
 
     async def resolve(
         _op: Any, params: Mapping[str, Any], caller: Any

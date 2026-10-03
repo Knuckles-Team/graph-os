@@ -38,3 +38,61 @@ def test_hard_cap_and_one_hour_idle_expiry() -> None:
     clock[0] = 3600.0
     assert sessions.active_keys() == ()
     assert sessions.loaded("first") == frozenset()
+
+
+def test_gateway_effect_returns_only_canonical_authoritative_decisions() -> None:
+    import asyncio
+    from dataclasses import replace
+    from types import SimpleNamespace
+
+    from graph_os.api.invoke import FleetCallDecision
+
+    from graph_os.api.registry import Effect, Executor
+    from graph_os.fleet.gateway_ops import AdmittedTool, FleetGateway
+
+    descriptor = AdmittedTool(
+        {"readOnlyHint": True}, None, frozenset({"data:read"}), "delegated"
+    )
+    current = [descriptor]
+    policy = [True]
+
+    async def tool_for(*_args):
+        return current[0]
+
+    async def allowed(*_args):
+        return policy[0]
+
+    async def forbidden(*_args):
+        pytest.fail("classification must never dispatch a child")
+
+    gateway = FleetGateway(
+        tool_for=tool_for, policy_check=allowed, delegated_call=forbidden
+    )
+    caller = SimpleNamespace(
+        effective_scopes=frozenset({"mcp:delegate", "data:read"}), session=object()
+    )
+
+    async def run():
+        decision = await gateway.effect(None, {"server": "s", "tool": "read"}, caller)
+        assert isinstance(decision, FleetCallDecision)
+        assert decision.effect is Effect.READ
+        assert decision.executor is Executor.CALLER
+        assert decision.required_scopes == descriptor.required_scopes
+        assert decision.executor_scopes == frozenset()
+        assert decision.subject_id is None
+        assert decision.credential_mode == "delegated"
+        policy[0] = False
+        with pytest.raises(PermissionError, match="denied by policy"):
+            await gateway.effect(None, {"server": "s", "tool": "read"}, caller)
+        policy[0] = True
+        current[0] = replace(descriptor, credential_mode="unknown")
+        with pytest.raises(RuntimeError, match="authority metadata"):
+            await gateway.effect(None, {"server": "s", "tool": "read"}, caller)
+        current[0] = replace(descriptor, executor_scopes=frozenset({"service:read"}))
+        with pytest.raises(RuntimeError, match="cannot carry service"):
+            await gateway.effect(None, {"server": "s", "tool": "read"}, caller)
+        current[0] = replace(descriptor, credential_mode="service")
+        with pytest.raises(RuntimeError, match="authority metadata"):
+            await gateway.effect(None, {"server": "s", "tool": "read"}, caller)
+
+    asyncio.run(run())
