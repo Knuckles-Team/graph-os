@@ -144,7 +144,9 @@ class BoundBrowserVerifier:
     """Bind the WebUI exporter to an explicit qualified live-session owner."""
 
     def __init__(self, *, authority: Any, console_origin: str) -> None:
-        if not callable(getattr(authority, "verify_request", None)):
+        if not callable(getattr(authority, "verify_request", None)) or not callable(
+            getattr(authority, "session_for_request", None)
+        ):
             raise ValueError("Verified browser session authority required")
         if not isinstance(console_origin, str) or not console_origin:
             raise ValueError("Verified browser origin required")
@@ -154,6 +156,10 @@ class BoundBrowserVerifier:
     async def __call__(self, request: Request, session: Any) -> int | None:
         from agent_webui.oidc_session import verify_browser_session
 
+        # The same producer that exports evidence must own this exact session.
+        # Equal subject/tenant values cannot prove a cookie-to-caller pairing.
+        if await self._authority.session_for_request(request) is not session:
+            raise PermissionError("Browser caller session instance was substituted")
         return await verify_browser_session(
             request.scope,
             session,

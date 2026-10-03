@@ -557,6 +557,10 @@ def test_bound_browser_verifier_calls_actual_webui_exporter(monkeypatch):
     calls = []
 
     class AuthorityFixture:
+        async def session_for_request(self, request):
+            assert request is req
+            return session
+
         async def verify_request(self, scope):
             calls.append(scope)
             return BrowserSessionEvidence(
@@ -572,3 +576,199 @@ def test_bound_browser_verifier_calls_actual_webui_exporter(monkeypatch):
     verifier = BoundBrowserVerifier(authority=AuthorityFixture(), console_origin=ORIGIN)
     assert asyncio.run(verifier(req, session)) == NOW_MS
     assert len(calls) == 1 and calls[0] is req.scope
+
+
+def test_bound_browser_verifier_rejects_same_principal_substitute_session():
+    import asyncio
+
+    from graph_os.api.http.auth import BoundBrowserVerifier
+
+    bound_session = SessionFixture()
+
+    class Owner:
+        async def session_for_request(self, request):
+            return bound_session
+
+        async def verify_request(self, scope):
+            pytest.fail("Substituted session reached evidence export")
+
+    verifier = BoundBrowserVerifier(authority=Owner(), console_origin=ORIGIN)
+    with pytest.raises(PermissionError, match="instance was substituted"):
+        asyncio.run(verifier(console_request(), SessionFixture()))
+
+
+def test_bound_browser_verifier_requires_same_owner_session_port():
+    from graph_os.api.http.auth import BoundBrowserVerifier
+
+    with pytest.raises(ValueError, match="authority required"):
+        BoundBrowserVerifier(
+            authority=SimpleNamespace(verify_request=lambda scope: None),
+            console_origin=ORIGIN,
+        )
+
+
+@pytest.fixture
+def browser_producer_path(monkeypatch):
+    """Actual producer/admission/C/WebUI path; synthetic EG and signing owners."""
+    import base64
+    import time
+
+    from agent_utilities.security.request_identity import VerifiedLocalBearer
+    from graph_os.identity.admission import BrowserAdmission
+    from graph_os.identity.broker import GraphOSBrowserAuthority
+    from graph_os.identity.browser import csrf_token_for
+    from graph_os.identity.engine import Resolution
+    from graph_os.identity.issuer import IssuerSettings, LocalIssuer
+    from graph_os.identity.ports import CredentialState, SessionState
+
+    now = int(time.time())
+    session = SessionFixture()
+    session.claims.update(
+        audience="fixture-audience", agent_id=session.actor.actor_id, roles=[]
+    )
+    resolution = Resolution.parse(
+        {
+            "principal_id": session.actor.actor_id,
+            "username": "fixture",
+            "kind": "human",
+            "status": "active",
+            "is_bootstrap": False,
+            "roles": [],
+            "groups": [],
+            "scopes": list(session.scopes),
+            "mfa_required": False,
+            "mfa_enrolled": True,
+            "session_mfa_pending": False,
+            "request_context": session.claims,
+        }
+    )
+    cookie = base64.urlsafe_b64encode(b"c" * 32).decode().rstrip("=")
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": "/api/fixture",
+        "raw_path": b"/api/fixture",
+        "query_string": b"",
+        "headers": [
+            (b"cookie", f"__Host-graphos_session={cookie}".encode()),
+            (b"origin", ORIGIN.encode()),
+            (b"x-csrf-token", csrf_token_for(cookie).encode()),
+        ],
+    }
+
+    class Backend:
+        revoked = False
+
+        async def resolve_credential(self, credential):
+            assert credential == cookie
+            if self.revoked:
+                raise PermissionError("fixture revoked")
+            return CredentialState(resolution, (now + 120) * 1000)
+
+        async def resolve_session(self, credential):
+            assert credential == cookie
+            if self.revoked:
+                raise PermissionError("fixture revoked")
+            return SessionState(
+                resolution, (now + 120) * 1000, "fixture-session-ref", now * 1000
+            )
+
+    backend = Backend()
+    issuer = LocalIssuer(
+        SimpleNamespace(get=lambda _: None),
+        IssuerSettings("https://issuer.invalid", "fixture-audience", session.tenant),
+        backend,
+    )
+    issued_claims = {}
+
+    def fixture_sign(claims):
+        issued_claims.update(claims)
+        return "synthetic-forwarded-token"
+
+    monkeypatch.setattr(issuer, "_sign", fixture_sign)
+
+    async def verify(token):
+        assert token == "synthetic-forwarded-token"
+        return VerifiedLocalBearer(
+            issued_claims, "https://issuer.invalid", "fixture-audience"
+        )
+
+    owner = GraphOSBrowserAuthority(backend, verify, trusted_origin=ORIGIN)
+
+    async def session_for_token(token):
+        await verify(token)
+        return session
+
+    admission = BrowserAdmission(
+        issuer, owner, session_for_token, trusted_origin=ORIGIN
+    )
+    return admission, owner, session, scope, backend
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "normal",
+        "input-scope",
+        "copied-scope",
+        "other-task",
+        "substitute-session",
+        "revoked",
+        "cancel",
+    ],
+)
+def test_actual_browser_producer_to_c_conversion_lifecycle(browser_producer_path, case):
+    import asyncio
+
+    from graph_os.api.http.auth import BoundBrowserVerifier, HTTPAuthenticationError
+
+    admission, owner, session, incoming, backend = browser_producer_path
+    auth = AmbientHTTPAuthenticator(
+        console_origin=ORIGIN,
+        session_for_request=owner.session_for_request,
+        verify_browser_session=BoundBrowserVerifier(
+            authority=owner, console_origin=ORIGIN
+        ),
+    )
+
+    async def scenario():
+        normalized = None
+        try:
+            async with admission.request(incoming) as normalized:
+                assert normalized is not incoming
+                request = Request(normalized)
+                caller = await auth.authenticate(request)
+                assert caller.session is session
+                assert auth.is_console_request(request, caller)
+                if case == "normal":
+                    await owner.before_invocation(normalized, caller.session)
+                elif case in {"input-scope", "copied-scope"}:
+                    wrong_scope = (
+                        incoming if case == "input-scope" else dict(normalized)
+                    )
+                    with pytest.raises(HTTPAuthenticationError):
+                        await auth.authenticate(Request(wrong_scope))
+                elif case == "other-task":
+                    with pytest.raises(HTTPAuthenticationError):
+                        await asyncio.create_task(auth.authenticate(request))
+                elif case == "substitute-session":
+                    with pytest.raises(
+                        PermissionError, match="instance was substituted"
+                    ):
+                        await BoundBrowserVerifier(
+                            authority=owner, console_origin=ORIGIN
+                        )(request, SessionFixture())
+                elif case == "revoked":
+                    backend.revoked = True
+                    with pytest.raises(PermissionError):
+                        await owner.before_invocation(normalized, caller.session)
+                elif case == "cancel":
+                    raise asyncio.CancelledError()
+        except asyncio.CancelledError:
+            assert case == "cancel"
+        assert owner._requests == {}
+        with pytest.raises(HTTPAuthenticationError):
+            await auth.authenticate(Request(normalized))
+        assert "graphos_session_admitted" not in incoming.get("state", {})
+
+    asyncio.run(scenario())
