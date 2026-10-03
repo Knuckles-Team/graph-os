@@ -11,6 +11,8 @@ from fastapi import Request
 from graph_os.api.mcp.caller import caller_from_session
 
 if TYPE_CHECKING:
+    from agent_utilities.security.request_identity import VerifiedLocalBearer
+
     from graph_os.api.invoke import VerifiedCaller
 
 
@@ -111,3 +113,50 @@ class AmbientHTTPAuthenticator:
             )
         except PermissionError:
             raise HTTPAuthenticationError("Verified identity required") from None
+
+
+async def verify_local_bearer_request(request: Request) -> VerifiedLocalBearer:
+    """Verify this request's exact local token; do not manufacture a caller.
+
+    The result lacks current policy/delegation/engine authority. Composition
+    must obtain those from the qualified owner before producing a session.
+    No ambient identity or legacy actor/session minter is consulted here.
+    """
+    from agent_utilities.security.auth import parse_bearer_authorization
+    from agent_utilities.security.request_identity import verify_local_bearer_token
+
+    try:
+        token = parse_bearer_authorization(
+            [
+                value
+                for key, value in request.scope.get("headers", ())
+                if key.lower() == b"authorization"
+            ]
+        )
+        if token is None:
+            raise PermissionError("Presented bearer required")
+        return await verify_local_bearer_token(token)
+    except PermissionError:
+        raise HTTPAuthenticationError("Verified local bearer required") from None
+
+
+class BoundBrowserVerifier:
+    """Bind the WebUI exporter to an explicit qualified live-session owner."""
+
+    def __init__(self, *, authority: Any, console_origin: str) -> None:
+        if not callable(getattr(authority, "verify_request", None)):
+            raise ValueError("Verified browser session authority required")
+        if not isinstance(console_origin, str) or not console_origin:
+            raise ValueError("Verified browser origin required")
+        self._authority = authority
+        self._console_origin = console_origin
+
+    async def __call__(self, request: Request, session: Any) -> int | None:
+        from agent_webui.oidc_session import verify_browser_session
+
+        return await verify_browser_session(
+            request.scope,
+            session,
+            authority=self._authority,
+            console_origin=self._console_origin,
+        )

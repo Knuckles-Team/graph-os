@@ -455,3 +455,120 @@ def test_authority_fault_is_not_hidden_as_authentication_denial():
         )
     with pytest.raises(RuntimeError, match="fixture authority unavailable"):
         mcp.caller_for_request()
+
+
+def test_verified_token_facts_are_not_a_current_engine_session():
+    import asyncio
+
+    from graph_os.api.http.auth import HTTPAuthenticationError
+
+    # Explicit partial-result fixture has authenticated token facts but no
+    # qualified current policy/delegation or engine envelope.
+    partial = SimpleNamespace(
+        principal="fixture-human",
+        tenant="fixture-tenant",
+        principal_kind="human",
+        exact_scopes=frozenset({"fixture:read"}),
+    )
+    http, mcp = adapters(partial)
+    with pytest.raises(HTTPAuthenticationError):
+        asyncio.run(
+            http.authenticate(bearer_request((b"authorization", b"Bearer fixture")))
+        )
+    assert mcp.caller_for_request() is None
+
+
+def test_bound_browser_verifier_requires_explicit_authority():
+    from graph_os.api.http.auth import BoundBrowserVerifier
+
+    with pytest.raises(ValueError, match="authority required"):
+        BoundBrowserVerifier(authority=None, console_origin=ORIGIN)
+
+
+def test_http_local_bearer_bridge_passes_exact_token_to_owner(monkeypatch):
+    import asyncio
+    import time
+
+    from agent_utilities.security import request_identity
+
+    from graph_os.api.http.auth import verify_local_bearer_request
+
+    now = int(time.time())
+    result = request_identity.VerifiedLocalBearer(
+        claims={
+            "iss": "https://issuer.example.test",
+            "aud": "fixture-engine",
+            "sub": "fixture-principal",
+            "tenant_id": "fixture-tenant",
+            "principal_kind": "service",
+            "scope": "fixture:read",
+            "iat": now,
+            "nbf": now - 1,
+            "exp": now + 300,
+            "jti": "fixture-id",
+        },
+        issuer="https://issuer.example.test",
+        audience="fixture-engine",
+    )
+    seen = []
+
+    async def verify(token):
+        seen.append(token)
+        return result
+
+    monkeypatch.setattr(request_identity, "verify_local_bearer_token", verify)
+    req = bearer_request((b"authorization", b"Bearer exact-synthetic-token"))
+    req.scope["state"] = {"principal": "spoofed", "tenant": "spoofed"}
+    assert asyncio.run(verify_local_bearer_request(req)) is result
+    assert seen == ["exact-synthetic-token"]
+    assert result.principal == "fixture-principal"
+
+
+def test_http_local_bearer_bridge_rejects_ambiguous_credentials(monkeypatch):
+    import asyncio
+
+    from agent_utilities.security import request_identity
+
+    from graph_os.api.http.auth import (
+        HTTPAuthenticationError,
+        verify_local_bearer_request,
+    )
+
+    async def unexpected(token):
+        raise AssertionError("ambiguous credentials must not reach verification")
+
+    monkeypatch.setattr(request_identity, "verify_local_bearer_token", unexpected)
+    req = bearer_request(
+        (b"authorization", b"Bearer first"), (b"authorization", b"Bearer second")
+    )
+    with pytest.raises(HTTPAuthenticationError):
+        asyncio.run(verify_local_bearer_request(req))
+
+
+def test_bound_browser_verifier_calls_actual_webui_exporter(monkeypatch):
+    import asyncio
+
+    from agent_webui.oidc_session import BrowserSessionEvidence
+
+    from graph_os.api.http.auth import BoundBrowserVerifier
+
+    req = console_request()
+    session = SessionFixture()
+    calls = []
+
+    class AuthorityFixture:
+        async def verify_request(self, scope):
+            calls.append(scope)
+            return BrowserSessionEvidence(
+                request_scope=scope,
+                subject=session.actor.actor_id,
+                tenant=session.tenant,
+                session_ref="fixture-session",
+                expires_at_ms=NOW_MS + 60_000,
+                mfa_at_ms=NOW_MS,
+            )
+
+    monkeypatch.setattr("agent_webui.oidc_session.time.time", lambda: NOW_MS / 1000)
+    verifier = BoundBrowserVerifier(authority=AuthorityFixture(), console_origin=ORIGIN)
+    assert asyncio.run(verifier(req, session)) == NOW_MS
+    assert len(calls) == 1 and calls[0] is req.scope

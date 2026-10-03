@@ -26,6 +26,10 @@ def caller_from_session(
 
     if session is None or not isinstance(credential_kind, str) or not credential_kind:
         raise PermissionError("Verified session authority required")
+    if not callable(getattr(session, "ensure_authority_current", None)) or not callable(
+        getattr(session, "engine_verified_context", None)
+    ):
+        raise PermissionError("Current verified engine authority required")
     session.ensure_authority_current()
     actor = session.actor
     actor.ensure_credential_current()
