@@ -56,6 +56,10 @@ def test_valid_mutation_and_authoritative_cookie_lifetime():
         "au_session=anything",
         f"{SESSION_COOKIE}={TOKEN}; {SESSION_COOKIE}={TOKEN}",
         f"{SESSION_COOKIE}={TOKEN}; au_session=anything",
+        f"{SESSION_COOKIE} ={TOKEN}",
+        f"{SESSION_COOKIE}={TOKEN}; {SESSION_COOKIE}\t={TOKEN}",
+        f"{SESSION_COOKIE}={TOKEN}; au_session =anything",
+        f"{SESSION_COOKIE}={TOKEN}; au_session.0\t=anything",
     ],
 )
 def test_presented_invalid_cookie_is_never_absent(cookie):
@@ -107,6 +111,9 @@ def test_bad_origin_configuration_is_unavailable(origin):
         ("path", "/api/other"),
         ("raw_path", b"/api/other"),
         ("query_string", b"target=other"),
+        ("root_path", "/api"),
+        ("scheme", "https"),
+        ("server", ("different.invalid", 443)),
     ],
 )
 def test_same_object_mutation_across_await_invalidates_snapshot(field, value):

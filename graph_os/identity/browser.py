@@ -54,10 +54,13 @@ def session_from_scope(scope: Mapping[str, Any]) -> str | None:
     for header in _headers(scope, b"cookie"):
         for part in header.decode("latin-1").split(";"):
             name, separator, value = part.strip().partition("=")
-            if name == "au_session" or name.startswith("au_session."):
+            normalized_name = name.strip()
+            if normalized_name == "au_session" or normalized_name.startswith(
+                "au_session."
+            ):
                 raise PermissionError("legacy browser credential is unsupported")
-            if name == SESSION_COOKIE:
-                if not separator:
+            if normalized_name == SESSION_COOKIE:
+                if name != normalized_name or not separator:
                     raise PermissionError("session cookie is malformed")
                 found.append(value)
     if not found:
@@ -131,6 +134,20 @@ def _snapshot(scope: Mapping[str, Any], key: bytes) -> tuple[Any, ...]:
     raw_path, query = scope.get("raw_path"), scope.get("query_string")
     if type(raw_path) is not bytes or type(query) is not bytes:
         raise PermissionError("exact request target is missing")
+    root_path = scope.get("root_path", "")
+    scheme = scope.get("scheme")
+    if type(root_path) is not str or (scheme is not None and type(scheme) is not str):
+        raise PermissionError("request routing context is malformed")
+    server = scope.get("server")
+    if server is not None:
+        if (
+            type(server) not in (tuple, list)
+            or len(server) != 2
+            or type(server[0]) is not str
+            or type(server[1]) is not int
+        ):
+            raise PermissionError("request server context is malformed")
+        server = tuple(server)
     digests = []
     for name in (b"host", b"origin", b"cookie", b"authorization", b"x-csrf-token"):
         values_for_header = _headers(scope, name)
@@ -138,7 +155,7 @@ def _snapshot(scope: Mapping[str, Any], key: bytes) -> tuple[Any, ...]:
             len(value).to_bytes(8, "big") + value for value in values_for_header
         )
         digests.append(hmac.digest(key, name + b"\0" + material, "sha256"))
-    return (*values, raw_path, query, *digests)
+    return (*values, root_path, raw_path, query, scheme, server, *digests)
 
 
 @dataclass(frozen=True, slots=True, repr=False)
