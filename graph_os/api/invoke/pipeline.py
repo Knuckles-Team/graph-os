@@ -524,6 +524,15 @@ async def invoke(
         not isinstance(plan_ref, str) or not plan_ref or not needs_plan
     ):
         return OpError("PLAN_MISMATCH")
+    if needs_plan and op.id in services.native_idempotency and services.effects is None:
+        # OperationIdentity replays only by resubmitting the mutation. It cannot
+        # prove whether a consumed confirmation already reached that owner. A
+        # post-consumption retry must never become a new, unconfirmed effect.
+        # Require an existing qualified replay/confirmation coordinator; never
+        # create a GraphOS ledger or assume a consumed plan means completion.
+        return OpError(
+            "UNAVAILABLE", {"reason": "confirmed replay authority unavailable"}
+        )
     if needs_plan and plan_ref is None:
         preview = await _effect(
             op,
@@ -546,7 +555,7 @@ async def invoke(
     ):
         return OpError("INVALID_ARGUMENT", {"field": "idempotency_key"})
     governed = op.effect != Effect.READ or op.id == "fleet.call"
-    native_replay = op.id in services.native_idempotency
+    native_replay = op.id in services.native_idempotency and not needs_plan
     if governed and not native_replay and services.effects is None:
         return OpError("UNAVAILABLE", {"reason": "durable effect owner unavailable"})
     if governed:

@@ -14,6 +14,7 @@ from test_invoke_contract import caller, operation, run, setup_services
 from graph_os.api.invoke import FleetCallDecision, invoke
 from graph_os.api.invoke.eg_audit import EgAuditAdapter
 from graph_os.api.invoke.executor import BoundOperationRuntime
+from graph_os.api.invoke.plan import bind_plan
 from graph_os.api.policy.eunomia import PolicyGate
 from graph_os.api.registry import (
     AuditClass,
@@ -599,3 +600,68 @@ def test_audit_surface_identity_is_distinct_from_effect_identity():
     second = EgAuditAdapter._request_id({"surface": "mcp"}, verified)
     assert first != second
     assert first == EgAuditAdapter._request_id({"surface": "http"}, verified)
+
+
+def test_native_planned_effect_without_coordinator_is_unavailable_before_consumption():
+    services, runtime, audit, _, leases = setup_services(
+        operation(effect=Effect.DESTRUCTIVE),
+        effects=None,
+        native_idempotency={"example.write": "fixture:OperationIdentity"},
+    )
+    assert run(services).code == "UNAVAILABLE"
+    # A legacy caller may already hold a valid plan. Its presence does not add
+    # a replay-only native-owner contract that the provider does not expose.
+    params = {"subject": "object:one", "value": 1, "payload": {}}
+    binding = bind_plan(
+        services.registry.get("example.write"),
+        params,
+        caller(),
+        services.registry.digest,
+    )
+    reference = asyncio.run(services.plans.issue(binding, params))
+    assert run(services, plan_ref=reference).code == "UNAVAILABLE"
+    assert run(services, plan_ref=reference).code == "UNAVAILABLE"
+    assert not runtime.calls and not audit.events and leases.transitions == 0
+    # An already-consumed plan does not prove the old mutation completed.
+    leases.rows[reference]["status"] = "consumed"
+    assert run(services, plan_ref=reference).code == "UNAVAILABLE"
+    assert not runtime.calls
+
+
+def test_native_planned_effect_replays_only_through_existing_coordinator():
+    services, runtime, _, journal, leases = setup_services(
+        operation(effect=Effect.DESTRUCTIVE),
+        native_idempotency={"example.write": "fixture:OperationIdentity"},
+    )
+    reference = run(services).details["plan_ref"]
+    first = run(services, plan_ref=reference)
+    assert first.code == "OK"
+    assert run(services, plan_ref=reference) == first
+    assert len(runtime.calls) == 1 and leases.transitions == 1
+    assert len(journal.rows) == 1
+    assert runtime.calls[0][2].idempotency_key == "plan:" + reference
+    assert (
+        run(services, plan_ref=reference, params={"value": 2}).code
+        == "INVALID_ARGUMENT"
+    )
+    assert len(runtime.calls) == 1
+    runtime.on_verify = lambda supplied, count: replace(supplied, authenticated=False)
+    assert run(services, plan_ref=reference).code == "UNAUTHENTICATED"
+    assert leases.transitions == 1 and len(runtime.calls) == 1
+
+
+def test_native_planned_unknown_outcome_remains_pending_without_plan_reconsumption():
+    services, runtime, _, journal, leases = setup_services(
+        operation(effect=Effect.DESTRUCTIVE),
+        native_idempotency={"example.write": "fixture:OperationIdentity"},
+    )
+
+    async def dispatch():
+        raise TimeoutError("native effect may have committed")
+
+    runtime.on_dispatch = dispatch
+    reference = run(services).details["plan_ref"]
+    assert run(services, plan_ref=reference).code == "INDETERMINATE"
+    assert run(services, plan_ref=reference).code == "INDETERMINATE"
+    assert leases.transitions == 1 and len(runtime.calls) == 1
+    assert all(item.state == "pending" for _, item in journal.rows.values())
