@@ -98,6 +98,7 @@ graph-os-production-ops = "graph_os.deployment.production_ops:main"
 setup-config = "graph_os.deployment.cli:main"
 agent-utilities-doctor = "graph_os.deployment.doctor:main"
 agent-utilities-venv = "graph_os.deployment.venv_sync:main"
+graph-os-wiring-sweep = "graph_os.evolution.wiring_sweep:main"
 
 [project.entry-points."agent_utilities.skill_providers"]
 graph-os = "graph_os.skills"

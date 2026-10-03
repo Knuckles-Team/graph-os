@@ -49,7 +49,8 @@ This skill orchestrates **7 capabilities** into one evolution pipeline:
 ### Code-health pipeline (adapted from `code-enhancer`)
 
 6. **Wiring sweep** — AST-based import graph, dead-code, and concept
-   traceability analysis (see [`scripts/wiring_sweep.py`](scripts/wiring_sweep.py)).
+   traceability analysis (see the `graph-os-wiring-sweep` console script,
+   packaged at `graph_os/evolution/wiring_sweep.py`).
 7. **Architecture review** — C4 compliance, pillar concept coverage, and
    hot-path integration audit tailored to the 5-pillar architecture.
 
@@ -381,25 +382,27 @@ review boundary.
 ## Wiring sweep — AST-based codebase analysis
 
 A standalone AST-based analysis tool for detecting dead code, concept
-traceability gaps, and import graph anomalies in agent-utilities.
+traceability gaps, and import graph anomalies in agent-utilities. It ships
+as graph-os's own `graph-os-wiring-sweep` console script (source at
+`graph_os/evolution/wiring_sweep.py`, reachable from this skill but not
+itself skill content, so it stays an importable module rather than a
+bundled asset).
 
 ### Usage
 
 ```bash
 # Full sweep with markdown report
-python scripts/wiring_sweep.py /path/to/agent-utilities
+graph-os-wiring-sweep /path/to/agent-utilities
 
 # JSON output for CI integration
-python scripts/wiring_sweep.py /path/to/agent-utilities --json
+graph-os-wiring-sweep /path/to/agent-utilities --json
 
 # Write report to file
-python scripts/wiring_sweep.py /path/to/agent-utilities --output report.md
+graph-os-wiring-sweep /path/to/agent-utilities --output report.md
 ```
 
-The script is shipped inside this package-owned skill, at
-`graph_os/skills/graph-os-evolution/scripts/wiring_sweep.py`, and always
-scans `<root>/agent_utilities/` and `<root>/docs/concept_map.md` — point
-`root` at an agent-utilities checkout.
+`root` must be an agent-utilities checkout: the tool always scans
+`<root>/agent_utilities/` and `<root>/docs/concept_map.md`.
 
 ### What it analyzes
 
@@ -430,7 +433,7 @@ suitable for use as a pre-commit check or CI gate in agent-utilities:
   hooks:
     - id: wiring-sweep
       name: Wiring Sweep
-      entry: python scripts/wiring_sweep.py . --json
+      entry: graph-os-wiring-sweep . --json
       language: system
       pass_filenames: false
 ```

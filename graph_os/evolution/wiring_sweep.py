@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """AST-based Wiring Sweep for agent-utilities.
 
-Part of the graph-os-evolution skill (packaged by graph-os). Provides a
+Backs the ``graph-os-wiring-sweep`` console script and the
+``graph-os-evolution`` skill's wiring-sweep capability. Provides a
 comprehensive codebase analysis for concept traceability, dead code
 detection, import graph analysis, and wiring gap identification. The target
 codebase is agent-utilities: it scans ``<root>/agent_utilities/`` and
@@ -11,9 +12,9 @@ taxonomy, so ``root`` must be an agent-utilities checkout.
 CONCEPT:AU-AHE.evaluation.continuous-evaluation — Continuous Evaluation Engine (code health diagnostic)
 
 Usage:
-    python wiring_sweep.py /path/to/agent-utilities [--json] [--markdown]
-    python wiring_sweep.py /path/to/agent-utilities --output report.md
-    python wiring_sweep.py /path/to/agent-utilities --json --output report.json
+    graph-os-wiring-sweep /path/to/agent-utilities [--json] [--markdown]
+    graph-os-wiring-sweep /path/to/agent-utilities --output report.md
+    graph-os-wiring-sweep /path/to/agent-utilities --json --output report.json
 
 Reports:
     - Concept coverage: Code → Tests → Docs 1:1:1 traceability
@@ -240,7 +241,7 @@ class WiringSweep:
     def _read_source_text(py_file: Path) -> str | None:
         try:
             return py_file.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
+        except OSError:
             return None
 
     def _collect_definitions(
@@ -407,7 +408,7 @@ class WiringSweep:
         for md_file in sorted(self.docs_dir.rglob("*.md")):
             try:
                 text = md_file.read_text(encoding="utf-8", errors="ignore")
-            except Exception:
+            except OSError:
                 continue
 
             # Match both the "CONCEPT:"-prefixed and bare forms of the current
@@ -453,7 +454,7 @@ class WiringSweep:
             )
             for m in matches:
                 self.valid_concepts.add(m)
-        except Exception:
+        except OSError:
             pass
 
     def _parse_mermaid_nodes(self, content: str) -> list[tuple[str | None, str]]:
