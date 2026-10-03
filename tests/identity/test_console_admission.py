@@ -332,3 +332,80 @@ def test_session_display_handle_or_missing_reference_is_not_evidence(reference):
     backend = OwnersFixture()
     with pytest.raises(IdentityUnavailable, match="session binding reference required"):
         replace(backend.state, session_ref=reference)
+
+
+@pytest.mark.parametrize("phase", ["initial_binding", "before_invocation"])
+@pytest.mark.parametrize("change", ["revoke", "rotate", "expire", "caller"])
+def test_authority_change_during_token_await_refuses_and_cleans(phase, change):
+    async def scenario():
+        backend = OwnersFixture()
+        scope, session = forwarded_scope(), CallerFixture(backend.resolution)
+        triggered = phase == "initial_binding"
+        entered = False
+        invoked = False
+
+        async def verifier(token):
+            value = await backend.verify_token(token)
+            if triggered:
+                await asyncio.sleep(0)
+                if change == "revoke":
+                    backend.error = PermissionError("revoked during token verification")
+                elif change == "rotate":
+                    backend.state = replace(
+                        backend.state, session_ref="rotated-during-verification"
+                    )
+                elif change == "expire":
+                    backend.state = replace(backend.state, expires_at_ms=0)
+                else:
+                    session.scopes = ()
+            return value
+
+        owner = GraphOSBrowserAuthority(
+            backend, verifier, trusted_origin=ORIGIN, clock=lambda: backend.now
+        )
+        with pytest.raises(PermissionError):
+            async with owner._bind_request(
+                scope, session, forwarded_token="fixture-local-token"
+            ):
+                entered = True
+                triggered = True
+                try:
+                    await owner.before_invocation(scope, session)
+                except PermissionError:
+                    # Refusal must remove the binding before context-manager exit.
+                    assert owner._requests == {}
+                    raise
+                invoked = True
+        assert entered is (phase == "before_invocation")
+        assert invoked is False
+        assert owner._requests == {}
+        with pytest.raises(PermissionError):
+            await owner.verify_request(scope)
+
+    asyncio.run(scenario())
+
+
+def test_final_session_await_rechecks_caller_facts_before_return():
+    async def scenario():
+        backend = OwnersFixture()
+        scope, session = forwarded_scope(), CallerFixture(backend.resolution)
+        owner = backend.producer()
+        async with owner._bind_request(
+            scope, session, forwarded_token="fixture-local-token"
+        ):
+            calls = 0
+
+            async def mutate_during_final_resolve():
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    await asyncio.sleep(0)
+                    session.policy_version = "changed-policy"
+
+            backend.on_resolve = mutate_during_final_resolve
+            with pytest.raises(PermissionError):
+                await owner.before_invocation(scope, session)
+            assert calls == 2
+            assert owner._requests == {}
+
+    asyncio.run(scenario())

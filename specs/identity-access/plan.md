@@ -119,3 +119,13 @@ context manager on every outcome. Request state cannot create authority. The
 owner is intentionally task-bound: a task handoff must be qualified explicitly,
 not repaired with an ambient or shared process session. This lifecycle does not
 implement persistent session creation/rotation or mount any route.
+
+Token verification may await remote key retrieval, so a session result read
+before verification is not a current-state fence. Initial binding resolves
+again after verification and refuses a changed session reference. Evidence
+verification likewise ends its awaited owner calls with live session
+resolution; request snapshot, token lifetime, current caller facts and rotation
+are then checked synchronously before return. A refusal removes the private
+binding immediately, before the request context exits. The qualified EG
+adapter must uphold its live-resolution consistency contract; this ordering is
+not a distributed transaction or a substitute for final engine authorization.

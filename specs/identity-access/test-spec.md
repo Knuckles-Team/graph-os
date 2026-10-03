@@ -50,3 +50,9 @@ and token-verifier owners: same caller-instance resolution, after-await request
 mutation, rotation/revocation, refresh invalidation, cancellation cleanup and
 concurrent same-subject isolation. These establish the composed source behavior
 only; no real EG/session/key-store binding or mounted deployment is qualified.
+
+Deterministic await regressions revoke, rotate, expire or alter caller authority
+during token verification in both initial binding and pre-invocation checks.
+All must refuse with no invocation or retained binding. A separate case changes
+caller policy during the final session resolution and requires refusal before
+evidence return. These preserve the earlier cookie and effective-route probes.

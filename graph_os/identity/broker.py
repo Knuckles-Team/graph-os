@@ -171,10 +171,20 @@ class GraphOSBrowserAuthority:
         state = await self._authority.resolve_session(credential)
         if _snapshot(scope, key) != initial:
             raise PermissionError("request changed during session resolution")
+        if not isinstance(state, SessionState):
+            raise IdentityUnavailable("qualified EG session evidence unavailable")
+        initial_session_ref = state.session_ref
         verified = await self._verify_token(forwarded_token)
         if _snapshot(scope, key) != initial:
             raise PermissionError("request changed during token verification")
+        # Token verification may await a remote key source. Its completion is
+        # not a session-revocation fence: resolve again AFTER that await.
+        state = await self._authority.resolve_session(credential)
+        if _snapshot(scope, key) != initial:
+            raise PermissionError("request changed during final session resolution")
         self._facts(state, session, verified)
+        if state.session_ref != initial_session_ref:
+            raise PermissionError("browser session rotated during initial binding")
         if _snapshot(scope, key) != initial:
             raise PermissionError("request changed during caller verification")
         if id(scope) in self._requests:
@@ -211,6 +221,10 @@ class GraphOSBrowserAuthority:
             state = await self._authority.resolve_session(record.credential)
             self._record(scope)
             verified = await self._verify_token(record.forwarded_token)
+            self._record(scope)
+            # This must be the final awaited owner operation. All remaining
+            # snapshot, token-lifetime, caller and rotation checks are synchronous.
+            state = await self._authority.resolve_session(record.credential)
             self._record(scope)
             self._facts(state, record.session, verified)
             self._record(scope)
