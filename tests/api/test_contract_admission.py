@@ -460,3 +460,35 @@ def test_unsupported_error_contract_version_fails(
     path.write_text(json.dumps(document))
     with pytest.raises(EgContractError, match="unsupported engine error contract"):
         validate_contract_admission(registry)
+
+
+@pytest.mark.parametrize(
+    "failure", ["ContractArtifactMissing", "ContractDigestMismatch"]
+)
+def test_first_provider_import_failure_is_normalized(
+    tmp_path: Path, startup_evidence, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    """Exercise eager import failure, not a preloaded synthetic provider module.
+
+    The provider currently defines its exceptions inside the same initializer
+    that reads the receipt. A missing or malformed receipt raises before the
+    consumer can import those types. Keep this regression red until the producer
+    exposes independently importable exception identity; never match class names.
+    """
+    registry, _, _ = startup_evidence
+    package = tmp_path / "cold_provider"
+    contract = package / "contract"
+    contract.mkdir(parents=True)
+    # A minimal synthetic initializer reproduces the production import ordering,
+    # without copying the provider's receipt parser or verification algorithm.
+    contract.joinpath("__init__.py").write_text(
+        "class ContractDigestMismatch(RuntimeError):\n    pass\n"
+        "class ContractArtifactMissing(ContractDigestMismatch):\n    pass\n"
+        f"raise {failure}('synthetic eager receipt failure')\n"
+    )
+    parent = ModuleType("epistemic_graph")
+    parent.__path__ = [str(package)]
+    monkeypatch.setitem(sys.modules, "epistemic_graph", parent)
+    monkeypatch.delitem(sys.modules, "epistemic_graph.contract", raising=False)
+    with pytest.raises(EgContractError):
+        validate_contract_admission(registry)
