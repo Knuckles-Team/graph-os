@@ -5,7 +5,7 @@ import pytest
 from graph_os.identity.engine import IdentityUnavailable, Resolution
 from graph_os.identity.issuer import IssuerSettings, claims_for
 
-from .test_engine_resolution import resolution_value
+from .test_engine_resolution import eg_public_resolution_fixture, resolution_value
 
 SETTINGS = IssuerSettings(
     "https://issuer.invalid", "fixture-audience", "fixture-tenant"
@@ -83,4 +83,15 @@ def test_ttl_does_not_coerce(ttl):
     with pytest.raises(ValueError):
         IssuerSettings(
             "https://issuer.invalid", "fixture-audience", "fixture-tenant", ttl
+        )
+
+
+def test_public_eg_context_does_not_supply_missing_credential_expiry():
+    resolution = Resolution.from_reply(eg_public_resolution_fixture())
+    with pytest.raises(IdentityUnavailable):
+        claims_for(
+            resolution,
+            IssuerSettings("https://issuer.invalid", "engine", "tenant"),
+            source_expires_at_ms=None,
+            now_ms=100_000,
         )

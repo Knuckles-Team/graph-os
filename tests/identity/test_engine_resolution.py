@@ -141,3 +141,54 @@ def test_missing_and_wrong_reply_tag_refuse():
     for reply in ({"value": resolution_value()}, {"kind": "principal", "value": {}}):
         with pytest.raises(IdentityUnavailable):
             Resolution.from_reply(reply)
+
+
+def eg_public_resolution_fixture():
+    """Synthetic wire form of EG's public generic specialization, not a dump.
+
+    Mirrors its source fixture with a role named kg:write and narrower kg:read
+    scopes. Native serialization and installed bindings remain unqualified.
+    """
+    value = resolution_value()
+    value.update(principal_id="usr:alice", username="alice", roles=["kg:write"])
+    value["request_context"].update(
+        principal="usr:alice",
+        agent_id="usr:alice",
+        tenant="tenant",
+        audience="engine",
+        roles=["kg:write"],
+        policy_version="policy-7",
+    )
+    return {"kind": "resolution", "value": value}
+
+
+@pytest.mark.parametrize("optional", ["omitted", "null", "present"])
+def test_eg_public_specialization_exact_shape_preserves_narrowing(optional):
+    reply = eg_public_resolution_fixture()
+    context = reply["value"]["request_context"]
+    if optional == "null":
+        context.update(node=None, priority=None)
+    elif optional == "present":
+        context.update(node="fixture-node", priority="interactive")
+    resolution = Resolution.from_reply(reply)
+    assert resolution.principal_id == "usr:alice"
+    assert resolution.roles == resolution.request_context["roles"] == ("kg:write",)
+    assert resolution.scopes == resolution.request_context["scopes"] == ("kg:read",)
+    assert resolution.request_context["policy_version"] == "policy-7"
+    assert ("node" in resolution.request_context) == (optional != "omitted")
+
+
+@pytest.mark.parametrize("context", [None, {}, [], "", False])
+def test_eg_raw_unit_or_incomplete_context_cannot_cross_public_boundary(context):
+    reply = eg_public_resolution_fixture()
+    reply["value"]["request_context"] = context
+    with pytest.raises(IdentityUnavailable):
+        Resolution.from_reply(reply)
+
+
+@pytest.mark.parametrize("field", ["session_ref", "expires_at_ms", "session_mfa_at_ms"])
+def test_unqualified_session_fields_are_not_silently_adopted(field):
+    reply = eg_public_resolution_fixture()
+    reply["value"][field] = "unqualified"
+    with pytest.raises(IdentityUnavailable):
+        Resolution.from_reply(reply)

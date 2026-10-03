@@ -84,3 +84,13 @@ remain unavailable. Use the existing WebUI evidence class and C adapter; E must
 supply the exact caller-session instance bound by the producer. If scope-only
 verification cannot enforce that pairing, revise the C-owned interface before
 activation. No self-minted broker or parked implementation fallback is present.
+
+The EG public source DTO is `IdentityReply<RequestContextClaims>` with
+`PrincipalResolution<RequestContextClaims>` at `kind=resolution/value`.
+GraphOS rejects a missing or null `request_context`, including the internal
+`PrincipalResolution<()>` shape. Optional context `node` and `priority` may be
+omitted or null; neither becomes identity authority. The public resolution
+context does not yet supply source credential expiry or browser-session proof;
+these remain separate required authority inputs, never guessed from the policy
+version or a successful context parse. Source-aligned synthetic wire fixtures
+are not evidence that Rust serialization or generated bindings ran.

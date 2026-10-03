@@ -2,6 +2,9 @@
 
 Parsing is not authentication. Only the qualified credential-resolution port
 may supply these values to an issuer; a user lookup or request body cannot.
+The public EG specialization is IdentityReply<RequestContextClaims>, carrying
+PrincipalResolution<RequestContextClaims> under kind=resolution/value. The
+internal unit-context specialization serializes a null context and is refused.
 """
 
 from collections.abc import Mapping
