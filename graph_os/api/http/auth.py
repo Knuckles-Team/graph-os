@@ -1,23 +1,17 @@
-"""HTTP identity adapter. Only server-verified authority reaches ``invoke``.
-
-Resolving ambient bearer/browser-session authority into a verified caller
-needs both the invocation pipeline's caller type and the identity module's
-session helpers. Neither ships on this branch yet (see
-``specs/hosted-api-operations/requirements.md`` GRAPHOS-OPS-R013), so that
-half stays unavailable here rather than being faked: a surface adapter that
-resolves ambient authority lands with those modules. ``AmbientHTTPAuthenticator``
-keeps only the console-origin/freshness check below, which needs no caller
-construction and so has no such dependency; ``create_api_application`` takes
-its authenticator as a required, structurally-typed dependency so this
-package never imports an authority resolver that does not exist yet.
-"""
+"""HTTP caller projection over explicitly supplied verified request authorities."""
 
 from __future__ import annotations
 
 import time
-from typing import Any
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Any
 
 from fastapi import Request
+
+from graph_os.api.mcp.caller import caller_from_session
+
+if TYPE_CHECKING:
+    from graph_os.api.invoke import VerifiedCaller
 
 
 class HTTPAuthenticationError(PermissionError):
@@ -31,9 +25,22 @@ class AmbientHTTPAuthenticator:
     token-bound CSRF have been checked. A cookie value cannot set the marker.
     """
 
-    def __init__(self, *, console_origin: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        console_origin: str | None = None,
+        session_for_request: Callable[[Request], Awaitable[Any]] | None = None,
+        verify_browser_session: Callable[[Request, Any], Awaitable[int | None]]
+        | None = None,
+    ) -> None:
         # Configured at the server composition root, never from a request.
         self.console_origin = console_origin
+        if session_for_request is not None and not callable(session_for_request):
+            raise ValueError("Verified HTTP session resolver required")
+        if verify_browser_session is not None and not callable(verify_browser_session):
+            raise ValueError("Verified browser session resolver required")
+        self._session_for_request = session_for_request
+        self._verify_browser_session = verify_browser_session
 
     def is_console_request(self, request: Request, caller: Any) -> bool:
         """Only a fresh attended browser session may use Surface.CONSOLE."""
@@ -56,3 +63,51 @@ class AmbientHTTPAuthenticator:
             return False
         age_ms = int(time.time() * 1000) - caller.mfa_at_ms
         return 0 <= age_ms <= 900_000
+
+    async def authenticate(self, request: Request) -> VerifiedCaller:
+        """Resolve the authority already verified and bound to this request.
+
+        ``session_for_request`` must reject credentials not verified for this
+        exact request; mere ambient process authority is insufficient. Browser
+        verification must check the live cookie, CSRF and session subject/tenant
+        binding, returning only a verified MFA timestamp (or None). Missing
+        authority refuses; headers and request state never manufacture a caller.
+        """
+        if self._session_for_request is None:
+            raise HTTPAuthenticationError("Verified HTTP authority unavailable")
+        state = request.scope.get("state") or {}
+        cookie = request.cookies.get("__Host-graphos_session")
+        admitted = state.get("graphos_session_admitted") is True
+        if cookie is not None or admitted:
+            if not cookie or not admitted or self._verify_browser_session is None:
+                raise HTTPAuthenticationError("Verified browser authority required")
+            kind = "session"
+        else:
+            authorization = request.headers.getlist("authorization")
+            if len(authorization) != 1:
+                raise HTTPAuthenticationError("Verified bearer required")
+            scheme, _, token = authorization[0].partition(" ")
+            if (
+                scheme.lower() != "bearer"
+                or not token
+                or any(c.isspace() for c in token)
+            ):
+                raise HTTPAuthenticationError("Verified bearer required")
+            kind = "bearer"
+        try:
+            session = await self._session_for_request(request)
+            mfa_at_ms = None
+            if kind == "session":
+                # The presence and callability of this authority were checked above.
+                verifier = self._verify_browser_session
+                if verifier is None:
+                    raise HTTPAuthenticationError("Verified browser authority required")
+                mfa_at_ms = await verifier(request, session)
+            return caller_from_session(
+                session,
+                credential_kind=kind,
+                request_id=request.headers.get("x-request-id", "")[:128],
+                mfa_at_ms=mfa_at_ms,
+            )
+        except PermissionError:
+            raise HTTPAuthenticationError("Verified identity required") from None
