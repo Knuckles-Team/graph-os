@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -167,11 +168,15 @@ def _public_details(
     if code == GraphOSErrorCode.INDETERMINATE:
         # The audit adapter emits this fixed reason when it cannot record the
         # outcome of an effect. Never reflect an arbitrary backend message.
-        return (
+        projected = (
             {"reason": "audit outcome unavailable"}
             if details.get("reason") == "audit outcome unavailable"
             else {}
         )
+        reference = _audit_reference(details.get("audit_ref"))
+        if reference is not None:
+            projected["audit_ref"] = reference
+        return projected
     allowed = {
         GraphOSErrorCode.SCOPE_REQUIRED: "missing_scopes",
         GraphOSErrorCode.LOAD_CAP_EXCEEDED: "loaded_items",
@@ -185,6 +190,32 @@ def _public_details(
     if any(not isinstance(item, str) or len(item) > 128 for item in values):
         return {}
     return {key: list(values)}
+
+
+def _audit_reference(value: object) -> str | None:
+    """Project the audit adapter's bounded pair, never arbitrary backend text.
+
+    This reference identifies a reservation; it grants no reconciliation access.
+    The reconciliation authority must independently verify caller and tenant.
+    """
+
+    if not isinstance(value, str) or len(value) > 89:
+        return None
+    try:
+        pair = json.loads(value)
+    except (ValueError, RecursionError):
+        return None
+    if not isinstance(pair, list) or len(pair) != 2:
+        return None
+    digest, sequence = pair
+    if (
+        not isinstance(digest, str)
+        or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+        or type(sequence) is not int
+        or not 0 <= sequence <= (1 << 64) - 1
+    ):
+        return None
+    return f"graphos_audit:{digest}:{sequence}"
 
 
 def _confirmation_details(
