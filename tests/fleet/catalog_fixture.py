@@ -183,6 +183,8 @@ async def bind_governed_forwarder_fixture(mux: MCPMultiplexer, result: Any) -> A
         policy_gate=policy,
         audit_preflight=AsyncMock(return_value="fixture:audit"),
         audit_write=AsyncMock(),
+        # Only this fixture's synthetic fleet coordinator owns replay coverage.
+        external_effect_operations=frozenset({"fleet.call"}),
         effects=SimpleNamespace(
             reserve=AsyncMock(
                 return_value=EffectReservation("fixture:reservation", "acquired")
