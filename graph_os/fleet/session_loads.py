@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 
 
@@ -20,6 +20,21 @@ class _Session:
     pending_changed: bool = False
     notification_sent: bool = False
     one_shot: set[str] = field(default_factory=set)
+    generations: dict[str, object] = field(default_factory=dict)
+    bindings: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    claims: dict[str, object] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class LoadGrant:
+    """A request-local claim on one exact loaded generation, never an identity grant."""
+
+    key: str
+    item: str
+    generation: object
+    binding: tuple[str, ...]
+    claim: object | None
+    dispatched: bool = False
 
 
 def _session_snapshot(session: _Session) -> list[dict[str, str | float]]:
@@ -95,17 +110,28 @@ class SessionLoads:
         *,
         evict: str | None = None,
         auto_unload: bool = False,
+        bindings: Mapping[str, tuple[str, ...]] | None = None,
     ) -> dict[str, object]:
         requested = list(dict.fromkeys(items))
+        if bindings is not None and any(
+            not isinstance(bindings.get(name), tuple)
+            or not bindings[name]
+            or any(not isinstance(part, str) for part in bindings[name])
+            for name in requested
+        ):
+            raise ValueError("load binding is incomplete")
         session = self._session(key)
         new = [name for name in requested if name not in session.items]
         victims = self._overflow_victims(session, requested, new, evict)
         for name in victims:
-            del session.items[name]
-            session.one_shot.discard(name)
+            self._remove(session, name)
         now = self._clock()
         for name in requested:
             session.items[name] = now
+            session.generations[name] = object()
+            session.bindings[name] = bindings[name] if bindings is not None else (name,)
+            session.claims.pop(name, None)
+            session.one_shot.discard(name)
             if auto_unload:
                 session.one_shot.add(name)
         if new or victims:
@@ -119,14 +145,82 @@ class SessionLoads:
 
     def unload(self, key: str, items: Iterable[str]) -> list[str]:
         session = self._session(key)
-        removed = sorted(set(items) & session.items.keys())
+        removed = sorted(set(items) & session.generations.keys())
         for name in removed:
-            del session.items[name]
-            session.one_shot.discard(name)
+            self._remove(session, name)
         if removed:
             session.pending_changed = True
             session.notification_sent = False
         return removed
+
+    @staticmethod
+    def _remove(session: _Session, item: str) -> None:
+        session.items.pop(item, None)
+        session.one_shot.discard(item)
+        session.generations.pop(item, None)
+        session.bindings.pop(item, None)
+        session.claims.pop(item, None)
+
+    def binding(self, key: str, item: str) -> tuple[str, ...] | None:
+        return self._session(key).bindings.get(item)
+
+    def retractable(self, key: str) -> frozenset[str]:
+        """Include a consumed one-shot still waiting at its transport boundary."""
+        return frozenset(self._session(key).generations)
+
+    def acquire(self, key: str, item: str) -> LoadGrant | None:
+        """Atomically reserve a one-shot; ordinary calls share a revocable generation."""
+        session = self._session(key)
+        if item not in session.items or item in session.claims:
+            return None
+        claim = object() if item in session.one_shot else None
+        if claim is not None:
+            session.claims[item] = claim
+        return LoadGrant(
+            key, item, session.generations[item], session.bindings[item], claim
+        )
+
+    def current(self, grant: LoadGrant) -> bool:
+        session = self._session(grant.key)
+        return (
+            session.generations.get(grant.item) is grant.generation
+            and session.bindings.get(grant.item) == grant.binding
+            and (grant.claim is None or session.claims.get(grant.item) is grant.claim)
+            and (grant.item in session.items or grant.dispatched)
+        )
+
+    def dispatch(self, grant: LoadGrant) -> bool:
+        """Consume once immediately before dispatch; no await separates the fence."""
+        if grant.dispatched or not self.current(grant):
+            return False
+        grant.dispatched = True
+        session = self._session(grant.key)
+        if grant.claim is not None:
+            session.items.pop(grant.item, None)
+            session.one_shot.discard(grant.item)
+            session.pending_changed = True
+            session.notification_sent = False
+        else:
+            session.items[grant.item] = self._clock()
+        return True
+
+    def revoke(self, grant: LoadGrant) -> list[str]:
+        """Retract this generation only; never remove a later explicit reload."""
+        session = self._session(grant.key)
+        if session.generations.get(grant.item) is not grant.generation:
+            return []
+        return self.unload(grant.key, [grant.item])
+
+    def release(self, grant: LoadGrant) -> None:
+        """Release only this acquisition; never restore revoked or consumed loads."""
+        session = self._session(grant.key)
+        if session.generations.get(grant.item) is not grant.generation:
+            return
+        if grant.claim is not None and session.claims.get(grant.item) is grant.claim:
+            if grant.dispatched:
+                self._remove(session, grant.item)
+            else:
+                session.claims.pop(grant.item, None)
 
     def touch(self, key: str, item: str) -> bool:
         session = self._session(key)

@@ -325,3 +325,157 @@ def test_current_unauthenticated_caller_cannot_use_previously_loaded_tool(
         assert surface.calls == []
 
     asyncio.run(run())
+
+
+async def _real_native_fixture():
+    from mcp.types import CallToolResult, TextContent
+
+    from tests.fleet.catalog_fixture import bind_governed_forwarder_fixture
+
+    return await bind_governed_forwarder_fixture(
+        SimpleNamespace(),
+        CallToolResult(content=[TextContent(type="text", text="ok")]),
+    )
+
+
+def test_concurrent_one_shot_acquires_only_one_real_invocation() -> None:
+    async def run():
+        state = await _real_native_fixture()
+        ops = state.binding.ops
+        await ops.load(
+            state.caller, items=["fleet:tool:synthetic/tool"], auto_unload=True
+        )
+        entered, release = asyncio.Event(), asyncio.Event()
+        original = state.services.runtime.dispatch
+        attempts = []
+
+        async def paused(op, params, context):
+            attempts.append(op.id)
+            entered.set()
+            await release.wait()
+            return await original(op, params, context)
+
+        state.services.runtime.dispatch = paused
+        first = asyncio.create_task(state.binding.call_native("synthetic__tool", {}))
+        await asyncio.wait_for(entered.wait(), 1)
+        try:
+            with pytest.raises(ToolError, match="UNKNOWN_TOOL"):
+                await asyncio.wait_for(
+                    state.binding.call_native("synthetic__tool", {}), 1
+                )
+        finally:
+            release.set()
+            await first
+        assert attempts == ["fleet.call"]
+        assert len(state.child_calls) == 1
+        assert not ops.sessions.loaded("fixture:session")
+
+    asyncio.run(run())
+
+
+def test_unload_during_catalog_lookup_cannot_reach_invoke() -> None:
+    async def run():
+        state = await _real_native_fixture()
+        ops = state.binding.ops
+        entered, release = asyncio.Event(), asyncio.Event()
+        original = ops.catalog.get
+        lookups = 0
+
+        async def paused(*args):
+            nonlocal lookups
+            lookups += 1
+            if lookups == 2:
+                entered.set()
+                await release.wait()
+            return await original(*args)
+
+        ops.catalog.get = paused
+        pending = asyncio.create_task(state.binding.call_native("synthetic__tool", {}))
+        await asyncio.wait_for(entered.wait(), 1)
+        await ops.unload(state.caller, items=["fleet:tool:synthetic/tool"])
+        release.set()
+        with pytest.raises(ToolError, match="UNKNOWN_TOOL"):
+            await pending
+        assert state.dispatches == []
+        assert state.child_calls == []
+
+    asyncio.run(run())
+
+
+def test_loaded_target_change_is_invalidated_instead_of_redirected() -> None:
+    async def run():
+        state = await _real_native_fixture()
+        ops = state.binding.ops
+
+        async def changed():
+            return [
+                CatalogItem(
+                    "fleet:tool:synthetic/tool", "tool", "other", server="elsewhere"
+                )
+            ]
+
+        ops.catalog._sources = (changed,)
+        with pytest.raises(ToolError, match="UNKNOWN_TOOL"):
+            await state.binding.call_native("synthetic__tool", {})
+        assert state.dispatches == []
+        assert state.child_calls == []
+        assert not ops.sessions.loaded("fixture:session")
+
+    asyncio.run(run())
+
+
+def test_reload_while_invoke_waits_invalidates_old_grant_not_new_load() -> None:
+    async def run():
+        state = await _real_native_fixture()
+        ops = state.binding.ops
+        entered, release = asyncio.Event(), asyncio.Event()
+        original = state.services.runtime.dispatch
+
+        async def paused(op, params, context):
+            entered.set()
+            await release.wait()
+            return await original(op, params, context)
+
+        state.services.runtime.dispatch = paused
+        pending = asyncio.create_task(state.binding.call_native("synthetic__tool", {}))
+        await asyncio.wait_for(entered.wait(), 1)
+        await ops.unload(state.caller, items=["fleet:tool:synthetic/tool"])
+        await ops.load(state.caller, items=["fleet:tool:synthetic/tool"])
+        release.set()
+        with pytest.raises(ToolError, match="UNKNOWN_TOOL"):
+            await pending
+        assert state.child_calls == []
+        assert ops.sessions.loaded("fixture:session") == {"fleet:tool:synthetic/tool"}
+
+    asyncio.run(run())
+
+
+def test_consumed_one_shot_is_revocable_while_transport_setup_waits() -> None:
+    from graph_os.fleet.gateway_ops import check_native_transport
+
+    async def run():
+        state = await _real_native_fixture()
+        ops = state.binding.ops
+        await ops.load(
+            state.caller, items=["fleet:tool:synthetic/tool"], auto_unload=True
+        )
+        entered, release = asyncio.Event(), asyncio.Event()
+        original = state.gateway._delegated_call
+
+        async def paused(server, tool, arguments, caller):
+            entered.set()
+            await release.wait()
+            check_native_transport(server, tool)
+            return await original(server, tool, arguments, caller)
+
+        state.gateway._delegated_call = paused
+        pending = asyncio.create_task(state.binding.call_native("synthetic__tool", {}))
+        await asyncio.wait_for(entered.wait(), 1)
+        assert not ops.sessions.loaded("fixture:session")
+        await ops.unload(state.caller, all_items=True)
+        release.set()
+        with pytest.raises(ToolError, match="UNKNOWN_TOOL"):
+            await pending
+        assert state.child_calls == []
+
+    asyncio.run(run())

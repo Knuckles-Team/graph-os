@@ -148,6 +148,8 @@ async def bind_governed_forwarder_fixture(mux: MCPMultiplexer, result: Any) -> A
         catalog_ops=ops,
     )
 
+    state.gateway = gateway
+
     async def current(supplied):
         assert supplied.principal == state.caller.principal
         assert supplied.tenant == state.caller.tenant

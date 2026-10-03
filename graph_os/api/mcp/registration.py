@@ -12,6 +12,7 @@ from fastmcp.server.middleware import Middleware
 from fastmcp.tools import FunctionTool, ToolResult
 from mcp.types import TextContent
 
+from graph_os.api.errors import FleetRefusal
 from graph_os.api.mcp.resources import register_resources
 from graph_os.api.mcp.verbs import (
     VERBS,
@@ -20,7 +21,9 @@ from graph_os.api.mcp.verbs import (
     dispatch_verb,
     make_verb,
 )
-from graph_os.fleet.multiplexer_ops import MultiplexerOps
+from graph_os.fleet.gateway_ops import native_dispatch_scope
+from graph_os.fleet.multiplexer_ops import MultiplexerOps, item_binding
+from graph_os.fleet.session_loads import LoadGrant
 
 FLEET_OPERATIONS = {
     "find_tools": "fleet.catalog.search",
@@ -111,37 +114,80 @@ class FleetMCPBinding:
         await self.ops.redeliver_pending(key)
         return frozenset(self.ops.sessions.loaded(key))
 
+    def _dispatch_fence(self, grant: LoadGrant, caller: Any) -> Callable[..., None]:
+        def fence(server: str, tool: str, current: Any, commit: bool) -> None:
+            target_matches = grant.binding == (grant.item, "tool", server, tool)
+            caller_matches = current is None or (
+                current.principal == caller.principal
+                and current.tenant == caller.tenant
+                and self.session_key_for(current) == grant.key
+            )
+            if not target_matches or not caller_matches:
+                raise FleetRefusal("UNKNOWN_TOOL", server, tool)
+            accepted = (
+                self.ops.sessions.dispatch(grant)
+                if commit
+                else self.ops.sessions.current(grant)
+            )
+            if not accepted:
+                raise FleetRefusal("UNKNOWN_TOOL", server, tool)
+
+        return fence
+
+    async def _invoke_native(
+        self, grant: LoadGrant, caller: Any, arguments: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        await self.ops.revoke_invisible(caller, grant.key)
+        await self.ops.redeliver_pending(grant.key)
+        item = await self.ops.catalog.get(grant.item, caller)
+        if (
+            item is None
+            or item.kind != "tool"
+            or not item.server
+            or item_binding(item) != grant.binding
+            or not self.ops.sessions.current(grant)
+        ):
+            self.ops.sessions.revoke(grant)
+            await self.ops.redeliver_pending(grant.key)
+            raise ToolError("UNKNOWN_TOOL")
+        with native_dispatch_scope(self._dispatch_fence(grant, caller)):
+            payload = await _invoke_and_render(
+                self.projection,
+                caller,
+                "fleet.call",
+                {
+                    "server": item.server,
+                    "tool": item.name,
+                    "arguments": dict(arguments),
+                },
+                plan_ref=None,
+                idempotency_key=None,
+                resolution=None,
+            )
+        # Replay/preview has no child dispatch, but still consumes this request's
+        # one-shot only if its original load generation remains current.
+        if payload["ok"] and not grant.dispatched:
+            if not self.ops.sessions.dispatch(grant):
+                raise ToolError("UNKNOWN_TOOL")
+        return payload
+
     async def call_native(self, name: str, arguments: Mapping[str, Any]) -> ToolResult:
         caller, key = self.request_context()
-        await self.ops.revoke_invisible(caller, key)
-        await self.ops.redeliver_pending(key)
         item_id = self.ops.catalog_id_for_native(name)
-        if item_id is None or not self.ops.dispatchable(key, name):
+        grant = self.ops.sessions.acquire(key, item_id) if item_id else None
+        if grant is None:
             raise ToolError("UNKNOWN_TOOL")
-        item = await self.ops.catalog.get(item_id, caller)
-        if item is None or item.kind != "tool" or not item.server:
-            await self._retract(key, item_id)
-            raise ToolError("UNKNOWN_TOOL")
-        payload = await _invoke_and_render(
-            self.projection,
-            caller,
-            "fleet.call",
-            {"server": item.server, "tool": item.name, "arguments": dict(arguments)},
-            plan_ref=None,
-            idempotency_key=None,
-            resolution=None,
-        )
+        try:
+            payload = await self._invoke_native(grant, caller, arguments)
+        finally:
+            self.ops.sessions.release(grant)
+        await self.ops.redeliver_pending(key)
         if not payload["ok"]:
             if payload["error"]["code"] in _AUTHORITY_REFUSALS:
-                await self._retract(key, item_id)
+                self.ops.sessions.revoke(grant)
+                await self.ops.redeliver_pending(key)
             raise ToolError(json.dumps(payload, sort_keys=True))
-        self.ops.sessions.touch(key, item_id)
-        await self.ops.redeliver_pending(key)
         return _native_result(payload)
-
-    async def _retract(self, key: str, item_id: str) -> None:
-        self.ops.sessions.unload(key, [item_id])
-        await self.ops.redeliver_pending(key)
 
 
 class GovernedSessionVisibility(Middleware):

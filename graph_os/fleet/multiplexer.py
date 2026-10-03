@@ -2680,6 +2680,9 @@ class MCPMultiplexer:
                 await self._assert_oauth_tool_admitted(
                     server_name, original_name, session, runtime_policy
                 )
+                from graph_os.fleet.gateway_ops import check_native_transport
+
+                check_native_transport(server_name, original_name)
                 return await session.call_tool(original_name, arguments)
         finally:
             if runtime_policy is not None:

@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -20,6 +22,35 @@ if TYPE_CHECKING:
     from graph_os.api.invoke import FleetCallDecision
 
 _CHILD_CODE = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,127}\Z")
+
+
+NativeDispatchFence = Callable[[str, str, Any, bool], None]
+_NATIVE_DISPATCH: ContextVar[NativeDispatchFence | None] = ContextVar(
+    "graphos_native_fleet_dispatch", default=None
+)
+
+
+@contextmanager
+def native_dispatch_scope(fence: NativeDispatchFence) -> Iterator[None]:
+    """Carry the existing session owner's grant only for this native invocation."""
+    token = _NATIVE_DISPATCH.set(fence)
+    try:
+        yield
+    finally:
+        _NATIVE_DISPATCH.reset(token)
+
+
+def commit_native_dispatch(server: str, tool: str, caller: Any) -> None:
+    fence = _NATIVE_DISPATCH.get()
+    if fence is not None:
+        fence(server, tool, caller, True)
+
+
+def check_native_transport(server: str, tool: str) -> None:
+    """Recheck after transport setup awaits, immediately before the MCP request."""
+    fence = _NATIVE_DISPATCH.get()
+    if fence is not None:
+        fence(server, tool, None, False)
 
 
 def _child_error_code(result: Any) -> str:
@@ -411,11 +442,13 @@ class FleetGateway:
                 fleet_decision=fleet_decision,
                 registry_digest=registry_digest,
             )
+            commit_native_dispatch(server, tool, caller)
             return await self._service_call(
                 server, tool, arguments, caller, validated_owner_ref, registry_digest
             )
         if service_identity is True:
             raise PermissionError("delegated child cannot use service identity")
+        commit_native_dispatch(server, tool, caller)
         return await self._delegated_call(server, tool, arguments, caller)
 
 

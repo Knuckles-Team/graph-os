@@ -151,3 +151,33 @@ def test_delegated_catalog_subject_is_not_service_executor_authority() -> None:
         assert decision.required_scopes == frozenset({"data:read"})
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("change", ["unload", "reload", "evict", "expire"])
+def test_inflight_grant_is_invalidated_by_session_owner(change: str) -> None:
+    clock = [0.0]
+    sessions = SessionLoads(cap=1, clock=lambda: clock[0])
+    sessions.load("s", ["a"], bindings={"a": ("tool", "server", "original")})
+    grant = sessions.acquire("s", "a")
+    assert grant is not None
+    if change == "unload":
+        sessions.unload("s", ["a"])
+    elif change == "reload":
+        sessions.load("s", ["a"], bindings={"a": ("tool", "server", "original")})
+    elif change == "evict":
+        sessions.load("s", ["b"], evict="lru")
+    else:
+        clock[0] = 3600.0
+    assert not sessions.current(grant)
+    assert not sessions.dispatch(grant)
+    sessions.release(grant)
+    if change == "reload":
+        assert sessions.loaded("s") == {"a"}
+
+
+def test_incomplete_binding_cannot_partially_evict_a_session() -> None:
+    sessions = SessionLoads(cap=1)
+    sessions.load("s", ["a"])
+    with pytest.raises(ValueError, match="binding is incomplete"):
+        sessions.load("s", ["b"], evict="lru", bindings={})
+    assert sessions.loaded("s") == {"a"}
