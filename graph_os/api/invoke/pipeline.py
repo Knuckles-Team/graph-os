@@ -122,6 +122,7 @@ class InvokeServices:
     audit_preflight: AuditPreflight
     audit_write: AuditWrite
     effects: EffectJournal | None = None
+    external_effect_operations: frozenset[str] = frozenset()
     native_idempotency: Mapping[str, str] = field(default_factory=dict)
     fleet_effect: FleetEffect | None = None
     schema_validate: SchemaValidate | None = None
@@ -146,6 +147,13 @@ class InvokeServices:
             for name in ("reserve", "complete")
         ):
             raise ValueError("effect reservation authority unavailable")
+        if not isinstance(self.external_effect_operations, frozenset) or any(
+            not isinstance(op_id, str) or self.registry.get(op_id) is None
+            for op_id in self.external_effect_operations
+        ):
+            raise ValueError("external effect coverage requires exact operations")
+        if self.external_effect_operations and self.effects is None:
+            raise ValueError("external effect coverage has no owner authority")
         for op_id, owner_contract in self.native_idempotency.items():
             if (
                 self.registry.get(op_id) is None
@@ -524,7 +532,8 @@ async def invoke(
         not isinstance(plan_ref, str) or not plan_ref or not needs_plan
     ):
         return OpError("PLAN_MISMATCH")
-    if needs_plan and op.id in services.native_idempotency and services.effects is None:
+    external_replay = op.id in services.external_effect_operations
+    if needs_plan and not external_replay:
         # OperationIdentity replays only by resubmitting the mutation. It cannot
         # prove whether a consumed confirmation already reached that owner. A
         # post-consumption retry must never become a new, unconfirmed effect.
@@ -556,7 +565,7 @@ async def invoke(
         return OpError("INVALID_ARGUMENT", {"field": "idempotency_key"})
     governed = op.effect != Effect.READ or op.id == "fleet.call"
     native_replay = op.id in services.native_idempotency and not needs_plan
-    if governed and not native_replay and services.effects is None:
+    if governed and not native_replay and not external_replay:
         return OpError("UNAVAILABLE", {"reason": "durable effect owner unavailable"})
     if governed:
         journal_key = idempotency_key

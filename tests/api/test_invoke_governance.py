@@ -396,6 +396,7 @@ def test_bound_service_execution_uses_configured_principal_and_exact_scopes():
     async def dispatch(binding, params, context):
         return None
 
+    original_bindings = {"admitted": object()}
     runtime = BoundOperationRuntime(
         caller_client=client,
         service_client=client,
@@ -405,7 +406,15 @@ def test_bound_service_execution_uses_configured_principal_and_exact_scopes():
         eg_dispatch=dispatch,
         service_scopes=frozenset({"example:execute", "example:other"}),
         service_principal="svc:configured",
+        bindings=original_bindings,
     )
+
+    original_bindings["unreviewed"] = object()
+    assert set(runtime.bindings) == {"admitted"}
+    with pytest.raises(TypeError):
+        runtime.bindings["unreviewed"] = object()
+    with pytest.raises(AttributeError):
+        runtime.bindings = {}
 
     async def execute():
         async with runtime.as_service(
@@ -665,3 +674,43 @@ def test_native_planned_unknown_outcome_remains_pending_without_plan_reconsumpti
     assert run(services, plan_ref=reference).code == "INDETERMINATE"
     assert leases.transitions == 1 and len(runtime.calls) == 1
     assert all(item.state == "pending" for _, item in journal.rows.values())
+
+
+def test_external_effect_coordinator_has_exact_per_operation_coverage():
+    from graph_os.api.registry import Registry
+
+    registry = Registry([operation(), operation(id="example.other")])
+    services, runtime, audit, journal, leases = setup_services(
+        registry=registry,
+        native_idempotency={"example.write": "fixture:OperationIdentity"},
+        external_effect_operations=frozenset({"example.other"}),
+    )
+    assert run(services, resolved_from_intent=True).code == "UNAVAILABLE"
+    assert (
+        not runtime.calls and not audit.events and not journal.rows and not leases.rows
+    )
+    assert run(services, op_id="example.other", idempotency_key="same").code == "OK"
+    assert len(runtime.calls) == 1
+    services = replace(services, native_idempotency={})
+    assert run(services, idempotency_key="same").code == "UNAVAILABLE"
+    assert len(runtime.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "coverage", [frozenset({"unknown.op"}), frozenset({"*"}), {"example.write"}]
+)
+def test_invalid_external_effect_coverage_refuses_construction(coverage):
+    with pytest.raises(ValueError, match="exact operations"):
+        setup_services(external_effect_operations=coverage)
+
+
+def test_context_service_map_is_an_owned_immutable_snapshot():
+    from graph_os.api.invoke.executor import ExecutionContext
+
+    source = {"admitted": object()}
+    admitted = source["admitted"]
+    context = ExecutionContext(caller(), object(), "person:one", False, source)
+    source["unreviewed"] = object()
+    assert context.services == {"admitted": admitted}
+    with pytest.raises(TypeError):
+        context.services["unreviewed"] = object()

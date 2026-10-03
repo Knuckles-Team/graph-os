@@ -9,6 +9,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Mapping
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from importlib import import_module
+from types import MappingProxyType
 from typing import Any, Protocol
 
 from graph_os.api.invoke.steps import (
@@ -54,6 +55,9 @@ class ExecutionContext:
     idempotency_key: str | None = None
     fleet_decision: Any = None
     registry_digest: str = ""
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "services", MappingProxyType(dict(self.services)))
 
     @property
     def owner_ref(self) -> str:
@@ -209,7 +213,12 @@ class BoundOperationRuntime:
         self._check_access = check_access
         self._eg_dispatch = eg_dispatch
         self.service_scopes = frozenset(service_scopes)
-        self.bindings = dict(bindings or {})
+        self._bindings = MappingProxyType(dict(bindings or {}))
+
+    @property
+    def bindings(self) -> Mapping[str, Any]:
+        """The exact admitted service-name mapping; owner objects retain identity."""
+        return self._bindings
 
     async def verify_current(self, caller: VerifiedCaller) -> VerifiedCaller:
         return await self._verify_current(caller)

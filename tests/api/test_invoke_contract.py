@@ -228,6 +228,9 @@ def setup_services(op=None, **changes):
         audit_preflight=audit.reserve,
         audit_write=audit.write,
         effects=journal,
+        external_effect_operations=frozenset({(op or operation()).id})
+        if changes.get("effects", journal) is not None
+        else frozenset(),
     )
     fields.update(changes)
     return InvokeServices(**fields), runtime, audit, journal, leases
