@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from types import ModuleType
 from typing import Any
 
 import pytest
@@ -150,12 +152,13 @@ def test_confirmation_rejects_unbounded_or_forged_resume_values() -> None:
     assert envelope["error"]["details"] == {}
 
 
-def test_engine_source_is_not_classifiable_yet() -> None:
-    """The engine source needs the EG error contract (see errors.py's module
-    docstring); it is deferred to the slice that can depend on it."""
-    with pytest.raises(ValueError, match="unknown operation error source"):
+def test_engine_source_without_generated_contract_fails(monkeypatch) -> None:
+    from graph_os.api.registry.eg_binding import EgContractError
+
+    monkeypatch.setitem(sys.modules, "graph_os.api.generated.engine_errors", None)
+    with pytest.raises(EgContractError):
         to_envelope(InvokeError("AUTH_TENANT_MISMATCH", source="engine"), **CONTEXT)
-    with pytest.raises(ValueError, match="unknown operation error source"):
+    with pytest.raises(EgContractError):
         a2a_error_status("AUTH_TENANT_MISMATCH", source="engine")
 
 
@@ -199,3 +202,24 @@ def test_invocation_keeps_structured_child_code_and_bounds_provenance() -> None:
     assert envelope["error"]["details"] == {"server": "search", "tool": "query"}
     assert a2a_error_status(refusal.code, source="fleet") == (-32000, 502)
     assert "secret" not in str(envelope)
+
+
+@pytest.mark.parametrize("retryable", [False, True])
+def test_generated_engine_table_controls_envelope(monkeypatch, retryable):
+    from graph_os.api.errors import EngineRefusal
+    from graph_os.api.registry.eg_binding import EgContractError
+
+    generated = ModuleType("graph_os.api.generated.engine_errors")
+    generated.ENGINE_ERRORS = {"SYNTHETIC_REFUSAL": (409, retryable)}
+    monkeypatch.setitem(sys.modules, generated.__name__, generated)
+    refusal = EngineRefusal("SYNTHETIC_REFUSAL", "tenant-secret", {"token": "secret"})
+    status, envelope = to_envelope(refusal, **CONTEXT)
+    assert status == 409
+    assert envelope["error"]["code"] == refusal.code
+    assert envelope["error"]["source"] == "engine"
+    assert envelope["error"]["retryable"] is retryable
+    assert envelope["error"]["details"] == {}
+    assert "tenant-secret" not in str(envelope)
+    assert a2a_error_status(refusal.code, source="engine") == (-32000, 409)
+    with pytest.raises(EgContractError):
+        to_envelope(EngineRefusal("UNKNOWN"), **CONTEXT)

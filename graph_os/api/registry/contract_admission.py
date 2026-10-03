@@ -27,9 +27,11 @@ def _require_digest(value: object) -> str:
 
 
 def _verify_provider_receipt(pin: str) -> None:
-    from epistemic_graph.contract import ContractDigestMismatch, verify_receipt
+    from epistemic_graph.contract_errors import ContractDigestMismatch
 
     try:
+        from epistemic_graph.contract import verify_receipt
+
         verify_receipt(pin)
     except ContractDigestMismatch as exc:
         # The provider's missing-contract exception subclasses this type too.

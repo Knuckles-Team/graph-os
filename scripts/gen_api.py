@@ -4,11 +4,8 @@
 A missing or empty registry fails closed; a hand-maintained contract is not
 an acceptable substitute for a generated one.
 
-The generated engine-error module (``graph_os/api/generated/engine_errors.py``,
-mapping an EG wire error code to an HTTP status and a retry flag) and its
-generator step are deferred: they require a pinned epistemic-graph revision
-that packages ``contract/errors.json``, which is a cross-repository
-dependency out of scope here. They return in the slice that can depend on it.
+Engine errors and their provider/registry identity are emitted together from the
+installed pinned provider. Missing package evidence stops generation.
 """
 
 from __future__ import annotations
@@ -314,10 +311,41 @@ def _ts_client(registry: dict[str, Any]) -> bytes:
     return "\n".join(lines).encode()
 
 
+def _engine_errors(registry: dict[str, Any]) -> bytes:
+    from epistemic_graph.contract_errors import ContractDigestMismatch
+
+    from graph_os.api.registry.contract_admission import (
+        _installed_error_table,
+        _require_digest,
+        _verify_provider_receipt,
+    )
+    from graph_os.api.registry.eg_binding import EgContractError
+
+    try:
+        from epistemic_graph.contract import RECEIPT_DIGEST
+    except ContractDigestMismatch as exc:
+        raise EgContractError("cannot read provider receipt for generation") from exc
+
+    pin = _require_digest(RECEIPT_DIGEST)
+    identity = _require_digest(registry["registry_digest"])
+    _verify_provider_receipt(pin)
+    errors = _installed_error_table()
+    _verify_provider_receipt(pin)
+    lines = [
+        '"""Generated engine error contract. Do not edit."""',
+        f"REGISTRY_DIGEST = {identity!r}",
+        f"EG_RECEIPT_DIGEST = {pin!r}",
+        "ENGINE_ERRORS: dict[str, tuple[int, bool]] = {",
+    ]
+    lines.extend(f"    {code!r}: {errors[code]!r}," for code in sorted(errors))
+    return ("\n".join([*lines, "}", ""])).encode()
+
+
 def generate(registry: dict[str, Any]) -> dict[Path, bytes]:
     if not registry.get("ops"):
         raise ValueError("refusing to generate an empty API registry")
     return {
+        GENERATED / "engine_errors.py": _engine_errors(registry),
         GENERATED / "registry.json": _json_bytes(registry),
         GENERATED / "descriptors.json": _json_bytes(_descriptors(registry)),
         GENERATED / "__init__.py": b'"""Generated GraphOS API contract artifacts."""\n',

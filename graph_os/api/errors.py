@@ -1,19 +1,8 @@
-"""One privacy-safe error envelope for the GraphOS operation surfaces.
-
-The closed GraphOS error vocabulary (``GraphOSErrorCode``) and the fleet
-error path (``FleetRefusal``) are self-contained and need no engine contract.
-The engine-sourced path (an ``EngineRefusal`` type and the "engine" source in
-``_classified_error``/``a2a_error_status``/``to_envelope``) is deferred out of
-this module for now: classifying an engine wire code into an HTTP status and
-a retry flag requires a code -> (status, retryable) table generated from the
-EG error contract (``epistemic_graph/contract/errors.json``), and there is no
-graph-os-side substitute for that table. It returns with the generated
-engine-error module and its generator step in the slice that can depend on a
-pinned epistemic-graph revision carrying that contract file.
-"""
+"""Privacy-safe errors; engine codes derive only from generated provider evidence."""
 
 from __future__ import annotations
 
+import importlib
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -86,6 +75,32 @@ class GraphOSRefusal(Exception):
     code: GraphOSErrorCode
     message: str = "Request refused"
     details: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class EngineRefusal(Exception):
+    """An engine code whose HTTP status/retryability belong to its contract."""
+
+    code: str
+    message: str = "Engine request refused"
+    details: Mapping[str, Any] = field(default_factory=dict)
+    source: str = field(default="engine", init=False)
+
+
+def _engine_error(code: str) -> tuple[int, bool]:
+    from graph_os.api.registry.contract_admission import _error_entry
+    from graph_os.api.registry.eg_binding import EgContractError
+
+    try:
+        table = importlib.import_module(
+            "graph_os.api.generated.engine_errors"
+        ).ENGINE_ERRORS
+        entry = table[code]
+        if not isinstance(entry, tuple) or len(entry) != 2:
+            raise EgContractError("malformed generated engine error entry")
+        return _error_entry(code, *entry)
+    except (ImportError, AttributeError, KeyError, TypeError) as exc:
+        raise EgContractError("engine error is absent from generated contract") from exc
 
 
 @dataclass(slots=True)
@@ -247,6 +262,9 @@ def _classify_op_error(
     error: OpErrorLike,
 ) -> tuple[str, str, int, bool, dict[str, Any]]:
     source = getattr(error, "source", "graphos")
+    if source == "engine":
+        status, retryable = _engine_error(error.code)
+        return error.code, "engine", status, retryable, {}
     if source == "fleet":
         return _classify_fleet_code(error.code, retryable=False, details=error.details)
     if source != "graphos":
@@ -293,13 +311,11 @@ _RPC_CODES: dict[GraphOSErrorCode, int] = {
 def a2a_error_status(
     code: GraphOSErrorCode | str, *, source: str = "graphos"
 ) -> tuple[int, int]:
-    """Return JSON-RPC and HTTP status for the graphos and fleet sources.
+    """Return JSON-RPC and HTTP status without reclassifying engine codes."""
 
-    The engine source is not classifiable here yet: its HTTP status and
-    retryability come from the EG error contract, which is not part of this
-    slice (see graph_os/api/errors.py module docstring).
-    """
-
+    if source == "engine":
+        status, _retryable = _engine_error(str(code))
+        return -32000, status
     if source == "fleet":
         if _FLEET_CODE.fullmatch(str(code)) is None:
             raise ValueError("invalid fleet error code")
@@ -325,6 +341,7 @@ def to_envelope(
     defaults: dict[str, str] = {
         "graphos": "Request refused",
         "fleet": "Fleet call refused",
+        "engine": "Engine request refused",
     }
     message = _public_message(defaults[source])
     envelope = {
