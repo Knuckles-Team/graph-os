@@ -147,13 +147,11 @@ mutation is explicitly authorized.
 - Use deterministic identifiers so retries update rather than duplicate.
 - Keep enrichment on the canonical document-processing path.
 
-Example authorized sync and verification plan; use
-`graph-query-and-explanation` for the read-back:
-
-```text
-source_sync(source="registered-source", mode="delta")
-graph_query(query="MATCH (n {id: $id}) RETURN n.id LIMIT 1", params='{"id":"synthetic-record"}')
-```
+For an authorized delta, call
+`source_sync(source="registered-source", mode="delta")`. Once that sync completes,
+use `graph-query-and-explanation` to read back a representative record with
+`graph_query(query="MATCH (n {id: $id}) RETURN n.id LIMIT 1", params='{"id":"synthetic-record"}')`.
+The sync receipt and the read-back together provide the evidence for verification.
 
 ### 4. Verify the graph
 

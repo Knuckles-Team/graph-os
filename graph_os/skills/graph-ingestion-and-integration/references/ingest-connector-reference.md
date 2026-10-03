@@ -171,6 +171,9 @@ hydrated with the physical and virtual topology:
   (default `$HOME/.config/agent-utilities/inventory.yaml`) → a `HardwareNode`
   per host (`hostname`, `ip_address`, `group`, `status`, ssh fields, extended
   metadata) + `HAS_INTERFACE`/`CONNECTS_VIA` edges.
+- **Runtime configuration** — `$XDG_CONFIG_HOME/agent-utilities/mcp_config.json`
+  and `$XDG_CONFIG_HOME/agent-utilities/config.json` describe MCP servers and
+  their deployment configuration.
 - **Ontology authority** — EG committed GraphSchema sources and
   `ontology_infrastructure.ttl` as ingestion targets, providing the formal
   BFO-aligned class hierarchy for infrastructure nodes.
@@ -185,16 +188,11 @@ hydrated with the physical and virtual topology:
 - **Container state (live)** — `container-manager-mcp`/`portainer-mcp` → live
   `Container`/`ContainerStack` nodes with `RUNS_ON`/`BELONGS_TO_STACK` edges.
 
-Default ingestion target list appended for a full workspace ingestion (XDG
-config/data directories, per the XDG Base Directory spec):
-```
-$XDG_CONFIG_HOME/agent-utilities/inventory.yaml
-$XDG_CONFIG_HOME/agent-utilities/mcp_config.json
-$XDG_CONFIG_HOME/agent-utilities/config.json
-$XDG_DATA_HOME/agent-utilities/topology/
-agent_utilities/knowledge_graph/ontology_infrastructure.ttl
-agent_utilities/workflows/catalog.yaml
-```
+For a full workspace ingestion, append the inventory, both runtime configuration
+files, topology directory, workflow catalog, and
+`agent_utilities/knowledge_graph/ontology_infrastructure.ttl` to the target set.
+Resolve configuration and data directories according to the XDG Base Directory
+specification.
 
 ## Skill-graph packages — distill OUT / import back (KG-2.7 / AHE-3.9)
 
@@ -221,14 +219,14 @@ projection of a KG subgraph. Two symmetric `graph_ingest` actions:
 
 ## Verification queries (read-only; supported shapes only)
 
-```cypher
--- per-category node counts
-MATCH (n:Concept) RETURN count(n)
--- cross-category interweaving (chats/docs share Concept nodes)
-MATCH (t:Thread)-[r:MENTIONS]->(c:Concept) RETURN count(r)
-MATCH (s:Document)-[:MENTIONS]->(c:Concept) RETURN count(DISTINCT c)
--- OWL edges present: PROVIDES, IMPLEMENTS, CALLS, CONTAINS, MENTIONS, ADDRESSES
-```
+| Read-back purpose | Query |
+|---|---|
+| Count nodes in the Concept category | `MATCH (n:Concept) RETURN count(n)` |
+| Count chat mentions of shared concepts | `MATCH (t:Thread)-[r:MENTIONS]->(c:Concept) RETURN count(r)` |
+| Count distinct concepts mentioned by documents | `MATCH (s:Document)-[:MENTIONS]->(c:Concept) RETURN count(DISTINCT c)` |
+
+Check the expected OWL relationships as well: `PROVIDES`, `IMPLEMENTS`, `CALLS`,
+`CONTAINS`, `MENTIONS`, and `ADDRESSES`.
 
 NOTE: the engine serves relationship traversal natively from its own compute over
 its durable store; under `fanout`, a Postgres/pg-age mirror (`kg_edges`) keeps a
