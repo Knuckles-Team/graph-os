@@ -222,9 +222,32 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Resolve scanner cache identity
+        id: scanner-cache-identity
+        env:
+          SCANNER_RECIPE: ${{ hashFiles('scripts/install_scanners.sh') }}
+        run: |
+          set -euo pipefail
+          rustc_identity="$(rustc -Vv)"
+          cargo_identity="$(cargo -V)"
+          identity="$(printf '%s\0' \
+            "$RUNNER_OS" "$RUNNER_ARCH" "${ImageOS:-}" "${ImageVersion:-}" \
+            "$SCANNER_RECIPE" "$rustc_identity" "$cargo_identity" \
+            "$CARGO_BUILD_JOBS" "$CARGO_PROFILE_RELEASE_DEBUG" \
+            "${RUSTFLAGS:-}" "${CARGO_ENCODED_RUSTFLAGS:-}" | sha256sum)"
+          printf 'key=graph-os-scanners-v1-%s\n' "${identity%% *}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore scanner toolchain
+        id: scanner-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/graph-os-scanners
+          key: ${{ steps.scanner-cache-identity.outputs.key }}
+
       # Each scanner is installed to its own runner-local prefix at the
       # version the shared scanner-versions hook verifies (the same script
-      # scripts/bootstrap.sh --scanners runs locally).
+      # scripts/bootstrap.sh --scanners runs locally). Always run the installer:
+      # a cache hit must still pass the provider's receipt and build probes.
       - name: Provision pinned scanner toolchain
         run: bash scripts/install_scanners.sh "$RUNNER_TEMP/graph-os-scanners" >> "$GITHUB_PATH"
 
@@ -240,6 +263,13 @@ jobs:
           for hook in complexity-census kiss-census dupehound-changed jscpd-differential jscpd-census; do
             uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
           done
+
+      - name: Save verified scanner toolchain
+        if: success() && steps.scanner-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/graph-os-scanners
+          key: ${{ steps.scanner-cache-identity.outputs.key }}
 
   build:
     name: build
