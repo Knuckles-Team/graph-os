@@ -41,6 +41,9 @@ _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _APPLICATION_CHECKS = ("engine", "identity", "administrator", "secrets")
 
 
+ResourceInventory = Mapping[tuple[str, str], Mapping[str, Any]]
+
+
 class EvidenceError(ValueError):
     """A bounded refusal code, never raw cluster output or credential material."""
 
@@ -254,7 +257,7 @@ def _owned(item: Mapping[str, Any], owner: Mapping[str, Any]) -> bool:
 
 
 def _pods(
-    workload: Mapping[str, Any], inventory: Mapping[tuple[str, str], Mapping[str, Any]]
+    workload: Mapping[str, Any], inventory: ResourceInventory
 ) -> list[Mapping[str, Any]]:
     owners = [workload]
     if workload["kind"] == "Deployment":
@@ -391,48 +394,69 @@ def _api_service_account_mount(
     volume = volumes.get(name)
     if volume is None:
         return False
+    return _projected_volume(name, volume)
+
+
+def _projected_volume(name: str, volume: Mapping[str, Any]) -> bool:
     projected = _mapping(volume.get("projected"))
     sources = _items(projected.get("sources"))
     if len(sources) != 3:
         return False
-    token = _mapping(sources[0].get("serviceAccountToken"))
+    return (
+        set(volume) == {"name", "projected"}
+        and volume["name"] == name
+        and set(projected) == {"defaultMode", "sources"}
+        and type(projected.get("defaultMode")) is int
+        and projected["defaultMode"] == 420
+        and _service_account_sources(sources)
+    )
+
+
+def _projection_source(source: Mapping[str, Any], kind: str) -> Mapping[str, Any]:
+    if set(source) != {kind}:
+        raise EvidenceError("invalid_service_account_projection")
+    return _mapping(source[kind])
+
+
+def _service_account_sources(sources: list[Mapping[str, Any]]) -> bool:
+    return (
+        _token_projection(_projection_source(sources[0], "serviceAccountToken"))
+        and _ca_projection(_projection_source(sources[1], "configMap"))
+        and _namespace_projection(_projection_source(sources[2], "downwardAPI"))
+    )
+
+
+def _token_projection(token: Mapping[str, Any]) -> bool:
     expiration = token.get("expirationSeconds")
-    if type(expiration) is not int or not 600 <= expiration <= 86400:
+    return (
+        set(token) == {"expirationSeconds", "path"}
+        and token["path"] == "token"
+        and type(expiration) is int
+        and 600 <= expiration <= 86400
+    )
+
+
+def _ca_projection(config: Mapping[str, Any]) -> bool:
+    return (
+        set(config) == {"name", "items"}
+        and config["name"] == "kube-root-ca.crt"
+        and config["items"] == [{"key": "ca.crt", "path": "ca.crt"}]
+    )
+
+
+def _namespace_projection(downward: Mapping[str, Any]) -> bool:
+    items = _items(downward.get("items"))
+    if set(downward) != {"items"} or len(items) != 1:
         return False
-    canonical = {
-        "name": name,
-        "projected": {
-            "defaultMode": 420,
-            "sources": [
-                {
-                    "serviceAccountToken": {
-                        "expirationSeconds": expiration,
-                        "path": "token",
-                    }
-                },
-                {
-                    "configMap": {
-                        "name": "kube-root-ca.crt",
-                        "items": [{"key": "ca.crt", "path": "ca.crt"}],
-                    }
-                },
-                {
-                    "downwardAPI": {
-                        "items": [
-                            {
-                                "path": "namespace",
-                                "fieldRef": {
-                                    "apiVersion": "v1",
-                                    "fieldPath": "metadata.namespace",
-                                },
-                            }
-                        ]
-                    }
-                },
-            ],
-        },
-    }
-    return _contains(canonical, volume) and _contains(volume, canonical)
+    item = items[0]
+    ref = _mapping(item.get("fieldRef"))
+    return (
+        set(item) == {"path", "fieldRef"}
+        and item["path"] == "namespace"
+        and set(ref) == {"apiVersion", "fieldPath"}
+        and ref["apiVersion"] == "v1"
+        and ref["fieldPath"] == "metadata.namespace"
+    )
 
 
 def _container_configuration(
@@ -534,7 +558,7 @@ def _claim_ready(expected: Mapping[str, Any], actual: Mapping[str, Any]) -> bool
 def _storage_checks(
     expected: Mapping[str, Any],
     pod: Mapping[str, Any],
-    inventory: Mapping[tuple[str, str], Mapping[str, Any]],
+    inventory: ResourceInventory,
 ) -> bool:
     volumes = _items(_mapping(pod.get("spec")).get("volumes", []))
     observed = _by_name(volumes)
@@ -580,7 +604,7 @@ def _workload_configuration(spec: Mapping[str, Any], actual: Mapping[str, Any]) 
 def _workload_ready(
     expected: Mapping[str, Any],
     actual: Mapping[str, Any],
-    inventory: Mapping[tuple[str, str], Mapping[str, Any]],
+    inventory: ResourceInventory,
 ) -> bool:
     spec = _mapping(expected.get("spec"))
     if not _workload_configuration(spec, actual) or not _generation_current(actual):
@@ -617,7 +641,7 @@ def _pod_state_ready(pod: Mapping[str, Any]) -> bool:
 def _pod_storage_template(
     spec: Mapping[str, Any],
     pod: Mapping[str, Any],
-    inventory: Mapping[tuple[str, str], Mapping[str, Any]],
+    inventory: ResourceInventory,
 ) -> Mapping[str, Any]:
     template = _mapping(_mapping(spec.get("template")).get("spec"))
     pod_template = dict(template)
@@ -643,7 +667,7 @@ def _pod_storage_template(
 def _pod_ready(
     spec: Mapping[str, Any],
     pod: Mapping[str, Any],
-    inventory: Mapping[tuple[str, str], Mapping[str, Any]],
+    inventory: ResourceInventory,
 ) -> bool:
     if not _pod_state_ready(pod):
         return False
@@ -668,22 +692,28 @@ def _pod_ready(
     )
 
 
+def _resource_ready(resource: Mapping[str, Any], observed: ResourceInventory) -> bool:
+    actual = observed.get(_key(resource))
+    if actual is None:
+        return False
+    if resource["kind"] == "PersistentVolumeClaim":
+        return _claim_ready(resource, actual)
+    return _workload_ready(resource, actual, observed)
+
+
 def _declared_claim_checks(
-    expected: Mapping[tuple[str, str], Mapping[str, Any]],
-    observed: Mapping[tuple[str, str], Mapping[str, Any]],
+    expected: ResourceInventory,
+    observed: ResourceInventory,
     checks: dict[str, bool],
 ) -> None:
     for index, ((kind, name), claim) in enumerate(expected.items()):
         if kind == "PersistentVolumeClaim":
-            actual_claim = observed.get((kind, name))
-            checks[f"claim_{index}"] = actual_claim is not None and _claim_ready(
-                claim, actual_claim
-            )
+            checks[f"claim_{index}"] = _resource_ready(claim, observed)
 
 
 def _workload_checks(
-    expected: Mapping[tuple[str, str], Mapping[str, Any]],
-    observed: Mapping[tuple[str, str], Mapping[str, Any]],
+    expected: ResourceInventory,
+    observed: ResourceInventory,
     checks: dict[str, bool],
 ) -> None:
     workloads = [
@@ -691,10 +721,7 @@ def _workload_checks(
     ]
     checks["workloads_present"] = bool(workloads)
     for index, workload in enumerate(workloads):
-        actual = observed.get(_key(workload))
-        checks[f"workload_{index}"] = actual is not None and _workload_ready(
-            workload, actual, observed
-        )
+        checks[f"workload_{index}"] = _resource_ready(workload, observed)
 
 
 def _infrastructure_checks(

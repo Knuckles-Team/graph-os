@@ -231,21 +231,27 @@ def test_native_sidecar_readiness_is_required(profile, snapshot):
     ]
 
 
-def test_shared_engine_claim_templates_require_the_observed_claim(profile, snapshot):
+def stateful_snapshot(snapshot, pod_name):
     expected, observed = snapshot
-    workload, rs, pod, pvc = observed["items"]
-    for item in [expected[0], workload]:
+    workload, rs, pod, claim = observed["items"]
+    for item in (expected[0], workload):
         item["kind"] = "StatefulSet"
         item["spec"]["template"]["spec"]["volumes"] = []
         item["spec"]["volumeClaimTemplates"] = [
             {"metadata": {"name": "data"}, "spec": copy.deepcopy(CLAIM_SPEC)}
         ]
     expected.pop(1)
-    pod["metadata"]["name"] = "host-0"
+    pod["metadata"]["name"] = pod_name
     pod["metadata"]["ownerReferences"] = [owner(workload)]
-    pvc["metadata"]["name"] = "data-host-0"
-    pod["spec"]["volumes"][0]["persistentVolumeClaim"]["claimName"] = "data-host-0"
+    claim_name = "data-" + pod_name
+    claim["metadata"]["name"] = claim_name
+    pod["spec"]["volumes"][0]["persistentVolumeClaim"]["claimName"] = claim_name
     observed["items"].remove(rs)
+    return expected, observed, claim
+
+
+def test_shared_engine_claim_templates_require_the_observed_claim(profile, snapshot):
+    expected, observed, pvc = stateful_snapshot(snapshot, "host-0")
     assert boot.verify_first_boot(profile, expected, observed)["infrastructure_ready"]
     observed["items"].remove(pvc)
     assert not boot.verify_first_boot(profile, expected, observed)[
@@ -518,19 +524,7 @@ def test_malformed_identity_and_status_types_fail_closed(profile, snapshot, fail
 
 @pytest.mark.parametrize("failure", ["class", "capacity", "request"])
 def test_stateful_generated_claim_must_match_template(profile, snapshot, failure):
-    expected, observed = snapshot
-    workload, rs, pod, claim = observed["items"]
-    expected.pop(1)
-    for item in (expected[0], workload):
-        item["kind"] = "StatefulSet"
-        item["spec"]["template"]["spec"]["volumes"] = []
-        item["spec"]["volumeClaimTemplates"] = [
-            {"metadata": {"name": "data"}, "spec": copy.deepcopy(CLAIM_SPEC)}
-        ]
-    pod["metadata"]["ownerReferences"] = [owner(workload)]
-    claim["metadata"]["name"] = "data-host-pod"
-    pod["spec"]["volumes"][0]["persistentVolumeClaim"]["claimName"] = "data-host-pod"
-    observed["items"].remove(rs)
+    expected, observed, claim = stateful_snapshot(snapshot, "host-pod")
     assert boot.verify_first_boot(profile, expected, observed)["infrastructure_ready"]
     if failure == "class":
         claim["spec"]["storageClassName"] = "wrong"
@@ -921,3 +915,26 @@ def test_missing_cleanup_group_requires_known_exit(monkeypatch, known_exited):
         with pytest.raises(boot.EvidenceError, match="collection_cleanup_uncertain"):
             anyio.run(boot._close_process, process)
         assert process.reaped and process.stdout.closed
+
+
+@pytest.mark.parametrize(
+    "path,value",
+    [
+        ((0, "serviceAccountToken", "path"), "other-token"),
+        ((0, "serviceAccountToken", "audience"), "foreign"),
+        ((1, "configMap", "items", 0, "path"), "other-ca"),
+        ((2, "downwardAPI", "items", 0, "path"), "other-namespace"),
+        ((2, "downwardAPI", "items", 0, "fieldRef", "fieldPath"), "spec.nodeName"),
+        ((2, "downwardAPI", "items", 0, "fieldRef", "extra"), "foreign"),
+    ],
+)
+def test_api_projection_fields_remain_exact(profile, snapshot, path, value):
+    expected, observed = snapshot
+    volume, _ = inject_service_account(observed["items"][2])
+    target = volume["projected"]["sources"]
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    assert not boot.verify_first_boot(profile, expected, observed)[
+        "infrastructure_ready"
+    ]
