@@ -28,6 +28,10 @@ spec:
       enableServiceLinks: {{ $root.Values.enableServiceLinks }}
       securityContext:
         {{- toYaml $root.Values.podSecurityContext | nindent 8 }}
+      {{- with $root.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ $item.name }}
           image: {{ include "graph-os.image" $item.image }}
