@@ -473,14 +473,14 @@ Ingestion). Each project has:
   references.
 - Tool descriptions annotated with CONCEPT IDs for KG ingestion.
 
-**Prefix registry** (39 unique prefixes, zero collisions):
+**Prefix registry** (public project examples; verify uniqueness during the audit):
 
 | Prefix | Project | | Prefix | Project |
 |--------|---------|---|--------|--------|
 | `ABOX` | archivebox-api | | `ARR` | arr-mcp |
 | `ATL` | atlassian-agent | | `AU` | agent-utilities |
 | `CMGR` | container-manager-mcp | | `DSCI` | data-science-mcp |
-| `DOCDB` | documentdb-mcp | | `GENIUS` | genius-agent |
+| `DOCDB` | documentdb-mcp | | | |
 | `GH` | github-agent | | `GL` | gitlab-api |
 | `HASS` | home-assistant-agent | | `JELLYFIN` | jellyfin-mcp |
 | `LF` | langfuse-agent | | `LIX` | leanix-agent |
