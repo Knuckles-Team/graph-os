@@ -287,8 +287,8 @@ def mcp_server() -> None:
             graph_compute = runtime._get_engine().graph_compute
 
             def client_for_session(session: Any) -> Any:
-                claims = session.engine_verified_context()
-                return graph_compute.for_graph(str(claims["tenant"])).async_client
+                # The session's own graph: AU graph views refuse any other.
+                return graph_compute.for_graph(str(session.graph)).async_client
 
             register_graph_rlm(
                 mcp,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+from collections.abc import Iterator
 from types import SimpleNamespace
 from typing import Any
 
@@ -51,21 +53,52 @@ class Registry:
         )
 
 
+TENANT_GRAPH = "tenant__tenant_a____commons__"
+
+
 class Client:
     def __init__(self, *, registry: Registry | None = None) -> None:
         self.server_registry = registry
 
 
-@pytest.mark.asyncio
-async def test_server_registry_facade_is_read_from_commons_with_exact_receipt() -> None:
-    registry = Registry()
-    port = adapter.GeneratedFleetCatalogPort(
+class GraphBinder:
+    """Record which graph each generated read was narrowed to."""
+
+    def __init__(self) -> None:
+        self.bound: list[str] = []
+        self.active: str | None = None
+
+    @contextlib.contextmanager
+    def __call__(self, graph: str) -> Iterator[None]:
+        self.bound.append(graph)
+        self.active = graph
+        try:
+            yield
+        finally:
+            self.active = None
+
+
+def make_port(
+    *, binder: GraphBinder | None = None, registry: Registry | None = None
+) -> adapter.GeneratedFleetCatalogPort:
+    return adapter.GeneratedFleetCatalogPort(
         tenant_client=Client(),
         commons_client=Client(registry=registry),
         context=CONTEXT,
+        tenant_graph=TENANT_GRAPH,
+        bind_graph=binder or GraphBinder(),
     )
 
+
+@pytest.mark.asyncio
+async def test_server_registry_facade_is_read_from_commons_with_exact_receipt() -> None:
+    registry = Registry()
+    binder = GraphBinder()
+    port = make_port(binder=binder, registry=registry)
+
     page = await port.query_registered_servers(COMMONS_GRAPH, 128, None)
+
+    assert binder.bound == [COMMONS_GRAPH]
 
     assert registry.calls == [(128, None)]
     assert page.total_live == 1
@@ -94,19 +127,21 @@ async def test_component_reads_use_only_generated_contracts(
         provenance=SimpleNamespace(),
     )
 
+    binder = GraphBinder()
+
     async def search(client: Any, request: Any, graph: str | None) -> Any:
         calls.append(("search", request, graph))
+        assert binder.active == graph
         return SimpleNamespace(entries=(server,), next_cursor=None)
 
     async def current(client: Any, request: Any, graph: str | None) -> Any:
         calls.append(("current", request, graph))
+        assert binder.active == graph
         return server
 
     monkeypatch.setattr(adapter, "send_agent_component_search", search)
     monkeypatch.setattr(adapter, "send_agent_component_current", current)
-    port = adapter.GeneratedFleetCatalogPort(
-        tenant_client=Client(), commons_client=Client(), context=CONTEXT
-    )
+    port = make_port(binder=binder)
 
     page = await port.search_components(
         ComponentSearchRequest(tenant_id="tenant-a", kinds=("mcp_server",), limit=64)
@@ -120,14 +155,14 @@ async def test_component_reads_use_only_generated_contracts(
     assert resolved.entry == page.entries[0]
     assert resolved.receipt.source == COMPONENT_CURRENT_SOURCE
     assert [call[0] for call in calls] == ["search", "current"]
-    assert all(call[2] == "tenant-a" for call in calls)
+    assert all(call[2] == TENANT_GRAPH for call in calls)
+    assert binder.bound == [TENANT_GRAPH, TENANT_GRAPH]
+    assert page.receipt.graph == TENANT_GRAPH
 
 
 @pytest.mark.asyncio
 async def test_adapter_rejects_cross_tenant_and_non_commons_reads() -> None:
-    port = adapter.GeneratedFleetCatalogPort(
-        tenant_client=Client(), commons_client=Client(), context=CONTEXT
-    )
+    port = make_port()
 
     with pytest.raises(ValueError, match="__commons__"):
         await port.query_registered_servers("tenant-a", 10, None)
