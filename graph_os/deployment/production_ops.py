@@ -380,6 +380,31 @@ async def _restore_validate(archive_root: Path, scratch_root: Path) -> dict[str,
         shutil.rmtree(destination, ignore_errors=True)
 
 
+async def _provision_semantic_content(served_url: str) -> dict[str, Any]:
+    """Provision GraphOS's semantic packs under its own verified process session.
+
+    The session and engine come from the same bootstrap the served process
+    uses, so every EG call carries exactly the authority GraphOS serves with.
+    """
+
+    from agent_utilities.api.session import use_session
+    from agent_utilities.security.brain_context import use_actor
+
+    from graph_os.deployment.semantic_provisioning import provision_semantic_content
+
+    # ``runtime`` binds bootstrap's host slots on import; import it first.
+    from graph_os.mcp_server import bootstrap, runtime
+
+    session = runtime._mint_process_session("http")
+    with use_actor(session.actor), use_session(session):
+        engine = runtime._get_engine()
+        bootstrap._wait_for_engine_materialization(engine)
+        report = await provision_semantic_content(
+            engine=engine, session=session, served_url=served_url
+        )
+    return {"operation": "provision-semantic-content", "ok": True, **report}
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="graph-os-production-ops")
     subparsers = parser.add_subparsers(dest="operation", required=True)
@@ -388,18 +413,31 @@ def _parser() -> argparse.ArgumentParser:
     restore = subparsers.add_parser("restore-validate")
     restore.add_argument("--archive-root", type=Path, required=True)
     restore.add_argument("--scratch-root", type=Path, required=True)
+    provision = subparsers.add_parser("provision-semantic-content")
+    provision.add_argument(
+        "--served-url",
+        default=os.environ.get("GRAPH_OS_SERVED_MCP_URL", ""),
+        help="MCP URL GraphOS serves its content at (registered when absent).",
+    )
     return parser
+
+
+def _run(args: argparse.Namespace) -> dict[str, Any]:
+    if args.operation == "backup":
+        return asyncio.run(_backup(args.archive_root))
+    if args.operation == "restore-validate":
+        return asyncio.run(_restore_validate(args.archive_root, args.scratch_root))
+    if not args.served_url:
+        raise ProductionOperationError(
+            "--served-url (or GRAPH_OS_SERVED_MCP_URL) is required"
+        )
+    return asyncio.run(_provision_semantic_content(args.served_url))
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        if args.operation == "backup":
-            report = asyncio.run(_backup(args.archive_root))
-        else:
-            report = asyncio.run(
-                _restore_validate(args.archive_root, args.scratch_root)
-            )
+        report = _run(args)
     except Exception as exc:  # noqa: BLE001 - CLI returns one privacy-safe failure
         report = {
             "operation": args.operation,
