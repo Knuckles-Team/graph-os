@@ -416,7 +416,7 @@ def _parser() -> argparse.ArgumentParser:
     provision = subparsers.add_parser("provision-semantic-content")
     provision.add_argument(
         "--served-url",
-        default=os.environ.get("GRAPH_OS_SERVED_MCP_URL", ""),
+        default=str(setting("GRAPH_OS_SERVED_MCP_URL", "") or ""),
         help="MCP URL GraphOS serves its content at (registered when absent).",
     )
     return parser
