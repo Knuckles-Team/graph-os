@@ -91,7 +91,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-utilities
-          ref: fbc939fedeadeb20ddf4b468245165414a18c34e
+          ref: 2d40ed53f6440fdda0b5cfb7868d912fa8f162e1
           path: .uv-workspace-siblings/agent-utilities
           persist-credentials: false
 
@@ -115,7 +115,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/epistemic-graph
-          ref: 49d63da5396fef7482fc3617df3f90a836661722
+          ref: 70037e8a400c7b32b1222623bb05bbfaf55deab8
           path: .uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph
           persist-credentials: false
 
