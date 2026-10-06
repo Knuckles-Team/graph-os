@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from contextlib import AbstractContextManager
 from typing import Any, cast
 
 from epistemic_graph.generated.agent_component import (
@@ -47,12 +48,18 @@ _KINDS = {
 }
 
 
+GraphBinder = Callable[[str], AbstractContextManager[object]]
+
+
 class GeneratedFleetCatalogPort:
     """Translate generated EG results into the GraphOS read-domain port.
 
     ``tenant_client`` and ``commons_client`` are non-owning, request-context
-    routed views supplied by the process engine. No identity, token, client, or
-    graph selection is discovered here.
+    routed views supplied by the process engine, fixed to ``tenant_graph`` and
+    ``__commons__``. ``bind_graph`` narrows the caller's verified session to a
+    view's graph for one read, because a fixed view refuses any session that
+    targets another graph. No identity, token, client, or graph selection is
+    discovered here.
     """
 
     def __init__(
@@ -61,10 +68,16 @@ class GeneratedFleetCatalogPort:
         tenant_client: Any,
         commons_client: Any,
         context: ReadContext,
+        tenant_graph: str,
+        bind_graph: GraphBinder,
     ) -> None:
+        if not tenant_graph:
+            raise ValueError("fleet catalog requires the verified tenant graph")
         self._tenant = tenant_client
         self._commons = commons_client
         self._context = context
+        self._tenant_graph = tenant_graph
+        self._bind_graph = bind_graph
 
     async def read_context(self) -> ReadContext:
         return self._context
@@ -77,7 +90,8 @@ class GeneratedFleetCatalogPort:
     ) -> ServerPage:
         if graph != COMMONS_GRAPH:
             raise ValueError("server registry reads must target __commons__")
-        page = await self._commons.server_registry.page(limit=limit, cursor=cursor)
+        with self._bind_graph(COMMONS_GRAPH):
+            page = await self._commons.server_registry.page(limit=limit, cursor=cursor)
         entries = tuple(self._server(row) for row in page.entries)
         return ServerPage(
             entries=entries,
@@ -94,20 +108,21 @@ class GeneratedFleetCatalogPort:
     ) -> ComponentPage:
         if request.tenant_id != self._context.tenant_id:
             raise ValueError("component search crossed the verified tenant")
-        page = await send_agent_component_search(
-            self._tenant,
-            AgentComponentSearchRequest(
-                tenant_id=request.tenant_id,
-                kinds=[_KINDS[kind] for kind in request.kinds],
-                limit=request.limit,
-                cursor=request.cursor,
-            ),
-            self._context.tenant_id,
-        )
+        with self._bind_graph(self._tenant_graph):
+            page = await send_agent_component_search(
+                self._tenant,
+                AgentComponentSearchRequest(
+                    tenant_id=request.tenant_id,
+                    kinds=[_KINDS[kind] for kind in request.kinds],
+                    limit=request.limit,
+                    cursor=request.cursor,
+                ),
+                self._tenant_graph,
+            )
         return ComponentPage(
             entries=tuple(self._component(entry) for entry in page.entries),
             next_cursor=page.next_cursor,
-            receipt=self._receipt(COMPONENT_SEARCH_SOURCE, self._context.tenant_id),
+            receipt=self._receipt(COMPONENT_SEARCH_SOURCE, self._tenant_graph),
         )
 
     async def current_component(
@@ -115,17 +130,18 @@ class GeneratedFleetCatalogPort:
     ) -> CurrentComponent:
         if tenant_id != self._context.tenant_id:
             raise ValueError("component current read crossed the verified tenant")
-        result = await send_agent_component_current(
-            self._tenant,
-            AgentComponentOpCurrent(
-                op="current", tenant_id=tenant_id, component_id=component_id
-            ),
-            tenant_id,
-        )
+        with self._bind_graph(self._tenant_graph):
+            result = await send_agent_component_current(
+                self._tenant,
+                AgentComponentOpCurrent(
+                    op="current", tenant_id=tenant_id, component_id=component_id
+                ),
+                self._tenant_graph,
+            )
         entry = None if result is None else self._component(result)
         return CurrentComponent(
             entry=entry,
-            receipt=self._receipt(COMPONENT_CURRENT_SOURCE, tenant_id),
+            receipt=self._receipt(COMPONENT_CURRENT_SOURCE, self._tenant_graph),
         )
 
     async def component_content(
@@ -133,15 +149,16 @@ class GeneratedFleetCatalogPort:
     ) -> ComponentContent:
         if tenant_id != self._context.tenant_id:
             raise ValueError("component content read crossed the verified tenant")
-        result = await send_agent_component_content(
-            self._tenant,
-            AgentComponentContentRequest(
-                tenant_id=tenant_id,
-                component_id=component_id,
-                entry_revision=entry_revision,
-            ),
-            tenant_id,
-        )
+        with self._bind_graph(self._tenant_graph):
+            result = await send_agent_component_content(
+                self._tenant,
+                AgentComponentContentRequest(
+                    tenant_id=tenant_id,
+                    component_id=component_id,
+                    entry_revision=entry_revision,
+                ),
+                self._tenant_graph,
+            )
         return ComponentContent(
             component_id=result.component_id,
             entry_revision=result.entry_revision,
@@ -149,7 +166,7 @@ class GeneratedFleetCatalogPort:
             content_digest=result.content_digest,
             media_type=result.media_type,
             body=result.body,
-            receipt=self._receipt(COMPONENT_CONTENT_SOURCE, tenant_id),
+            receipt=self._receipt(COMPONENT_CONTENT_SOURCE, self._tenant_graph),
         )
 
     @staticmethod
