@@ -295,6 +295,20 @@ async def _reproject(client: Any, *, tenant_id: str, graph: str, connector: str)
     )
 
 
+async def _attached_at_head(
+    client: Any, *, tenant_id: str, graph: str, connector: str
+) -> bool:
+    from graph_os.semantic_content import SemanticContentNotReadyError
+
+    try:
+        await verify_semantic_content(
+            client=client, tenant_id=tenant_id, graph=graph, connectors=(connector,)
+        )
+    except SemanticContentNotReadyError:
+        return False
+    return True
+
+
 async def _project_and_attach(
     client: Any, *, tenant_id: str, graph: str, connector: str
 ) -> Any:
@@ -314,6 +328,12 @@ async def _project_and_attach(
         raise SemanticProvisioningError(
             f"ConnectorPack projection of {connector!r} did not apply ({state})"
         )
+    if await _attached_at_head(
+        client, tenant_id=tenant_id, graph=graph, connector=connector
+    ):
+        # Re-attaching the head already attached is refused as a schema-source
+        # regression, so an idempotent rerun stops here.
+        return None
     return await send_graph_schema(
         client,
         {"op": {"op": "attach_pack", "connector": connector}},

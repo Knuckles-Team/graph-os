@@ -208,6 +208,16 @@ def wired(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     )
 
     async def verify(**kwargs: Any) -> None:
+        from graph_os.semantic_content import SemanticContentNotReadyError
+
+        attached = {
+            call[2]["op"]["connector"]
+            for call in engine.calls
+            if call[0] == "GraphSchema"
+        }
+        missing = set(kwargs["connectors"]) - attached
+        if missing:
+            raise SemanticContentNotReadyError(f"not attached: {sorted(missing)}")
         state["verified"].append(kwargs)
 
     monkeypatch.setattr(semantic_provisioning, "verify_semantic_content", verify)
@@ -243,8 +253,8 @@ def test_cli_provisions_both_packs_under_eg_issued_bindings(
     assert not [call for call in engine.calls if call[0] == "reproject"]
     attaches = [call for call in engine.calls if call[0] == "GraphSchema"]
     assert {call[1] for call in attaches} == {GRAPH}
-    assert len(wired["verified"]) == 1
-    assert wired["verified"][0]["graph"] == GRAPH
+    final = [call for call in wired["verified"] if len(call["connectors"]) == 2]
+    assert len(final) == 1 and final[0]["graph"] == GRAPH
 
 
 def test_rerun_registers_and_creates_nothing(
