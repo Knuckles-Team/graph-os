@@ -14,6 +14,7 @@ from epistemic_graph.generated.agent_component import (
     AgentComponentSearchRequest,
     ComponentProvenanceMcpServer,
 )
+from epistemic_graph.generated.cluster import send_list_registered_servers
 from epistemic_graph.generated.storage import (
     send_agent_component_content,
     send_agent_component_current,
@@ -83,6 +84,9 @@ class GeneratedFleetCatalogPort:
         return self._context
 
     def _receipt(self, source: str, graph: str) -> ReadReceipt:
+        # AgentComponent reads are TENANT-scoped authority (the reader verifies
+        # receipts against the verified tenant), even though their transport
+        # targets the session's tenant graph; registry reads name __commons__.
         return ReadReceipt(context=self._context, source=source, graph=graph)
 
     async def query_registered_servers(
@@ -90,8 +94,17 @@ class GeneratedFleetCatalogPort:
     ) -> ServerPage:
         if graph != COMMONS_GRAPH:
             raise ValueError("server registry reads must target __commons__")
+        # Through the generated sender on the commons VIEW, never its
+        # `server_registry` namespace: a namespace is bound to the view's base
+        # client, so it would bypass the view's session-routed, verified
+        # transport and be refused as unauthenticated.
+        request: dict[str, Any] = {"limit": limit}
+        if cursor is not None:
+            request["cursor"] = cursor.model_dump(mode="json")
         with self._bind_graph(COMMONS_GRAPH):
-            page = await self._commons.server_registry.page(limit=limit, cursor=cursor)
+            page = await send_list_registered_servers(
+                self._commons, {"request": request}, COMMONS_GRAPH
+            )
         entries = tuple(self._server(row) for row in page.entries)
         return ServerPage(
             entries=entries,
@@ -99,7 +112,9 @@ class GeneratedFleetCatalogPort:
             observed_at_ms=page.observed_at_ms,
             total_live=page.total_live,
             registry_revision=page.registry_revision,
-            registry_digest=page.registry_digest,
+            # EG's Digest256 is bare hex on the wire; the catalog reader's
+            # receipts carry the algorithm-qualified form.
+            registry_digest=_qualified_digest(str(page.registry_digest)),
             receipt=self._receipt(SERVER_QUERY_SOURCE, COMMONS_GRAPH),
         )
 
@@ -122,7 +137,7 @@ class GeneratedFleetCatalogPort:
         return ComponentPage(
             entries=tuple(self._component(entry) for entry in page.entries),
             next_cursor=page.next_cursor,
-            receipt=self._receipt(COMPONENT_SEARCH_SOURCE, self._tenant_graph),
+            receipt=self._receipt(COMPONENT_SEARCH_SOURCE, self._context.tenant_id),
         )
 
     async def current_component(
@@ -141,7 +156,7 @@ class GeneratedFleetCatalogPort:
         entry = None if result is None else self._component(result)
         return CurrentComponent(
             entry=entry,
-            receipt=self._receipt(COMPONENT_CURRENT_SOURCE, self._tenant_graph),
+            receipt=self._receipt(COMPONENT_CURRENT_SOURCE, self._context.tenant_id),
         )
 
     async def component_content(
@@ -166,7 +181,7 @@ class GeneratedFleetCatalogPort:
             content_digest=result.content_digest,
             media_type=result.media_type,
             body=result.body,
-            receipt=self._receipt(COMPONENT_CONTENT_SOURCE, self._tenant_graph),
+            receipt=self._receipt(COMPONENT_CONTENT_SOURCE, self._context.tenant_id),
         )
 
     @staticmethod
@@ -222,3 +237,7 @@ class GeneratedFleetCatalogPort:
 
 
 __all__ = ["GeneratedFleetCatalogPort"]
+
+
+def _qualified_digest(value: str) -> str:
+    return value if value.startswith("sha256:") else f"sha256:{value}"
