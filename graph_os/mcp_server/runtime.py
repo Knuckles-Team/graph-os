@@ -2379,7 +2379,8 @@ def _register_graph_tool_surface(mcp: Any) -> None:
     The same composition agent-utilities' own served KG MCP used: the
     condensed ``graph_*`` action tools and the verbose 1:1 surface, selected by
     ``MCP_TOOL_MODE`` inside ``register_tool_surface``; the MCP Apps entry tool;
-    and, in ``intent`` mode, the ask/find/write/act/manage/why verbs. Every
+    and, in ``intent`` or ``hybrid`` mode, the ask/find/write/act/manage/why
+    verbs. Every
     tool dispatches through agent-utilities' ``_execute_tool`` core, and this
     process's ``REGISTERED_TOOLS`` mirrors the same functions so the REST
     gateway and the multiplexer reach exactly what MCP serves.
@@ -2396,7 +2397,9 @@ def _register_graph_tool_surface(mcp: Any) -> None:
         verbose_register=kg_server.register_graphos_verbose_tools,
     )
     register_mcp_apps_tools(mcp)
-    if tool_mode() == "intent":
+    # ``hybrid`` serves the intent verbs beside the ungated condensed tools;
+    # ``intent`` serves them in place of the (gated) condensed tools.
+    if tool_mode() in ("intent", "hybrid"):
         from agent_utilities.mcp.tools.intent_tools import register_intent_tools
 
         register_intent_tools(mcp)

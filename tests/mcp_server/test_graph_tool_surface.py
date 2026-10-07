@@ -14,7 +14,9 @@ class _Recorder:
         self.calls: list[tuple[str, Any]] = []
 
 
-@pytest.mark.parametrize(("mode", "intent"), [("intent", True), ("both", False)])
+@pytest.mark.parametrize(
+    ("mode", "intent"), [("intent", True), ("hybrid", True), ("both", False)]
+)
 def test_surface_mounts_condensed_verbose_and_intent_by_mode(
     monkeypatch: pytest.MonkeyPatch, mode: str, intent: bool
 ) -> None:
