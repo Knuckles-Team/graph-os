@@ -115,6 +115,21 @@ class _Engine:
     def _on_catalog_request_owner_principal(self, _params: Any, _key: Any) -> Any:
         return OWNER
 
+    def _on_status(self, params: Any, _key: Any) -> Any:
+        self.status_reads = getattr(self, "status_reads", 0) + 1
+        return {
+            "schema_version": 1,
+            "tenant_id": TENANT,
+            "connector": params["op"]["request"]["connector"],
+            "members": {"published": 0, "withdrawn": 0, "retired": 0},
+            "projection": {
+                "projection": "applied",
+                "graph": "pack__" + "d" * 64,
+                "graph_version": 1,
+            },
+            "warnings": [],
+        }
+
     def _on_reproject(self, _params: Any, _key: Any) -> Any:
         return {"reprojected": True}
 
@@ -193,6 +208,16 @@ def wired(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     )
 
     async def verify(**kwargs: Any) -> None:
+        from graph_os.semantic_content import SemanticContentNotReadyError
+
+        attached = {
+            call[2]["op"]["connector"]
+            for call in engine.calls
+            if call[0] == "GraphSchema"
+        }
+        missing = set(kwargs["connectors"]) - attached
+        if missing:
+            raise SemanticContentNotReadyError(f"not attached: {sorted(missing)}")
         state["verified"].append(kwargs)
 
     monkeypatch.setattr(semantic_provisioning, "verify_semantic_content", verify)
@@ -224,10 +249,12 @@ def test_cli_provisions_both_packs_under_eg_issued_bindings(
     for connector, binding, context in _Sink.imported:
         assert binding.catalog_generation == 1
         assert context.principal == OWNER and context.tenant_id == TENANT
+    # The import's own projection applied, so nothing was re-projected.
+    assert not [call for call in engine.calls if call[0] == "reproject"]
     attaches = [call for call in engine.calls if call[0] == "GraphSchema"]
     assert {call[1] for call in attaches} == {GRAPH}
-    assert len(wired["verified"]) == 1
-    assert wired["verified"][0]["graph"] == GRAPH
+    final = [call for call in wired["verified"] if len(call["connectors"]) == 2]
+    assert len(final) == 1 and final[0]["graph"] == GRAPH
 
 
 def test_rerun_registers_and_creates_nothing(

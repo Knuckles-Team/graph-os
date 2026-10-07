@@ -97,10 +97,12 @@ async def _verify_semantic_connector(
         raise SemanticContentNotReadyError(
             f"required semantic pack {connector!r} has no committed head"
         )
+    # EG owns the projection target (its per-connector pack projection graph);
+    # GraphOS requires that projection to be applied and the pack's schema to
+    # be attached to the serving graph below.
     projection = status.projection
-    if (
-        getattr(projection, "projection", None) != "applied"
-        or getattr(projection, "graph", None) != graph
+    if getattr(projection, "projection", None) != "applied" or not getattr(
+        projection, "graph", None
     ):
         raise SemanticContentNotReadyError(
             f"required semantic pack {connector!r} is not projected"

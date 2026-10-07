@@ -17,6 +17,7 @@ safe to re-run on every deploy:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import secrets
@@ -241,13 +242,44 @@ async def _owner_principal(
     return payload
 
 
-async def _reproject_and_attach(
-    client: Any, *, tenant_id: str, graph: str, connector: str
-) -> tuple[Any, Any]:
-    from epistemic_graph.generated.reasoning import send_graph_schema
+#: How long one connector's automatic projection may take before provisioning
+#: re-projects it; the projection worker runs right after the import commits.
+PROJECTION_WAIT_SECS = 120.0
+_PROJECTION_POLL_SECS = 1.0
 
+
+async def _projection_state(
+    client: Any, *, tenant_id: str, graph: str, connector: str
+) -> str:
+    from epistemic_graph.generated.connector_pack import ConnectorPackStatusRequest
+    from epistemic_graph.generated.storage import send_connector_pack_status
+
+    status = await send_connector_pack_status(
+        client,
+        ConnectorPackStatusRequest(connector=connector, tenant_id=tenant_id),
+        graph,
+    )
+    return str(getattr(status.projection, "projection", "none"))
+
+
+async def _await_projection(
+    client: Any, *, tenant_id: str, graph: str, connector: str
+) -> str:
+    """Wait for the import's automatic projection to settle; return its state."""
+
+    deadline = time.monotonic() + PROJECTION_WAIT_SECS
+    while True:
+        state = await _projection_state(
+            client, tenant_id=tenant_id, graph=graph, connector=connector
+        )
+        if state in {"applied", "failed"} or time.monotonic() >= deadline:
+            return state
+        await asyncio.sleep(_PROJECTION_POLL_SECS)
+
+
+async def _reproject(client: Any, *, tenant_id: str, graph: str, connector: str) -> Any:
     context = _shell_context(tenant_id, f"connector-pack:{connector}:reproject")
-    reprojected = await client._send(
+    return await client._send(
         "ConnectorPack",
         {
             "op": {
@@ -261,13 +293,53 @@ async def _reproject_and_attach(
         graph,
         idempotency_key=f"graph-os:reproject:{connector}:{secrets.token_hex(8)}",
     )
-    attached = await send_graph_schema(
+
+
+async def _attached_at_head(
+    client: Any, *, tenant_id: str, graph: str, connector: str
+) -> bool:
+    from graph_os.semantic_content import SemanticContentNotReadyError
+
+    try:
+        await verify_semantic_content(
+            client=client, tenant_id=tenant_id, graph=graph, connectors=(connector,)
+        )
+    except SemanticContentNotReadyError:
+        return False
+    return True
+
+
+async def _project_and_attach(
+    client: Any, *, tenant_id: str, graph: str, connector: str
+) -> Any:
+    """Let the import's projection apply, re-project only if it did not, attach."""
+
+    from epistemic_graph.generated.reasoning import send_graph_schema
+
+    state = await _await_projection(
+        client, tenant_id=tenant_id, graph=graph, connector=connector
+    )
+    if state != "applied":
+        await _reproject(client, tenant_id=tenant_id, graph=graph, connector=connector)
+        state = await _await_projection(
+            client, tenant_id=tenant_id, graph=graph, connector=connector
+        )
+    if state != "applied":
+        raise SemanticProvisioningError(
+            f"ConnectorPack projection of {connector!r} did not apply ({state})"
+        )
+    if await _attached_at_head(
+        client, tenant_id=tenant_id, graph=graph, connector=connector
+    ):
+        # Re-attaching the head already attached is refused as a schema-source
+        # regression, so an idempotent rerun stops here.
+        return None
+    return await send_graph_schema(
         client,
         {"op": {"op": "attach_pack", "connector": connector}},
         graph,
         idempotency_key=f"graph-os:attach-pack:{graph}:{connector}:{secrets.token_hex(8)}",
     )
-    return reprojected, attached
 
 
 async def provision_semantic_content(
@@ -323,10 +395,15 @@ async def provision_semantic_content(
             )
             result = await sink.import_pack(pack)
             if getattr(result, "result", None) == "rejected":
+                violations = [
+                    f"{violation.code.value}:{violation.uri or ''}:{violation.detail}"
+                    for violation in getattr(result, "violations", ())
+                ]
                 raise SemanticProvisioningError(
-                    f"ConnectorPack import of {pack.connector!r} was rejected"
+                    f"ConnectorPack import of {pack.connector!r} was rejected: "
+                    + "; ".join(violations)
                 )
-            await _reproject_and_attach(
+            await _project_and_attach(
                 client, tenant_id=tenant_id, graph=graph, connector=pack.connector
             )
         imports[pack.connector] = str(getattr(result, "result", type(result).__name__))

@@ -103,7 +103,7 @@ async def test_readiness_requires_current_projected_attached_pack_heads() -> Non
     statuses = {
         connector: SimpleNamespace(
             head=SimpleNamespace(record_id=f"record:{connector}"),
-            projection=SimpleNamespace(projection="applied", graph="tenant-a"),
+            projection=SimpleNamespace(projection="applied", graph="pack__" + "d" * 64),
         )
         for connector in ("graph-os", "agent-utilities")
     }
@@ -154,7 +154,7 @@ async def test_readiness_fails_closed_on_stale_attachment() -> None:
     async def status(client: Any, request: Any, graph: str) -> Any:
         return SimpleNamespace(
             head=SimpleNamespace(record_id="record:new"),
-            projection=SimpleNamespace(projection="applied", graph="tenant-a"),
+            projection=SimpleNamespace(projection="applied", graph="pack__" + "d" * 64),
         )
 
     with pytest.raises(
