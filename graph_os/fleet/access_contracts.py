@@ -106,7 +106,7 @@ def _parse_one(parse: Any, text: str, uri: str) -> tuple[Any, ...]:
         return tuple(parse(text))
     except ValueError as exc:
         logger.warning(
-            "skipping %s: access contracts unparseable: %s",
+            "skipping %s: access contracts unparsable: %s",
             uri,
             exc,
         )

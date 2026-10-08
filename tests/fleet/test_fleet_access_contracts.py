@@ -180,7 +180,7 @@ def test_malformed_contracts_file_is_skipped(monkeypatch, caplog) -> None:
         raise ValueError("bad turtle")
 
     module = types.ModuleType("agent_connector_sdk.access_contract")
-    module.parse_access_contracts = parse
+    monkeypatch.setattr(module, "parse_access_contracts", parse, raising=False)
     monkeypatch.setitem(sys.modules, "agent_connector_sdk.access_contract", module)
     pack = _Pack(entries=(_Entry("ontology://broken", TTL.encode()),))
     catalog = VirtualCatalog()
