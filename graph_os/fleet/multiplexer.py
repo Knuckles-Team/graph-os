@@ -2257,6 +2257,8 @@ class MCPMultiplexer:
     ):
         self._fleet_catalog_reader = catalog_reader
         self._fleet_catalog: _catalog_reader.FleetCatalog | None = None
+        # The last background onboarding pass (graph_os.fleet.onboarding).
+        self._fleet_onboarding: dict[str, _typing.Any] | None = None
         self.exit_stack = contextlib.AsyncExitStack()
         self.sessions: dict[str, ClientSession] = {}
         # Per-child hardening layer (CONCEPT:AU-ECO.mcp.profile-differences-from-client): concurrency limits and
@@ -6315,6 +6317,11 @@ class MCPMultiplexer:
                 counts[entry[0]] = counts.get(entry[0], 0) + 1
         return counts
 
+    def _unadmitted_servers(self) -> list[str]:
+        """Live registrations the last EG catalog read could not admit."""
+        catalog = self._fleet_catalog
+        return [] if catalog is None else list(catalog.unadmitted)
+
     def status_snapshot(self) -> dict[str, _typing.Any]:
         """Fleet health surface: per-child state, limits, load, restarts.
 
@@ -6353,6 +6360,8 @@ class MCPMultiplexer:
             },
             "total_children": len(self.children),
             "total_tools": len(self.aggregated_tools),
+            "unadmitted_servers": self._unadmitted_servers(),
+            "fleet_onboarding": self._fleet_onboarding,
         }
         try:
             from agent_utilities.observability.gateway_metrics import (

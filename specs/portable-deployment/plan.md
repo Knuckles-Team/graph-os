@@ -29,3 +29,7 @@ The renderer can vary by target, but profile validation, config resolution, engi
 3. Make Compose and Kubernetes renderers consume the same validated profile object; require digest-pinned images and sealed secret references.
 4. Add disposable first-boot fixtures and CI service orchestration. Split required portable PR checks from optional production integration acceptance.
 5. Document the exact commands on GitHub Pages and link this contract from the contribution guide; publish a verified package and run the external acceptance tier.
+
+## GRAPHOS-DEPLOY-R016 plan
+
+The serving container stays at the client role. A second container in the same pod runs the host daemon. It reuses the serving image, source mounts and process identity configuration. It reaches the engine over the shared Unix socket volume. A non-empty endpoint setting makes the engine resolver connect-only. The daemon therefore never starts a second engine. The daemon shares the task-queue data volume, so work that clients enqueue reaches the host.

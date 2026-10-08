@@ -22,7 +22,7 @@ Bootstrap is idempotent. A hook whose prerequisite is missing prints
 `SKIPPED (<gate>): <reason>` locally and fails closed (`CANNOT RUN`, exit 2)
 in CI, so a fresh clone can commit while CI still runs every gate.
 
-## Before you push
+## Before the operator push
 
 ```bash
 uvx pre-commit run --all-files
@@ -36,7 +36,7 @@ run is the CI gate minus provisioning. Scanner acceptance terms are in
 
 ## Branch and pull-request flow
 
-1. Branch from current `origin/main` (never commit to or push `main`), in your
+1. Branch from current `origin/main` (never commit to or push `main`), in the operator's
    own Git worktree when the checkout is shared.
 2. Commit in logical steps, staging explicit paths only.
 3. Push with `git push -u origin <branch>` and open a draft pull request
