@@ -2,7 +2,7 @@
   <p class="site-hero__eyebrow">The governed runtime door</p>
   <h1 class="site-hero__title" id="graphos-title">Run the whole agent platform through one clear boundary.</h1>
   <p class="site-hero__summary">
-    Graph OS is the process you run. It authenticates MCP, REST, A2A, browser,
+    Graph OS is the process the operator runs. It authenticates MCP, REST, A2A, browser,
     terminal, desktop, and messaging requests; composes the agent and graph
     services behind them; and supervises the connector fleet from one serving
     lifecycle.
@@ -87,9 +87,9 @@ explicitly.
 
 ## Choose the right room
 
-| If you need to… | Go to… |
+| If the operator must… | Go to… |
 |---|---|
-| Run MCP, REST, A2A, WebUI, or fleet supervision | **GraphOS** — you are here |
+| Run MCP, REST, A2A, WebUI, or fleet supervision | **GraphOS** — the operator are here |
 | Build agents, workflows, evaluations, or skills | [agent-utilities](https://knuckles-team.github.io/agent-utilities/) |
 | Store, query, reason over, or prove durable knowledge | [epistemic-graph](https://knuckles-team.github.io/epistemic-graph/) |
 | Build and certify a source connector | [agent-connector-sdk](https://knuckles-team.github.io/agent-connector-sdk/) |

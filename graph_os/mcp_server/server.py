@@ -293,6 +293,17 @@ def mcp_server() -> None:
                 )
             )
 
+            # Onboard the configured fleet in the background: register, attest
+            # and import each child catalog, then renew leases. A fault logs
+            # and retries; it never blocks or stops serving.
+            from graph_os.fleet.onboarding import start_fleet_onboarding
+
+            start_fleet_onboarding(
+                engine=runtime._get_engine(),
+                session=bootstrap_session,
+                multiplexer=fleet_mux,
+            )
+
             from graph_os.mcp_server.agent_control import register_graph_rlm
 
             graph_compute = runtime._get_engine().graph_compute

@@ -7,6 +7,7 @@ import sys
 from importlib.resources.abc import Traversable
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
 
@@ -50,7 +51,7 @@ def _change_method(contract: Path, **updates: object) -> None:
 def test_matching_binding_evidence_returns_none(installed_contract: Path) -> None:
     registry = _registry()
     before = (tuple(registry), registry.canonical, registry.digest)
-    assert _validate_registry_bindings(registry) is None
+    _validate_registry_bindings(registry)
     assert (tuple(registry), registry.canonical, registry.digest) == before
 
 
@@ -58,7 +59,7 @@ def test_curated_alias_and_composite_are_retained(installed_contract: Path) -> N
     ops = list(load_eg_bindings())
     ops[0] = ops[0].model_copy(update={"id": "query.curated"})
     registry = Registry([*ops, make_op()])
-    assert _validate_registry_bindings(registry) is None
+    _validate_registry_bindings(registry)
 
 
 def test_empty_registry_is_refused() -> None:
@@ -189,13 +190,13 @@ def test_reviewed_exclusion_uses_existing_loader(installed_contract: Path) -> No
     )
     registry = _registry()
     assert len(registry) == 2
-    assert _validate_registry_bindings(registry) is None
+    _validate_registry_bindings(registry)
 
 
 def test_service_only_binding_cannot_be_relaxed(installed_contract: Path) -> None:
     ops = [
         op.model_copy(update={"principals": PrincipalRule.ANY})
-        if op.binding.service == "Service"
+        if isinstance(op.binding, EgMethod) and op.binding.service == "Service"
         else op
         for op in load_eg_bindings()
     ]
@@ -281,13 +282,13 @@ def startup_evidence(
             if path.read_bytes() != expected_bytes:
                 raise _SyntheticMismatch("synthetic contract content mismatch")
 
-    provider = ModuleType("epistemic_graph.contract")
+    provider: Any = ModuleType("epistemic_graph.contract")
     provider.ContractDigestMismatch = _SyntheticMismatch
     provider.verify_receipt = verify_receipt
-    exceptions = ModuleType("epistemic_graph.contract_errors")
+    exceptions: Any = ModuleType("epistemic_graph.contract_errors")
     exceptions.ContractDigestMismatch = _SyntheticMismatch
     exceptions.ContractArtifactMissing = _SyntheticMissing
-    generated = ModuleType("graph_os.api.generated.engine_errors")
+    generated: Any = ModuleType("graph_os.api.generated.engine_errors")
     generated.REGISTRY_DIGEST = registry.digest
     generated.EG_RECEIPT_DIGEST = pin
     generated.ENGINE_ERRORS = {"SYNTHETIC_REFUSAL": (409, False)}
@@ -299,7 +300,7 @@ def startup_evidence(
 
 def test_public_admission_accepts_matching_synthetic_evidence(startup_evidence) -> None:
     registry, _, _ = startup_evidence
-    assert validate_contract_admission(registry) is None
+    validate_contract_admission(registry)
 
 
 @pytest.mark.parametrize(
@@ -371,7 +372,7 @@ def test_valid_semantic_mutates_flip_requires_pinned_evidence(
     # Both shape checks accept this valid new policy; trusted provider evidence
     # must reject it against the generator's original pin before serving.
     load_eg_bindings()
-    assert _validate_registry_bindings(registry) is None
+    _validate_registry_bindings(registry)
     with pytest.raises(EgContractError) as caught:
         validate_contract_admission(registry)
     assert isinstance(caught.value.__cause__, _SyntheticMismatch)

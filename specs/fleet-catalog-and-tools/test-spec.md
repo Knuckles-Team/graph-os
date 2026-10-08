@@ -18,6 +18,9 @@ Every assertion is run against an exact commit and reports a pass/fail result. F
 | Connector pins | Real `tools/list` schema fingerprint matches certified manifest and pack annotations | Empty placeholder schema, changed schema, or missing effect annotation cannot be certified or silently treated as READ |
 | Reload | Candidate validates, publishes one generation atomically, sends ordered deltas, re-ingests changed bodies once | Malformed/duplicate/stale/deleted/digest-mismatch candidate retains last-known-good; in-flight drain timeout bounded; no mixed replica generation |
 | Assembly/admission | Real generated model's complete `agents` list survives parsing; capacity acquired all-or-nothing and released on stop | Dict fakes, partial capacity lease, second re-decision, dropped agent, or leaked lease fail |
+| Catalog admission | The reader skips a bare registration; joined servers serve; status lists the skipped name | Receipt, revision, pin, content and page faults still abort the read |
+| Fleet onboarding | The pass registers, attests and imports each configured server; the CLI reports each server | The pass reports a failing server, a registry outage or a missing credential; other servers and boot continue |
+| Lease renewal | A lease that lapses within six hours renews under a new window key; self-served leases renew | The pass leaves a fresh lease alone; a refused catalog refresh keeps the prior catalog |
 | Feeds | Tenant-bound telemetry/security/CI metadata enters catalog and audit through typed ops | Raw secret values, unsanitized identity/IP, cross-tenant events and live trading without write-back authorization reject |
 
 ## Authority parity oracle
@@ -45,3 +48,11 @@ CI may run this probe with local containers/processes and synthetic credentials.
 | Commit | Case/gate | Command or fixture | Result | Environment | Timestamp | Receipt or trace |
 |---|---|---|---|---|---|---|
 | pending | pending | pending | NOT RUN | clean checkout | pending | pending |
+
+## GRAPHOS-FLEET-R030
+
+`tests/fleet/test_fleet_access_contracts.py` uses a fake pack with one `ontology://` entry and a fake parser.
+- Onboarding registers one source connection and one mapping per contract.
+- Each registered mapping is unapproved, and the catalog serves no mapping for its class.
+- A second registration adds no duplicate mapping.
+- A missing SDK module skips contracts and raises nothing.

@@ -13,9 +13,12 @@ composition-root adapter.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from typing import Any, Final, Literal, Protocol
+
+logger = logging.getLogger(__name__)
 
 COMMONS_GRAPH: Final = "__commons__"
 SERVER_QUERY_SOURCE: Final = "RegisterServer:ServerQuery"
@@ -169,10 +172,15 @@ class CatalogServer:
 
 @dataclass(frozen=True, slots=True)
 class FleetCatalog:
-    """Tenant-bound joined view for loader, REST, and MCP adapters."""
+    """Tenant-bound joined view for loader, REST, and MCP adapters.
+
+    ``unadmitted`` names live registrations without a current ``mcp_server``
+    component. The catalog skips them. Onboarding admits them later.
+    """
 
     context: ReadContext
     servers: tuple[CatalogServer, ...]
+    unadmitted: tuple[str, ...] = ()
 
 
 class FleetCatalogReadPort(Protocol):
@@ -411,11 +419,15 @@ class FleetCatalogReader:
         components: dict[str, ComponentRecord],
     ) -> FleetCatalog:
         server_components, children = self._partition_components(components)
-        missing_components = set(registrations).difference(server_components)
-        if missing_components:
-            name = min(missing_components)
-            raise FleetCatalogIntegrityError(
-                f"live server {name!r} has no current mcp_server component"
+        unadmitted = tuple(sorted(set(registrations).difference(server_components)))
+        if unadmitted:
+            # A registration precedes its catalog import, so this is a normal
+            # onboarding state, not tampering. Skip the server; never fail boot.
+            logger.warning(
+                "fleet catalog skipped %d live server(s) without a current "
+                "mcp_server component: %s",
+                len(unadmitted),
+                ", ".join(unadmitted),
             )
         joined: list[CatalogServer] = []
         for name, server_component in server_components.items():
@@ -425,7 +437,9 @@ class FleetCatalogReader:
                 )
             )
         joined.sort(key=lambda item: item.component.server_name)
-        return FleetCatalog(context=context, servers=tuple(joined))
+        return FleetCatalog(
+            context=context, servers=tuple(joined), unadmitted=unadmitted
+        )
 
     async def _read_content(
         self, context: ReadContext, entry: ComponentRecord

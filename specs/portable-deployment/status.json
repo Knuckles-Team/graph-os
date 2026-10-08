@@ -17,7 +17,8 @@
     "GRAPHOS-DEPLOY-R012",
     "GRAPHOS-DEPLOY-R013",
     "GRAPHOS-DEPLOY-R014",
-    "GRAPHOS-DEPLOY-R015"
+    "GRAPHOS-DEPLOY-R015",
+    "GRAPHOS-DEPLOY-R016"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
@@ -190,6 +191,13 @@
       "title": "AVX2 guard test runs on any hosted runner",
       "delivery_state": "SPECIFIED",
       "evidence": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R016",
+      "title": "One host daemon process shares the in-pod engine",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "The internal deployment manifest carries the daemon container and its contract test. The manifest is not applied. Live receipts for host-lock ownership, process identity and sparse index growth are pending. The Helm production profile does not yet carry the daemon container."
     }
   ]
 }

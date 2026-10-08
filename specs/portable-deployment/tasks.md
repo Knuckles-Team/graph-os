@@ -110,3 +110,14 @@ qualification environment; this documentation phase performs none of them.
   idempotent governed-action, engine persistence across restart, isolated
   restore and failed-startup/rollback evidence. Bind every redacted receipt to
   the exact profile/render/release and leave unsupported capability checks open.
+
+## GRAPHOS-DEPLOY-R016 host daemon container
+
+- [x] Add the `graph-os-daemon` container to the internal deployment manifest. The container runs `python3 -m graph_os.gateway.daemon` with `KG_DAEMON_ROLE=host` and `KG_DEV_MODE=false`.
+- [x] Extend the serving-role contract test. The test asserts one host-role container and keeps the serving container at the client role.
+- [x] Validate the manifest with a server-side dry run.
+- [ ] Apply the manifest. Record the daemon log line `Verified graph host process authority minted`.
+- [ ] Record `graph-os-daemon --status` output that shows the host-lock holder.
+- [ ] Record the chat index sparse coverage before and after baseline ingestion.
+- [ ] Watch the serving container memory. The engine child counts against the serving container limit. Daemon-driven hydration raises that load.
+- [ ] Add the daemon container to the Helm production profile under `deploy/`.
