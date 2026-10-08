@@ -12,10 +12,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from graph_os.fleet.multiplexer import (
-    MCPMultiplexer,
-    SessionVisibilityMiddleware,
-)
+from graph_os.fleet.multiplexer import MCPMultiplexer
 from graph_os.fleet.shared_multiplexer import (
     ServedMultiplexerBindingError,
     _reset_served_multiplexer_for_tests,
@@ -96,29 +93,6 @@ def test_raw_authority_fails_closed_off_owner_loop() -> None:
             asyncio.run(get_served_multiplexer())
     finally:
         owner.close()
-
-
-@pytest.mark.asyncio
-async def test_attached_serving_middleware_claims_loop_for_same_instance(
-    tmp_path: Any,
-) -> None:
-    from fastmcp import FastMCP
-
-    config = tmp_path / "mcp.json"
-    config.write_text('{"mcpServers": {}}', encoding="utf-8")
-    host = FastMCP("owner-loop-proof")
-    mux = attach_multiplexer_from_fixture(host, config)
-    middleware = SessionVisibilityMiddleware(mux, host)
-
-    async def call_next(_context: object) -> list[object]:
-        return []
-
-    async def identity(served: MCPMultiplexer) -> bool:
-        return served is mux
-
-    async with host._lifespan_manager():
-        assert await run_on_served_multiplexer(identity) is True
-        assert await middleware.on_list_tools(SimpleNamespace(), call_next) == []
 
 
 @pytest.mark.asyncio

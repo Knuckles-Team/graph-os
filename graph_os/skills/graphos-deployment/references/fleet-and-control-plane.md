@@ -21,12 +21,12 @@ the served app — see **Not available yet** below.
 ## Fleet multiplexer
 
 graph-os connects to the fleet of MCP connectors (from its MCP configuration,
-`MCP_CONFIG`) and exposes resident meta-tools — `find_tools`, `load_tools`,
-`unload_tools`, `multiplexer_status` — plus `fleet.call`. Discovery spans fleet
-tools, agent skills, prompts, resources and connector-SDK items. Loading mounts
-the chosen tools as real MCP tools for that session (`tools/list_changed`),
-capped per session (`MCP_SESSION_LOADED_ITEMS_MAX`, default 64) and expiring
-with the session (`MCP_SESSION_IDLE_TTL_SECONDS`, default 3600).
+`MCP_CONFIG`) and reaches it through the intent tools: `find(action="tools"|
+"catalog"|"status")` discovers, `act(action="fleet.call")` calls and
+`manage(action="fleet.load"|"fleet.unload")` mounts or releases. No fleet tool
+is added to the served tool list. Discovery spans fleet tools, agent skills,
+prompts, resources and connector-SDK items. Mounted servers expire with the
+session (`MCP_SESSION_IDLE_TTL_SECONDS`, default 3600).
 
 Fleet access needs two **exact** scopes on the caller: `mcp:discover` (find,
 list) and `mcp:delegate` (load, call). Administrative scopes such as `kg:admin`
@@ -42,7 +42,7 @@ Wiring rules:
   fleet's private-host allowlist;
 - connectors that read/write the graph dial the engine's TLS listener (or go
   through graph-os), never a second engine;
-- a connector that looks `up` in `multiplexer_status` but fails every call
+- a connector that looks `up` in `find(action="status")` but fails every call
   usually cannot reach the engine or its IdP — read the **child's** log;
 - throttling starts **observe-only**: each child gets a default error budget in
   observe mode (the controller logs the ceiling it would set);

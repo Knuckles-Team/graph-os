@@ -29,7 +29,6 @@ from .catalog_reader import (
 )
 from .multiplexer import (
     MCPMultiplexer,
-    SessionVisibilityMiddleware,
     attach_fleet_loader,
     auto_server_prefix,
     clean_tool_name,
@@ -56,7 +55,6 @@ __all__ = [
     "ReadReceipt",
     "ServerPage",
     "ServerRegistration",
-    "SessionVisibilityMiddleware",
     "attach_fleet_loader",
     "auto_server_prefix",
     "clean_tool_name",

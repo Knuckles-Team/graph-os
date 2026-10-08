@@ -32,6 +32,7 @@
     "GRAPHOS-FLEET-R026",
     "GRAPHOS-FLEET-R027",
     "GRAPHOS-FLEET-R028",
+    "GRAPHOS-FLEET-R029",
     "GRAPHOS-FLEET-R030"
   ],
   "delivery_state": "SPECIFIED",
@@ -310,6 +311,13 @@
       "delivery_state": "BUILDING",
       "evidence": [],
       "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R029",
+      "title": "The intent tools are the only MCP surface",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "T19 merges with agent-utilities PR #54; T20-T22 remove MCP_TOOL_MODE, MCP_ALWAYS_LOAD* and the retired internal names."
     },
     {
       "id": "GRAPHOS-FLEET-R030",
