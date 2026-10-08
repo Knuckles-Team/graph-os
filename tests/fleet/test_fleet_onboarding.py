@@ -15,14 +15,6 @@ from typing import Any
 
 import pytest
 from agent_utilities.knowledge_graph.core.session import GraphSession
-from agent_utilities.orchestration.action_policy import (
-    ActionDecision,
-    ActionRequest,
-    PolicyDisposition,
-    PolicyReceipt,
-)
-from agent_utilities.security.actor_identity import ActorType
-from agent_utilities.security.brain_context import ActorContext
 
 from graph_os.deployment import production_ops
 from graph_os.deployment.semantic_provisioning import ensure_server_registrations
@@ -38,6 +30,7 @@ from graph_os.fleet.onboarding import (
     refresh_serving_catalog,
     start_fleet_onboarding,
 )
+from tests._eg_fakes import AllowPolicy, FakeEgEngine, service_session
 
 TENANT = "tenant-a"
 GRAPH = "tenant__tenant-a__default"
@@ -48,25 +41,15 @@ ALPHA = FleetEndpoint("alpha-mcp", "http://alpha-mcp.example/mcp")
 BETA = FleetEndpoint("beta-mcp", "http://beta-mcp.example/mcp")
 
 
-class _Registry:
+class _Registry(FakeEgEngine):
     """A fake EG engine answering the registry and catalog-authority ops."""
 
     def __init__(self, leases: dict[str, int] | None = None) -> None:
+        super().__init__()
         self.leases = dict(leases or {})
         self.registers: list[tuple[dict[str, Any], str]] = []
         self.attested: list[str] = []
         self.list_error: Exception | None = None
-        self.graph_compute = self
-
-    def for_graph(self, _graph: str) -> Any:
-        return SimpleNamespace(async_client=self)
-
-    async def _send(
-        self, method: str, params: Any, graph: Any, *, idempotency_key: Any = None
-    ) -> Any:
-        op = (params or {}).get("op") if method == "ConnectorPack" else None
-        name = op["op"] if isinstance(op, dict) else method
-        return getattr(self, f"_on_{name}")(params, idempotency_key)
 
     def _on_ListRegisteredServers(self, _params: Any, _key: Any) -> Any:
         if self.list_error is not None:
@@ -131,35 +114,8 @@ class _RecordingSink:
         return SimpleNamespace(result="imported")
 
 
-class _AllowPolicy:
-    def decide(self, request: ActionRequest) -> ActionDecision:
-        return ActionDecision(
-            decision="allow",
-            tier="auto_notify",
-            request=request,
-            receipt=PolicyReceipt(
-                receipt_id="action_decision:onboarding",
-                request_digest=request.digest(),
-                disposition=PolicyDisposition.APPROVE,
-                policy_origin="test",
-            ),
-        )
-
-
 def _session() -> GraphSession:
-    return GraphSession(
-        actor=ActorContext(
-            actor_id="service:graph-os",
-            actor_type=ActorType.AUTOMATED_SERVICE,
-            tenant_id=TENANT,
-            authenticated=True,
-        ),
-        tenant=TENANT,
-        scopes=frozenset({"agent:pack-control", "connector:catalog-attest"}),
-        graph=GRAPH,
-        audience="graph-os",
-        policy_version="policy-a",
-    )
+    return service_session(TENANT, GRAPH)
 
 
 async def _served_pack(endpoint: FleetEndpoint, *, auth: Any = None) -> Any:
@@ -188,7 +144,7 @@ def eg(monkeypatch: pytest.MonkeyPatch) -> _Registry:
     registry = _Registry()
     monkeypatch.setattr(
         "agent_utilities.api.provisioning.get_action_policy",
-        lambda _engine: _AllowPolicy(),
+        lambda _engine: AllowPolicy(),
     )
     monkeypatch.setattr(
         "agent_connector_sdk.sinks.epistemic_graph.EpistemicGraphSink",

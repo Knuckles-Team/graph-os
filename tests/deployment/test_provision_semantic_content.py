@@ -12,16 +12,9 @@ from typing import Any
 
 import pytest
 from agent_utilities.knowledge_graph.core.session import GraphSession
-from agent_utilities.orchestration.action_policy import (
-    ActionDecision,
-    ActionRequest,
-    PolicyDisposition,
-    PolicyReceipt,
-)
-from agent_utilities.security.actor_identity import ActorType
-from agent_utilities.security.brain_context import ActorContext
 
 from graph_os.deployment import production_ops, semantic_provisioning
+from tests._eg_fakes import AllowPolicy, FakeEgEngine, service_session
 
 TENANT = "tenant-a"
 GRAPH = "tenant__tenant-a__default"
@@ -39,29 +32,14 @@ def _binding(generation: int) -> dict[str, Any]:
     }
 
 
-class _Engine:
-    """One fake EG transport shared by every graph view."""
+class _Engine(FakeEgEngine):
+    """Answers the provisioning ops for one tenant graph."""
 
     def __init__(self, *, registered: set[str], graphs: set[str]) -> None:
+        super().__init__()
         self.registered = registered
         self.graphs = graphs
-        self.calls: list[tuple[str, str, Any]] = []
         self.attests: list[dict[str, Any]] = []
-        self.graph_compute = self
-
-    def for_graph(self, _graph: str) -> Any:
-        return type("View", (), {"async_client": self})()
-
-    async def _send(
-        self, method: str, params: Any, graph: Any, *, idempotency_key: Any = None
-    ) -> Any:
-        op = (params or {}).get("op") if method == "ConnectorPack" else None
-        name = op["op"] if isinstance(op, dict) else method
-        self.calls.append((name, graph, params))
-        handler = getattr(self, f"_on_{name}".replace("-", "_"), None)
-        if handler is None:
-            raise AssertionError(f"unexpected EG call {name}")
-        return handler(params, idempotency_key)
 
     def _on_ListGraphs(self, _params: Any, _key: Any) -> Any:
         return [
@@ -158,35 +136,8 @@ class _Sink:
         return type("Unchanged", (), {"result": "unchanged"})()
 
 
-class _AllowPolicy:
-    def decide(self, request: ActionRequest) -> ActionDecision:
-        return ActionDecision(
-            decision="allow",
-            tier="auto_notify",
-            request=request,
-            receipt=PolicyReceipt(
-                receipt_id="action_decision:test",
-                request_digest=request.digest(),
-                disposition=PolicyDisposition.APPROVE,
-                policy_origin="test",
-            ),
-        )
-
-
 def _session() -> GraphSession:
-    return GraphSession(
-        actor=ActorContext(
-            actor_id="service:graph-os",
-            actor_type=ActorType.AUTOMATED_SERVICE,
-            tenant_id=TENANT,
-            authenticated=True,
-        ),
-        tenant=TENANT,
-        scopes=frozenset({"agent:pack-control", "connector:catalog-attest"}),
-        graph=GRAPH,
-        audience="graph-os",
-        policy_version="policy-a",
-    )
+    return service_session(TENANT, GRAPH)
 
 
 @pytest.fixture
@@ -201,7 +152,7 @@ def wired(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(bootstrap, "_wait_for_engine_materialization", lambda e: None)
     monkeypatch.setattr(
         "agent_utilities.api.provisioning.get_action_policy",
-        lambda _engine: _AllowPolicy(),
+        lambda _engine: AllowPolicy(),
     )
     monkeypatch.setattr(
         "agent_connector_sdk.sinks.epistemic_graph.EpistemicGraphSink", _Sink
