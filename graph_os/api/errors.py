@@ -166,17 +166,7 @@ def _public_details(
     }:
         return _confirmation_details(code, details)
     if code == GraphOSErrorCode.INDETERMINATE:
-        # The audit adapter emits this fixed reason when it cannot record the
-        # outcome of an effect. Never reflect an arbitrary backend message.
-        projected = (
-            {"reason": "audit outcome unavailable"}
-            if details.get("reason") == "audit outcome unavailable"
-            else {}
-        )
-        reference = _audit_reference(details.get("audit_ref"))
-        if reference is not None:
-            projected["audit_ref"] = reference
-        return projected
+        return _indeterminate_details(details)
     allowed = {
         GraphOSErrorCode.SCOPE_REQUIRED: "missing_scopes",
         GraphOSErrorCode.LOAD_CAP_EXCEEDED: "loaded_items",
@@ -190,6 +180,22 @@ def _public_details(
     if any(not isinstance(item, str) or len(item) > 128 for item in values):
         return {}
     return {key: list(values)}
+
+
+def _indeterminate_details(details: Mapping[str, Any]) -> dict[str, Any]:
+    """Project the fixed audit reason and a bounded reconciliation handle."""
+
+    # The audit adapter emits this fixed reason when it cannot record the
+    # outcome of an effect. Never reflect an arbitrary backend message.
+    projected: dict[str, Any] = (
+        {"reason": "audit outcome unavailable"}
+        if details.get("reason") == "audit outcome unavailable"
+        else {}
+    )
+    reference = _audit_reference(details.get("audit_ref"))
+    if reference is not None:
+        projected["audit_ref"] = reference
+    return projected
 
 
 def _audit_reference(value: object) -> str | None:
