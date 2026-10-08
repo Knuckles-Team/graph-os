@@ -84,11 +84,8 @@ def served_native(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
         _reset_served_multiplexer_for_tests()
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("tenant", ["tenant-a", "tenant-b"])
-async def test_api_native_result_matches_served_mcp(
-    served_native: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, tenant: str
-) -> None:
+@pytest.fixture
+def native_api(served_native: SimpleNamespace, monkeypatch: pytest.MonkeyPatch) -> Any:
     from agent_webui import api_extensions as api
 
     monkeypatch.setattr(
@@ -98,10 +95,18 @@ async def test_api_native_result_matches_served_mcp(
     )
     monkeypatch.setattr(api, "get_engine_bounded", AsyncMock(return_value=object()))
     monkeypatch.setattr(api, "_batch_toggle_states", AsyncMock(return_value=({}, True)))
+    return api.call_mcp_tool_route
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tenant", ["tenant-a", "tenant-b"])
+async def test_api_native_result_matches_served_mcp(
+    served_native: SimpleNamespace, native_api: Any, tenant: str
+) -> None:
     session = _session(tenant)
     with use_actor(session.actor), use_session(session):
         native = await served_native.host.call_tool("ask", {"query": "read"})
-        result = await api.call_mcp_tool_route(
+        result = await native_api(
             {
                 "server": "graph-os",
                 "tool": "ask",
@@ -219,3 +224,45 @@ async def test_native_delegation_retains_bounds(
             timeout=timeout,
         )
     assert served_native.observed == []
+
+
+@pytest.mark.asyncio
+async def test_concurrent_native_api_calls_keep_caller_identity(
+    served_native: SimpleNamespace, native_api: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    both_started = asyncio.Event()
+    started: list[str] = []
+
+    async def overlapping_read(query: str) -> dict[str, str]:
+        before = resolve_session(required_scope="kg:read")
+        started.append(before.tenant)
+        if len(started) == 2:
+            both_started.set()
+        await asyncio.wait_for(both_started.wait(), timeout=2.0)
+        after = resolve_session(required_scope="kg:read")
+        return {
+            "query": query,
+            "tenant": after.tenant,
+            "actor": current_actor().actor_id,
+        }
+
+    monkeypatch.setitem(runtime.REGISTERED_TOOLS, "ask", overlapping_read)
+
+    async def read_as(tenant: str) -> Any:
+        session = _session(tenant)
+        with use_actor(session.actor), use_session(session):
+            return await native_api(
+                {"server": "graph-os", "tool": "ask", "arguments": {"query": tenant}}
+            )
+
+    tenants = ("tenant-a", "tenant-b")
+    results = await asyncio.wait_for(
+        asyncio.gather(*(read_as(tenant) for tenant in tenants)), timeout=5.0
+    )
+    assert sorted(started) == list(tenants)
+    for tenant, response in zip(tenants, results, strict=True):
+        assert response == {
+            "status": "success",
+            "result": {"query": tenant, "tenant": tenant, "actor": f"user-{tenant}"},
+        }
+    served_native.mux.delegate_server_tool.assert_not_awaited()
