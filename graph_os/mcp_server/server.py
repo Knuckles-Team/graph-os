@@ -280,6 +280,12 @@ def mcp_server() -> None:
             )
             logger.info("GraphOS base graphs ensured: %s", base_graphs)
 
+            # Fleet servers come from the MCP config; the catalog reads their
+            # registry rows, which a fresh store lacks and a lease lets lapse.
+            from graph_os.fleet.registration import start_fleet_registration
+
+            start_fleet_registration(runtime._get_engine(), bootstrap_session)
+
             from graph_os.mcp_server.catalog_composition import (
                 compose_catalog_authorities,
             )
