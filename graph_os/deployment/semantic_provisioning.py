@@ -34,6 +34,10 @@ from graph_os.semantic_content import (
 
 COMMONS_GRAPH = "__commons__"
 TENANT_GRAPH_TYPE = "Team"
+#: The system graph that durable WorkItems (leases, queues, dispatch) live on.
+#: A fresh store has no such graph, and every WorkItem read then fails.
+CONTROL_GRAPH = "__control__"
+CONTROL_GRAPH_TYPE = "Global"
 #: The longest lease ``RegisterServer`` accepts; provisioning only needs the
 #: registration live while it attests, and the serving process heartbeats it.
 REGISTRATION_TTL_SECS = 86_400
@@ -100,8 +104,10 @@ def _shell_context(tenant_id: str, key: str) -> Any:
     )
 
 
-async def ensure_tenant_graph(client: Any, graph: str) -> bool:
-    """Create the tenant graph when absent; return whether it was created."""
+async def ensure_tenant_graph(
+    client: Any, graph: str, graph_type: str = TENANT_GRAPH_TYPE
+) -> bool:
+    """Create the graph when absent; return whether it was created."""
 
     from epistemic_graph.generated.cluster import (
         decode_list_graphs,
@@ -114,11 +120,35 @@ async def ensure_tenant_graph(client: Any, graph: str) -> bool:
         return False
     await send_create_graph(
         client,
-        {"graph_name": graph, "graph_type": TENANT_GRAPH_TYPE},
+        {"graph_name": graph, "graph_type": graph_type},
         graph,
         idempotency_key=f"graph-os:create-graph:{graph}",
     )
     return True
+
+
+async def ensure_base_graphs(
+    *, engine: Any, session: Any, bind_graph: GraphBinder | None = None
+) -> dict[str, bool]:
+    """Create the session's tenant graph and the WorkItem control graph if absent.
+
+    A fresh store has neither. GraphOS runs this at every boot, before leases,
+    queues, or workers read them, so a new deployment needs no manual step.
+    """
+    compute = getattr(engine, "graph_compute", None)
+    if compute is None:  # lightweight/non-native engines own no graphs
+        return {}
+    bind = bind_graph or _bind_session_graph
+    created: dict[str, bool] = {}
+    for graph, graph_type in (
+        (str(session.graph), TENANT_GRAPH_TYPE),
+        (CONTROL_GRAPH, CONTROL_GRAPH_TYPE),
+    ):
+        with bind(graph):
+            created[graph] = await ensure_tenant_graph(
+                compute.for_graph(graph).async_client, graph, graph_type
+            )
+    return created
 
 
 async def _registry_page(commons: Any) -> Any:
@@ -452,8 +482,10 @@ async def provision_semantic_content(
         provider() for provider in (providers or default_content_providers())
     )
     connectors = tuple(content.connector for content in contents)
-    with bind_graph(graph):
-        created = await ensure_tenant_graph(client, graph)
+    base = await ensure_base_graphs(
+        engine=engine, session=session, bind_graph=bind_graph
+    )
+    created, control_created = base[graph], base[CONTROL_GRAPH]
     with bind_graph(COMMONS_GRAPH):
         registered = await ensure_registrations(commons, connectors, served_url)
     imports: dict[str, str] = {}
@@ -479,6 +511,7 @@ async def provision_semantic_content(
     return {
         "graph": graph,
         "graph_created": created,
+        "control_graph_created": control_created,
         "registered": list(registered),
         "imports": imports,
         "verified": True,
@@ -488,6 +521,7 @@ async def provision_semantic_content(
 __all__ = [
     "SemanticProvisioningError",
     "attest_self_served_catalog",
+    "ensure_base_graphs",
     "catalog_content_digest",
     "ensure_registrations",
     "ensure_server_registrations",
