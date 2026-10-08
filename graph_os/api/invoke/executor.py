@@ -101,26 +101,44 @@ async def prepare_executor(
 ) -> OpError | None:
     if op.executor != Executor.SERVICE:
         return None
+    subject = _service_subject(op, params, caller, runtime, verified_subject)
+    if isinstance(subject, OpError):
+        return subject
+    try:
+        allowed = await runtime.check_subject_access(caller, subject)
+    except Exception:
+        return OpError("UNAVAILABLE", {"reason": "subject authority unavailable"})
+    return None if allowed is True else OpError("SUBJECT_ACCESS_DENIED")
+
+
+def _service_subject(
+    op: Any,
+    params: Mapping[str, Any],
+    caller: VerifiedCaller,
+    runtime: OperationRuntime,
+    verified_subject: str | None,
+) -> str | OpError:
     owner_field = forbidden_path(params, names=FORBIDDEN_OWNER)
     if owner_field is not None:
         return OpError("INVALID_ARGUMENT", {"field": owner_field})
+    refused = _service_authority_refusal(op, verified_subject)
+    if refused is not None:
+        return refused
+    subject = verified_subject or subject_value(op, params, caller)
+    if subject is None:
+        return OpError("INVALID_ARGUMENT", {"field": "subject"})
+    if not set(op.executor_scopes) <= runtime.service_scopes:
+        return OpError("UNAVAILABLE", {"reason": "service grant incomplete"})
+    return subject
+
+
+def _service_authority_refusal(op: Any, verified_subject: str | None) -> OpError | None:
     if verified_subject is not None and op.id != "fleet.call":
         return OpError("UNAVAILABLE", {"reason": "unexpected resolved subject"})
     if not op.scopes or not op.executor_scopes:
         return OpError("UNAVAILABLE", {"reason": "service authority absent"})
     if not op.subject and verified_subject is None:
         return OpError("UNAVAILABLE", {"reason": "service op has no subject"})
-    subject = verified_subject or subject_value(op, params, caller)
-    if subject is None:
-        return OpError("INVALID_ARGUMENT", {"field": "subject"})
-    if not set(op.executor_scopes) <= runtime.service_scopes:
-        return OpError("UNAVAILABLE", {"reason": "service grant incomplete"})
-    try:
-        allowed = await runtime.check_subject_access(caller, subject)
-    except Exception:
-        return OpError("UNAVAILABLE", {"reason": "subject authority unavailable"})
-    if allowed is not True:
-        return OpError("SUBJECT_ACCESS_DENIED")
     return None
 
 

@@ -9,7 +9,7 @@ import time
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from binascii import Error as Base64Error
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, Protocol
 
 from cryptography.exceptions import InvalidTag
@@ -44,16 +44,7 @@ class PlanBinding:
     confirm: str
 
     def as_grant(self) -> dict[str, str]:
-        return {
-            "op_id": self.op_id,
-            "params_digest": self.params_digest,
-            "principal": self.principal,
-            "tenant": self.tenant,
-            "policy_revision": self.policy_revision,
-            "registry_digest": self.registry_digest,
-            "effect": self.effect,
-            "confirm": self.confirm,
-        }
+        return asdict(self)
 
 
 def bind_plan(
@@ -143,25 +134,18 @@ class EgPlanStore:
         """Read only this caller's live, sealed plan for attended review."""
 
         lease = await self._leases.get(tenant=caller.tenant, lease_id=plan_ref)
-        if not lease or lease.get("kind") != self._lease_kind:
-            return None, OpError("PLAN_MISMATCH")
-        if lease.get("status") != "active" or int(
-            lease.get("hard_expires_at_ms", 0)
-        ) <= int(time.time() * 1000):
-            return None, OpError("PLAN_EXPIRED")
+        refusal = _live_lease_refusal(lease, self._lease_kind)
+        if refusal is not None:
+            return None, refusal
         grant = lease.get("grant")
-        if not isinstance(grant, Mapping) or grant.get("confirm") != "console":
-            return None, OpError("PLAN_MISMATCH")
-        if (
-            grant.get("principal") != caller.principal
-            or grant.get("tenant") != caller.tenant
-        ):
-            return None, OpError("PLAN_MISMATCH")
-        if (
-            grant.get("policy_revision") != caller.policy_revision
-            or grant.get("registry_digest") != registry_digest
-        ):
-            return None, OpError("PLAN_STALE")
+        refusal = _console_grant_refusal(grant, caller, registry_digest)
+        if refusal is not None:
+            return None, refusal
+        return self._console_params(plan_ref, grant)
+
+    def _console_params(
+        self, plan_ref: str, grant: Mapping[str, Any]
+    ) -> tuple[dict[str, Any] | None, OpError | None]:
         sealed = grant.get("sealed_params")
         if not isinstance(sealed, str):
             return None, OpError("PLAN_MISMATCH")
@@ -177,12 +161,9 @@ class EgPlanStore:
         self, plan_ref: str, binding: PlanBinding
     ) -> tuple[dict[str, Any] | None, OpError | None]:
         lease = await self._leases.get(tenant=binding.tenant, lease_id=plan_ref)
-        if not lease or lease.get("kind") != self._lease_kind:
-            return None, OpError("PLAN_MISMATCH")
-        if lease.get("status") != "active":
-            return None, OpError("PLAN_EXPIRED")
-        if int(lease.get("hard_expires_at_ms", 0)) <= int(time.time() * 1000):
-            return None, OpError("PLAN_EXPIRED")
+        refusal = _live_lease_refusal(lease, self._lease_kind)
+        if refusal is not None:
+            return None, refusal
         grant = lease.get("grant")
         if not isinstance(grant, Mapping):
             return None, OpError("PLAN_MISMATCH")
@@ -208,6 +189,35 @@ class EgPlanStore:
             idempotency_key=f"consume:{plan_ref}",
         )
         return None if answer.get("outcome") == "applied" else OpError("PLAN_EXPIRED")
+
+
+def _live_lease_refusal(lease: Any, lease_kind: str) -> OpError | None:
+    """Refuse a lease that is absent, foreign, inactive or past its hard expiry."""
+    if not lease or lease.get("kind") != lease_kind:
+        return OpError("PLAN_MISMATCH")
+    if lease.get("status") != "active" or int(
+        lease.get("hard_expires_at_ms", 0)
+    ) <= int(time.time() * 1000):
+        return OpError("PLAN_EXPIRED")
+    return None
+
+
+def _console_grant_refusal(
+    grant: Any, caller: VerifiedCaller, registry_digest: str
+) -> OpError | None:
+    if not isinstance(grant, Mapping) or grant.get("confirm") != "console":
+        return OpError("PLAN_MISMATCH")
+    if (
+        grant.get("principal") != caller.principal
+        or grant.get("tenant") != caller.tenant
+    ):
+        return OpError("PLAN_MISMATCH")
+    if (
+        grant.get("policy_revision") != caller.policy_revision
+        or grant.get("registry_digest") != registry_digest
+    ):
+        return OpError("PLAN_STALE")
+    return None
 
 
 class PlanStore(Protocol):

@@ -100,25 +100,7 @@ class EgAuditAdapter:
                 request_id=self._request_id(event, caller),
                 audit_class=audit_class.value,
             )
-        if not isinstance(receipt, Mapping) or receipt.get("graph") != caller.tenant:
-            raise RuntimeError("EG audit receipt graph is invalid")
-        for field in ("seq", "reservation_seq"):
-            if type(receipt.get(field)) is not int or receipt[field] < 0:
-                raise RuntimeError("EG audit receipt sequence is invalid")
-        outcome = receipt.get("outcome_seq")
-        if "outcome_seq" not in receipt or (
-            outcome is not None
-            and (type(outcome) is not int or outcome < receipt["reservation_seq"])
-        ):
-            raise RuntimeError("EG audit outcome link is invalid")
-        if (
-            not isinstance(receipt.get("replayed"), bool)
-            or _DIGEST.fullmatch(str(receipt.get("entry_sha256", ""))) is None
-        ):
-            raise RuntimeError("EG audit receipt is invalid")
-        expected_seq = receipt["reservation_seq"] if status == "reserved" else outcome
-        if receipt["seq"] != expected_seq:
-            raise RuntimeError("EG audit receipt phase mismatch")
+        _check_receipt(receipt, caller.tenant, status)
         return receipt
 
     async def preflight(
@@ -130,9 +112,7 @@ class EgAuditAdapter:
             separators=(",", ":"),
         )
 
-    async def write(
-        self, event: Mapping[str, str], audit_class: AuditClass, caller: VerifiedCaller
-    ) -> None:
+    def _reservation_seq(self, event: Mapping[str, str], caller: VerifiedCaller) -> int:
         try:
             reference = json.loads(event.get("audit_ref", ""))
         except (TypeError, ValueError) as exc:
@@ -141,29 +121,72 @@ class EgAuditAdapter:
             not isinstance(reference, list)
             or len(reference) != 2
             or reference[0] != self._request_id(event, caller)
-            or type(reference[1]) is not int
-            or reference[1] < 0
+            or not _sequence(reference[1])
         ):
             raise ValueError("invalid audit reservation reference")
+        return int(reference[1])
+
+    async def write(
+        self, event: Mapping[str, str], audit_class: AuditClass, caller: VerifiedCaller
+    ) -> None:
+        reservation_seq = self._reservation_seq(event, caller)
         code = event.get("result_status", "")
         # AuditAppend has no uncertain terminal phase. Keep its reservation
         # unresolved for reconciliation; do not manufacture a definite error.
         if code in {"INDETERMINATE", "TIMEOUT"}:
             return
-        status = (
-            "ok"
-            if code == "OK"
-            else "denied"
-            if code
-            in {
-                "POLICY_DENIED",
-                "SUBJECT_ACCESS_DENIED",
-                "PRINCIPAL_NOT_ALLOWED",
-                "UNAUTHENTICATED",
-                "SCOPE_REQUIRED",
-            }
-            else "error"
+        receipt = await self._append(
+            event, audit_class, caller, status=_outcome_status(code)
         )
-        receipt = await self._append(event, audit_class, caller, status=status)
-        if receipt["reservation_seq"] != reference[1]:
+        if receipt["reservation_seq"] != reservation_seq:
             raise RuntimeError("EG audit outcome links a different reservation")
+
+
+_DENIED_CODES = frozenset(
+    {
+        "POLICY_DENIED",
+        "SUBJECT_ACCESS_DENIED",
+        "PRINCIPAL_NOT_ALLOWED",
+        "UNAUTHENTICATED",
+        "SCOPE_REQUIRED",
+    }
+)
+
+
+def _outcome_status(code: str) -> str:
+    if code == "OK":
+        return "ok"
+    return "denied" if code in _DENIED_CODES else "error"
+
+
+def _sequence(value: Any) -> bool:
+    return type(value) is int and value >= 0
+
+
+def _outcome_linked(receipt: Mapping[str, Any]) -> bool:
+    if "outcome_seq" not in receipt:
+        return False
+    outcome = receipt["outcome_seq"]
+    return outcome is None or (
+        type(outcome) is int and outcome >= receipt["reservation_seq"]
+    )
+
+
+def _check_receipt(receipt: Any, tenant: str, status: str) -> None:
+    """Validate the provider receipt and its reservation/outcome phase link."""
+    if not isinstance(receipt, Mapping) or receipt.get("graph") != tenant:
+        raise RuntimeError("EG audit receipt graph is invalid")
+    if not all(_sequence(receipt.get(name)) for name in ("seq", "reservation_seq")):
+        raise RuntimeError("EG audit receipt sequence is invalid")
+    if not _outcome_linked(receipt):
+        raise RuntimeError("EG audit outcome link is invalid")
+    if (
+        not isinstance(receipt.get("replayed"), bool)
+        or _DIGEST.fullmatch(str(receipt.get("entry_sha256", ""))) is None
+    ):
+        raise RuntimeError("EG audit receipt is invalid")
+    expected = (
+        receipt["reservation_seq"] if status == "reserved" else receipt["outcome_seq"]
+    )
+    if receipt["seq"] != expected:
+        raise RuntimeError("EG audit receipt phase mismatch")

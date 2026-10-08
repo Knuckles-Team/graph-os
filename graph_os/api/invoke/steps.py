@@ -18,11 +18,7 @@ FORBIDDEN_OWNER = frozenset({"owner", "owner_ref"})
 def freeze_claims(value: Any) -> Any:
     """Own immutable JSON-shaped authority; never retain caller aliases."""
     if isinstance(value, Mapping):
-        if any(not isinstance(key, str) for key in value):
-            raise ValueError("authority keys must be strings")
-        return MappingProxyType(
-            {key: freeze_claims(child) for key, child in value.items()}
-        )
+        return _freeze_mapping(value)
     if isinstance(value, (list, tuple)):
         return tuple(freeze_claims(child) for child in value)
     if isinstance(value, (set, frozenset)):
@@ -30,6 +26,12 @@ def freeze_claims(value: Any) -> Any:
     if value is None or isinstance(value, (str, bool, int, float)):
         return value
     raise ValueError("authority must contain only immutable JSON values")
+
+
+def _freeze_mapping(value: Mapping[Any, Any]) -> Mapping[str, Any]:
+    if any(not isinstance(key, str) for key in value):
+        raise ValueError("authority keys must be strings")
+    return MappingProxyType({key: freeze_claims(child) for key, child in value.items()})
 
 
 def claim_values(value: Any) -> Any:
@@ -89,21 +91,12 @@ def validate_params(
 
     if not isinstance(params, Mapping):
         return OpError("INVALID_ARGUMENT")
-    if forbidden_path(params) is not None:
-        return OpError("INVALID_ARGUMENT", {"field": forbidden_path(params)})
+    asserted = forbidden_path(params)
+    if asserted is not None:
+        return OpError("INVALID_ARGUMENT", {"field": asserted})
     model = op.params
     if isinstance(model, EgSchemaRef):
-        if schema_validate is None:
-            return OpError("UNAVAILABLE", {"reason": "EG schema validator unavailable"})
-        try:
-            validated = schema_validate(model, params)
-        except ValueError:
-            return OpError("INVALID_ARGUMENT")
-        except Exception:
-            return OpError("UNAVAILABLE", {"reason": "schema authority unavailable"})
-        if not isinstance(validated, Mapping) or forbidden_path(validated) is not None:
-            return OpError("INVALID_ARGUMENT")
-        return validated
+        return _validate_provider(model, params, schema_validate)
     if not isinstance(model, type) or not issubclass(model, BaseModel):
         return OpError("UNAVAILABLE", {"reason": "schema binding unavailable"})
     try:
@@ -115,63 +108,95 @@ def validate_params(
         )
 
 
+def _validate_provider(
+    model: EgSchemaRef,
+    params: Mapping[str, Any],
+    schema_validate: SchemaValidate | None,
+) -> Mapping[str, Any] | OpError:
+    if schema_validate is None:
+        return OpError("UNAVAILABLE", {"reason": "EG schema validator unavailable"})
+    try:
+        validated = schema_validate(model, params)
+    except ValueError:
+        return OpError("INVALID_ARGUMENT")
+    except Exception:
+        return OpError("UNAVAILABLE", {"reason": "schema authority unavailable"})
+    if not isinstance(validated, Mapping) or forbidden_path(validated) is not None:
+        return OpError("INVALID_ARGUMENT")
+    return validated
+
+
+def _children(value: Any, prefix: str) -> list[tuple[Any, str, Any]]:
+    """Yield (key, path, child) for one container level; scalars have none."""
+    if isinstance(value, Mapping):
+        return [
+            (key, f"{prefix}.{key}" if prefix else str(key), child)
+            for key, child in value.items()
+        ]
+    if isinstance(value, (list, tuple)):
+        return [
+            (None, f"{prefix}[{index}]", child) for index, child in enumerate(value)
+        ]
+    return []
+
+
 def forbidden_path(
     value: Any, prefix: str = "", names: frozenset[str] = FORBIDDEN_AUTHORITY
 ) -> str | None:
-    if isinstance(value, Mapping):
-        for key, child in value.items():
-            path = f"{prefix}.{key}" if prefix else str(key)
-            if key in names:
-                return path
-            nested = forbidden_path(child, path, names)
-            if nested is not None:
-                return nested
-    elif isinstance(value, (list, tuple)):
-        for index, child in enumerate(value):
-            nested = forbidden_path(child, f"{prefix}[{index}]", names)
-            if nested is not None:
-                return nested
+    for key, path, child in _children(value, prefix):
+        if key in names:
+            return path
+        nested = forbidden_path(child, path, names)
+        if nested is not None:
+            return nested
     return None
 
 
 def authenticate(caller: VerifiedCaller | None) -> OpError | None:
     if not isinstance(caller, VerifiedCaller) or caller.authenticated is not True:
         return OpError("UNAUTHENTICATED")
+    if _claims_match(caller) and _identity_fields_valid(caller):
+        return None
+    return OpError("UNAUTHENTICATED")
+
+
+def _claims_match(caller: VerifiedCaller) -> bool:
     claims = caller.engine_claims
     if not isinstance(claims, Mapping) or caller.principal_kind not in {
         "human",
         "service",
     }:
-        return OpError("UNAUTHENTICATED")
-    if (
-        claims.get("principal") != caller.principal
-        or claims.get("tenant") != caller.tenant
-    ):
-        return OpError("UNAUTHENTICATED")
-    scopes = claims.get("scopes")
-    if (
-        not isinstance(scopes, (list, tuple, set, frozenset))
-        or any(
-            not isinstance(scope, str) or not scope or "*" in scope for scope in scopes
+        return False
+    return (
+        claims.get("principal") == caller.principal
+        and claims.get("tenant") == caller.tenant
+        and _scopes_match(claims.get("scopes"), caller.effective_scopes)
+        and claims.get("policy_version") == caller.policy_revision
+        and bool(claims.get("delegation")) == caller.delegated
+    )
+
+
+def _scopes_match(scopes: Any, effective: frozenset[str]) -> bool:
+    return (
+        isinstance(scopes, (list, tuple, set, frozenset))
+        and all(
+            isinstance(scope, str) and bool(scope) and "*" not in scope
+            for scope in scopes
         )
-        or frozenset(scopes) != caller.effective_scopes
-    ):
-        return OpError("UNAUTHENTICATED")
-    if claims.get("policy_version") != caller.policy_revision:
-        return OpError("UNAUTHENTICATED")
-    if bool(claims.get("delegation")) != caller.delegated:
-        return OpError("UNAUTHENTICATED")
-    if any(
-        not isinstance(value, str) or not value
-        for value in (
-            caller.principal,
-            caller.tenant,
-            caller.policy_revision,
-            caller.credential_kind,
-        )
-    ) or not isinstance(caller.delegated, bool):
-        return OpError("UNAUTHENTICATED")
-    return None
+        and frozenset(scopes) == effective
+    )
+
+
+def _identity_fields_valid(caller: VerifiedCaller) -> bool:
+    fields = (
+        caller.principal,
+        caller.tenant,
+        caller.policy_revision,
+        caller.credential_kind,
+    )
+    return all(isinstance(value, str) and bool(value) for value in fields) and (
+        isinstance(caller.delegated, bool)
+    )
 
 
 def principal_rule(op: Any, caller: VerifiedCaller) -> OpError | None:
