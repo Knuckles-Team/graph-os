@@ -7,7 +7,7 @@ import pytest
 
 from graph_os.identity.engine import IdentityUnavailable, Resolution
 from graph_os.identity.issuer import (
-    ISSUER_KEYS_SECRET,
+    ISSUER_KEY_RING_PATH,
     IssuerSettings,
     LocalIssuer,
     claims_for,
@@ -164,7 +164,7 @@ def test_configured_existing_key_signs_exact_source_bounded_profile(
     assert decoded.claims["sub"] == "usr:fixture"
     assert decoded.claims["policy_version"] == "fixture-policy"
     assert decoded.claims["delegation"] == []
-    assert store.reads == [ISSUER_KEYS_SECRET]
+    assert store.reads == [ISSUER_KEY_RING_PATH]
     assert authority.calls == ["exact-fixture-credential", "exact-fixture-credential"]
 
 
@@ -177,7 +177,7 @@ def test_missing_signing_key_does_not_provision(synthetic_signing_key):
             )
         )
     assert store.value is None
-    assert store.reads == [ISSUER_KEYS_SECRET]
+    assert store.reads == [ISSUER_KEY_RING_PATH]
 
 
 @pytest.mark.parametrize(

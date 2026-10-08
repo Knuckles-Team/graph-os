@@ -33,29 +33,45 @@ def _require_caller(session: Any, state: SessionState) -> None:
     actor = session.actor
     actor.ensure_credential_current()
     resolution = state.resolution
-    if (
-        actor.authenticated is not True
-        or actor.actor_id != resolution.principal_id
-        or actor.actor_type != resolution.kind
-        or actor.tenant_id != resolution.request_context["tenant"]
-        or session.tenant != actor.tenant_id
-        or session.policy_version != resolution.request_context["policy_version"]
-        or frozenset(session.scopes) != frozenset(resolution.scopes)
+    if not _actor_matches(actor, resolution) or not _session_matches(
+        session, actor, resolution
     ):
         raise PermissionError("browser and caller authority disagree")
     context = get_context()
     if not isinstance(context, Mapping):
         raise IdentityUnavailable("qualified caller engine context required")
     for name, expected in resolution.request_context.items():
-        actual = context.get(name)
-        if name in {"roles", "scopes", "delegation"}:
-            if type(actual) not in (tuple, list, set, frozenset):
-                raise PermissionError("browser and caller engine context disagree")
-            actual = tuple(actual)
-            if name != "delegation":
-                actual, expected = tuple(sorted(actual)), tuple(sorted(expected))
-        if actual != expected:
+        if _context_value(name, context.get(name), expected) is False:
             raise PermissionError("browser and caller engine context disagree")
+
+
+def _actor_matches(actor: Any, resolution: Any) -> bool:
+    return (
+        actor.authenticated is True
+        and actor.actor_id == resolution.principal_id
+        and actor.actor_type == resolution.kind
+        and actor.tenant_id == resolution.request_context["tenant"]
+    )
+
+
+def _session_matches(session: Any, actor: Any, resolution: Any) -> bool:
+    return (
+        session.tenant == actor.tenant_id
+        and session.policy_version == resolution.request_context["policy_version"]
+        and frozenset(session.scopes) == frozenset(resolution.scopes)
+    )
+
+
+def _context_value(name: str, actual: Any, expected: Any) -> bool:
+    if name in {"roles", "scopes", "delegation"}:
+        if not isinstance(actual, (tuple, list, set, frozenset)) or type(
+            actual
+        ) not in (tuple, list, set, frozenset):
+            raise PermissionError("browser and caller engine context disagree")
+        actual = tuple(actual)
+        if name != "delegation":
+            actual, expected = tuple(sorted(actual)), tuple(sorted(expected))
+    return bool(actual == expected)
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -142,6 +158,17 @@ class GraphOSBrowserAuthority:
         if record is not None and record.scope is scope:
             del self._requests[id(scope)]
 
+    def _require_forwarded_pair(self, scope: Any, forwarded_token: str) -> str:
+        require_mutation_proof(scope, trusted_origin=self._trusted_origin)
+        credential = session_from_scope(scope)
+        if credential is None:
+            raise PermissionError("opaque GraphOS session required")
+        if type(forwarded_token) is not str or not forwarded_token:
+            raise PermissionError("verified local forwarded token required")
+        if _headers(scope, b"authorization") != (f"Bearer {forwarded_token}".encode(),):
+            raise PermissionError("forwarded credential pairing disagrees")
+        return credential
+
     @asynccontextmanager
     async def _bind_request(
         self,
@@ -158,14 +185,7 @@ class GraphOSBrowserAuthority:
         """
         if id(scope) in self._requests:
             raise PermissionError("request already has a private binding")
-        require_mutation_proof(scope, trusted_origin=self._trusted_origin)
-        credential = session_from_scope(scope)
-        if credential is None:
-            raise PermissionError("opaque GraphOS session required")
-        if type(forwarded_token) is not str or not forwarded_token:
-            raise PermissionError("verified local forwarded token required")
-        if _headers(scope, b"authorization") != (f"Bearer {forwarded_token}".encode(),):
-            raise PermissionError("forwarded credential pairing disagrees")
+        credential = self._require_forwarded_pair(scope, forwarded_token)
         key = secrets.token_bytes(32)
         initial = _snapshot(scope, key)
         state = await self._authority.resolve_session(credential)

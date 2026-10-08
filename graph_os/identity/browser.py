@@ -26,17 +26,21 @@ _CSRF_DOMAIN = b"graph-os/identity/csrf/v1\0"
 
 def _headers(scope: Mapping[str, Any], name: bytes) -> tuple[bytes, ...]:
     headers = scope.get("headers")
-    if type(headers) not in (tuple, list):
+    if not isinstance(headers, (tuple, list)) or type(headers) not in (tuple, list):
         raise PermissionError("request headers are missing")
-    if any(
-        type(pair) not in (tuple, list)
-        or len(pair) != 2
-        or type(pair[0]) is not bytes
-        or type(pair[1]) is not bytes
-        for pair in headers
-    ):
+    if any(not _is_header_pair(pair) for pair in headers):
         raise PermissionError("request headers are malformed")
     return tuple(value for key, value in headers if key.lower() == name)
+
+
+def _is_header_pair(pair: object) -> bool:
+    return (
+        type(pair) in (tuple, list)
+        and isinstance(pair, (tuple, list))
+        and len(pair) == 2
+        and type(pair[0]) is bytes
+        and type(pair[1]) is bytes
+    )
 
 
 def _valid_token(token: str) -> bool:
@@ -53,21 +57,23 @@ def session_from_scope(scope: Mapping[str, Any]) -> str | None:
     found: list[str] = []
     for header in _headers(scope, b"cookie"):
         for part in header.decode("latin-1").split(";"):
-            name, separator, value = part.strip().partition("=")
-            normalized_name = name.strip()
-            if normalized_name == "au_session" or normalized_name.startswith(
-                "au_session."
-            ):
-                raise PermissionError("legacy browser credential is unsupported")
-            if normalized_name == SESSION_COOKIE:
-                if name != normalized_name or not separator:
-                    raise PermissionError("session cookie is malformed")
-                found.append(value)
+            _collect_session_cookie(part, found)
     if not found:
         return None
     if len(found) != 1 or not _valid_token(found[0]):
         raise PermissionError("session cookie is invalid or ambiguous")
     return found[0]
+
+
+def _collect_session_cookie(part: str, found: list[str]) -> None:
+    name, separator, value = part.strip().partition("=")
+    normalized_name = name.strip()
+    if normalized_name == "au_session" or normalized_name.startswith("au_session."):
+        raise PermissionError("legacy browser credential is unsupported")
+    if normalized_name == SESSION_COOKIE:
+        if name != normalized_name or not separator:
+            raise PermissionError("session cookie is malformed")
+        found.append(value)
 
 
 def csrf_token_for(token: str) -> str:
@@ -79,24 +85,8 @@ def csrf_token_for(token: str) -> str:
 
 def require_mutation_proof(scope: Mapping[str, Any], *, trusted_origin: str) -> None:
     """Check transport proof, never claim the opaque session is live."""
-    if type(trusted_origin) is not str or not trusted_origin.isascii():
-        raise IdentityUnavailable("exact trusted origin is not configured")
-    parsed = urlsplit(trusted_origin)
-    if (
-        parsed.scheme not in {"http", "https"}
-        or not parsed.hostname
-        or parsed.username
-        or parsed.password
-        or parsed.path
-        or parsed.query
-        or parsed.fragment
-    ):
-        raise IdentityUnavailable("exact trusted origin is not configured")
-    method = scope.get("method")
-    if scope.get("type") != "http" or type(method) is not str or not method:
-        raise PermissionError("an explicit HTTP method is required")
-    if method != method.upper():
-        raise PermissionError("HTTP method is malformed")
+    _require_trusted_origin(trusted_origin)
+    method = _require_http_method(scope)
     token = session_from_scope(scope)
     if token is None:
         raise PermissionError("opaque GraphOS session required")
@@ -108,6 +98,31 @@ def require_mutation_proof(scope: Mapping[str, Any], *, trusted_origin: str) -> 
         return
     if origins != (expected_origin,):
         raise PermissionError("configured exact origin required")
+    _require_csrf(scope, token)
+
+
+def _require_trusted_origin(trusted_origin: str) -> None:
+    if type(trusted_origin) is not str or not trusted_origin.isascii():
+        raise IdentityUnavailable("exact trusted origin is not configured")
+    parsed = urlsplit(trusted_origin)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise IdentityUnavailable("exact trusted origin is not configured")
+    if any(
+        (parsed.username, parsed.password, parsed.path, parsed.query, parsed.fragment)
+    ):
+        raise IdentityUnavailable("exact trusted origin is not configured")
+
+
+def _require_http_method(scope: Mapping[str, Any]) -> str:
+    method = scope.get("method")
+    if scope.get("type") != "http" or type(method) is not str or not method:
+        raise PermissionError("an explicit HTTP method is required")
+    if method != method.upper():
+        raise PermissionError("HTTP method is malformed")
+    return method
+
+
+def _require_csrf(scope: Mapping[str, Any], token: str) -> None:
     presented = _headers(scope, b"x-csrf-token")
     expected = csrf_token_for(token).encode("ascii")
     if len(presented) != 1 or not hmac.compare_digest(presented[0], expected):

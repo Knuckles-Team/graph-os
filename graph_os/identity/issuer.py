@@ -16,7 +16,7 @@ from .engine import IdentityUnavailable, Resolution, _text
 from .ports import CredentialAuthority, CredentialState, SigningKeyStore
 
 ACCESS_TOKEN_MAX_SECONDS = 300
-ISSUER_KEYS_SECRET = "graph-os/identity/issuer-signing-keys"
+ISSUER_KEY_RING_PATH = "graph-os/identity/issuer-signing-keys"
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,7 +90,10 @@ def require_token_binding(claims: Mapping[str, Any], resolution: Resolution) -> 
     for name, expected in identity_claims(resolution).items():
         actual = claims.get(name)
         if name in {"roles", "delegation"}:
-            if type(actual) not in (tuple, list):
+            if not isinstance(actual, (tuple, list)) or type(actual) not in (
+                tuple,
+                list,
+            ):
                 raise PermissionError("verified local token binding disagrees")
             actual = list(actual)
         if actual != expected:
@@ -129,7 +132,7 @@ class LocalIssuer:
         from joserfc.errors import JoseError
         from joserfc.jwk import RSAKey
 
-        stored = self._store.get(ISSUER_KEYS_SECRET)
+        stored = self._store.get(ISSUER_KEY_RING_PATH)
         if type(stored) is not str or not stored:
             raise IdentityUnavailable("configured issuer signing key unavailable")
         try:
