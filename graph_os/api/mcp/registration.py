@@ -207,6 +207,28 @@ class GovernedSessionVisibility(Middleware):
         ]
 
 
+async def _require_unbound_surface(
+    mcp: Any, multiplexer: Any, binding: FleetMCPBinding
+) -> None:
+    if (
+        await mcp.list_tools()
+        or getattr(multiplexer, "_governed_fleet", None) is not None
+    ):
+        raise RuntimeError("MCP surface must be empty and unbound before registration")
+    if binding.projection.services is None or not callable(binding.projection.invoke):
+        raise RuntimeError("shared invocation services are required")
+
+
+async def _attach_resident_tools(mcp: Any, binding: FleetMCPBinding) -> None:
+    tools = [make_verb(name, binding.projection) for name in VERBS]
+    tools.extend(make_fleet_tool(name, binding.projection) for name in FLEET_OPERATIONS)
+    for tool in tools:
+        mcp.add_tool(tool)
+    names = [tool.name for tool in await mcp.list_tools()]
+    if len(names) != len(RESIDENT_NAMES) or set(names) != set(RESIDENT_NAMES):
+        raise RuntimeError("MCP resident attachment was incomplete")
+
+
 async def register_mcp_tools(
     mcp: Any, multiplexer: Any, binding: FleetMCPBinding
 ) -> None:
@@ -216,20 +238,8 @@ async def register_mcp_tools(
     E must validate live authorities before calling it and must discard the host
     if any attachment fails. Native mounts subsequently use the mux factory.
     """
-    if (
-        await mcp.list_tools()
-        or getattr(multiplexer, "_governed_fleet", None) is not None
-    ):
-        raise RuntimeError("MCP surface must be empty and unbound before registration")
-    if binding.projection.services is None or not callable(binding.projection.invoke):
-        raise RuntimeError("shared invocation services are required")
-    tools = [make_verb(name, binding.projection) for name in VERBS]
-    tools.extend(make_fleet_tool(name, binding.projection) for name in FLEET_OPERATIONS)
-    for tool in tools:
-        mcp.add_tool(tool)
-    names = [tool.name for tool in await mcp.list_tools()]
-    if len(names) != len(RESIDENT_NAMES) or set(names) != set(RESIDENT_NAMES):
-        raise RuntimeError("MCP resident attachment was incomplete")
+    await _require_unbound_surface(mcp, multiplexer, binding)
+    await _attach_resident_tools(mcp, binding)
     register_resources(
         mcp,
         binding.projection.registry,

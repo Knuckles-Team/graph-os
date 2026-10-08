@@ -159,19 +159,23 @@ def _require_service_authority(
         raise RuntimeError("service child authority metadata is incomplete")
 
 
+def _is_scope_set(value: object) -> bool:
+    return isinstance(value, frozenset) and all(
+        isinstance(scope, str) and scope for scope in value
+    )
+
+
+def _descriptor_metadata_complete(descriptor: AdmittedTool) -> bool:
+    return (
+        isinstance(descriptor, AdmittedTool)
+        and _is_scope_set(descriptor.required_scopes)
+        and descriptor.credential_mode in {"delegated", "service"}
+        and _is_scope_set(descriptor.executor_scopes)
+    )
+
+
 def _require_descriptor_authority(descriptor: AdmittedTool) -> None:
-    if (
-        not isinstance(descriptor, AdmittedTool)
-        or not isinstance(descriptor.required_scopes, frozenset)
-        or not all(
-            isinstance(scope, str) and scope for scope in descriptor.required_scopes
-        )
-        or descriptor.credential_mode not in {"delegated", "service"}
-        or not isinstance(descriptor.executor_scopes, frozenset)
-        or not all(
-            isinstance(scope, str) and scope for scope in descriptor.executor_scopes
-        )
-    ):
+    if not _descriptor_metadata_complete(descriptor):
         raise RuntimeError("fleet tool authority metadata is incomplete")
     _require_service_authority(
         descriptor.credential_mode, descriptor.executor_scopes, descriptor.subject_id

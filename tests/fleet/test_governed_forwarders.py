@@ -119,7 +119,7 @@ def test_delegated_catalog_subject_is_not_service_executor_authority() -> None:
     policy = _verified_server_policy(
         b'{"credential_mode":"delegated","required_scopes":["data:read"]}'
     )
-    merged = {}
+    merged: dict[str, CatalogItem] = {}
     _merge_probed_item(
         merged, item, policy=policy, subject_id="verified-server-component"
     )

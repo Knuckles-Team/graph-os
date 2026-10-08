@@ -113,13 +113,7 @@ class SessionLoads:
         bindings: Mapping[str, tuple[str, ...]] | None = None,
     ) -> dict[str, object]:
         requested = list(dict.fromkeys(items))
-        if bindings is not None and any(
-            not isinstance(bindings.get(name), tuple)
-            or not bindings[name]
-            or any(not isinstance(part, str) for part in bindings[name])
-            for name in requested
-        ):
-            raise ValueError("load binding is incomplete")
+        _require_complete_bindings(requested, bindings)
         session = self._session(key)
         new = [name for name in requested if name not in session.items]
         victims = self._overflow_victims(session, requested, new, evict)
@@ -127,13 +121,8 @@ class SessionLoads:
             self._remove(session, name)
         now = self._clock()
         for name in requested:
-            session.items[name] = now
-            session.generations[name] = object()
-            session.bindings[name] = bindings[name] if bindings is not None else (name,)
-            session.claims.pop(name, None)
-            session.one_shot.discard(name)
-            if auto_unload:
-                session.one_shot.add(name)
+            binding = bindings[name] if bindings is not None else (name,)
+            _mark_loaded(session, name, now, binding, auto_unload)
         if new or victims:
             session.pending_changed = True
             session.notification_sent = False
@@ -254,3 +243,36 @@ class SessionLoads:
             "list_changed_pending": session.pending_changed,
             "notification_sent": session.notification_sent,
         }
+
+
+def _binding_is_complete(binding: object) -> bool:
+    return (
+        isinstance(binding, tuple)
+        and bool(binding)
+        and all(isinstance(part, str) for part in binding)
+    )
+
+
+def _require_complete_bindings(
+    requested: list[str], bindings: Mapping[str, tuple[str, ...]] | None
+) -> None:
+    if bindings is not None and any(
+        not _binding_is_complete(bindings.get(name)) for name in requested
+    ):
+        raise ValueError("load binding is incomplete")
+
+
+def _mark_loaded(
+    session: _Session,
+    name: str,
+    now: float,
+    binding: tuple[str, ...],
+    auto_unload: bool,
+) -> None:
+    session.items[name] = now
+    session.generations[name] = object()
+    session.bindings[name] = binding
+    session.claims.pop(name, None)
+    session.one_shot.discard(name)
+    if auto_unload:
+        session.one_shot.add(name)
