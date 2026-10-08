@@ -125,8 +125,51 @@
       "id": "GRAPHOS-DEPLOY-R013",
       "title": "Development and production deployment profiles",
       "delivery_state": "BUILDING",
-      "evidence": [],
-      "remaining": "The Compose profile, the Helm chart, the Swarm stack and the genesis and deployment skills are on the default branch, with rendered-artifact tests (helm lint and template for both topologies, compose config). Remaining: the first-boot test that provisions each profile and confirms readiness, administrator creation and the selected secrets backend before accepting traffic; identity-mode enforcement depends on the identity work that is not on the default branch yet."
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "2abb9ebb3905e2daedc3e4c5e83dc5682c13f2bd",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/2abb9ebb3905e2daedc3e4c5e83dc5682c13f2bd",
+          "description": "PR #23 landed Kubernetes client prerequisite selection for dev/test/prod/enterprise and validated named environments. Missing kubectl/Helm, failed or timed-out probes, and invalid profiles block; probes remain client-only. This is source/fixture proof, not cluster access or first-boot acceptance. Merge verified as an ancestor of main 937d38569cef9f07abf46fd064aff98c24a33c85."
+        },
+        {
+          "kind": "test",
+          "result": "passed",
+          "commit": "7694c6eb891a23186805bc8cb62c531fc642ee5f",
+          "url": "https://github.com/Knuckles-Team/graph-os/actions/runs/37174546666",
+          "description": "PR #23 exact-head Release workflow passed gates (commit/push hooks, locked-environment mypy and full pytest), scanner quality and wheel build. Release-tag dependency readiness and publication were skipped; no installed-package, live-profile, identity, image-pull or CNI acceptance is inferred."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0da5f7440603cd3112bf25dc091d84a9a902fb1d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0da5f7440603cd3112bf25dc091d84a9a902fb1d",
+          "description": "PR #24 landed the read-only Kubernetes first-boot observation verifier and offline fixtures for workload ownership/configuration, image digests, pod readiness and PVCs, with bounded collection and fail-closed malformed/missing evidence. Supplied engine/identity/administrator/secrets flags are snapshot-bound, not authenticated; acceptance remains not_qualified even when all flags are supplied. Merge verified as an ancestor of main 937d38569cef9f07abf46fd064aff98c24a33c85."
+        },
+        {
+          "kind": "test",
+          "result": "passed",
+          "commit": "80a4c66e071862f1335f2e3487090005f728d62e",
+          "url": "https://github.com/Knuckles-Team/graph-os/actions/runs/37175887401",
+          "description": "PR #24 exact-head Release workflow passed gates (commit/push hooks, locked-environment mypy and full pytest), scanner quality and wheel build. Release-tag dependency readiness and publication were skipped; no installed-package, live-profile, identity, image-pull or CNI acceptance is inferred."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "e9d99298003518d7b54f33a9854b48e471f6926c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e9d99298003518d7b54f33a9854b48e471f6926c",
+          "description": "PR #25 landed extension pod imagePullSecrets references and deduplicated configured extension TCP ports in the release-wide NetworkPolicy's same-namespace ingress rule, plus verified Helm 4.3.0 provisioning for CI. Render fixtures cover sidecar/child/shared topologies and preserved external ingress/egress constraints; they do not prove live registry pulls, CNI enforcement or application readiness. Merge verified as an ancestor of main 937d38569cef9f07abf46fd064aff98c24a33c85."
+        },
+        {
+          "kind": "test",
+          "result": "passed",
+          "commit": "7d700fc7cefca8c680bb5879cca71a1d1ff3a5e3",
+          "url": "https://github.com/Knuckles-Team/graph-os/actions/runs/37173473826",
+          "description": "PR #25 exact-head Release workflow passed gates (commit/push hooks, locked-environment mypy and full pytest), scanner quality and wheel build. Release-tag dependency readiness and publication were skipped; no installed-package, live-profile, identity, image-pull or CNI acceptance is inferred."
+        }
+      ],
+      "remaining": "R013 remains BUILDING and the spec remains NOT_AUDITED. Provision and independently verify the R013 development Compose and production Kubernetes/Helm profiles with the required engine sidecar; record exact profile/render/release digests and the selected identity mode and secrets backend. Before accepting traffic, prove engine/application readiness, the required first-administrator/bootstrap authority, default authorization policy and selected secrets resolution, including refusal when any prerequisite is absent or unhealthy. Qualify none/local/external behavior through the served identity authority and its owning identity-access contract; Kubernetes observations or supplied booleans cannot establish it. Prove authenticated pulls of pinned extension images with configured pull-secret references and live CNI allow/deny behavior for the release-wide extension-port rule (including 9123), preserving external ingress/egress restrictions. Retain functional MCP/API and selected-browser, persistence/recovery and rollback receipts. See tasks.md for the exact remaining checklist; no live qualification or release acceptance is recorded here."
     },
     {
       "id": "GRAPHOS-DEPLOY-R014",

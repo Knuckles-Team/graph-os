@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+from collections.abc import Iterator
 from types import SimpleNamespace
 from typing import Any
 
@@ -21,6 +23,8 @@ class GraphCompute:
 
 
 class Session:
+    graph = "tenant__tenant_a____commons__"
+
     def engine_verified_context(self) -> dict[str, str]:
         return {
             "tenant": "tenant-a",
@@ -57,7 +61,9 @@ async def test_startup_injects_generated_clients_and_public_catalog_ports(
     monkeypatch.setattr(
         composition,
         "configure_enhanced_catalog",
-        lambda authority: installed.append(authority),
+        lambda authority, *, authority_scope: installed.append(
+            (authority, authority_scope)
+        ),
     )
     verified: list[dict[str, Any]] = []
 
@@ -71,6 +77,13 @@ async def test_startup_injects_generated_clients_and_public_catalog_ports(
         lambda: ("graph-os", "agent-utilities"),
     )
 
+    bound: list[str] = []
+
+    @contextlib.contextmanager
+    def bind_graph(graph: str) -> Iterator[None]:
+        bound.append(graph)
+        yield
+
     reader = await composition.compose_catalog_authorities(
         engine=engine,
         session=Session(),
@@ -80,21 +93,30 @@ async def test_startup_injects_generated_clients_and_public_catalog_ports(
             workflows,
             agents,
         ),
+        bind_graph=bind_graph,
     )
 
-    assert compute.graphs == ["tenant-a", "__commons__"]
+    # The tenant's data graph is the session's graph, never the bare tenant id.
+    assert compute.graphs == [Session.graph, "__commons__"]
+    assert bound == [Session.graph]
     assert mux.refreshes == 1
     assert verified == [
         {
-            "client": SimpleNamespace(graph="tenant-a"),
+            "client": SimpleNamespace(graph=Session.graph),
             "tenant_id": "tenant-a",
-            "graph": "tenant-a",
+            "graph": Session.graph,
             "connectors": ("graph-os", "agent-utilities"),
         }
     ]
-    assert installed[0]._fleet is reader
-    assert installed[0]._workflows is workflows
-    assert installed[0]._agents is agents
+    authority, authority_scope = installed[0]
+    assert authority._fleet is reader
+    assert authority._workflows is workflows
+    assert authority._agents is agents
+    process_sessions: list[Any] = []
+    monkeypatch.setattr(composition, "_use_process_session", process_sessions.append)
+    authority_scope()
+    assert len(process_sessions) == 1
+    assert isinstance(process_sessions[0], Session)
     assert deferred._reader is reader
 
 
@@ -104,7 +126,9 @@ async def test_failed_initial_refresh_aborts_startup_without_static_fallback(
 ) -> None:
     engine = SimpleNamespace(graph_compute=GraphCompute())
     deferred = DeferredFleetCatalogReader()
-    monkeypatch.setattr(composition, "configure_enhanced_catalog", lambda value: None)
+    monkeypatch.setattr(
+        composition, "configure_enhanced_catalog", lambda value, **_: None
+    )
 
     async def verified(**kwargs: Any) -> None:
         return None
@@ -121,6 +145,7 @@ async def test_failed_initial_refresh_aborts_startup_without_static_fallback(
             deferred_fleet=deferred,
             multiplexer=Multiplexer(fail=True),
             catalog_ports_factory=lambda engine, session: (object(), object()),
+            bind_graph=lambda graph: contextlib.nullcontext(),
         )
 
     # The EG reader is installed, but startup propagates the failed proof and

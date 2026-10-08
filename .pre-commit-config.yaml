@@ -60,6 +60,7 @@ repos:
   rev: 2ccb47ff45ad361a21071a7eedda4c37e6ae8c5a # v2.4.2
   hooks:
   - id: codespell
+    args: ["--ignore-words=.config/codespell.ignore"]
     exclude: ^(tests/|test/)
 
 - repo: https://github.com/PyCQA/bandit
@@ -217,3 +218,15 @@ repos:
     language: system
     pass_filenames: false
     files: ^(specs/|scripts/check_public_specs\.py$|\.specify/memory/constitution\.md$)
+  # Freshness check for this repository's own core-pack skills (see
+  # scripts/check_core_skills.py): every backticked repository path and bare
+  # console command they mention must still exist on disk / in
+  # pyproject.toml / under scripts/. Scoped to graph-os's own two core
+  # skills for now; the deployment/genesis pair needs its own accuracy pass
+  # before it can join this gate noise-free.
+  - id: check-core-skills
+    name: Core skills reference real paths and commands
+    entry: python3 scripts/check_core_skills.py --repo-root . graph_os/skills/graph-os-development/SKILL.md graph_os/skills/using-graph-os/SKILL.md
+    language: system
+    pass_filenames: false
+    files: ^(graph_os/skills/(graph-os-development|using-graph-os)/SKILL\.md$|scripts/check_core_skills\.py$)

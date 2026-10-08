@@ -2326,10 +2326,84 @@ def _build_server(bootstrap: bool = True):
     from graph_os.a2a.mcp import register_a2a_tools
     from graph_os.browser_control.mcp import register_browser_control_tools
 
+    _register_graph_tool_surface(mcp)
     register_browser_control_tools(mcp)
     register_a2a_tools(mcp)
 
     return args, mcp, middlewares
+
+
+def _graph_tool_registrars() -> list[Any]:
+    """agent-utilities' action-routed ``graph_*`` domain registrars."""
+
+    from agent_utilities.mcp import tools as au_tools
+
+    return [
+        au_tools.register_query_tools,
+        au_tools.register_write_ingest_tools,
+        au_tools.register_analysis_tools,
+        au_tools.register_agent_execution_tools,
+        au_tools.register_analyze_suite_tools,
+        au_tools.register_state_tools,
+        au_tools.register_ontology_tools,
+        au_tools.register_reach_tools,
+        au_tools.register_bus_tools,
+        au_tools.register_candidate_claim_tools,
+        au_tools.register_claim_tools,
+        au_tools.register_secret_tools,
+        au_tools.register_config_tools,
+        au_tools.register_data_prep_tools,
+        au_tools.register_engine_tools,
+        lambda server: au_tools.register_engine_surface_tools(
+            server, include_unserved_mining=False
+        ),
+        au_tools.register_domain_ops_tools,
+        au_tools.register_evolution_tools,
+        au_tools.register_governance_tools,
+        au_tools.register_graph_engineering_tools,
+        au_tools.register_audit_tools,
+        au_tools.register_epistemic_tools,
+        au_tools.register_incident_tools,
+        au_tools.register_job_tools,
+        au_tools.register_media_sidecar_tools,
+        au_tools.register_compliance_tools,
+        au_tools.register_workflow_tools,
+        au_tools.register_argument_tools,
+        au_tools.register_durable_tools,
+    ]
+
+
+def _register_graph_tool_surface(mcp: Any) -> None:
+    """Mount the graph-os tool surface agent-utilities owns.
+
+    The same composition agent-utilities' own served KG MCP used: the
+    condensed ``graph_*`` action tools and the verbose 1:1 surface, selected by
+    ``MCP_TOOL_MODE`` inside ``register_tool_surface``; the MCP Apps entry tool;
+    and, in ``intent`` or ``hybrid`` mode, the ask/find/write/act/manage/why
+    verbs. Every
+    tool dispatches through agent-utilities' ``_execute_tool`` core, and this
+    process's ``REGISTERED_TOOLS`` mirrors the same functions so the REST
+    gateway and the multiplexer reach exactly what MCP serves.
+    """
+
+    from agent_utilities.mcp import kg_server
+    from agent_utilities.mcp.tools import register_mcp_apps_tools
+    from agent_utilities.mcp.verbose_tools import register_tool_surface, tool_mode
+
+    register_tool_surface(
+        mcp,
+        service="graph-os",
+        registrars=_graph_tool_registrars(),
+        verbose_register=kg_server.register_graphos_verbose_tools,
+    )
+    register_mcp_apps_tools(mcp)
+    # ``hybrid`` serves the intent verbs beside the ungated condensed tools;
+    # ``intent`` serves them in place of the (gated) condensed tools.
+    if tool_mode() in ("intent", "hybrid"):
+        from agent_utilities.mcp.tools.intent_tools import register_intent_tools
+
+        register_intent_tools(mcp)
+    REGISTERED_TOOLS.update(kg_server.REGISTERED_TOOLS)
 
 
 def ensure_tools_registered() -> None:
