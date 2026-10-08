@@ -357,6 +357,12 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     register_remote_oauth_routes(app, prefix=prefix)
 
+    # Service dashboard REST reads and the /ws/dashboard stream
+    # (GRAPHOS-HOST-R019). agent-webui composes these from GraphOS.
+    from graph_os.gateway.dashboard_api import register_dashboard_routes
+
+    register_dashboard_routes(app, prefix=prefix)
+
     # Usage/cost/observability surface, consumed by all three frontends.
     from graph_os.gateway.usage_api import register_usage_routes
 
