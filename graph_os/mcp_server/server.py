@@ -269,6 +269,17 @@ def mcp_server() -> None:
         with use_actor(bootstrap_session.actor), use_session(bootstrap_session):
             runtime._start_engine_bootstrap(bootstrap_session)
 
+            # A fresh store has no tenant or `__control__` graph; leases, queues
+            # and workers read them, so create them before anything else runs.
+            from graph_os.deployment.semantic_provisioning import ensure_base_graphs
+
+            base_graphs = asyncio.run(
+                ensure_base_graphs(
+                    engine=runtime._get_engine(), session=bootstrap_session
+                )
+            )
+            logger.info("GraphOS base graphs ensured: %s", base_graphs)
+
             from graph_os.mcp_server.catalog_composition import (
                 compose_catalog_authorities,
             )
