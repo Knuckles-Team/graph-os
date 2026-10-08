@@ -150,7 +150,7 @@ class FixtureLeases:
 
 class FixtureRuntime:
     service_scopes = frozenset({"example:execute"})
-    bindings = {}
+    bindings: dict[str, Any] = {}
 
     def __init__(self):
         self.calls = []
