@@ -25,6 +25,11 @@ SOURCE_KIND_BY_ACCESS = {
     "graphql_query": "graphql",
     "a2a_skill": "a2a",
 }
+#: Markers that show an ontology body declares an access contract.
+CONTRACT_MARKERS = (
+    "https://knuckles-team.github.io/agent-connector-sdk/access#",
+    "AccessContract",
+)
 _CATALOG: list[Any] = []
 
 
@@ -50,14 +55,26 @@ def _entries(pack: Any) -> Iterable[Any]:
     return tuple(found or ())
 
 
-def pack_ontologies(pack: Any) -> tuple[str, ...]:
-    """The body of every ``ontology://`` entry in a captured pack."""
+def pack_ontology_resources(pack: Any) -> tuple[tuple[str, str], ...]:
+    """The ``(uri, body)`` pair of every ``ontology://`` entry in a pack."""
 
     return tuple(
-        _text(getattr(entry, "body", ""))
+        (str(getattr(entry, "uri", "")), _text(getattr(entry, "body", "")))
         for entry in _entries(pack)
         if str(getattr(entry, "uri", "")).startswith("ontology://")
     )
+
+
+def pack_ontologies(pack: Any) -> tuple[str, ...]:
+    """The body of every ``ontology://`` entry in a captured pack."""
+
+    return tuple(body for _, body in pack_ontology_resources(pack))
+
+
+def declares_contracts(text: str) -> bool:
+    """True when an ontology body uses the access-contract vocabulary."""
+
+    return any(marker in text for marker in CONTRACT_MARKERS)
 
 
 def _parser() -> Any:
@@ -75,7 +92,25 @@ def parse_pack_contracts(pack: Any) -> tuple[Any, ...]:
     parse = _parser()
     if parse is None:
         return ()
-    return tuple(c for text in pack_ontologies(pack) for c in parse(text))
+    found: list[Any] = []
+    for uri, text in pack_ontology_resources(pack):
+        if declares_contracts(text):
+            found.extend(_parse_one(parse, text, uri))
+    return tuple(found)
+
+
+def _parse_one(parse: Any, text: str, uri: str) -> tuple[Any, ...]:
+    """Parse one ontology body; log and skip a body the parser rejects."""
+
+    try:
+        return tuple(parse(text))
+    except ValueError as exc:
+        logger.warning(
+            "skipping %s: access contracts unparseable: %s",
+            uri,
+            exc,
+        )
+        return ()
 
 
 def _by_source(contracts: Sequence[Any]) -> dict[str, list[Any]]:
@@ -153,9 +188,12 @@ def register_access_contracts(pack: Any, *, connector: str, catalog: Any = None)
 
 
 __all__ = [
+    "CONTRACT_MARKERS",
     "SOURCE_KIND_BY_ACCESS",
+    "declares_contracts",
     "fleet_virtual_catalog",
     "pack_ontologies",
+    "pack_ontology_resources",
     "parse_pack_contracts",
     "register_access_contracts",
 ]
