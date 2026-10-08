@@ -22,3 +22,13 @@ Run `uv sync --extra test`, `uv run pytest`, `uv run ruff check .`, `uv run ruff
 | Missing/miswired pre-push hook | CI hook audit fails instead of reporting empty green. |
 
 Repository scanner checks include CCCC, jscpd, dupehound and KISS alongside Python gates when source changes; actual versions and differential rules are those pinned by this repository's shared pipeline. A failing required source gate must be fixed or narrowly reclassified with a reproducible portable substitute, never silently skipped. Hosted cluster checks carry an explicit optional/runtime label and do not gate a cloud PR unless the CI job provisions that environment itself.
+
+## GRAPHOS-DEPLOY-R016 host daemon container
+
+| Check | Expected result |
+|---|---|
+| Manifest contract test | Exactly one container has `KG_DAEMON_ROLE=host`. The serving container keeps `client` and dev mode. |
+| Daemon isolation | The daemon disables messaging intake and the web UI. It exposes only the daemon metrics port. |
+| Engine sharing | `GRAPH_SERVICE_ENDPOINTS` names the shared Unix socket. The resolver selects connect-only mode, so no second engine starts. |
+| Server-side dry run | The API server accepts the deployment. |
+| Live host lock | The daemon status command reports this container as the host-lock holder. |
