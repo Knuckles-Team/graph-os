@@ -61,7 +61,9 @@ async def test_startup_injects_generated_clients_and_public_catalog_ports(
     monkeypatch.setattr(
         composition,
         "configure_enhanced_catalog",
-        lambda authority: installed.append(authority),
+        lambda authority, *, authority_scope: installed.append(
+            (authority, authority_scope)
+        ),
     )
     verified: list[dict[str, Any]] = []
 
@@ -106,9 +108,15 @@ async def test_startup_injects_generated_clients_and_public_catalog_ports(
             "connectors": ("graph-os", "agent-utilities"),
         }
     ]
-    assert installed[0]._fleet is reader
-    assert installed[0]._workflows is workflows
-    assert installed[0]._agents is agents
+    authority, authority_scope = installed[0]
+    assert authority._fleet is reader
+    assert authority._workflows is workflows
+    assert authority._agents is agents
+    process_sessions: list[Any] = []
+    monkeypatch.setattr(composition, "_use_process_session", process_sessions.append)
+    authority_scope()
+    assert len(process_sessions) == 1
+    assert isinstance(process_sessions[0], Session)
     assert deferred._reader is reader
 
 
@@ -118,7 +126,9 @@ async def test_failed_initial_refresh_aborts_startup_without_static_fallback(
 ) -> None:
     engine = SimpleNamespace(graph_compute=GraphCompute())
     deferred = DeferredFleetCatalogReader()
-    monkeypatch.setattr(composition, "configure_enhanced_catalog", lambda value: None)
+    monkeypatch.setattr(
+        composition, "configure_enhanced_catalog", lambda value, **_: None
+    )
 
     async def verified(**kwargs: Any) -> None:
         return None
