@@ -22,7 +22,7 @@ import hashlib
 import json
 import secrets
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from contextlib import AbstractContextManager
 from typing import Any
 
@@ -157,61 +157,37 @@ async def _registry_page(commons: Any) -> Any:
     return await send_list_registered_servers(commons, {"request": {}}, COMMONS_GRAPH)
 
 
-async def ensure_server_registrations(
-    commons: Any,
-    endpoints: Mapping[str, str],
-    *,
-    renew_margin_ms: int = 0,
-    now_ms: int | None = None,
+async def ensure_registrations(
+    commons: Any, connectors: Sequence[str], served_url: str
 ) -> tuple[str, ...]:
-    """Register each ``name -> URL`` endpoint that has no live registration.
+    """Register every connector GraphOS serves that has no live registration.
 
     A live registration is left untouched: its URL and desired state belong to
-    the operator. With ``renew_margin_ms``, a registration whose lease lapses
-    within that window is registered again so it never expires.
+    the operator, and re-registering would move the registry for no reason.
     """
 
     from epistemic_graph.generated.cluster import send_register_server
 
-    now = int(time.time() * 1000) if now_ms is None else now_ms
-    live = {
-        entry.name
-        for entry in (await _registry_page(commons)).entries
-        if not renew_margin_ms
-        or int(getattr(entry, "lease_expires_at_ms", 0) or 0) > now + renew_margin_ms
-    }
+    live = {entry.name for entry in (await _registry_page(commons)).entries}
     registered: list[str] = []
-    for name, url in endpoints.items():
-        if name in live:
+    for connector in connectors:
+        if connector in live:
             continue
-        key = f"graph-os:register-server:{name}:{url}"
-        if renew_margin_ms:
-            key += f":{now // renew_margin_ms}"
         await send_register_server(
             commons,
             {
-                "name": name,
-                "url": url,
+                "name": connector,
+                "url": served_url,
                 "resources_json": "{}",
                 "ttl_secs": REGISTRATION_TTL_SECS,
                 "transport": "streamable_http",
                 "desired": "enabled",
             },
             COMMONS_GRAPH,
-            idempotency_key=key,
+            idempotency_key=f"graph-os:register-server:{connector}:{served_url}",
         )
-        registered.append(name)
+        registered.append(connector)
     return tuple(registered)
-
-
-async def ensure_registrations(
-    commons: Any, connectors: Sequence[str], served_url: str
-) -> tuple[str, ...]:
-    """Register every connector GraphOS serves that has no live registration."""
-
-    return await ensure_server_registrations(
-        commons, dict.fromkeys(connectors, served_url)
-    )
 
 
 async def attest_self_served_catalog(
@@ -483,7 +459,6 @@ __all__ = [
     "ensure_base_graphs",
     "catalog_content_digest",
     "ensure_registrations",
-    "ensure_server_registrations",
     "ensure_tenant_graph",
     "provision_semantic_content",
     "registration_config_digest",
