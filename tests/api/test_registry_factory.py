@@ -66,7 +66,9 @@ def test_only_exact_curated_method_is_suppressed(
     ]
     assert sorted(bindings) == ["Admin", "Read", "Service"]
     assert registry.get("eg.query.Read") is None
-    assert registry["query.read"].binding.service == "Read"
+    curated = registry["query.read"].binding
+    assert isinstance(curated, EgMethod)
+    assert curated.service == "Read"
     assert registry.get("eg.query.Admin") is not None
     assert registry.get("eg.query.Service") is not None
 
