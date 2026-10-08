@@ -13,6 +13,7 @@ On a supported Python version, clone this repository, run `uv sync --extra test`
 | Invoke a governed write through two entrypoints with same idempotency key | Exactly one downstream effect and one durable receipt; duplicate call returns the same outcome. |
 | Open UI co-service, reload catalog and close it | One FastMCP loop/multiplexer, no blocked loop or lost generation notification. |
 | Package wheel and import it in a fresh environment | Console scripts resolve and declared extras control optional imports. |
+| GRAPHOS-HOST-R019: mount the dashboard routes; open `/ws/dashboard` and send a `subscribe` message | REST reads answer 200; the stream sends a snapshot, then an update scoped to the subscribed widgets. |
 
 ## Negative cases
 
