@@ -28,7 +28,11 @@
     "PA-12",
     "GRAPHOS-FLEET-R023",
     "GRAPHOS-FLEET-R024",
-    "GRAPHOS-FLEET-R025"
+    "GRAPHOS-FLEET-R025",
+    "GRAPHOS-FLEET-R026",
+    "GRAPHOS-FLEET-R027",
+    "GRAPHOS-FLEET-R028",
+    "GRAPHOS-FLEET-R030"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
@@ -91,7 +95,7 @@
       "title": "Bridge upgraded to FastMCP 4",
       "delivery_state": "SPECIFIED",
       "evidence": [],
-      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( — no hits), so the 'single com"
+      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( \u2014 no hits), so the 'single com"
     },
     {
       "id": "GRAPHOS-FLEET-R008",
@@ -285,6 +289,34 @@
         }
       ],
       "remaining": "universal-skills does not yet declare the agent_utilities.skill_providers entry point itself (tracked as a separate small PR in that repository); agent-connector-sdk and pipelines/repository-manager are not graph-os runtime dependencies, so their skills still reach graph-os only through the existing fleet harvest once they are mounted as fleet children, not through this local source."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R026",
+      "title": "The catalog admits each server on its own",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R027",
+      "title": "GraphOS onboards every configured fleet server",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch. Live acceptance needs GraphOS bound as importer of each fleet connector (EPISTEMIC_GRAPH_CONNECTOR_PACK_IMPORTERS wildcard or ConnectorPack.bind)."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R028",
+      "title": "GraphOS renews every registration before its lease lapses",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R030",
+      "title": "Fleet onboarding registers connector access contracts unapproved",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Not yet merged. Live reads need an approval path and a live operation binding for each source."
     }
   ]
 }

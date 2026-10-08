@@ -5,7 +5,7 @@ action implementations remain in the agent plane and epistemic-graph; graph-os
 registers them once and exposes the same core through MCP and REST.
 
 <ol class="site-flow" aria-label="MCP serving composition">
-  <li class="site-flow__step"><span class="site-flow__title">Launch</span><span class="site-flow__body">The <code>graph-os</code> command starts the single serving lifecycle.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Start</span><span class="site-flow__body">The <code>graph-os</code> command starts the single serving lifecycle.</span></li>
   <li class="site-flow__step"><span class="site-flow__title">Compose</span><span class="site-flow__body">The server binds the shared tool and REST application runtime.</span></li>
   <li class="site-flow__step"><span class="site-flow__title">Connect authority</span><span class="site-flow__body">Typed agent-utilities services and epistemic-graph clients supply domain behavior.</span></li>
   <li class="site-flow__step"><span class="site-flow__title">Open the fleet</span><span class="site-flow__body">Lazy fleet meta-tools expose admitted connector services.</span></li>
