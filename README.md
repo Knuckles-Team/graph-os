@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>The process you run to open the Knuckles agent platform.</strong><br>
+  <strong>The process the operator runs to open the Knuckles agent platform.</strong><br>
   <sub>MCP · REST · A2A · identity policy · fleet supervision · hosted interfaces</sub>
 </p>
 
@@ -108,7 +108,7 @@ setup-config codex
 The doctor command is the first observable result: it reports whether the local
 profile and required authorities are ready before a listener starts. Graph OS
 then appears as the `graph-os` MCP server in Codex. Other MCP clients can
-launch the same local transport directly:
+start the same local transport directly:
 
 ```bash
 graph-os --transport stdio

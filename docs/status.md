@@ -10,7 +10,7 @@ a static catalog, process-local durable store, or fabricated success receipt.
 |---|---|---|
 | MCP composition | Available | One FastMCP lifecycle with `stdio` and authenticated `streamable-http` transports |
 | REST gateway | Available | The same application services used by MCP, projected through GraphOS routes |
-| Fleet gateway | Available with a verified catalog | Child lifecycle, health, OAuth admission, collision-safe naming, and per-session discovery |
+| Fleet gateway | Available with a checked catalog | Child lifecycle, health, OAuth admission, collision-safe naming, and per-session discovery |
 | Agent WebUI host | Available through the `webui` extra | Co-service supervision with an injected GraphOS application composer |
 | Unary A2A | Available | Authenticated Agent Card plus send, get, list, and cancel over durable WorkItems |
 | Browser control | Available when attended identity is configured | Catalog, lease, policy, dispatch, cancellation, and provenance orchestration |
@@ -48,5 +48,5 @@ release workflow succeeds. A green `main` build updates source and documentation
 without publishing a package.
 
 Before changing live traffic, validate the resolved configuration, run the
-deployment doctor, and execute the release canary described in the
+deployment doctor, and run the release canary described in the
 [deployment guide](deployment.md).
