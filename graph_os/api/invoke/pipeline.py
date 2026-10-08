@@ -657,16 +657,17 @@ def _journal_key(call: _Call) -> str | None:
 
 
 async def _bind_caller(call: _Call) -> VerifiedCaller | OpError:
-    caller: VerifiedCaller | OpError = call.caller
+    caller = call.caller
     if call.governed:
-        caller = _request_caller(
+        bound = _request_caller(
             call.op,
-            call.caller,
+            caller,
             idempotency_key=_journal_key(call),
             plan_ref=call.plan_ref,
         )
-        if isinstance(caller, OpError):
-            return caller
+        if isinstance(bound, OpError):
+            return bound
+        caller = bound
     # Refresh after potentially blocking subject/PDP operations, before durable
     # reservation. Changed authority never silently consumes a prior plan.
     refreshed = await _refresh(caller, call.services)
