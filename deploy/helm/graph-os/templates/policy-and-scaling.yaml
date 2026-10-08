@@ -118,6 +118,23 @@ spec:
         {{- if include "graph-os.engineTcp" . }}
         - {protocol: TCP, port: {{ .Values.engine.port }}}
         {{- end }}
+    {{- $extensions := concat .Values.connectors .Values.components }}
+    {{- if $extensions }}
+    # Extension ports are reachable only from this namespace; ingressFrom
+    # continues to grant access only to the core service ports above.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+      ports:
+        {{- $ports := list }}
+        {{- range $extension := $extensions }}
+        {{- $ports = append $ports $extension.port }}
+        {{- end }}
+        {{- range $port := $ports | uniq }}
+        - {protocol: TCP, port: {{ $port }}}
+        {{- end }}
+    {{- end }}
   egress:
     - to:
         - namespaceSelector:
