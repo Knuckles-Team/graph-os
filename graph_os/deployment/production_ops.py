@@ -405,6 +405,45 @@ async def _provision_semantic_content(served_url: str) -> dict[str, Any]:
     return {"operation": "provision-semantic-content", "ok": True, **report}
 
 
+async def _onboard_fleet(served_url: str) -> dict[str, Any]:
+    """Run one full fleet onboarding pass under GraphOS's process session."""
+
+    from agent_utilities.api.session import use_session
+    from agent_utilities.security.brain_context import use_actor
+
+    from graph_os.fleet.onboarding import (
+        FleetOnboarding,
+        configured_fleet_endpoints,
+        onboard_fleet,
+        self_served_connectors,
+    )
+    from graph_os.mcp_server import bootstrap, runtime
+
+    session = runtime._mint_process_session("http")
+    with use_actor(session.actor), use_session(session):
+        engine = runtime._get_engine()
+        bootstrap._wait_for_engine_materialization(engine)
+        report = await onboard_fleet(
+            FleetOnboarding(engine=engine, session=session),
+            configured_fleet_endpoints(exclude=self_served_connectors()),
+            served_url=served_url,
+        )
+    # Failure detail can name endpoints; the CLI prints only each error type.
+    return {
+        "operation": "onboard-fleet",
+        "ok": not report.failed,
+        **report.as_dict(private=True),
+    }
+
+
+def _served_url_argument(parser: argparse.ArgumentParser, help_text: str) -> None:
+    parser.add_argument(
+        "--served-url",
+        default=str(setting("GRAPH_OS_SERVED_MCP_URL", "") or ""),
+        help=help_text,
+    )
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="graph-os-production-ops")
     subparsers = parser.add_subparsers(dest="operation", required=True)
@@ -413,25 +452,43 @@ def _parser() -> argparse.ArgumentParser:
     restore = subparsers.add_parser("restore-validate")
     restore.add_argument("--archive-root", type=Path, required=True)
     restore.add_argument("--scratch-root", type=Path, required=True)
-    provision = subparsers.add_parser("provision-semantic-content")
-    provision.add_argument(
-        "--served-url",
-        default=str(setting("GRAPH_OS_SERVED_MCP_URL", "") or ""),
-        help="MCP URL GraphOS serves its content at (registered when absent).",
+    _served_url_argument(
+        subparsers.add_parser("provision-semantic-content"),
+        "MCP URL GraphOS serves its content at (registered when absent).",
+    )
+    _served_url_argument(
+        subparsers.add_parser("onboard-fleet"),
+        "MCP URL GraphOS serves at; renews its own registrations when set.",
     )
     return parser
 
 
-def _run(args: argparse.Namespace) -> dict[str, Any]:
-    if args.operation == "backup":
-        return asyncio.run(_backup(args.archive_root))
-    if args.operation == "restore-validate":
-        return asyncio.run(_restore_validate(args.archive_root, args.scratch_root))
+def _provision(args: argparse.Namespace) -> dict[str, Any]:
     if not args.served_url:
         raise ProductionOperationError(
             "--served-url (or GRAPH_OS_SERVED_MCP_URL) is required"
         )
     return asyncio.run(_provision_semantic_content(args.served_url))
+
+
+_OPERATIONS: dict[str, Any] = {
+    "backup": lambda args: asyncio.run(_backup(args.archive_root)),
+    "restore-validate": lambda args: asyncio.run(
+        _restore_validate(args.archive_root, args.scratch_root)
+    ),
+    "provision-semantic-content": _provision,
+    "onboard-fleet": lambda args: asyncio.run(_onboard_fleet(args.served_url)),
+}
+
+
+def _run(args: argparse.Namespace) -> dict[str, Any]:
+    return _OPERATIONS[args.operation](args)
+
+
+def _exit_status(report: dict[str, Any]) -> int:
+    """A report that names its own failure exits non-zero."""
+
+    return 0 if report.get("ok", True) else 1
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -449,7 +506,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report, sort_keys=True))
         return 1
     print(json.dumps(report, sort_keys=True))
-    return 0
+    return _exit_status(report)
 
 
 if __name__ == "__main__":
