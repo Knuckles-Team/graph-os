@@ -16,3 +16,7 @@ Check a task only after its linked code and tests land. A checked source task is
 - [ ] T12 — Run the disposable two-replica reload and fault probe against the landed revision; attach generation, receipt, trace, timing, and policy evidence; then mark only passing slices ACCEPTED.
 - [ ] T13 — Add or verify a check script that scans every fleet connector count-pin site (compatibility matrix, bundle-catalog schema, check scripts, `ontology.lock`, federated IRI, `genesis.yaml`) and fails when any site disagrees with the live connector count. Cover GRAPHOS-FLEET-R023, not covered by T01–T12.
 - [ ] T14 (GRAPHOS-FLEET-R024): Take over fleet reconciliation, autoscaling, scaling authority and deploy watch from the agent runtime as typed GraphOS operations with parity and authorization tests.
+- [x] T15 (GRAPHOS-FLEET-R026): Skip a registration without a component, log it, and report it in `multiplexer_status`.
+- [x] T16 (GRAPHOS-FLEET-R027): Add `graph_os/fleet/onboarding.py`, the `onboard-fleet` command and the background boot pass.
+- [x] T17 (GRAPHOS-FLEET-R028): Renew fleet and self-served leases each pass with windowed idempotency keys; refresh the catalog after admission.
+- [ ] T18 (GRAPHOS-FLEET-R027): Bind GraphOS as the fleet importer in the deployment, roll out, and record the live `multiplexer_status` child count.
