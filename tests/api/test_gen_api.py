@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -19,7 +21,7 @@ SPEC.loader.exec_module(gen_api)
 def _registry() -> dict:
     return {
         "api_version": "1",
-        "registry_digest": "fixture-digest",
+        "registry_digest": "a" * 64,
         "ops": [
             {
                 "id": "query.uql",
@@ -34,7 +36,35 @@ def _registry() -> dict:
     }
 
 
-def test_generator_emits_deterministic_artifacts() -> None:
+@pytest.fixture
+def engine_contract(tmp_path, monkeypatch):
+    from graph_os.api.registry import eg_binding
+
+    contract = tmp_path / "contract"
+    contract.mkdir()
+    (contract / "errors.json").write_text(
+        json.dumps(
+            {
+                "contract_version": 1,
+                "errors": [
+                    {"code": "SYNTHETIC", "http_status_hint": 409, "retryable": False}
+                ],
+            }
+        )
+    )
+    provider = ModuleType("epistemic_graph.contract")
+    provider.RECEIPT_DIGEST = "b" * 64
+    calls = []
+    provider.verify_receipt = calls.append
+    exceptions = ModuleType("epistemic_graph.contract_errors")
+    exceptions.ContractDigestMismatch = type("SyntheticMismatch", (RuntimeError,), {})
+    monkeypatch.setitem(sys.modules, provider.__name__, provider)
+    monkeypatch.setitem(sys.modules, exceptions.__name__, exceptions)
+    monkeypatch.setattr(eg_binding.resources, "files", lambda package: tmp_path)
+    return provider, contract, calls
+
+
+def test_generator_emits_deterministic_artifacts(engine_contract) -> None:
     first = gen_api.generate(_registry())
     assert first == gen_api.generate(_registry())
     openapi = json.loads(first[gen_api.ROOT / "docs/api/openapi.json"])
@@ -43,7 +73,7 @@ def test_generator_emits_deterministic_artifacts() -> None:
     )
     assert (
         json.loads(first[gen_api.GENERATED / "registry.json"])["registry_digest"]
-        == "fixture-digest"
+        == "a" * 64
     )
     models = first[gen_api.ROOT / "graph_os/client/_generated_models.py"]
     assert len(models.splitlines()) < 900
@@ -176,3 +206,21 @@ def test_compat_requires_review_for_unclassified_eg_schema_change(
     candidate = json.loads(json.dumps(baseline))
     candidate["ops"][0]["params"]["schema_sha256"] = "1" * 64
     assert "review required" in " ".join(gen_api._breaking_changes(baseline, candidate))
+
+
+def test_engine_emitter_binds_exact_provider_and_registry(engine_contract):
+    provider, _, calls = engine_contract
+    output = gen_api.generate(_registry())[gen_api.GENERATED / "engine_errors.py"]
+    namespace = {}
+    exec(compile(output, "engine_errors.py", "exec"), namespace)
+    assert namespace["REGISTRY_DIGEST"] == _registry()["registry_digest"]
+    assert namespace["EG_RECEIPT_DIGEST"] == provider.RECEIPT_DIGEST
+    assert namespace["ENGINE_ERRORS"] == {"SYNTHETIC": (409, False)}
+    assert calls == [provider.RECEIPT_DIGEST, provider.RECEIPT_DIGEST]
+
+
+def test_engine_emitter_refuses_absent_error_contract(engine_contract):
+    _, contract, _ = engine_contract
+    (contract / "errors.json").unlink()
+    with pytest.raises(ValueError):
+        gen_api.generate(_registry())
