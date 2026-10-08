@@ -237,6 +237,9 @@ def test_cli_provisions_both_packs_under_eg_issued_bindings(
     assert code == 0, report
     assert report["ok"] is True
     assert report["graph"] == GRAPH and report["graph_created"] is True
+    # A fresh store also lacks the WorkItem control graph (leases, queues).
+    assert report["control_graph_created"] is True
+    assert "__control__" in engine.graphs
     assert sorted(report["registered"]) == ["agent-utilities", "graph-os"]
     assert sorted(attest["connector"] for attest in engine.attests) == [
         "agent-utilities",
@@ -262,12 +265,13 @@ def test_rerun_registers_and_creates_nothing(
 ) -> None:
     engine: _Engine = wired["engine"]
     engine.registered.update({"graph-os", "agent-utilities"})
-    engine.graphs.add(GRAPH)
+    engine.graphs.update({GRAPH, "__control__"})
 
     assert production_ops.main(["provision-semantic-content", "--served-url", URL]) == 0
 
     report = json.loads(capsys.readouterr().out)
     assert report["graph_created"] is False and report["registered"] == []
+    assert report["control_graph_created"] is False
     assert not [
         call for call in engine.calls if call[0] in {"CreateGraph", "RegisterServer"}
     ]
@@ -307,3 +311,27 @@ def test_registration_digest_matches_engine_canonical_json() -> None:
         b'{"resources":{"a":[2],"b":1},"url":"https://graph-os.example/mcp"}'
     ).hexdigest()
     assert digest == expected
+
+
+async def test_boot_creates_tenant_and_control_graphs_on_a_fresh_store() -> None:
+    from contextlib import nullcontext
+
+    from graph_os.deployment.semantic_provisioning import ensure_base_graphs
+
+    engine = _Engine(registered=set(), graphs=set())
+    session = type("S", (), {"graph": GRAPH})()
+    created = await ensure_base_graphs(
+        engine=engine, session=session, bind_graph=lambda _g: nullcontext()
+    )
+    assert created == {GRAPH: True, "__control__": True}
+    assert engine.graphs == {GRAPH, "__control__"}
+    again = await ensure_base_graphs(
+        engine=engine, session=session, bind_graph=lambda _g: nullcontext()
+    )
+    assert again == {GRAPH: False, "__control__": False}
+
+
+async def test_boot_skips_engines_without_native_graphs() -> None:
+    from graph_os.deployment.semantic_provisioning import ensure_base_graphs
+
+    assert await ensure_base_graphs(engine=object(), session=object()) == {}
