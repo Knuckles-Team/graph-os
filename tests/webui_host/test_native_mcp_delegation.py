@@ -266,3 +266,19 @@ async def test_concurrent_native_api_calls_keep_caller_identity(
             "result": {"query": tenant, "tenant": tenant, "actor": f"user-{tenant}"},
         }
     served_native.mux.delegate_server_tool.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_native_server_inventory_lists_registered_native_tools(
+    served_native: SimpleNamespace,
+) -> None:
+    """GRAPHOS-HOST-R017: ``graph-os`` is native, not a catalog child probe."""
+    served_native.mux.delegated_server_tools = AsyncMock(
+        side_effect=AssertionError("native server must not be probed as a child")
+    )
+    list_tools = webui_mcp_delegation_helpers()["list_mcp_server_tools"]
+    session = _session("tenant-a")
+    with use_actor(session.actor), use_session(session):
+        tools = await list_tools(server_name="graph-os")
+    assert [tool["name"] for tool in tools] == ["ask"]
+    assert tools[0]["inputSchema"]["properties"] == {"query": {"type": "string"}}
