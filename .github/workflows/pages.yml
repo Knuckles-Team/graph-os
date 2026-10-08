@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - docs/**
-      - specs/**
-      - .config/mkdocs-overrides/**
-      - mkdocs.yml
-      - .github/workflows/pages.yml
   workflow_dispatch: {}
 
 permissions:
@@ -25,3 +19,5 @@ jobs:
     with:
       content_source: docs
       shared_theme_enabled: true
+      spec_dashboard_enabled: true
+      spec_dashboard_config: .github/spec-dashboard.json
