@@ -56,3 +56,5 @@ CI may run this probe with local containers/processes and synthetic credentials.
 - Each registered mapping is unapproved, and the catalog serves no mapping for its class.
 - A second registration adds no duplicate mapping.
 - A missing SDK module skips contracts and raises nothing.
+- A domain ontology with triple-quoted literals never reaches the parser. A separate contracts body still registers.
+- A contracts body that the parser rejects logs a warning with its URI. Onboarding continues.
