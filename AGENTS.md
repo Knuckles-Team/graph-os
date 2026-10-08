@@ -50,7 +50,7 @@ flowchart LR
 ```
 
 The serving lifecycle owns one FastMCP event loop and one multiplexer instance.
-Co-services submit work to that owner loop; they must not construct a second
+Co-services submit work to that owner loop; they must not build a second
 multiplexer or block another loop on `Future.result()`.
 
 Security is fail closed:
@@ -96,7 +96,7 @@ The package publishes these operator commands:
 | `setup-config` | Generate, validate, and describe deployment configuration |
 | `agent-utilities-doctor` | Run deployment and dependency diagnostics |
 | `agent-utilities-venv` | Inspect and reconcile managed runtime environments |
-| `graph-os-release-canary` | Verify a candidate release and catalog |
+| `graph-os-release-canary` | Check a candidate release and catalog |
 | `graph-os-production-ops` | Run guarded backup, restore, and production checks |
 
 The `graph-os` entrypoint is `graph_os.mcp_server.server:mcp_server`.
@@ -156,7 +156,7 @@ dispatched module — for example `graph_os.gateway.registry`'s string-keyed
 widget loader — is not an orphan as long as it imports something from the
 package itself (every widget imports its shared `base` module), matching
 this gate's structural, not reachability, definition. There is no allowlist:
-an isolated module is wired in, reached by another module, or deleted. This
+an isolated module is wired in, reached by another module, or removed. This
 restores the semantics `kiss check`'s own `orphan_module_enabled` provided
 before kiss 0.4.11 moved orphan detection to the coverage-linked `kiss test`
 (see `.config/kiss.toml`).
@@ -177,7 +177,7 @@ fan-in/fan-out, so it passes `check-orphan-modules`, but can still be served
 by no running process. This command lists exactly that: code that exists,
 is wired to itself, and is reached by nothing real. It is intentionally a
 report, not a gate: landing it does not mean every module it lists is a bug
-to fix today, only that wiring it in, registering it, or deleting it is
+to fix today, only that wiring it in, registering it, or removing it is
 separate, deliberate, tracked work. See `scripts/wiring/reachability.py` and
 `docs/quality-gate-terms.md`.
 
@@ -236,5 +236,5 @@ merge gate.
   `git diff --cached --name-status` and `git diff --cached`.
 - Do not commit logs, caches, reports, generated sites, scratch files, local
   configuration, or handoff notes.
-- Preserve unrelated work. Do not reset, revert, delete, merge, push, tag, or
+- Preserve unrelated work. Do not reset, revert, remove, merge, push, tag, or
   publish another lane's changes without explicit ownership.

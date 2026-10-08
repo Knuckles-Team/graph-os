@@ -24,7 +24,7 @@ capabilities through one governed surface.
 <ol class="site-flow" aria-label="GraphOS request flow">
   <li class="site-flow__step"><span class="site-flow__title">Receive</span><span class="site-flow__body">Agent Web UI, Agent Terminal UI, Geniusbot, messaging, MCP, REST, and A2A converge on one GraphOS process.</span></li>
   <li class="site-flow__step"><span class="site-flow__title">Authorize</span><span class="site-flow__body">GraphOS verifies identity, tenant, scope, and action policy.</span></li>
-  <li class="site-flow__step"><span class="site-flow__title">Delegate</span><span class="site-flow__body">Agent work reaches agent-utilities; source work reaches an admitted connector.</span></li>
+  <li class="site-flow__step"><span class="site-flow__title">Delegate</span><span class="site-flow__body">Agent work reaches agent-utilities. Source work reaches an admitted connector.</span></li>
   <li class="site-flow__step"><span class="site-flow__title">Commit</span><span class="site-flow__body">Governed reads and mutations reach epistemic-graph with evidence and provenance.</span></li>
   <li class="site-flow__step"><span class="site-flow__title">Project</span><span class="site-flow__body">GraphOS returns the same result through the caller's selected transport.</span></li>
 </ol>

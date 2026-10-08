@@ -1,6 +1,6 @@
 # Start GraphOS
 
-GraphOS is the process you run when clients need the Knuckles platform over MCP,
+GraphOS is the process the operator runs when clients need the Knuckles platform over MCP,
 REST, A2A, or Agent WebUI. The `tiny` profile provides the smallest complete
 local composition and keeps its generated configuration in the standard XDG
 location.

@@ -66,7 +66,7 @@ def _installed_error_table() -> dict[str, tuple[int, bool]]:
             raise EgContractError("engine error row must be an object")
         code = row.get("code")
         entry = _error_entry(code, row.get("http_status_hint"), row.get("retryable"))
-        if code in actual:
+        if not isinstance(code, str) or code in actual:
             raise EgContractError("duplicate engine error code")
         actual[code] = entry
     return actual

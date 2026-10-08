@@ -278,3 +278,47 @@ def test_deferred_reader_has_no_static_or_uninstalled_fallback() -> None:
 
     with pytest.raises(RuntimeError, match="already installed"):
         deferred.install(reader)
+
+
+def test_reader_skips_a_live_server_without_a_component(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    bare = replace(SERVER, server_id="srv:bare-mcp", name="bare-mcp")
+    port = FakeFleetCatalogPort(server_pages=[server_page(SERVER, bare)])
+
+    with caplog.at_level("WARNING", logger="graph_os.fleet.catalog_reader"):
+        catalog = asyncio.run(FleetCatalogReader(port).read())
+
+    assert [server.registration for server in catalog.servers] == [SERVER]
+    assert catalog.unadmitted == ("bare-mcp",)
+    assert "bare-mcp" in caplog.text
+
+
+def test_reader_with_only_bare_registrations_returns_an_empty_catalog() -> None:
+    bare = replace(SERVER, server_id="srv:bare-mcp", name="bare-mcp")
+    port = FakeFleetCatalogPort(
+        server_pages=[server_page(bare)], component_pages=[component_page()]
+    )
+
+    catalog = asyncio.run(FleetCatalogReader(port).read())
+
+    assert catalog.servers == () and catalog.unadmitted == ("bare-mcp",)
+
+
+def test_multiplexer_status_reports_unadmitted_servers_and_onboarding() -> None:
+    from graph_os.fleet.multiplexer import MCPMultiplexer
+
+    port = FakeFleetCatalogPort(
+        server_pages=[
+            server_page(SERVER, replace(SERVER, server_id="srv:b-mcp", name="b-mcp"))
+        ]
+    )
+    mux = MCPMultiplexer(FleetCatalogReader(port))
+    assert mux.status_snapshot()["unadmitted_servers"] == []
+
+    asyncio.run(mux.refresh_engine_catalog())
+    mux._fleet_onboarding = {"renewed": [], "onboarded": [], "failed": {}}
+
+    status = mux.status_snapshot()
+    assert status["unadmitted_servers"] == ["b-mcp"]
+    assert status["fleet_onboarding"] == mux._fleet_onboarding

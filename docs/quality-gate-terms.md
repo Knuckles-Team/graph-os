@@ -10,7 +10,7 @@ file allowlist, frozen count, or inline suppression.
 The project rule is **NO RATCHETS — expose tech debt**, exactly as stated in
 epistemic-graph's and agent-utilities' own `docs/quality-gate-terms.md`
 pages (read those for the full worked examples — the Rust exhaustive-dispatch
-cyclomatic exemption on EG, the KISS threshold recalibration methodology on
+cyclomatic exemption on EG, the KISS threshold recalibration method on
 both). The test is mechanical, and identical here:
 
 * An exception is a **RULE about a class of code**, with a stated reason and
@@ -49,7 +49,7 @@ suppress inline.
 `.config/kiss.toml`'s `[python]` table records the enforced KISS limits (kiss
 0.4.12, the fleet's own fork build). Recalibrate a threshold only from a
 reviewed measurement that explains why the metric misrepresents a class of
-code. Record the methodology beside the value; never tune a threshold merely
+code. Record the method beside the value; never tune a threshold merely
 to make the current tree pass.
 
 ### Orphan-module rule — enforced
