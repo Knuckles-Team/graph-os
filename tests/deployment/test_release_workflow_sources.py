@@ -7,11 +7,14 @@ the right order, never that it equals a copy kept here.
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 import tomllib
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).parents[2]
@@ -237,3 +240,145 @@ def test_scanner_versions_receive_distinct_argv_and_the_job_blocks() -> None:
     assert "pipelines-hook scanner-versions cccc kiss dupehound jscpd" in command
     assert "['cccc'" not in command
     assert "continue-on-error" not in scanner
+
+
+def _scanner_step(name: str) -> dict[str, Any]:
+    return next(
+        step
+        for step in _workflow()["jobs"]["scanner-quality"]["steps"]
+        if step.get("name") == name
+    )
+
+
+def test_scanner_cache_retains_installation_and_all_checks_before_save() -> None:
+    scanner = _workflow()["jobs"]["scanner-quality"]
+    steps = scanner["steps"]
+    restore = _scanner_step("Restore scanner toolchain")
+    provision = _scanner_step("Provision pinned scanner toolchain")
+    checks = _scanner_step(
+        "Shared scanner hooks (versions, censuses, clone differentials)"
+    )
+    save = _scanner_step("Save verified scanner toolchain")
+
+    assert steps.index(restore) < steps.index(provision) < steps.index(checks)
+    assert steps.index(checks) < steps.index(save)
+    # Both cold misses and warm hits take the same installer/verification path.
+    assert "if" not in provision
+    assert "if" not in checks
+    assert provision["run"].startswith("bash scripts/install_scanners.sh ")
+    assert "$RUNNER_TEMP/graph-os-scanners" in provision["run"]
+    assert set(_manual_hooks_named(checks["run"])) == {
+        "complexity-census",
+        "kiss-census",
+        "dupehound-changed",
+        "jscpd-differential",
+        "jscpd-census",
+    }
+    assert save["if"] == "success() && steps.scanner-cache.outputs.cache-hit != 'true'"
+    for step in (restore, provision, checks, save):
+        assert "continue-on-error" not in step
+    assert _workflow()["permissions"] == {"contents": "read"}
+    assert "permissions" not in scanner
+
+
+def test_scanner_cache_is_exact_and_contains_only_the_scanner_prefix() -> None:
+    restore = _scanner_step("Restore scanner toolchain")
+    save = _scanner_step("Save verified scanner toolchain")
+    identity = _scanner_step("Resolve scanner cache identity")
+
+    assert (
+        restore["with"]
+        == save["with"]
+        == {
+            "path": "${{ runner.temp }}/graph-os-scanners",
+            "key": "${{ steps.scanner-cache-identity.outputs.key }}",
+        }
+    )
+    for operation, step in (("restore", restore), ("save", save)):
+        action, _, revision = step["uses"].partition("@")
+        assert action == f"actions/cache/{operation}"
+        assert SHA.fullmatch(revision)
+    assert identity["env"]["SCANNER_RECIPE"] == (
+        "${{ hashFiles('scripts/install_scanners.sh') }}"
+    )
+
+
+@pytest.fixture
+def scanner_identity_environment(tmp_path: Path) -> dict[str, str]:
+    commands = tmp_path / "commands"
+    commands.mkdir()
+    for name in ("rustc", "cargo"):
+        command = commands / name
+        command.write_text(
+            '#!/bin/sh\n[ "$FAIL_TOOL" != "' + name + '" ] || exit 23\n'
+            'printf "%s\\n" "$TEST_' + name.upper() + '_IDENTITY"\n'
+        )
+        command.chmod(0o755)
+    return {
+        **os.environ,
+        **_workflow()["jobs"]["scanner-quality"]["env"],
+        "PATH": f"{commands}{os.pathsep}{os.environ['PATH']}",
+        "GITHUB_OUTPUT": str(tmp_path / "output"),
+        "RUNNER_OS": "Linux",
+        "RUNNER_ARCH": "X64",
+        "ImageOS": "ubuntu24",
+        "ImageVersion": "20261001.1.0",
+        "SCANNER_RECIPE": "installer-and-provider-inputs",
+        "TEST_RUSTC_IDENTITY": "rustc fixture compiler",
+        "TEST_CARGO_IDENTITY": "cargo fixture compiler",
+        "FAIL_TOOL": "",
+        "RUSTFLAGS": "",
+        "CARGO_ENCODED_RUSTFLAGS": "",
+    }
+
+
+def _scanner_cache_identity(env: dict[str, str]) -> tuple[int, str]:
+    output = Path(env["GITHUB_OUTPUT"])
+    output.unlink(missing_ok=True)
+    result = subprocess.run(
+        ["bash", "-c", _scanner_step("Resolve scanner cache identity")["run"]],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    return result.returncode, output.read_text() if output.exists() else ""
+
+
+@pytest.mark.parametrize(
+    "changed_input",
+    [
+        "RUNNER_OS",
+        "RUNNER_ARCH",
+        "ImageOS",
+        "ImageVersion",
+        "SCANNER_RECIPE",
+        "TEST_RUSTC_IDENTITY",
+        "TEST_CARGO_IDENTITY",
+        "CARGO_BUILD_JOBS",
+        "CARGO_PROFILE_RELEASE_DEBUG",
+        "RUSTFLAGS",
+        "CARGO_ENCODED_RUSTFLAGS",
+    ],
+)
+def test_scanner_cache_identity_changes_with_build_inputs(
+    scanner_identity_environment: dict[str, str], changed_input: str
+) -> None:
+    env = scanner_identity_environment
+    code, before = _scanner_cache_identity(env)
+    assert code == 0
+    assert re.fullmatch(r"key=graph-os-scanners-v1-[0-9a-f]{64}\n", before)
+    assert _scanner_cache_identity(env) == (0, before)
+    code, after = _scanner_cache_identity({**env, changed_input: "changed"})
+    assert code == 0
+    assert after != before
+
+
+@pytest.mark.parametrize("tool", ["rustc", "cargo"])
+def test_scanner_cache_identity_fails_closed_without_a_compiler(
+    scanner_identity_environment: dict[str, str], tool: str
+) -> None:
+    assert _scanner_cache_identity(
+        {**scanner_identity_environment, "FAIL_TOOL": tool}
+    ) == (23, "")

@@ -70,8 +70,9 @@ an agent harness worktree action in a multi-worktree repository.
 
 Install [universal-skills](https://github.com/Knuckles-Team/universal-skills)
 and use `spec-generator`, `task-planner`, `sdd-implementer`, `spec-verifier`,
-and `sdd-full-lifecycle` as needed. Read all five owner files: `spec.md`,
-`plan.md`, `test-spec.md`, `tasks.md`, and `status.json`. A complete public
+and `sdd-full-lifecycle` as needed. Read all six owner files: `spec.md`,
+`plan.md`, `test-spec.md`, `tasks.md`, `requirements.md`, and `status.json`
+(see `specs/README.md`'s own "Structure" section). A complete public
 spec supplies its own design, tests, fixtures, and acceptance criteria; never
 ask a contributor to retrieve private drafts or local operator inventory.
 

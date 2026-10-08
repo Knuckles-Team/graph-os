@@ -15,8 +15,9 @@ Design notes that shaped the checks:
   *fallback* — needed when no prebuilt wheel exists for the host arch/libc, or in
   an air-gapped install. The engine check reflects that: missing binary → "install
   the wheel"; ``cargo`` presence is reported as informational, never required.
-* **Profile-scoped.** Docker is only needed once you leave the ``tiny`` (zero-infra)
-  profile. ``tiny`` needs nothing but Python.
+* **Profile-scoped.** Compose needs Docker; Kubernetes chart deployments need
+  kubectl and Helm client tools. These probes do not establish cluster access or
+  first-boot acceptance. Named environments use the existing profile validator.
 * **Component-scoped.** Node+pnpm are only checked when ``agent-webui`` is selected;
   Qt system libs + a display only when ``geniusbot`` is selected. The core deploy
   never drags those in.
@@ -38,10 +39,16 @@ from typing import Any
 from agent_utilities.core.config import setting
 
 from .doctor import _RANK, _result
+from .genesis_environments import EnvironmentProfileError, load_environment_profile
 
-# Profiles that require a container runtime (everything above zero-infra tiny).
-_DOCKER_PROFILES = {"single-node-prod", "enterprise"}
-PROFILES = ("tiny", "single-node-prod", "enterprise")
+# Current deployment profiles from genesis.yaml; named environments are loaded
+# separately and never fall back to one of these profiles.
+_PROFILE_TARGETS = {
+    "tiny": "bare-metal",
+    "single-node-prod": "docker-compose",
+    "enterprise": "kubernetes",
+}
+PROFILES = tuple(_PROFILE_TARGETS)
 COMPONENTS = ("agent-terminal-ui", "agent-webui", "geniusbot")
 
 
@@ -177,9 +184,9 @@ def _check_engine() -> dict[str, Any]:
     )
 
 
-def _check_docker(profile: str) -> dict[str, Any]:
+def _check_docker(profile: str, *, required: bool) -> dict[str, Any]:
     docker = shutil.which("docker")
-    if profile not in _DOCKER_PROFILES:
+    if not required:
         return _result(
             "docker", "skip", f"not required for profile {profile!r} (zero-infra)"
         )
@@ -192,6 +199,61 @@ def _check_docker(profile: str) -> dict[str, Any]:
         remediation=_per_os_install_hint("docker"),
         skill="infrastructure-orchestrator",
     )
+
+
+def _check_kubernetes_tool(tool: str, arguments: tuple[str, ...]) -> dict[str, Any]:
+    """Probe a local client only, discarding output and never selecting a context."""
+    executable = shutil.which(tool)
+    if executable is None:
+        return _result(
+            tool,
+            "fail",
+            f"Kubernetes chart deployment requires {tool} on PATH",
+            remediation=f"install the {tool} client before deploying",
+        )
+    try:
+        result = subprocess.run(  # nosec B603 -- resolved client, fixed local version flags
+            [executable, *arguments],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return _result(tool, "fail", f"{tool} client prerequisite probe failed")
+    if result.returncode != 0:
+        return _result(tool, "fail", f"{tool} client prerequisite probe failed")
+    return _result(
+        tool, "ok", f"{tool} client available; cluster and first boot remain unverified"
+    )
+
+
+def _profile_prerequisites(profile: str) -> list[dict[str, Any]]:
+    try:
+        target = (
+            _PROFILE_TARGETS[profile]
+            if profile in _PROFILE_TARGETS
+            else load_environment_profile(profile).target.orchestrator
+        )
+    except (EnvironmentProfileError, OSError, ValueError, TypeError, KeyError):
+        return [
+            _result(
+                "deployment_target", "fail", "Unknown or invalid deployment profile"
+            )
+        ]
+    if target == "kubernetes":
+        # The current GraphOS deployment skill renders its chart (R013).
+        return [
+            _check_kubernetes_tool("kubectl", ("version", "--client=true")),
+            _check_kubernetes_tool("helm", ("version", "--short")),
+        ]
+    if target in {"bare-metal", "docker-compose", "docker-swarm"}:
+        return [_check_docker(profile, required=target != "bare-metal")]
+    return [
+        _result(
+            "deployment_target", "fail", "No prerequisite check for selected target"
+        )
+    ]
 
 
 def _node_version() -> tuple[int, ...] | None:
@@ -290,7 +352,8 @@ def run_preflight(
     """Run the host dependency preflight for a profile + optional UI components.
 
     Args:
-        profile: ``tiny`` | ``single-node-prod`` | ``enterprise``.
+        profile: a current deployment profile or validated named environment.
+            Kubernetes selects the chart toolchain, not a live cluster probe.
         components: any of ``agent-webui`` / ``geniusbot`` / ``agent-terminal-ui``.
     """
     components = components or []
@@ -298,7 +361,7 @@ def run_preflight(
         _check_python(),
         _check_installer(),
         _check_engine(),
-        _check_docker(profile),
+        *_profile_prerequisites(profile),
     ]
     for comp in components:
         fn = _COMPONENT_CHECKS.get(comp)

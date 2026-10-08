@@ -1,0 +1,15 @@
+# The always-offered skill names (CONCEPT:AU-KG.retrieval.unified-capability-contract).
+#
+# Every name below is served in GraphOS's initial catalog listing without a
+# search -- see graph_os.fleet.local_skill_catalog.core_pack_names() and
+# missing_core_pack_names(). A name here that no installed provider resolves
+# is reported loudly at startup, never fatal; add or remove a line to change
+# the always-offered set.
+using-graph-os
+graph-os-development
+epistemic-graph-development
+agent-connector-sdk-development
+agent-webui-development
+repository-manager-development-lifecycle
+gates-and-code-placement
+git-in-shared-repos

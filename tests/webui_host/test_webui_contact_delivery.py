@@ -6,7 +6,6 @@ import importlib
 import os
 import sys
 import types
-from types import SimpleNamespace
 from typing import Any, cast
 
 
@@ -75,18 +74,10 @@ def test_run_web_ui_builds_the_live_contact_delivery_path(
     _export(uvicorn, "Server", _Server)
     monkeypatch.setitem(sys.modules, "uvicorn", uvicorn)
 
-    au = _package("agent_utilities")
-    au_core = _package("agent_utilities.core")
-    au_server = _package("agent_utilities.server")
-    _export(au, "core", au_core)
-    _export(au, "server", au_server)
-    monkeypatch.setitem(sys.modules, "agent_utilities", au)
-    monkeypatch.setitem(sys.modules, "agent_utilities.core", au_core)
-    monkeypatch.setitem(sys.modules, "agent_utilities.server", au_server)
-
-    config_module = types.ModuleType("agent_utilities.core.config")
-    _export(config_module, "config", SimpleNamespace(host="127.0.0.1", port=8000))
-    monkeypatch.setitem(sys.modules, "agent_utilities.core.config", config_module)
+    # Keep the real configuration exports for lazily imported host dependencies.
+    config_module = importlib.import_module("agent_utilities.core.config")
+    monkeypatch.setattr(config_module.config, "host", "127.0.0.1")
+    monkeypatch.setattr(config_module.config, "port", 8000)
 
     contextual_model = types.ModuleType("agent_utilities.core.contextual_model")
 
