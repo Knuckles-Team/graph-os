@@ -66,6 +66,34 @@ class AmbientHTTPAuthenticator:
         age_ms = int(time.time() * 1000) - caller.mfa_at_ms
         return 0 <= age_ms <= 900_000
 
+    def _credential_kind(self, request: Request) -> str:
+        """Classify the presented credential; refuse ambiguous or malformed ones."""
+        state = request.scope.get("state") or {}
+        cookie = request.cookies.get("__Host-graphos_session")
+        admitted = state.get("graphos_session_admitted") is True
+        if cookie is not None or admitted:
+            if not cookie or not admitted or self._verify_browser_session is None:
+                raise HTTPAuthenticationError("Verified browser authority required")
+            return "session"
+        authorization = request.headers.getlist("authorization")
+        if len(authorization) != 1:
+            raise HTTPAuthenticationError("Verified bearer required")
+        scheme, _, token = authorization[0].partition(" ")
+        if scheme.lower() != "bearer" or not token or any(c.isspace() for c in token):
+            raise HTTPAuthenticationError("Verified bearer required")
+        return "bearer"
+
+    async def _browser_mfa(
+        self, request: Request, session: Any, kind: str
+    ) -> int | None:
+        """Return the verified browser MFA timestamp; bearer callers have none."""
+        if kind != "session":
+            return None
+        verifier = self._verify_browser_session
+        if verifier is None:
+            raise HTTPAuthenticationError("Verified browser authority required")
+        return await verifier(request, session)
+
     async def authenticate(self, request: Request) -> VerifiedCaller:
         """Resolve the authority already verified and bound to this request.
 
@@ -77,34 +105,10 @@ class AmbientHTTPAuthenticator:
         """
         if self._session_for_request is None:
             raise HTTPAuthenticationError("Verified HTTP authority unavailable")
-        state = request.scope.get("state") or {}
-        cookie = request.cookies.get("__Host-graphos_session")
-        admitted = state.get("graphos_session_admitted") is True
-        if cookie is not None or admitted:
-            if not cookie or not admitted or self._verify_browser_session is None:
-                raise HTTPAuthenticationError("Verified browser authority required")
-            kind = "session"
-        else:
-            authorization = request.headers.getlist("authorization")
-            if len(authorization) != 1:
-                raise HTTPAuthenticationError("Verified bearer required")
-            scheme, _, token = authorization[0].partition(" ")
-            if (
-                scheme.lower() != "bearer"
-                or not token
-                or any(c.isspace() for c in token)
-            ):
-                raise HTTPAuthenticationError("Verified bearer required")
-            kind = "bearer"
+        kind = self._credential_kind(request)
         try:
             session = await self._session_for_request(request)
-            mfa_at_ms = None
-            if kind == "session":
-                # The presence and callability of this authority were checked above.
-                verifier = self._verify_browser_session
-                if verifier is None:
-                    raise HTTPAuthenticationError("Verified browser authority required")
-                mfa_at_ms = await verifier(request, session)
+            mfa_at_ms = await self._browser_mfa(request, session, kind)
             return caller_from_session(
                 session,
                 credential_kind=kind,

@@ -24,12 +24,7 @@ def caller_from_session(
     """
     from graph_os.api.invoke import VerifiedCaller
 
-    if session is None or not isinstance(credential_kind, str) or not credential_kind:
-        raise PermissionError("Verified session authority required")
-    if not callable(getattr(session, "ensure_authority_current", None)) or not callable(
-        getattr(session, "engine_verified_context", None)
-    ):
-        raise PermissionError("Current verified engine authority required")
+    _require_session_ports(session, credential_kind)
     session.ensure_authority_current()
     actor = session.actor
     actor.ensure_credential_current()
@@ -37,25 +32,7 @@ def caller_from_session(
         raise PermissionError("Verified principal kind required")
     claims = session.engine_verified_context()
     scopes = session.scopes
-    if (
-        not isinstance(claims, Mapping)
-        or not isinstance(scopes, (tuple, list, set, frozenset))
-        or any(
-            not isinstance(scope, str) or not scope or "*" in scope for scope in scopes
-        )
-        or not isinstance(claims.get("scopes"), (tuple, list, set, frozenset))
-        or any(not isinstance(scope, str) for scope in claims["scopes"])
-        or frozenset(claims["scopes"]) != frozenset(scopes)
-        or claims.get("principal") != actor.actor_id
-        or claims.get("tenant") != session.tenant
-        or actor.tenant_id != session.tenant
-        or claims.get("policy_version") != session.policy_version
-        or not isinstance(claims.get("delegation"), (tuple, list))
-        or any(
-            not isinstance(value, str) or not value.strip()
-            for value in (actor.actor_id, session.tenant, session.policy_version)
-        )
-    ):
+    if not _scopes_valid(scopes, claims) or not _claims_match(claims, session, actor):
         raise PermissionError("Verified session authority mismatch")
     if mfa_at_ms is not None and type(mfa_at_ms) is not int:
         raise PermissionError("Verified step-up authority required")
@@ -72,6 +49,46 @@ def caller_from_session(
         request_id=request_id,
         mfa_at_ms=mfa_at_ms,
         session=session,
+    )
+
+
+_SCOPE_TYPES = (tuple, list, set, frozenset)
+
+
+def _require_session_ports(session: Any, credential_kind: Any) -> None:
+    """Refuse a missing session, credential kind or verified-authority port."""
+    if session is None or not isinstance(credential_kind, str) or not credential_kind:
+        raise PermissionError("Verified session authority required")
+    ports = ("ensure_authority_current", "engine_verified_context")
+    if not all(callable(getattr(session, name, None)) for name in ports):
+        raise PermissionError("Current verified engine authority required")
+
+
+def _scopes_valid(scopes: Any, claims: Any) -> bool:
+    """Return True when session scopes are concrete and equal the claimed scopes."""
+    if not isinstance(claims, Mapping) or not isinstance(scopes, _SCOPE_TYPES):
+        return False
+    if any(not isinstance(scope, str) or not scope or "*" in scope for scope in scopes):
+        return False
+    claimed = claims.get("scopes")
+    if not isinstance(claimed, _SCOPE_TYPES):
+        return False
+    if any(not isinstance(scope, str) for scope in claimed):
+        return False
+    return frozenset(claimed) == frozenset(scopes)
+
+
+def _claims_match(claims: Mapping[str, Any], session: Any, actor: Any) -> bool:
+    """Return True when engine claims bind this exact actor, tenant and policy."""
+    identity = (actor.actor_id, session.tenant, session.policy_version)
+    if any(not isinstance(value, str) or not value.strip() for value in identity):
+        return False
+    return (
+        claims.get("principal") == actor.actor_id
+        and claims.get("tenant") == session.tenant
+        and actor.tenant_id == session.tenant
+        and claims.get("policy_version") == session.policy_version
+        and isinstance(claims.get("delegation"), (tuple, list))
     )
 
 
