@@ -99,14 +99,32 @@
     {
       "id": "GRAPHOS-OPS-R005",
       "title": "Stable auth error codes from the engine contract",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "100d015ca012fcb2b23931a2619c69f345fb1fd6",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/100d015ca012fcb2b23931a2619c69f345fb1fd6",
+          "description": "Contract admission and generated engine-error consumption are published on PR #43; not yet merged to the default branch."
+        }
+      ],
+      "remaining": "Admission validates the registry against the generated provider pin and error table. Startup proof against an installed engine package is pending. Engine scopes are not adopted."
     },
     {
       "id": "GRAPHOS-OPS-R006",
       "title": "Consume the engine's packaged wire-callable contract",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "100d015ca012fcb2b23931a2619c69f345fb1fd6",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/100d015ca012fcb2b23931a2619c69f345fb1fd6",
+          "description": "Contract admission and generated engine-error consumption are published on PR #43; not yet merged to the default branch."
+        }
+      ],
+      "remaining": "The engine package ships no scopes contract yet. Scope coverage and wire-callable exclusion against the installed package remain unproven."
     },
     {
       "id": "GRAPHOS-OPS-R007",

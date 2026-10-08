@@ -1,7 +1,7 @@
 # Governed browser control
 
 `BrowserControlService` is GraphOS's single authority for remote calls to the
-small browser-local WebMCP catalog. Agent WebUI supplies an authenticated
+small browser-local WebMCP catalog. Agent WebUI provides an authenticated
 document channel and renders confirmation UI. It does not authorize calls,
 mint leases, own replay state, or persist outcomes.
 
@@ -121,7 +121,7 @@ event loop that owns the exact service injected into WebUI. It rejects calls
 when the attended WebUI loop is not live and requires the caller's ambient
 `kg:write` session to match the channel actor and tenant. The browser socket is
 response-only: it registers capabilities and returns confirmation, result, or
-cancellation events, but cannot mint its own lease or initiate a call.
+cancellation events, but cannot mint its own lease or start a call.
 
 ## Module boundaries
 

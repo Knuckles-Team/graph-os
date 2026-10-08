@@ -5,7 +5,7 @@
 **Owner:** graph-os
 
 **State:** READY FOR IMPLEMENTATION — architecture and acceptance specified; no claim that the full surface is deployed or accepted.
-**Scope IDs:** GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R004, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007, GRAPHOS-FLEET-R008, GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010, GRAPHOS-FLEET-R011, GRAPHOS-FLEET-R012, GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017, GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R020, GRAPHOS-FLEET-R021, GRAPHOS-FLEET-R022, PA-12.
+**Scope IDs:** GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R004, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007, GRAPHOS-FLEET-R008, GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010, GRAPHOS-FLEET-R011, GRAPHOS-FLEET-R012, GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017, GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R020, GRAPHOS-FLEET-R021, GRAPHOS-FLEET-R022, PA-12, GRAPHOS-FLEET-R026, GRAPHOS-FLEET-R027, GRAPHOS-FLEET-R028, GRAPHOS-FLEET-R030.
 
 ## Outcome and state legend
 
@@ -33,6 +33,9 @@ Status is per deliverable; a source commit, a green unit test, or a prior status
 7. **Atomic catalog refresh.** The callable registry operation `fleet.catalog.reload` reads and validates a candidate catalog, all referenced bodies and schemas, server identity bindings, and policy metadata. Its typed request is `{expected_active_digest?: string, dry_run: bool = false, idempotency_key: string}`; only a caller with exact `fleet:control` and `mcp:admin` may publish. Its result includes prior/candidate/active generation IDs and digests, changed counts by kind, drain deadline, trace ID, and outcome. Duplicate, malformed, stale, missing, deleted, or digest-mismatched assets cannot publish a partial generation. It publishes a complete new generation atomically, retains the last known good generation on failure, drains in-flight calls within a bounded deadline, and emits ordered delta receipts for changed tools, prompts, resources/templates, and skills. A shared trace ID connects request, generation swap, notifications, and durable re-ingestion. Multi-replica convergence is observed by generation/digest; a replica that cannot reach the active generation reports degraded and does not serve a mixed catalog.
 8. **Connector/pack integration.** Connector SDK manifests and verified runtime MCP server identities are used as inputs; package names, transport keys, and MCP runtime names are distinct fields. Tool schema fingerprints are computed from actual served schemas, never empty placeholders. Pack annotations carry capability, schema digest, modality, cost, latency, and effect. SQL/market-data and telemetry connectors are catalog items only after certification and policy checks. D18 write-back is a typed, previewed, idempotent operation; it must not be exposed as an unguarded child tool.
 9. **Fleet operations.** Agent/A2A, browser, run admission, and fleet calls are typed operations. Capacity admission is all-or-nothing; a denied acquisition may trigger one re-decision, and a stopped run releases capacity. Assembly consumes the real generated `agents` list and never silently drops entries. Telemetry, security-audit, and CI event feeds expose only approved, sanitized data through the same registry and tenant boundary.
+10. **Per-server catalog admission.** The catalog reader joins live registrations with current `mcp_server` components. A live registration without a component is an onboarding state, not tampering. The reader skips that server and logs one warning. `multiplexer_status` lists each skipped server under `unadmitted_servers`. Every other integrity fault stays fatal. These faults include bad receipts, changed components, unresolved pins and content mismatches. Duplicates and page-bound breaches also stay fatal.
+11. **Fleet onboarding.** One idempotent pass onboards every enabled streamable-HTTP server in the MCP config. The pass registers the server in `__commons__`. It captures the served tools, prompts, skills and pack resources through the connector SDK. It attests that catalog with EG and imports the pack under the EG binding. A failure of one server leaves the other servers unaffected. The pass reports each failure by server name. The operator command `graph-os-production-ops onboard-fleet` runs one full pass. Boot starts the same pass on a background thread. The boot thread never blocks serving and never stops it. A fresh store needs no manual step.
+12. **Registration renewal.** A `RegisterServer` lease expires after its TTL. EG has no heartbeat operation. Each pass therefore re-registers every lease that expires within six hours. The pass covers fleet servers and the self-served `graph-os` and `agent-utilities` registrations. Each renewal window uses a new idempotency key. The boot thread repeats the pass every 30 minutes. After a pass admits a new server, the multiplexer re-reads the EG catalog. The multiplexer refuses that refresh while a child session runs. Then the next restart admits the server.
 
 ## Delivery slices and ownership
 
@@ -44,6 +47,7 @@ Status is per deliverable; a source commit, a green unit test, or a prior status
 | Fleet invocation and safety | GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R020, GRAPHOS-FLEET-R021 | Native load/call, exact scopes, policy, no bypass, parity |
 | Orchestration correctness | GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010 | Atomic admission, correct generated assembly agents |
 | Reload and acceptance | GRAPHOS-FLEET-R022, PA-12, GRAPHOS-FLEET-R017 | Atomic generation swap, re-ingestion, negative cases, replica/served proof |
+| Fleet onboarding | GRAPHOS-FLEET-R026, GRAPHOS-FLEET-R027, GRAPHOS-FLEET-R028, GRAPHOS-FLEET-R030 | Per-server admission, attested import of each child catalog, lease renewal, unapproved access mappings |
 
 The engine owns its durable records and method contract; the connector SDK owns pack and connector certification; graph-os owns serving composition, registry projection, fleet policy, session loading, and reload. A contributor may replace a missing external service with the fixtures and local fake adapters described in [test-spec.md](test-spec.md).
 
@@ -59,11 +63,13 @@ Acceptance requires every functional rule above, the positive/negative matrix in
 | Fleet invocation and safety | READY FOR IMPLEMENTATION | Pending exact revision and gate results |
 | Orchestration correctness | READY FOR IMPLEMENTATION | Pending exact revision and gate results |
 | Reload and acceptance | READY FOR IMPLEMENTATION | Pending exact revision and gate results |
+| Fleet onboarding | BUILDING | Branch `feat/fleet-onboarding`; `tests/fleet/test_fleet_onboarding.py`, `tests/test_fleet_catalog_reader.py` |
 
 ## Fixed design decisions
 
 - `fleet.catalog.reload` is the public control ID and its request/result fields are specified above. Dry-run validates and reports a candidate without swapping the active pointer.
 - Use the engine's generated durable event contract for catalog delta receipts and replay; graph-os supplies a local fixture adapter for contributor tests. Event keys include tenant, generation, sequence, and item ID to make replays idempotent.
+- GraphOS observes each child catalog over MCP, as the multiplexer does. EG issues the binding through `ConnectorPack.attest_self_served_catalog`. GraphOS must be the bound importer of each fleet connector. The deployment binds it through `EPISTEMIC_GRAPH_CONNECTOR_PACK_IMPORTERS` or `ConnectorPack.bind`. GraphOS never binds itself.
 - Ship a local embedded policy and allow/deny fixtures in this repository so a fresh checkout exercises policy without a remote PDP.
 
 Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.
