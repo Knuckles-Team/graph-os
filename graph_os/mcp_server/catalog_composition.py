@@ -51,6 +51,14 @@ def _bind_session_graph(graph: str) -> AbstractContextManager[object]:
     return use_session(resolve_session().with_graph(graph))
 
 
+def _use_process_session(session: Any) -> AbstractContextManager[object]:
+    """Bind the GraphOS process session for one browser catalog read."""
+
+    from agent_utilities.api.session import use_session
+
+    return use_session(session)
+
+
 def _read_context(session: Any) -> ReadContext:
     claims = session.engine_verified_context()
     return ReadContext(
@@ -109,7 +117,8 @@ async def compose_catalog_authorities(
             fleet=reader,
             workflows=workflows,
             agents=agents,
-        )
+        ),
+        authority_scope=lambda: _use_process_session(session),
     )
     await multiplexer.refresh_engine_catalog()
     return reader

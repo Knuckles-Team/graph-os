@@ -50,7 +50,7 @@ An obligation can be landed while acceptance remains open.
 | [`data-and-market-projections/spec.md`](data-and-market-projections/spec.md) | `GRAPHOS-DATA-MARKET-001` | `GRAPHOS-DATA-MARKET-R001`–`R006` |
 | [`dependency-ordered-release/spec.md`](dependency-ordered-release/spec.md) | `GRAPHOS-RELEASE-001` | `RL-01`–`RL-07` (defined in [requirements.md](dependency-ordered-release/requirements.md) as `GRAPHOS-RELEASE-R001`–`R003`) |
 | [`fleet-catalog-and-tools/spec.md`](fleet-catalog-and-tools/spec.md) | `GRAPHOS-FLEET-001` | `GRAPHOS-FLEET-R001`–`R028`, `PA-12` |
-| [`host-composition-boundary/spec.md`](host-composition-boundary/spec.md) | `GRAPHOS-HOST-001` | `GRAPHOS-HOST-R001`–`R016` |
+| [`host-composition-boundary/spec.md`](host-composition-boundary/spec.md) | `GRAPHOS-HOST-001` | `GRAPHOS-HOST-R001`–`R018` |
 | [`hosted-api-operations/spec.md`](hosted-api-operations/spec.md) | `GRAPHOS-OPS-001` | `HO-01`–`HO-11` (defined in [requirements.md](hosted-api-operations/requirements.md) as `GRAPHOS-OPS-R001`–`R038`) |
 | [`identity-access/spec.md`](identity-access/spec.md) | `GRAPHOS-IDENTITY-001` | `IA-01`–`IA-16` (defined in [requirements.md](identity-access/requirements.md) as `GRAPHOS-IDENTITY-R001`–`R024`) |
 | [`portable-deployment/spec.md`](portable-deployment/spec.md) | `GRAPHOS-DEPLOY-001` | `GRAPHOS-DEPLOY-R001`–`R015` |
