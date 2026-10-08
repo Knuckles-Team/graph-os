@@ -8,7 +8,9 @@ probing, synthetic counts, or a compatibility payload.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable, Callable
+from contextlib import AbstractContextManager, nullcontext
 from typing import Literal, cast
 
 from agent_utilities.api import (
@@ -235,14 +237,30 @@ class EnhancedCatalogAuthority:
 
 
 CatalogReader = Callable[[], Awaitable[tuple[EnhancedCatalog, WorkflowCapabilities]]]
+AuthorityScope = Callable[[], AbstractContextManager[object]]
 _reader: CatalogReader | None = None
+logger = logging.getLogger(__name__)
 
 
-def configure_enhanced_catalog(authority: EnhancedCatalogAuthority) -> None:
-    """Install the authority once at the GraphOS composition root."""
+def configure_enhanced_catalog(
+    authority: EnhancedCatalogAuthority,
+    *,
+    authority_scope: AuthorityScope = nullcontext,
+) -> None:
+    """Install the authority once at the GraphOS composition root.
+
+    ``authority_scope`` binds the GraphOS process authority for each read.
+    The reader stamps receipts with the process read context, so the engine
+    reads must run as that same principal. A browser caller's own session
+    holds no ``__commons__`` registry grant and is refused there.
+    """
+
+    async def read() -> tuple[EnhancedCatalog, WorkflowCapabilities]:
+        with authority_scope():
+            return await authority.read()
 
     global _reader
-    _reader = authority.read
+    _reader = read
 
 
 async def _read_catalog() -> tuple[EnhancedCatalog, WorkflowCapabilities]:
@@ -255,6 +273,11 @@ async def _read_catalog() -> tuple[EnhancedCatalog, WorkflowCapabilities]:
     except HTTPException:
         raise
     except Exception as exc:
+        logger.warning(
+            "catalog authority read failed: error_type=%s error=%s",
+            type(exc).__name__,
+            str(exc)[:500],
+        )
         raise HTTPException(
             status_code=503, detail="catalog authority unavailable"
         ) from exc
