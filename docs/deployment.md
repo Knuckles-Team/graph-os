@@ -109,7 +109,7 @@ AUTH_JWT_AUDIENCE=graph-os KG_POLICY_VERSION=baseline-v1 \
 
 Network serving is a security boundary. Configure validated identity, tenant
 isolation, TLS, and the deployment's authorization policy before exposing the
-listener beyond loopback. GraphOS refuses network serving without a constructed
+listener beyond loopback. GraphOS refuses network serving without a built
 authentication provider and rejects required authority that is absent or
 invalid.
 
