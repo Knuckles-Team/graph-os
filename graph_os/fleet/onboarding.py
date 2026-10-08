@@ -8,7 +8,8 @@ config:
 1. register the server, and renew any lease that lapses soon;
 2. capture its served tools, prompts, skills and pack resources as a
    ConnectorPack through the connector SDK;
-3. attest that catalog with EG and import the pack under EG's binding.
+3. attest that catalog with EG and import the pack under EG's binding;
+4. register its access contracts as unapproved virtual mappings.
 
 GraphOS observes each child catalog over MCP, as the multiplexer does.
 EG issues the binding through ``attest_self_served_catalog``; GraphOS must be
@@ -200,6 +201,8 @@ class FleetOnboarding:
     session: Any
     #: Replaces :func:`capture_server_pack`, for example in tests.
     capture: Any = None
+    #: The virtual catalog that access contracts register into.
+    virtual_catalog: Any = None
 
     @property
     def tenant_client(self) -> Any:
@@ -244,6 +247,18 @@ class FleetOnboarding:
             commons=self.commons_client,
             pack=pack,
         )
+        self.register_contracts(endpoint, pack)
+
+    def register_contracts(self, endpoint: FleetEndpoint, pack: Any) -> None:
+        """Register the pack's access contracts as unapproved mappings."""
+
+        from graph_os.fleet.access_contracts import register_access_contracts
+
+        added = register_access_contracts(
+            pack, connector=endpoint.name, catalog=self.virtual_catalog
+        )
+        if added:
+            logger.info("%s: %d unapproved access mappings", endpoint.name, added)
 
     async def self_endpoints(
         self, connectors: Sequence[str], served_url: str

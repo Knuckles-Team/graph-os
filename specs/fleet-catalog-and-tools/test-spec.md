@@ -48,3 +48,11 @@ CI may run this probe with local containers/processes and synthetic credentials.
 | Commit | Case/gate | Command or fixture | Result | Environment | Timestamp | Receipt or trace |
 |---|---|---|---|---|---|---|
 | pending | pending | pending | NOT RUN | clean checkout | pending | pending |
+
+## GRAPHOS-FLEET-R030
+
+`tests/fleet/test_fleet_access_contracts.py` uses a fake pack with one `ontology://` entry and a fake parser.
+- Onboarding registers one source connection and one mapping per contract.
+- Each registered mapping is unapproved, and the catalog serves no mapping for its class.
+- A second registration adds no duplicate mapping.
+- A missing SDK module skips contracts and raises nothing.

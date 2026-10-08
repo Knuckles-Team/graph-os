@@ -31,7 +31,8 @@
     "GRAPHOS-FLEET-R025",
     "GRAPHOS-FLEET-R026",
     "GRAPHOS-FLEET-R027",
-    "GRAPHOS-FLEET-R028"
+    "GRAPHOS-FLEET-R028",
+    "GRAPHOS-FLEET-R030"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
@@ -94,7 +95,7 @@
       "title": "Bridge upgraded to FastMCP 4",
       "delivery_state": "SPECIFIED",
       "evidence": [],
-      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( — no hits), so the 'single com"
+      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( \u2014 no hits), so the 'single com"
     },
     {
       "id": "GRAPHOS-FLEET-R008",
@@ -309,6 +310,13 @@
       "delivery_state": "BUILDING",
       "evidence": [],
       "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R030",
+      "title": "Fleet onboarding registers connector access contracts unapproved",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Not yet merged. Live reads need an approval path and a live operation binding for each source."
     }
   ]
 }
