@@ -286,3 +286,55 @@ def test_route_module_has_no_webui_or_au_gateway_fallback() -> None:
     text = __import__("pathlib").Path(source).read_text(encoding="utf-8")
     assert "agent_webui" not in text
     assert "agent_utilities.gateway" not in text
+
+
+def test_catalog_reads_run_under_the_configured_process_authority(
+    monkeypatch: Any,
+) -> None:
+    """GRAPHOS-HOST-R018: browser catalog reads bind the process authority."""
+    from contextlib import contextmanager
+
+    bound: list[str] = []
+    seen: list[list[str]] = []
+
+    @contextmanager
+    def process_scope() -> Any:
+        bound.append("process")
+        try:
+            yield
+        finally:
+            bound.pop()
+
+    class ScopedFleet(FleetReader):
+        async def read(self, **kwargs: Any) -> FleetCatalog:
+            seen.append(list(bound))
+            return await super().read(**kwargs)
+
+    monkeypatch.setattr(api, "_reader", None)
+    api.configure_enhanced_catalog(
+        api.EnhancedCatalogAuthority(
+            fleet=ScopedFleet(),  # type: ignore[arg-type]
+            workflows=Workflows(),
+            agents=Agents(),
+        ),
+        authority_scope=process_scope,
+    )
+    app = FastAPI()
+    api.register_enhanced_catalog_routes(app)
+    response = TestClient(app).get("/api/enhanced/tools")
+    assert response.status_code == 200
+    assert seen == [["process"]]
+    assert bound == []
+
+
+def test_failed_catalog_read_logs_its_cause(monkeypatch: Any, caplog: Any) -> None:
+    async def denied() -> Any:
+        raise RuntimeError("ACCESS_DENIED: lacks Read access to graph '__commons__'")
+
+    monkeypatch.setattr(api, "_reader", denied)
+    app = FastAPI()
+    api.register_enhanced_catalog_routes(app)
+    with caplog.at_level("WARNING", logger=api.__name__):
+        response = TestClient(app).get("/api/enhanced/tools")
+    assert response.json() == {"detail": "catalog authority unavailable"}
+    assert "ACCESS_DENIED" in caplog.text

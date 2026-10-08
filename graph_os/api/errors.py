@@ -1,19 +1,9 @@
-"""One privacy-safe error envelope for the GraphOS operation surfaces.
-
-The closed GraphOS error vocabulary (``GraphOSErrorCode``) and the fleet
-error path (``FleetRefusal``) are self-contained and need no engine contract.
-The engine-sourced path (an ``EngineRefusal`` type and the "engine" source in
-``_classified_error``/``a2a_error_status``/``to_envelope``) is deferred out of
-this module for now: classifying an engine wire code into an HTTP status and
-a retry flag requires a code -> (status, retryable) table generated from the
-EG error contract (``epistemic_graph/contract/errors.json``), and there is no
-graph-os-side substitute for that table. It returns with the generated
-engine-error module and its generator step in the slice that can depend on a
-pinned epistemic-graph revision carrying that contract file.
-"""
+"""Privacy-safe errors; engine codes derive only from generated provider evidence."""
 
 from __future__ import annotations
 
+import importlib
+import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -89,6 +79,32 @@ class GraphOSRefusal(Exception):
 
 
 @dataclass(slots=True)
+class EngineRefusal(Exception):
+    """An engine code whose HTTP status/retryability belong to its contract."""
+
+    code: str
+    message: str = "Engine request refused"
+    details: Mapping[str, Any] = field(default_factory=dict)
+    source: str = field(default="engine", init=False)
+
+
+def _engine_error(code: str) -> tuple[int, bool]:
+    from graph_os.api.registry.contract_admission import _error_entry
+    from graph_os.api.registry.eg_binding import EgContractError
+
+    try:
+        table = importlib.import_module(
+            "graph_os.api.generated.engine_errors"
+        ).ENGINE_ERRORS
+        entry = table[code]
+        if not isinstance(entry, tuple) or len(entry) != 2:
+            raise EgContractError("malformed generated engine error entry")
+        return _error_entry(code, *entry)
+    except (ImportError, AttributeError, KeyError, TypeError) as exc:
+        raise EgContractError("engine error is absent from generated contract") from exc
+
+
+@dataclass(slots=True)
 class FleetRefusal(Exception):
     """A child's own code, with its provenance kept in details."""
 
@@ -150,13 +166,7 @@ def _public_details(
     }:
         return _confirmation_details(code, details)
     if code == GraphOSErrorCode.INDETERMINATE:
-        # The audit adapter emits this fixed reason when it cannot record the
-        # outcome of an effect. Never reflect an arbitrary backend message.
-        return (
-            {"reason": "audit outcome unavailable"}
-            if details.get("reason") == "audit outcome unavailable"
-            else {}
-        )
+        return _indeterminate_details(details)
     allowed = {
         GraphOSErrorCode.SCOPE_REQUIRED: "missing_scopes",
         GraphOSErrorCode.LOAD_CAP_EXCEEDED: "loaded_items",
@@ -170,6 +180,48 @@ def _public_details(
     if any(not isinstance(item, str) or len(item) > 128 for item in values):
         return {}
     return {key: list(values)}
+
+
+def _indeterminate_details(details: Mapping[str, Any]) -> dict[str, Any]:
+    """Project the fixed audit reason and a bounded reconciliation handle."""
+
+    # The audit adapter emits this fixed reason when it cannot record the
+    # outcome of an effect. Never reflect an arbitrary backend message.
+    projected: dict[str, Any] = (
+        {"reason": "audit outcome unavailable"}
+        if details.get("reason") == "audit outcome unavailable"
+        else {}
+    )
+    reference = _audit_reference(details.get("audit_ref"))
+    if reference is not None:
+        projected["audit_ref"] = reference
+    return projected
+
+
+def _audit_reference(value: object) -> str | None:
+    """Project the audit adapter's bounded pair, never arbitrary backend text.
+
+    This reference identifies a reservation; it grants no reconciliation access.
+    The reconciliation authority must independently verify caller and tenant.
+    """
+
+    if not isinstance(value, str) or len(value) > 89:
+        return None
+    try:
+        pair = json.loads(value)
+    except (ValueError, RecursionError):
+        return None
+    if not isinstance(pair, list) or len(pair) != 2:
+        return None
+    digest, sequence = pair
+    if (
+        not isinstance(digest, str)
+        or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+        or type(sequence) is not int
+        or not 0 <= sequence <= (1 << 64) - 1
+    ):
+        return None
+    return f"graphos_audit:{digest}:{sequence}"
 
 
 def _confirmation_details(
@@ -247,6 +299,9 @@ def _classify_op_error(
     error: OpErrorLike,
 ) -> tuple[str, str, int, bool, dict[str, Any]]:
     source = getattr(error, "source", "graphos")
+    if source == "engine":
+        status, retryable = _engine_error(error.code)
+        return error.code, "engine", status, retryable, {}
     if source == "fleet":
         return _classify_fleet_code(error.code, retryable=False, details=error.details)
     if source != "graphos":
@@ -293,13 +348,11 @@ _RPC_CODES: dict[GraphOSErrorCode, int] = {
 def a2a_error_status(
     code: GraphOSErrorCode | str, *, source: str = "graphos"
 ) -> tuple[int, int]:
-    """Return JSON-RPC and HTTP status for the graphos and fleet sources.
+    """Return JSON-RPC and HTTP status without reclassifying engine codes."""
 
-    The engine source is not classifiable here yet: its HTTP status and
-    retryability come from the EG error contract, which is not part of this
-    slice (see graph_os/api/errors.py module docstring).
-    """
-
+    if source == "engine":
+        status, _retryable = _engine_error(str(code))
+        return -32000, status
     if source == "fleet":
         if _FLEET_CODE.fullmatch(str(code)) is None:
             raise ValueError("invalid fleet error code")
@@ -325,6 +378,7 @@ def to_envelope(
     defaults: dict[str, str] = {
         "graphos": "Request refused",
         "fleet": "Fleet call refused",
+        "engine": "Engine request refused",
     }
     message = _public_message(defaults[source])
     envelope = {

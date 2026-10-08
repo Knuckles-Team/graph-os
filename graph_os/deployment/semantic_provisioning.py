@@ -22,7 +22,7 @@ import hashlib
 import json
 import secrets
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import AbstractContextManager
 from typing import Any
 
@@ -157,6 +157,54 @@ async def _registry_page(commons: Any) -> Any:
     return await send_list_registered_servers(commons, {"request": {}}, COMMONS_GRAPH)
 
 
+async def ensure_server_registrations(
+    commons: Any,
+    endpoints: Mapping[str, str],
+    *,
+    renew_margin_ms: int = 0,
+    now_ms: int | None = None,
+) -> tuple[str, ...]:
+    """Register each ``name -> URL`` endpoint without a sufficiently live lease.
+
+    EG lists only live registrations. With ``renew_margin_ms`` zero, any
+    listed registration is left untouched. A positive margin re-registers a
+    lease that lapses within that window. Each renewal window carries its own
+    idempotency key, so a renewal never replays an earlier receipt.
+    """
+
+    from epistemic_graph.generated.cluster import send_register_server
+
+    now = int(time.time() * 1000) if now_ms is None else now_ms
+    leases = {
+        entry.name: int(entry.lease_expires_at_ms)
+        for entry in (await _registry_page(commons)).entries
+    }
+    registered: list[str] = []
+    for name, url in endpoints.items():
+        if name in leases and (
+            not renew_margin_ms or leases[name] > now + renew_margin_ms
+        ):
+            continue
+        key = f"graph-os:register-server:{name}:{url}"
+        if renew_margin_ms:
+            key += f":{now // renew_margin_ms}"
+        await send_register_server(
+            commons,
+            {
+                "name": name,
+                "url": url,
+                "resources_json": "{}",
+                "ttl_secs": REGISTRATION_TTL_SECS,
+                "transport": "streamable_http",
+                "desired": "enabled",
+            },
+            COMMONS_GRAPH,
+            idempotency_key=key,
+        )
+        registered.append(name)
+    return tuple(registered)
+
+
 async def ensure_registrations(
     commons: Any, connectors: Sequence[str], served_url: str
 ) -> tuple[str, ...]:
@@ -166,28 +214,9 @@ async def ensure_registrations(
     the operator, and re-registering would move the registry for no reason.
     """
 
-    from epistemic_graph.generated.cluster import send_register_server
-
-    live = {entry.name for entry in (await _registry_page(commons)).entries}
-    registered: list[str] = []
-    for connector in connectors:
-        if connector in live:
-            continue
-        await send_register_server(
-            commons,
-            {
-                "name": connector,
-                "url": served_url,
-                "resources_json": "{}",
-                "ttl_secs": REGISTRATION_TTL_SECS,
-                "transport": "streamable_http",
-                "desired": "enabled",
-            },
-            COMMONS_GRAPH,
-            idempotency_key=f"graph-os:register-server:{connector}:{served_url}",
-        )
-        registered.append(connector)
-    return tuple(registered)
+    return await ensure_server_registrations(
+        commons, dict.fromkeys(connectors, served_url)
+    )
 
 
 async def attest_self_served_catalog(
@@ -270,6 +299,66 @@ async def _owner_principal(
     if not isinstance(payload, str) or not payload.strip():
         raise SemanticProvisioningError("EG owner principal is unavailable")
     return payload
+
+
+def _rejection(result: Any, connector: str) -> SemanticProvisioningError | None:
+    if getattr(result, "result", None) != "rejected":
+        return None
+    violations = [
+        f"{violation.code.value}:{violation.uri or ''}:{violation.detail}"
+        for violation in getattr(result, "violations", ())
+    ]
+    return SemanticProvisioningError(
+        f"ConnectorPack import of {connector!r} was rejected: " + "; ".join(violations)
+    )
+
+
+async def import_attested_pack(
+    engine: Any,
+    session: Any,
+    *,
+    client: Any,
+    commons: Any,
+    pack: Any,
+    bind_graph: GraphBinder = _bind_session_graph,
+) -> Any:
+    """Attest ``pack``'s catalog with EG, then import it under EG's binding.
+
+    The caller owns projection and schema attachment. A rejected import
+    raises :class:`SemanticProvisioningError` with every EG violation.
+    """
+
+    from agent_connector_sdk.sinks.epistemic_graph import EpistemicGraphSink
+    from agent_utilities.api import pack_import_authority
+
+    tenant_id = str(session.engine_verified_context()["tenant"])
+    graph = str(session.graph)
+    binding = await attest_self_served_catalog(
+        client,
+        commons,
+        tenant_id=tenant_id,
+        graph=graph,
+        pack=pack,
+        bind_graph=bind_graph,
+    )
+    with bind_graph(graph):
+        owner = await _owner_principal(
+            client, tenant_id=tenant_id, graph=graph, connector=pack.connector
+        )
+        sink = EpistemicGraphSink(
+            client,
+            pack_import_authority(
+                engine,
+                session.with_graph(graph),
+                catalog_binding=lambda: binding,
+                serving_principal=lambda: owner,
+            ),
+        )
+        result = await sink.import_pack(pack)
+    rejection = _rejection(result, pack.connector)
+    if rejection is not None:
+        raise rejection
+    return result
 
 
 #: How long one connector's automatic projection may take before provisioning
@@ -383,8 +472,6 @@ async def provision_semantic_content(
     """Run every provisioning step; raise unless the semantic content verifies."""
 
     from agent_connector_sdk.artifacts.pack import build_connector_content_pack
-    from agent_connector_sdk.sinks.epistemic_graph import EpistemicGraphSink
-    from agent_utilities.api import pack_import_authority
 
     tenant_id = str(session.engine_verified_context()["tenant"])
     graph = str(session.graph)
@@ -404,37 +491,15 @@ async def provision_semantic_content(
     imports: dict[str, str] = {}
     for content in contents:
         pack = await build_connector_content_pack(content)
-        binding = await attest_self_served_catalog(
-            client,
-            commons,
-            tenant_id=tenant_id,
-            graph=graph,
+        result = await import_attested_pack(
+            engine,
+            session,
+            client=client,
+            commons=commons,
             pack=pack,
             bind_graph=bind_graph,
         )
         with bind_graph(graph):
-            owner = await _owner_principal(
-                client, tenant_id=tenant_id, graph=graph, connector=pack.connector
-            )
-            sink = EpistemicGraphSink(
-                client,
-                pack_import_authority(
-                    engine,
-                    session.with_graph(graph),
-                    catalog_binding=lambda binding=binding: binding,
-                    serving_principal=lambda owner=owner: owner,
-                ),
-            )
-            result = await sink.import_pack(pack)
-            if getattr(result, "result", None) == "rejected":
-                violations = [
-                    f"{violation.code.value}:{violation.uri or ''}:{violation.detail}"
-                    for violation in getattr(result, "violations", ())
-                ]
-                raise SemanticProvisioningError(
-                    f"ConnectorPack import of {pack.connector!r} was rejected: "
-                    + "; ".join(violations)
-                )
             await _project_and_attach(
                 client, tenant_id=tenant_id, graph=graph, connector=pack.connector
             )
@@ -459,6 +524,8 @@ __all__ = [
     "ensure_base_graphs",
     "catalog_content_digest",
     "ensure_registrations",
+    "ensure_server_registrations",
+    "import_attested_pack",
     "ensure_tenant_graph",
     "provision_semantic_content",
     "registration_config_digest",

@@ -160,8 +160,44 @@ class NativeGatewayApplication:
     def ensure_tools_registered(self) -> None:
         runtime.ensure_tools_registered()
 
-    def mount_rest_routes(self, app: Any, *, prefix: str) -> None:
-        mount_rest_routes(app, prefix=prefix)
+    def mount_rest_routes(
+        self,
+        app: Any,
+        *,
+        prefix: str,
+        services: Any = None,
+        visibility: Any = None,
+        authenticator: Any = None,
+        invoke: Any = None,
+    ) -> None:
+        """Mount an explicitly composed API only after contract admission.
+
+        The existing process still supplies no API dependencies. Its legacy
+        action surface is unchanged; no partial API composition falls back to it.
+        """
+        dependencies = (services, visibility, authenticator, invoke)
+        if all(value is None for value in dependencies):
+            mount_rest_routes(app, prefix=prefix)
+            return
+        from graph_os.api.registry.contract_admission import validate_contract_admission
+        from graph_os.api.registry.eg_binding import EgContractError
+
+        if any(value is None for value in dependencies):
+            raise EgContractError(
+                "API composition requires services/auth/visibility/invoke"
+            )
+        from graph_os.api.http.app import create_api_application
+
+        validate_contract_admission(services.registry)
+        child = create_api_application(
+            services=services,
+            visibility=visibility,
+            authenticator=authenticator,
+            invoke=invoke,
+        )
+        # Gateway callers already pass their /api prefix; an empty prefix uses
+        # the public API root rather than mounting versioned routes at /v1.
+        app.mount((prefix.rstrip("/") or "/api") + "/v1", child)
 
     def remote_oauth_grant_bindings(self, actor: Any) -> Sequence[Any]:
         from graph_os.fleet.multiplexer import (

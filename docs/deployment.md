@@ -147,7 +147,7 @@ apply artifacts, evaluate live readiness, perform rollback, or qualify a
 release. Those remaining requirements are tracked by the
 [dependency-ordered release specification](https://github.com/Knuckles-Team/graph-os/tree/main/specs/dependency-ordered-release).
 
-Run diagnostics against the resolved deployment configuration, then execute the
+Run diagnostics against the resolved deployment configuration, then run the
 bounded release canary in the candidate environment:
 
 ```bash

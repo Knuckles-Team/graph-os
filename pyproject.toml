@@ -164,3 +164,6 @@ mcp_server = true
 # The MCP server and gateway serve stdio/HTTP; stdout there is protocol output.
 [tool.pipelines_hooks.stdout_writes]
 served_paths = ["graph_os/mcp_server", "graph_os/gateway"]
+
+[tool.pipelines_hooks.ste]
+exempt = ["specs/*", "specs/**/*"]

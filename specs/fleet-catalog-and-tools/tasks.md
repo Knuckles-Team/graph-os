@@ -20,3 +20,10 @@ Check a task only after its linked code and tests land. A checked source task is
 - [ ] T20 (GRAPHOS-FLEET-R029): Remove `MCP_TOOL_MODE` from the fleet configuration: the MCP config files, deployment manifests, config generator and README environment tables.
 - [ ] T21 (GRAPHOS-FLEET-R029): Retire `MCP_ALWAYS_LOAD` and `MCP_ALWAYS_LOAD_TOOLS` and the eager-mount path in `graph_os/fleet/multiplexer.py`. A fleet call mounts what it needs.
 - [ ] T22 (GRAPHOS-FLEET-R029): Rename the internal `find_tools`/`load_tools`/`unload_tools`/`multiplexer_status` methods and comments in `graph_os/fleet/` and `graph_os/api/ops/fleet.py` to the intent operation names.
+- [x] T15 (GRAPHOS-FLEET-R026): Skip a registration without a component, log it, and report it in `multiplexer_status`.
+- [x] T16 (GRAPHOS-FLEET-R027): Add `graph_os/fleet/onboarding.py`, the `onboard-fleet` command and the background boot pass.
+- [x] T17 (GRAPHOS-FLEET-R028): Renew fleet and self-served leases each pass with windowed idempotency keys; refresh the catalog after admission.
+- [ ] T18 (GRAPHOS-FLEET-R027): Bind GraphOS as the fleet importer in the deployment, roll out, and record the live `multiplexer_status` child count.
+- [x] T18 (GRAPHOS-FLEET-R030): Register each connector access contract as an unapproved virtual mapping during onboarding.
+- [ ] T19 (GRAPHOS-FLEET-R030): Read ontology entries from the real pack archive accessor; confirm the duck-typed `entries` read against the SDK archive.
+- [ ] T20 (GRAPHOS-FLEET-R030): Bind each source to a live operation call and add an operator approval path.
