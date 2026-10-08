@@ -7,10 +7,19 @@ connection, or keeps a second catalog/probe cache.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
+from functools import partial
 from typing import Any, TypedDict
 
-from graph_os.fleet.multiplexer import MCPMultiplexer
+from fastmcp.exceptions import ToolError
+
+from graph_os.fleet.multiplexer import (
+    MCPMultiplexer,
+    _assert_bounded_delegated_value,
+    _child_result_payload,
+    _require_fleet_capability,
+)
 from graph_os.fleet.shared_multiplexer import run_on_served_multiplexer
 
 
@@ -29,6 +38,32 @@ async def _list_mcp_server_tools(*, server_name: str) -> list[dict[str, Any]]:
     return await run_on_served_multiplexer(list_tools)
 
 
+async def _call_native_tool(
+    mux: MCPMultiplexer,
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    timeout: float,
+) -> Any:
+    """Invoke only registered native tools through the served middleware chain."""
+    from agent_utilities.api.session import current_session
+
+    from graph_os.mcp_server import runtime
+
+    _require_fleet_capability("delegate")
+    _assert_bounded_delegated_value(arguments)
+    if current_session() is None:
+        raise ToolError("Verified caller session required")
+    host = mux._host_mcp
+    if host is None or tool_name not in runtime.REGISTERED_TOOLS:
+        raise ToolError("Native GraphOS tool is unavailable")
+    with runtime.verified_tool_session_scope():
+        result = await asyncio.wait_for(
+            host.call_tool(tool_name, arguments, run_middleware=True), timeout=timeout
+        )
+    return _child_result_payload(result)
+
+
 async def _call_mcp_tool(
     *,
     server_name: str,
@@ -37,8 +72,11 @@ async def _call_mcp_tool(
     timeout: float = 30.0,
 ) -> Any:
     async def call_tool(mux: MCPMultiplexer) -> Any:
-        return await mux.delegate_server_tool(
-            server_name=server_name,
+        native = {"graph-os": partial(_call_native_tool, mux)}
+        dispatch = native.get(
+            server_name, partial(mux.delegate_server_tool, server_name=server_name)
+        )
+        return await dispatch(
             tool_name=tool_name,
             arguments=arguments,
             timeout=timeout,

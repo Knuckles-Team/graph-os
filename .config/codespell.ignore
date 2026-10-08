@@ -1,0 +1,4 @@
+# codespell ignore words list — only words codespell mis-flags as typos.
+# Each must correspond to a real false-positive in the tree. Matching is
+# case-insensitive.
+hass

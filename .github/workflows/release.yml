@@ -70,11 +70,28 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
 
+      - name: Provision pinned Helm for deployment render tests
+        env:
+          HELM_VERSION: v4.3.0
+          HELM_SHA256: 86584a54def73570558f66f5111cc53dfed56689637ae32c1201205d494f54fb
+        run: |
+          set -euo pipefail
+          tool_dir="$(mktemp -d "$RUNNER_TEMP/helm.XXXXXX")"
+          archive="$tool_dir/helm.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 \
+            --proto '=https' --tlsv1.2 \
+            "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" \
+            --output "$archive"
+          printf '%s  %s\n' "$HELM_SHA256" "$archive" | sha256sum --check --strict
+          tar -xzf "$archive" -C "$tool_dir" linux-amd64/helm
+          test "$("$tool_dir/linux-amd64/helm" version --template '{{.Version}}')" = "$HELM_VERSION"
+          printf '%s\n' "$tool_dir/linux-amd64" >> "$GITHUB_PATH"
+
       - name: Checkout pinned agent-utilities source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-utilities
-          ref: fbc939fedeadeb20ddf4b468245165414a18c34e
+          ref: 2d40ed53f6440fdda0b5cfb7868d912fa8f162e1
           path: .uv-workspace-siblings/agent-utilities
           persist-credentials: false
 
@@ -98,7 +115,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/epistemic-graph
-          ref: 49d63da5396fef7482fc3617df3f90a836661722
+          ref: 70037e8a400c7b32b1222623bb05bbfaf55deab8
           path: .uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph
           persist-credentials: false
 
@@ -205,9 +222,32 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Resolve scanner cache identity
+        id: scanner-cache-identity
+        env:
+          SCANNER_RECIPE: ${{ hashFiles('scripts/install_scanners.sh') }}
+        run: |
+          set -euo pipefail
+          rustc_identity="$(rustc -Vv)"
+          cargo_identity="$(cargo -V)"
+          identity="$(printf '%s\0' \
+            "$RUNNER_OS" "$RUNNER_ARCH" "${ImageOS:-}" "${ImageVersion:-}" \
+            "$SCANNER_RECIPE" "$rustc_identity" "$cargo_identity" \
+            "$CARGO_BUILD_JOBS" "$CARGO_PROFILE_RELEASE_DEBUG" \
+            "${RUSTFLAGS:-}" "${CARGO_ENCODED_RUSTFLAGS:-}" | sha256sum)"
+          printf 'key=graph-os-scanners-v1-%s\n' "${identity%% *}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore scanner toolchain
+        id: scanner-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/graph-os-scanners
+          key: ${{ steps.scanner-cache-identity.outputs.key }}
+
       # Each scanner is installed to its own runner-local prefix at the
       # version the shared scanner-versions hook verifies (the same script
-      # scripts/bootstrap.sh --scanners runs locally).
+      # scripts/bootstrap.sh --scanners runs locally). Always run the installer:
+      # a cache hit must still pass the provider's receipt and build probes.
       - name: Provision pinned scanner toolchain
         run: bash scripts/install_scanners.sh "$RUNNER_TEMP/graph-os-scanners" >> "$GITHUB_PATH"
 
@@ -223,6 +263,13 @@ jobs:
           for hook in complexity-census kiss-census dupehound-changed jscpd-differential jscpd-census; do
             uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
           done
+
+      - name: Save verified scanner toolchain
+        if: success() && steps.scanner-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/graph-os-scanners
+          key: ${{ steps.scanner-cache-identity.outputs.key }}
 
   build:
     name: build
