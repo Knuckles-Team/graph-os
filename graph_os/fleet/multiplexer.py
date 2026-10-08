@@ -93,6 +93,11 @@ from mcp.client.streamable_http import streamable_http_client
 
 import graph_os.fleet.catalog_reader as _catalog_reader
 import graph_os.fleet.child_resilience as _child_resilience
+from graph_os.fleet.local_skill_catalog import (
+    LOCAL_SKILLS_SERVER,
+    build_local_skill_catalog,
+    missing_core_pack_names,
+)
 from graph_os.fleet.session_notifications import SessionCatalogNotifications
 
 # Direct all logs to stderr so stdout remains perfectly clean for stdio JSON-RPC
@@ -2320,6 +2325,15 @@ class MCPMultiplexer:
         # it) so a caller can compute truthful staleness instead of a fleet-wide
         # figure silently being served as if it were live (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog).
         self._probe_cache: dict[str, dict] = {}
+        # CONCEPT:AU-KG.retrieval.unified-capability-contract — the one local
+        # skill entry (graph_os.fleet.local_skill_catalog), built lazily and
+        # cached like the probe cache above: every skill resolved from a
+        # provider installed in THIS process (graph-os's own, agent-utilities'
+        # own, and any sibling package declaring the same
+        # ``agent_utilities.skill_providers`` entry point), filed under the
+        # pseudo-server ``LOCAL_SKILLS_SERVER`` so it rides the SAME
+        # find_tools/list_catalog path as a fleet-harvested skill.
+        self._local_skill_probe_cache: dict[str, _typing.Any] | None = None
         # Process-owned discovery authority is deliberately kept out of the
         # public probe payload.  The catalog is caller-visible JSON metadata,
         # while an OAuth grant or tenant-local binding must only reach the
@@ -5722,6 +5736,80 @@ class MCPMultiplexer:
             return self._server_level_fallback()
         return results
 
+    def _local_skill_probe_info(self) -> dict[str, _typing.Any]:
+        """Build (once) and cache the local-skill pseudo-server probe entry.
+
+        "Local" means every skill ``agent_utilities.core.providers.
+        resolve_skill_provider_dirs()`` resolves in THIS process — graph-os's
+        own skills, agent-utilities' own, and any sibling package installed
+        alongside graph-os that declares the ``agent_utilities.skill_providers``
+        entry point (CONCEPT:AU-KG.retrieval.unified-capability-contract). An
+        individually unreadable/malformed skill, and a core-pack name no
+        installed provider resolves, are reported loudly here (never fatal,
+        never silent) the one time this cache is built.
+        """
+        if self._local_skill_probe_cache is not None:
+            return self._local_skill_probe_cache
+        entries, problems = build_local_skill_catalog()
+        for problem in problems:
+            logger.warning("Local skill catalog: %s", problem)
+        for missing in missing_core_pack_names(entries):
+            logger.warning(
+                "Core-pack skill %r is not provided by any installed package",
+                missing,
+            )
+        info: dict[str, _typing.Any] = {"tools": [], "skills": entries, "error": None}
+        self._local_skill_probe_cache = info
+        return info
+
+    @staticmethod
+    def _fleet_skills_without_local_duplicates(
+        server: str, info: dict, local_names: set[str]
+    ) -> list[dict] | None:
+        """One server's skills with a local-duplicate name dropped, logged.
+
+        Returns ``None`` when nothing collided, so the caller can keep the
+        original entry untouched rather than rebuild an identical one.
+        """
+        skills = info.get("skills") or []
+        kept = [s for s in skills if s.get("name") not in local_names]
+        if len(kept) == len(skills):
+            return None
+        for dropped in skills:
+            if dropped.get("name") in local_names:
+                logger.info(
+                    "Fleet-harvested skill %r from %r shadowed by a local "
+                    "skill of the same name",
+                    dropped.get("name"),
+                    server,
+                )
+        return kept
+
+    def _dedup_fleet_skills_against_local(
+        self, probe: dict, local_names: set[str]
+    ) -> dict:
+        """Drop a fleet-harvested skill whose name collides with a local one.
+
+        A local skill (served from a package installed in THIS process) takes
+        precedence over the same name surfacing from a live-probed child: it
+        is this process's own authoritative resolution and costs no child
+        connection to read. Never mutates a cached probe entry in place — a
+        filtered copy is returned only for a server whose skills actually
+        collide, so ``self._probe_cache`` stays exactly what was harvested.
+        """
+        if not local_names:
+            return probe
+        deduped = dict(probe)
+        for server, info in probe.items():
+            if server == LOCAL_SKILLS_SERVER:
+                continue
+            kept = self._fleet_skills_without_local_duplicates(
+                server, info, local_names
+            )
+            if kept is not None:
+                deduped[server] = {**info, "skills": kept}
+        return deduped
+
     async def discover_tools(
         self, query: str, top_k: int | None = None, loaded: set[str] | None = None
     ) -> dict:
@@ -5731,6 +5819,9 @@ class MCPMultiplexer:
         Backbone is the self-catalog (:meth:`probe_catalog` — each server's real
         tools, learned by a cached connect→list→release probe), ranked by token
         overlap; KG semantic-search scores are blended in when the KG is warm.
+        The local-skill pseudo-server (:meth:`_local_skill_probe_info`) is
+        folded in the SAME way, so a skill served from a package installed in
+        this process ranks alongside fleet tools and fleet-harvested skills.
         Returns ``{"results": [...], "unavailable": {server: error}}`` so the
         caller can both pick tools and see which servers couldn't be reached.
         """
@@ -5741,7 +5832,13 @@ class MCPMultiplexer:
         catalog = self.load_catalog()
         discovery_timeout = agent_config.mcp_dynamic_discovery_timeout
         deadline = asyncio.get_running_loop().time() + discovery_timeout
-        probe = await self._discovery_probe(query, catalog, discovery_timeout, deadline)
+        fleet_probe = await self._discovery_probe(
+            query, catalog, discovery_timeout, deadline
+        )
+        local_info = self._local_skill_probe_info()
+        local_names = {s["name"] for s in local_info.get("skills", [])}
+        probe = self._dedup_fleet_skills_against_local(fleet_probe, local_names)
+        probe = {**probe, LOCAL_SKILLS_SERVER: local_info}
         rank: _DiscoveryRanking = {
             "query": query,
             "semantic": await self._discovery_semantic_scores(query, probe, deadline),
@@ -5764,8 +5861,13 @@ class MCPMultiplexer:
                 unavailable[server] = info["error"]
                 continue
             ranked.extend(self._ranked_server_entries(server, info, rank, now, ttl))
+        # The server-level fallback (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog)
+        # answers "is any FLEET server mountable", so its trigger check uses
+        # ``fleet_probe`` — never the merged ``probe`` — or the local-skill
+        # pseudo-server's own always-``error: None`` entry would make every
+        # fleet server look reachable even when none of them actually are.
         return {
-            "results": self._discovery_results(ranked, top_k, probe),
+            "results": self._discovery_results(ranked, top_k, fleet_probe),
             "unavailable": unavailable,
         }
 
@@ -5826,16 +5928,21 @@ class MCPMultiplexer:
         (a server that never answers must not hang this call indefinitely) and
         tag it BACKGROUND_INGESTION so it yields to interactive/orchestration
         work (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog). A metadata-only
-        listing never probes a child at all.
+        listing never probes a child at all. The local-skill pseudo-server
+        (:meth:`_local_skill_probe_info`) is always folded in, so a plain
+        listing shows it without needing a ``find_tools`` query — the
+        always-offered core pack is a subset of exactly this set.
         """
+        local_info = self._local_skill_probe_info()
         if not include_tools:
-            return dict(self._probe_cache)
+            return {**dict(self._probe_cache), LOCAL_SKILLS_SERVER: local_info}
         from agent_utilities.core.config import config as agent_config
 
-        return await self.probe_catalog(
+        probe = await self.probe_catalog(
             budget=agent_config.mcp_dynamic_discovery_timeout,
             priority=_resource_priority.PriorityClass.BACKGROUND_INGESTION,
         )
+        return {**probe, LOCAL_SKILLS_SERVER: local_info}
 
     def _catalog_tool_partition(
         self, name: str, prefix: str, tool_entries: list[dict]
