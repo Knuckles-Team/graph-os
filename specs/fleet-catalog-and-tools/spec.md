@@ -5,7 +5,7 @@
 **Owner:** graph-os
 
 **State:** READY FOR IMPLEMENTATION — architecture and acceptance specified; no claim that the full surface is deployed or accepted.
-**Scope IDs:** GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R004, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007, GRAPHOS-FLEET-R008, GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010, GRAPHOS-FLEET-R011, GRAPHOS-FLEET-R012, GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017, GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R020, GRAPHOS-FLEET-R021, GRAPHOS-FLEET-R022, PA-12, GRAPHOS-FLEET-R026, GRAPHOS-FLEET-R027, GRAPHOS-FLEET-R028.
+**Scope IDs:** GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R004, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007, GRAPHOS-FLEET-R008, GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010, GRAPHOS-FLEET-R011, GRAPHOS-FLEET-R012, GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017, GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R020, GRAPHOS-FLEET-R021, GRAPHOS-FLEET-R022, PA-12, GRAPHOS-FLEET-R026, GRAPHOS-FLEET-R027, GRAPHOS-FLEET-R028, GRAPHOS-FLEET-R030.
 
 ## Outcome and state legend
 
@@ -47,7 +47,7 @@ Status is per deliverable; a source commit, a green unit test, or a prior status
 | Fleet invocation and safety | GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R020, GRAPHOS-FLEET-R021 | Native load/call, exact scopes, policy, no bypass, parity |
 | Orchestration correctness | GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010 | Atomic admission, correct generated assembly agents |
 | Reload and acceptance | GRAPHOS-FLEET-R022, PA-12, GRAPHOS-FLEET-R017 | Atomic generation swap, re-ingestion, negative cases, replica/served proof |
-| Fleet onboarding | GRAPHOS-FLEET-R026, GRAPHOS-FLEET-R027, GRAPHOS-FLEET-R028 | Per-server admission, attested import of each child catalog, lease renewal |
+| Fleet onboarding | GRAPHOS-FLEET-R026, GRAPHOS-FLEET-R027, GRAPHOS-FLEET-R028, GRAPHOS-FLEET-R030 | Per-server admission, attested import of each child catalog, lease renewal, unapproved access mappings |
 
 The engine owns its durable records and method contract; the connector SDK owns pack and connector certification; graph-os owns serving composition, registry projection, fleet policy, session loading, and reload. A contributor may replace a missing external service with the fixtures and local fake adapters described in [test-spec.md](test-spec.md).
 
