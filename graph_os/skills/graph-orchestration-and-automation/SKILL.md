@@ -60,11 +60,11 @@ auto-hydrate before delegating rather than failing:
    `execute_workflow` (compile an ad-hoc natural-language multi-step task into a reusable
    workflow first, then run it).
 
-An **in-band alternative** exists when the caller is itself an MCP client connected
-through the mcp-multiplexer in `dynamic` mode: `find_tools`/`load_tools` mounts the
-discovered tools directly in the client instead of running them remotely. Use
-`graph_orchestrate` for autonomous/headless delegation; use the multiplexer meta-tools
-when an interactive client should gain the tools itself. Both share the same KG
+An **in-band alternative** exists when the caller is itself an MCP client of
+graph-os: `find(action="tools", intent=...)` discovers a fleet tool and
+`act(action="fleet.call", params={...})` calls it directly. Use
+`graph_orchestrate` for autonomous/headless delegation; use `fleet.call` when an
+interactive client calls the tool itself. Both share the same KG
 `Server -[:PROVIDES]-> CallableResource` substrate.
 
 ## Workflow

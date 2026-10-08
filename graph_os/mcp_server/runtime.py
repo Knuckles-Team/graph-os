@@ -2227,34 +2227,18 @@ def _build_server(bootstrap: bool = True):
         version=__version__,
         instructions=(
             "Knowledge Graph MCP Server for agent-utilities. "
-            "Provides access to the shared unified Knowledge Graph that powers "
-            "the 5-pillar agent architecture (ORCH, KG, AHE, ECO, OS). "
-            "Use kg_query for Cypher queries, kg_search for semantic search, "
-            "kg_analyze for LLM-powered cross-reference analysis, "
-            "and kg_ingest_* for adding data.\n\n"
-            "graph-os is ALSO the MCP fleet gateway: its own KG/engine tools are "
-            "always on, and it can load ANY other MCP server (declared in "
-            "epistemic-graph fleet catalog) ON DEMAND. Hundreds more tools across dozens of "
-            "servers exist but are NOT loaded yet — so when you need a capability "
-            "you don't see, do NOT assume it's unavailable; use the fleet meta-tools:\n"
-            "  • find_tools(query) — semantic search for the right tool by intent\n"
-            "  • list_catalog() — browse every mountable server and its tools\n"
-            "  • load_tools(tools=[...] or servers=[...]) — mount them; they become "
-            "directly callable immediately (the tool list updates live)\n"
-            "  • unload_tools(...) — retract tools to reclaim context\n"
-            "  • multiplexer_status — health of mounted children\n"
-            "Always discover (find_tools/list_catalog) before concluding a tool "
-            "doesn't exist.\n\n"
-            "EXCEPTION — the always-load set (MCP_ALWAYS_LOAD / "
-            "MCP_ALWAYS_LOAD_TOOLS): a short operator-chosen list of core servers "
-            "and individual tools is mounted EAGERLY on your first request, so it "
-            "is already in your tool list and needs no find_tools/load_tools hop. "
-            "Its absence is therefore meaningful — if an always-load tool is NOT "
-            "listed, that server is genuinely degraded (eager mounting fails soft), "
-            "not merely undiscovered; multiplexer_status says which and why. "
-            "Everything OUTSIDE that set still follows the discover-first rule "
-            "above. Inspect or change the set with "
-            "graph_config(action='get'/'describe'/'set', key='MCP_ALWAYS_LOAD')."
+            "One tool contract: the intent tools ask (read), find (discover), "
+            "write, act (run), manage (configure, approve, load fleet servers) "
+            "and why (explain). Each takes action='<tool>.<op>' + params, or "
+            "a natural-language intent with action empty. "
+            "find(action='describe') lists operations and "
+            "find(action='describe', params={'action': '<op>'}) returns one "
+            "operation's arguments. write/act/manage preview first: resubmit "
+            "the returned plan_ref with execute=true. The MCP fleet is reached "
+            "the same way: find(action='tools', intent=...) searches it and "
+            "act(action='fleet.call', params={'tool': ..., 'arguments': {...}}) "
+            "calls a fleet tool. Discover before concluding a capability is "
+            "unavailable."
         ),
         command_args=None if bootstrap else [],
         transport_choices=("stdio", "streamable-http"),
@@ -2323,86 +2307,34 @@ def _build_server(bootstrap: bool = True):
         )
         return JSONResponse(result)
 
-    from graph_os.a2a.mcp import register_a2a_tools
-    from graph_os.browser_control.mcp import register_browser_control_tools
-
     _register_graph_tool_surface(mcp)
-    register_browser_control_tools(mcp)
-    register_a2a_tools(mcp)
 
     return args, mcp, middlewares
 
 
-def _graph_tool_registrars() -> list[Any]:
-    """agent-utilities' action-routed ``graph_*`` domain registrars."""
-
-    from agent_utilities.mcp import tools as au_tools
-
-    return [
-        au_tools.register_query_tools,
-        au_tools.register_write_ingest_tools,
-        au_tools.register_analysis_tools,
-        au_tools.register_agent_execution_tools,
-        au_tools.register_analyze_suite_tools,
-        au_tools.register_state_tools,
-        au_tools.register_ontology_tools,
-        au_tools.register_reach_tools,
-        au_tools.register_bus_tools,
-        au_tools.register_candidate_claim_tools,
-        au_tools.register_claim_tools,
-        au_tools.register_secret_tools,
-        au_tools.register_config_tools,
-        au_tools.register_data_prep_tools,
-        au_tools.register_engine_tools,
-        lambda server: au_tools.register_engine_surface_tools(
-            server, include_unserved_mining=False
-        ),
-        au_tools.register_domain_ops_tools,
-        au_tools.register_evolution_tools,
-        au_tools.register_governance_tools,
-        au_tools.register_graph_engineering_tools,
-        au_tools.register_audit_tools,
-        au_tools.register_epistemic_tools,
-        au_tools.register_incident_tools,
-        au_tools.register_job_tools,
-        au_tools.register_media_sidecar_tools,
-        au_tools.register_compliance_tools,
-        au_tools.register_workflow_tools,
-        au_tools.register_argument_tools,
-        au_tools.register_durable_tools,
-    ]
-
-
 def _register_graph_tool_surface(mcp: Any) -> None:
-    """Mount the graph-os tool surface agent-utilities owns.
+    """Mount graph-os's one MCP tool contract.
 
-    The same composition agent-utilities' own served KG MCP used: the
-    condensed ``graph_*`` action tools and the verbose 1:1 surface, selected by
-    ``MCP_TOOL_MODE`` inside ``register_tool_surface``; the MCP Apps entry tool;
-    and, in ``intent`` or ``hybrid`` mode, the ask/find/write/act/manage/why
-    verbs. Every
-    tool dispatches through agent-utilities' ``_execute_tool`` core, and this
+    agent-utilities owns the contract (``register_graphos_surface``): the
+    intent tools are served on ``mcp`` and route ``action`` + ``params`` to
+    the action-routed ``graph_*``/``engine_*`` operations registered on a
+    private backing server. graph-os's own operations — browser control and
+    A2A here, the RLM control plane at serve time — register on that same
+    backing server and are reached through ``act``. Every operation
+    dispatches through agent-utilities' ``_execute_tool`` core, and this
     process's ``REGISTERED_TOOLS`` mirrors the same functions so the REST
-    gateway and the multiplexer reach exactly what MCP serves.
+    gateway reaches exactly what the intent tools route to.
     """
 
     from agent_utilities.mcp import kg_server
-    from agent_utilities.mcp.tools import register_mcp_apps_tools
-    from agent_utilities.mcp.verbose_tools import register_tool_surface, tool_mode
+    from agent_utilities.mcp.graphos_surface import register_graphos_surface
 
-    register_tool_surface(
-        mcp,
-        service="graph-os",
-        registrars=_graph_tool_registrars(),
-        verbose_register=kg_server.register_graphos_verbose_tools,
-    )
-    register_mcp_apps_tools(mcp)
-    # ``hybrid`` serves the intent verbs beside the ungated condensed tools;
-    # ``intent`` serves them in place of the (gated) condensed tools.
-    if tool_mode() in ("intent", "hybrid"):
-        from agent_utilities.mcp.tools.intent_tools import register_intent_tools
+    from graph_os.a2a.mcp import register_a2a_tools
+    from graph_os.browser_control.mcp import register_browser_control_tools
 
-        register_intent_tools(mcp)
+    backing = register_graphos_surface(mcp)
+    register_browser_control_tools(backing)
+    register_a2a_tools(mcp, tools=backing)
     REGISTERED_TOOLS.update(kg_server.REGISTERED_TOOLS)
 
 
