@@ -18,7 +18,9 @@
     "GRAPHOS-HOST-R013",
     "GRAPHOS-HOST-R014",
     "GRAPHOS-HOST-R015",
-    "GRAPHOS-HOST-R016"
+    "GRAPHOS-HOST-R016",
+    "GRAPHOS-HOST-R017",
+    "GRAPHOS-HOST-R018"
   ],
   "delivery_state": "SPECIFIED",
   "acceptance_state": "NOT_AUDITED",
@@ -163,6 +165,18 @@
           "description": "Implementing commit is reachable from the default branch."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R017",
+      "title": "Browser inventory lists native GraphOS tools",
+      "delivery_state": "BUILDING",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R018",
+      "title": "Browser catalog reads run under the process authority",
+      "delivery_state": "BUILDING",
+      "evidence": []
     }
   ]
 }
