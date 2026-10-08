@@ -12,5 +12,6 @@ Status vocabulary is defined in [spec.md](spec.md). Check a task only after its 
 - [ ] Run clean-checkout contract/full/quality gates and a wheel install smoke; link exact commit, CI run and wheel hash.
 - [ ] Run served authorization and receipt parity against an isolated release environment; attach redacted evidence and mark Accepted only after this passes.
 - [ ] GRAPHOS-HOST-R019: Mount `/api/dashboard/*` and `/ws/dashboard` from `graph_os.gateway.dashboard_api`. Evidence: `tests/gateway/test_dashboard_api.py`. **State: Building.** Remaining: served check of `/api/dashboard/full` (200) and `/ws/dashboard` (snapshot frame) after rollout.
+- [ ] GRAPHOS-HOST-R020: Install the decide consumers at serving start. Evidence: `tests/mcp_server/test_decide_wiring.py`. **State: Building.** Remaining: bind GraphOS commit and publish providers to the assembler. Bind capability-search, guardrail and workflow lookups to the task planner. After rollout, confirm a live plan reports no `assembler_not_installed` gap.
 
 **Current evidence gap:** No exact commit and served receipt set is recorded here for the strict public-port cutover or the complete parity matrix. Preserve `Implemented in part / acceptance pending` until those are attached.
