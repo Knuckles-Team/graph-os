@@ -15,6 +15,7 @@ import sys
 import time
 from collections.abc import Sequence
 from types import ModuleType, SimpleNamespace
+from typing import Any
 
 import pytest
 from fastapi import FastAPI
@@ -133,6 +134,47 @@ def test_v1_subapp_mount_has_one_prefix(monkeypatch: pytest.MonkeyPatch) -> None
         assert response.status_code == 200
         assert response.json()["ops"] == [{"id": op.id}]
         assert client.get("/api/v1/api/v1/registry").status_code == 404
+
+
+async def _empty_visibility(op: Any, caller: Any) -> bool:
+    return True
+
+
+class _EmptyRegistry:
+    digest = "sw-digest"
+
+    def __iter__(self):
+        return iter(())
+
+    def find(self, caller, *, surface, policy):
+        return ()
+
+
+class _OpenAuth:
+    async def authenticate(self, request: Request) -> Any:
+        return SimpleNamespace(authenticated=True)
+
+    def is_console_request(self, request: Request, caller: Any) -> bool:
+        return False
+
+
+def test_swagger_ui_renders_the_mounted_caller_filtered_openapi_document() -> None:
+    child = create_api_application(
+        services=SimpleNamespace(registry=_EmptyRegistry()),
+        visibility=_empty_visibility,
+        authenticator=_OpenAuth(),
+        invoke=_unused_invoke,
+    )
+    parent = FastAPI()
+    parent.mount("/api/v1", child)
+    with TestClient(parent) as client:
+        page = client.get("/api/v1/docs")
+        assert page.status_code == 200
+        assert "swagger-ui" in page.text
+        assert "/api/v1/openapi.json" in page.text
+        spec = client.get("/api/v1/openapi.json")
+        assert spec.status_code == 200
+        assert spec.json()["x-registry-digest"] == _EmptyRegistry.digest
 
 
 def test_resource_path_rejects_other_api_versions() -> None:
