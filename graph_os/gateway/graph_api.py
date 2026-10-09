@@ -341,6 +341,12 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     register_research_routes(app, prefix=prefix)
 
+    # Schema-context query surface (GRAPHOS-DATA-MARKET-R005, GDM-03) — same
+    # owning service a future MCP graph_schema action will share (SC-05).
+    from graph_os.gateway.schema_context_api import register_schema_context_routes
+
+    register_schema_context_routes(app, prefix=prefix)
+
     # Clean-break browser projection over the same typed authorities: current
     # AgentComponent entries plus GraphOS workflow/agent catalogs. WebUI owns
     # no fallback routes or filesystem discovery.
