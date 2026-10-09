@@ -88,16 +88,23 @@ def forwarded_scope(token="fixture-local-token"):
     return scope
 
 
+def bound_fixture_parts():
+    """A fresh owner/scope/session triple over a new ``OwnersFixture`` backend
+    — the common setup every ``_bind_request`` scenario below starts from."""
+    backend = OwnersFixture()
+    owner, scope, session = (
+        backend.producer(),
+        forwarded_scope(),
+        CallerFixture(backend.resolution),
+    )
+    return backend, owner, scope, session
+
+
 def test_actual_webui_export_and_same_caller_instance_then_cleanup():
     from agent_webui.oidc_session import BrowserSessionEvidence, verify_browser_session
 
     async def scenario():
-        backend = OwnersFixture()
-        owner, scope, session = (
-            backend.producer(),
-            forwarded_scope(),
-            CallerFixture(backend.resolution),
-        )
+        backend, owner, scope, session = bound_fixture_parts()
         async with owner._bind_request(
             scope, session, forwarded_token="fixture-local-token"
         ):
@@ -127,12 +134,7 @@ def test_actual_webui_export_and_same_caller_instance_then_cleanup():
 )
 def test_transition_or_session_substitution_refuses_and_cleans(change):
     async def scenario():
-        backend = OwnersFixture()
-        owner, scope, session = (
-            backend.producer(),
-            forwarded_scope(),
-            CallerFixture(backend.resolution),
-        )
+        backend, owner, scope, session = bound_fixture_parts()
         async with owner._bind_request(
             scope, session, forwarded_token="fixture-local-token"
         ):
@@ -159,12 +161,7 @@ def test_transition_or_session_substitution_refuses_and_cleans(change):
 
 def test_scope_mutated_across_await_cannot_export_evidence():
     async def scenario():
-        backend = OwnersFixture()
-        owner, scope, session = (
-            backend.producer(),
-            forwarded_scope(),
-            CallerFixture(backend.resolution),
-        )
+        backend, owner, scope, session = bound_fixture_parts()
         async with owner._bind_request(
             scope, session, forwarded_token="fixture-local-token"
         ):
@@ -183,12 +180,7 @@ def test_scope_mutated_across_await_cannot_export_evidence():
 
 def test_cancellation_during_live_check_propagates_and_releases_binding():
     async def scenario():
-        backend = OwnersFixture()
-        owner, scope, session = (
-            backend.producer(),
-            forwarded_scope(),
-            CallerFixture(backend.resolution),
-        )
+        backend, owner, scope, session = bound_fixture_parts()
         paused = asyncio.Event()
 
         async def pause():
@@ -278,12 +270,7 @@ def test_missing_real_eg_session_contract_has_typed_unavailable_refusal():
 @pytest.mark.parametrize("phase", ["initial_resolve", "recheck_before_await"])
 def test_mutated_scope_never_leaves_a_private_binding(phase):
     async def scenario():
-        backend = OwnersFixture()
-        owner, scope, session = (
-            backend.producer(),
-            forwarded_scope(),
-            CallerFixture(backend.resolution),
-        )
+        backend, owner, scope, session = bound_fixture_parts()
         if phase == "initial_resolve":
 
             async def mutate():
@@ -310,12 +297,7 @@ def test_mutated_scope_never_leaves_a_private_binding(phase):
 
 def test_transport_failure_propagates_and_cleans_live_request():
     async def scenario():
-        backend = OwnersFixture()
-        owner, scope, session = (
-            backend.producer(),
-            forwarded_scope(),
-            CallerFixture(backend.resolution),
-        )
+        backend, owner, scope, session = bound_fixture_parts()
         async with owner._bind_request(
             scope, session, forwarded_token="fixture-local-token"
         ):
