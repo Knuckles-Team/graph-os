@@ -12,21 +12,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict, Field
-
-from graph_os.api.ops._common import build_tenant_read_op, handle_tenant_read, read_op_models
+from graph_os.api.ops._common import (
+    build_tenant_read_op,
+    handle_tenant_read,
+    read_op_models,
+    tenant_state_model,
+)
 from graph_os.api.registry import OpSpec
 
 PolicyReadParams, PolicyReadResult = read_op_models("PolicyRead")
-
-
-class PolicyState(BaseModel):
-    """The active, tenant-scoped policy state; the reader owns its exact shape."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    tenant: str
-    rules: dict[str, str] = Field(default_factory=dict)
+#: The active, tenant-scoped policy state; the reader owns its exact shape.
+PolicyState = tenant_state_model(
+    "PolicyState", field_name="rules", field_type=dict[str, str], default_factory=dict
+)
 
 
 @runtime_checkable

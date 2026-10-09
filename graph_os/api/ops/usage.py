@@ -12,21 +12,22 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict, Field
-
-from graph_os.api.ops._common import build_tenant_read_op, handle_tenant_read, read_op_models
+from graph_os.api.ops._common import (
+    build_tenant_read_op,
+    handle_tenant_read,
+    read_op_models,
+    tenant_state_model,
+)
 from graph_os.api.registry import OpSpec
 
 UsageReadParams, UsageReadResult = read_op_models("UsageRead")
-
-
-class UsageSnapshot(BaseModel):
-    """A tenant-scoped usage snapshot; the reader owns its exact shape."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    tenant: str
-    totals: dict[str, float] = Field(default_factory=dict)
+#: A tenant-scoped usage snapshot; the reader owns its exact shape.
+UsageSnapshot = tenant_state_model(
+    "UsageSnapshot",
+    field_name="totals",
+    field_type=dict[str, float],
+    default_factory=dict,
+)
 
 
 @runtime_checkable

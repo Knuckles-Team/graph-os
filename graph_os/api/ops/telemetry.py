@@ -12,21 +12,22 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict, Field
-
-from graph_os.api.ops._common import build_tenant_read_op, handle_tenant_read, read_op_models
+from graph_os.api.ops._common import (
+    build_tenant_read_op,
+    handle_tenant_read,
+    read_op_models,
+    tenant_state_model,
+)
 from graph_os.api.registry import OpSpec
 
 TelemetryReadParams, TelemetryReadResult = read_op_models("TelemetryRead")
-
-
-class TelemetrySnapshot(BaseModel):
-    """A tenant-scoped telemetry snapshot; the reader owns its exact shape."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    tenant: str
-    metrics: dict[str, float] = Field(default_factory=dict)
+#: A tenant-scoped telemetry snapshot; the reader owns its exact shape.
+TelemetrySnapshot = tenant_state_model(
+    "TelemetrySnapshot",
+    field_name="metrics",
+    field_type=dict[str, float],
+    default_factory=dict,
+)
 
 
 @runtime_checkable

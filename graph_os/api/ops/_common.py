@@ -14,16 +14,57 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, create_model
+from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from graph_os.api.invoke.pipeline import OperationRefused
-from graph_os.api.registry import AuditClass, Composite, Effect, Idempotency, OpSpec, Verb
+from graph_os.api.registry import (
+    AuditClass,
+    Composite,
+    Effect,
+    Idempotency,
+    OpSpec,
+    Verb,
+)
 
 
 class Params(BaseModel):
     """Base params model every ops module's request/result types extend."""
 
     model_config = ConfigDict(extra="forbid")
+
+
+class _FrozenState(BaseModel):
+    """Base model for a tenant-scoped, read-only state/snapshot payload."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+def tenant_state_model(
+    name: str,
+    *,
+    field_name: str,
+    field_type: Any,
+    default: Any = None,
+    default_factory: Any = None,
+) -> type[BaseModel]:
+    """A frozen ``{tenant: str, <field_name>: <field_type>}`` state model.
+
+    Every single-port reader's state/snapshot/posture/topology payload is
+    ``tenant`` plus one caller-named collection field, so the pair is minted
+    here instead of five near-identical model definitions each repeating the
+    same ``BaseModel``/``ConfigDict``/``Field`` imports.
+    """
+    field_spec = (
+        Field(default_factory=default_factory)
+        if default_factory is not None
+        else default
+    )
+    return create_model(
+        name,
+        __base__=_FrozenState,
+        tenant=(str, ...),
+        **{field_name: (field_type, field_spec)},
+    )
 
 
 def read_op_models(name: str) -> tuple[type[Params], type[Params]]:
@@ -47,7 +88,7 @@ def bound_service(context: Any, name: str, *, reason: str) -> Any:
     return service
 
 
-def build_read_op(
+def _build_op(
     *,
     op_id: str,
     summary: str,
@@ -56,39 +97,12 @@ def build_read_op(
     result: type[BaseModel],
     handler: str,
     scope: str,
-    verb: Verb = Verb.ASK,
+    verb: Verb,
+    effect: Effect,
+    idempotency: Idempotency = Idempotency.NONE,
+    audit: AuditClass = AuditClass.NONE,
 ) -> OpSpec:
-    """The no-idempotency READ OpSpec shared by every tenant-scoped reader."""
-    return OpSpec(
-        id=op_id,
-        verb=verb,
-        summary=summary,
-        examples=examples,
-        params=params,
-        result=result,
-        binding=Composite(handler=handler),
-        scopes=frozenset({scope}),
-        effect=Effect.READ,
-    )
-
-
-# Retained for the single-reader modules that also use ``handle_tenant_read``.
-build_tenant_read_op = build_read_op
-
-
-def build_write_op(
-    *,
-    op_id: str,
-    summary: str,
-    examples: tuple[str, ...],
-    params: type[BaseModel],
-    result: type[BaseModel],
-    handler: str,
-    scope: str,
-    verb: Verb = Verb.ACT,
-    effect: Effect = Effect.WRITE,
-) -> OpSpec:
-    """The idempotency-required ACT/WRITE OpSpec shared by the store-backed writers."""
+    """The one OpSpec constructor every builder below specializes."""
     return OpSpec(
         id=op_id,
         verb=verb,
@@ -99,8 +113,30 @@ def build_write_op(
         binding=Composite(handler=handler),
         scopes=frozenset({scope}),
         effect=effect,
+        idempotency=idempotency,
+        audit=audit,
+    )
+
+
+def build_read_op(*, verb: Verb = Verb.ASK, **kwargs: Any) -> OpSpec:
+    """The no-idempotency READ OpSpec shared by every tenant-scoped reader."""
+    return _build_op(verb=verb, effect=Effect.READ, **kwargs)
+
+
+# Retained for the single-reader modules that also use ``handle_tenant_read``.
+build_tenant_read_op = build_read_op
+
+
+def build_write_op(
+    *, verb: Verb = Verb.ACT, effect: Effect = Effect.WRITE, **kwargs: Any
+) -> OpSpec:
+    """The idempotency-required WRITE OpSpec shared by the store-backed writers."""
+    return _build_op(
+        verb=verb,
+        effect=effect,
         idempotency=Idempotency.KEY_REQUIRED,
         audit=AuditClass.EVENT,
+        **kwargs,
     )
 
 
@@ -121,4 +157,5 @@ __all__ = [
     "build_write_op",
     "handle_tenant_read",
     "read_op_models",
+    "tenant_state_model",
 ]

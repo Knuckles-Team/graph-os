@@ -12,21 +12,21 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict
-
-from graph_os.api.ops._common import build_tenant_read_op, handle_tenant_read, read_op_models
+from graph_os.api.ops._common import (
+    build_tenant_read_op,
+    handle_tenant_read,
+    read_op_models,
+    tenant_state_model,
+)
 from graph_os.api.registry import OpSpec
 
-SecurityPostureReadParams, SecurityPostureReadResult = read_op_models("SecurityPostureRead")
-
-
-class SecurityPosture(BaseModel):
-    """A tenant-scoped security posture; the reader owns its exact shape."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    tenant: str
-    findings: tuple[str, ...] = ()
+SecurityPostureReadParams, SecurityPostureReadResult = read_op_models(
+    "SecurityPostureRead"
+)
+#: A tenant-scoped security posture; the reader owns its exact shape.
+SecurityPosture = tenant_state_model(
+    "SecurityPosture", field_name="findings", field_type=tuple[str, ...], default=()
+)
 
 
 @runtime_checkable

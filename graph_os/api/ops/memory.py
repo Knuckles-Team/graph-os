@@ -15,7 +15,12 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.ops._common import Params, bound_service, build_read_op, build_write_op
+from graph_os.api.ops._common import (
+    Params,
+    bound_service,
+    build_read_op,
+    build_write_op,
+)
 from graph_os.api.registry import OpSpec
 
 
@@ -54,9 +59,7 @@ class MemoryStore(Protocol):
 
 
 def _bound_store(context: Any) -> MemoryStore:
-    return bound_service(
-        context, "memory_store", reason="memory store is not composed"
-    )
+    return bound_service(context, "memory_store", reason="memory store is not composed")
 
 
 async def handle_memory_read(

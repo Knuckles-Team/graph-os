@@ -13,21 +13,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict
-
-from graph_os.api.ops._common import build_tenant_read_op, handle_tenant_read, read_op_models
+from graph_os.api.ops._common import (
+    build_tenant_read_op,
+    handle_tenant_read,
+    read_op_models,
+    tenant_state_model,
+)
 from graph_os.api.registry import OpSpec
 
 SwarmTopologyReadParams, SwarmTopologyReadResult = read_op_models("SwarmTopologyRead")
-
-
-class SwarmTopology(BaseModel):
-    """The current, tenant-scoped swarm topology; the reader owns its shape."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    tenant: str
-    nodes: tuple[str, ...] = ()
+#: The current, tenant-scoped swarm topology; the reader owns its shape.
+SwarmTopology = tenant_state_model(
+    "SwarmTopology", field_name="nodes", field_type=tuple[str, ...], default=()
+)
 
 
 @runtime_checkable

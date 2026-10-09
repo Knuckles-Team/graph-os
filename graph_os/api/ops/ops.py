@@ -17,7 +17,12 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.ops._common import Params, bound_service, build_read_op, build_write_op
+from graph_os.api.ops._common import (
+    Params,
+    bound_service,
+    build_read_op,
+    build_write_op,
+)
 from graph_os.api.registry import Effect, OpSpec
 
 
