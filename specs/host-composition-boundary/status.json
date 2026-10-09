@@ -230,7 +230,14 @@
       "title": "Serving start binds the assembler's commit/publish providers and installs the topology asker",
       "delivery_state": "BUILDING",
       "evidence": [],
-      "remaining": "Merge, roll out graph-os, then confirm a live assembly commits and publishes against the served engine. Planner capability-search/guardrail/workflow lookups are not yet bound."
+      "remaining": "Merge, roll out graph-os, then confirm a live assembly commits and publishes against the served engine."
+    },
+    {
+      "id": "GRAPHOS-HOST-R022",
+      "title": "Serving start binds the task planner's capability-search, guardrail and workflow lookups",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Merge, roll out graph-os, then confirm a live plan's reuse hits, guardrail rows and workflow match are non-degenerate against the served engine."
     }
   ]
 }

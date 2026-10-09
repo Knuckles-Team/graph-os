@@ -16,6 +16,7 @@ On a supported Python version, clone this repository, run `uv sync --extra test`
 | GRAPHOS-HOST-R019: mount the dashboard routes; open `/ws/dashboard` and send a `subscribe` message | REST reads answer 200; the stream sends a snapshot, then an update scoped to the subscribed widgets. |
 | GRAPHOS-HOST-R020: call `install_decide_consumers` with a fake client, then with a failing client, a failing assembler and a client without SPARQL | All four consumers install. Each fault skips only its own consumer and raises nothing. |
 | GRAPHOS-HOST-R021: assemble a request through a fake engine client with the bound `commit_context`/`publish_context` providers | The fake client's `commit_decision` and `publish_graph` each record one call for a solved assembly; an abstained assembly records neither. |
+| GRAPHOS-HOST-R022: install the decide consumers, then plan a task with a fake assembler and a fake capability source | The planner's `capability_search`/`guardrail_source`/`workflows` are bound and callable; the planned agent's skills/tools are non-empty and its reuse metadata reflects the fake capability source's hit. |
 
 ## Negative cases
 
