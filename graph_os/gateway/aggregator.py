@@ -12,9 +12,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, TypeVar
 
 from agent_utilities.security.error_surface import public_error_payload
 
@@ -27,6 +29,70 @@ from graph_os.gateway.models import (
 from graph_os.gateway.registry import Registry, get_registry
 
 logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
+
+# GRAPHOS-FLEET-R032: the service authority the aggregator binds around
+# every widget fetch, lazily minted and cached process-wide (same shape as
+# agent_webui.graph_admission's `_SERVICE_SESSION` cache). Guarded by
+# `_SERVICE_SESSION_LOCK`, a plain non-reentrant lock held only for the
+# short check-or-mint decision, never across the fetch itself.
+_SERVICE_SESSION: Any | None = None
+_SERVICE_SESSION_LOCK = threading.Lock()
+_SERVICE_AUTHORITY_RENEWAL_MARGIN_SECONDS = 30
+
+
+def _service_authority() -> Any:
+    """Return the gateway's own verified process actor, minting once.
+
+    Reuses the same process-identity authority
+    ``graph_os/gateway/daemon.py::mint_process_identity`` already mints for
+    the standalone host daemon (``acquire_process_identity_token`` ->
+    ``mint_actor_from_token_sync`` -> ``mint_graph_session``) — this grants
+    the aggregator nothing new, it is the credential this deployment already
+    holds. Never borrows a caller's identity: a widget fetch has no caller
+    session to borrow, and running it unauthenticated is exactly the defect
+    this closes.
+    """
+    global _SERVICE_SESSION
+    from agent_utilities.api.session import SessionExpiredError
+
+    with _SERVICE_SESSION_LOCK:
+        if _SERVICE_SESSION is not None:
+            try:
+                _SERVICE_SESSION.ensure_authority_current(
+                    minimum_ttl_seconds=_SERVICE_AUTHORITY_RENEWAL_MARGIN_SECONDS
+                )
+                return _SERVICE_SESSION
+            except SessionExpiredError:
+                logger.info(
+                    "cached gateway service authority is within %ss of "
+                    "expiry (or already expired); minting a replacement "
+                    "before reuse",
+                    _SERVICE_AUTHORITY_RENEWAL_MARGIN_SECONDS,
+                )
+        from graph_os.gateway.daemon import mint_process_identity
+
+        _SERVICE_SESSION = mint_process_identity()
+        return _SERVICE_SESSION
+
+
+def _run_as_service_actor(fn: Callable[[], _T]) -> _T:
+    """Run synchronous ``fn`` with the gateway's service actor bound.
+
+    Called *inside* the worker thread (see ``_fetch_one``/``health_check``
+    below): ``run_in_executor`` does not copy the submitting coroutine's
+    contextvars into the worker thread, so ``use_actor``/``use_session`` must
+    be entered here, not in the event-loop coroutine, or the bound context
+    never crosses the executor boundary and the widget call still finds no
+    actor (the exact defect this fixes).
+    """
+    from agent_utilities.api.session import use_session
+    from agent_utilities.security.brain_context import use_actor
+
+    session = _service_authority()
+    with use_actor(session.actor), use_session(session):
+        return fn()
 
 
 class Aggregator:
@@ -106,7 +172,11 @@ class Aggregator:
             )
 
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(self._executor, widget._safe_fetch, config)
+        return await loop.run_in_executor(
+            self._executor,
+            _run_as_service_actor,
+            lambda: widget._safe_fetch(config),
+        )
 
     async def stream(
         self, interval: float = 30.0
@@ -137,7 +207,11 @@ class Aggregator:
             widget = self.registry.get_widget(svc.widget_type)
             if widget:
                 tasks.append(
-                    loop.run_in_executor(self._executor, widget.check_health, svc)
+                    loop.run_in_executor(
+                        self._executor,
+                        _run_as_service_actor,
+                        lambda widget=widget, svc=svc: widget.check_health(svc),
+                    )
                 )
                 scheduled.append(svc)
             else:
