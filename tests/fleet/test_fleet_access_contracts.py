@@ -121,8 +121,11 @@ def test_missing_sdk_module_skips(monkeypatch) -> None:
 def test_onboarding_registers_after_import(fake_sdk, monkeypatch) -> None:
     import asyncio
 
+    from agent_utilities.api.session import use_session
+
     from graph_os.deployment import semantic_provisioning
     from graph_os.fleet.onboarding import FleetEndpoint, FleetOnboarding
+    from tests._eg_fakes import service_session
 
     async def fake_import(*args, **kwargs):
         return None
@@ -133,21 +136,39 @@ def test_onboarding_registers_after_import(fake_sdk, monkeypatch) -> None:
     monkeypatch.setattr(semantic_provisioning, "import_attested_pack", fake_import)
     catalog = VirtualCatalog()
 
+    class _StatusClient:
+        """Answers ConnectorPack.status with no head: always "changed"."""
+
+        async def _send(self, _method, _params, _graph, *, idempotency_key=None):
+            return {
+                "connector": "tickets-mcp",
+                "head": None,
+                "importer": None,
+                "last_receipt": None,
+                "members": {"published": 0, "retired": 0, "withdrawn": 0},
+                "projection": {"projection": "none"},
+                "schema_version": 1,
+                "tenant_id": "t",
+                "warnings": [],
+            }
+
     class _Engine:
         class graph_compute:
             @staticmethod
             def for_graph(name):
-                return types.SimpleNamespace(async_client=object())
+                return types.SimpleNamespace(async_client=_StatusClient())
 
+    session = service_session("t", "g")
     onboarding = FleetOnboarding(
         engine=_Engine(),
-        session=types.SimpleNamespace(graph="g"),
+        session=session,
         capture=capture,
         virtual_catalog=catalog,
     )
-    asyncio.run(
-        onboarding.onboard(FleetEndpoint("tickets-mcp", "http://x/mcp"), auth=None)
-    )
+    with use_session(session):
+        asyncio.run(
+            onboarding.onboard(FleetEndpoint("tickets-mcp", "http://x/mcp"), auth=None)
+        )
     assert len(catalog.mappings) == 2
     assert not any(m.approved for m in catalog.mappings)
 

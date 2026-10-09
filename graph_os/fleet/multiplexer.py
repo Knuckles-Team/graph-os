@@ -2256,6 +2256,11 @@ class MCPMultiplexer:
     ):
         self._fleet_catalog_reader = catalog_reader
         self._fleet_catalog: _catalog_reader.FleetCatalog | None = None
+        # Wall-clock epoch of the installed snapshot above (GRAPHOS-FLEET-R031):
+        # a tool descriptor read FROM the snapshot (never probed live) stamps
+        # its honest age from this, rather than claiming ``now`` like a fresh
+        # probe would.
+        self._fleet_catalog_loaded_at: float | None = None
         # The last background onboarding pass (graph_os.fleet.onboarding).
         self._fleet_onboarding: dict[str, _typing.Any] | None = None
         self.exit_stack = contextlib.AsyncExitStack()
@@ -2479,6 +2484,7 @@ class MCPMultiplexer:
                 "the engine fleet catalog can only be refreshed before child startup"
             )
         self._fleet_catalog = catalog
+        self._fleet_catalog_loaded_at = time.time()
         raw_catalog = self._catalog_from_engine(catalog)
         skip = getattr(self, "_skip_servers", None) or {"mcp-multiplexer"}
         self._catalog = {}
@@ -5734,6 +5740,45 @@ class MCPMultiplexer:
             return self._server_level_fallback()
         return results
 
+    def _catalog_tool_probe_info(self) -> dict[str, dict[str, _typing.Any]]:
+        """Per-server tool descriptors already admitted into the EG catalog
+        snapshot (GRAPHOS-FLEET-R031), read with NO live probe.
+
+        Fleet onboarding (``graph_os/fleet/onboarding.py``) imports each
+        admitted server's content pack — its tools included — into the EG
+        catalog before any child is ever mounted
+        (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog). This reads that
+        already-imported ``kind == "tool"`` provenance straight off
+        ``self._fleet_catalog`` (installed by :meth:`refresh_engine_catalog`)
+        so a server whose live probe cannot answer in time still has
+        descriptors ``discover_tools`` can rank — the live probe stays the
+        freshness refresh, never the only source. Every row is stamped
+        ``stale: True`` and ages from the snapshot's own load time, never
+        faked as a live answer.
+        """
+        catalog = self._fleet_catalog
+        if catalog is None:
+            return {}
+        probed_at = self._fleet_catalog_loaded_at or 0.0
+        out: dict[str, dict[str, _typing.Any]] = {}
+        for server in catalog.servers:
+            tools = [
+                {"name": item.entry.upstream_name, "description": item.entry.summary}
+                for item in server.provides
+                if item.entry.kind == "tool" and item.entry.upstream_name
+            ]
+            if not tools:
+                continue
+            out[server.component.server_name] = {
+                "tools": tools,
+                "skills": [],
+                "error": None,
+                "stale": True,
+                "probed_at": probed_at,
+                "source": "catalog_snapshot",
+            }
+        return out
+
     def _local_skill_probe_info(self) -> dict[str, _typing.Any]:
         """Build (once) and cache the local-skill pseudo-server probe entry.
 
@@ -5854,10 +5899,19 @@ class MCPMultiplexer:
         unavailable: dict[str, str] = {}
         now = time.time()
         ttl = self._probe_ttl()
+        # GRAPHOS-FLEET-R031: a server whose live probe errored (a timeout is
+        # the common case — see ``unavailable`` below) is not thereby invisible
+        # to ranking. Its already-admitted catalog snapshot (never a probe) is
+        # the fallback source, so ``find`` still surfaces its real tools,
+        # honestly marked stale, instead of only its skills or nothing at all.
+        catalog_fallback = self._catalog_tool_probe_info()
         for server, info in probe.items():
             if info.get("error"):
                 unavailable[server] = info["error"]
-                continue
+                fallback = catalog_fallback.get(server)
+                if fallback is None:
+                    continue
+                info = fallback
             ranked.extend(self._ranked_server_entries(server, info, rank, now, ttl))
         # The server-level fallback (CONCEPT:AU-ECO.multiplexer.tool-gateway-catalog)
         # answers "is any FLEET server mountable", so its trigger check uses
