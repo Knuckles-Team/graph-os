@@ -169,6 +169,17 @@ class GraphOSBrowserAuthority:
             raise PermissionError("forwarded credential pairing disagrees")
         return credential
 
+    @staticmethod
+    def _require_unchanged(
+        scope: Any, key: bytes, initial: tuple[Any, ...], reason: str
+    ) -> None:
+        if _snapshot(scope, key) != initial:
+            raise PermissionError(reason)
+
+    def _require_unbound(self, scope: Any, reason: str) -> None:
+        if id(scope) in self._requests:
+            raise PermissionError(reason)
+
     @asynccontextmanager
     async def _bind_request(
         self,
@@ -183,32 +194,34 @@ class GraphOSBrowserAuthority:
         method requires the exact already-forwarded JWT header and a qualified
         caller-session object; it is not an ASGI middleware or login ceremony.
         """
-        if id(scope) in self._requests:
-            raise PermissionError("request already has a private binding")
+        self._require_unbound(scope, "request already has a private binding")
         credential = self._require_forwarded_pair(scope, forwarded_token)
         key = secrets.token_bytes(32)
         initial = _snapshot(scope, key)
         state = await self._authority.resolve_session(credential)
-        if _snapshot(scope, key) != initial:
-            raise PermissionError("request changed during session resolution")
+        self._require_unchanged(
+            scope, key, initial, "request changed during session resolution"
+        )
         if not isinstance(state, SessionState):
             raise IdentityUnavailable("qualified EG session evidence unavailable")
         initial_session_ref = state.session_ref
         verified = await self._verify_token(forwarded_token)
-        if _snapshot(scope, key) != initial:
-            raise PermissionError("request changed during token verification")
+        self._require_unchanged(
+            scope, key, initial, "request changed during token verification"
+        )
         # Token verification may await a remote key source. Its completion is
         # not a session-revocation fence: resolve again AFTER that await.
         state = await self._authority.resolve_session(credential)
-        if _snapshot(scope, key) != initial:
-            raise PermissionError("request changed during final session resolution")
+        self._require_unchanged(
+            scope, key, initial, "request changed during final session resolution"
+        )
         self._facts(state, session, verified)
         if state.session_ref != initial_session_ref:
             raise PermissionError("browser session rotated during initial binding")
-        if _snapshot(scope, key) != initial:
-            raise PermissionError("request changed during caller verification")
-        if id(scope) in self._requests:
-            raise PermissionError("request acquired another private binding")
+        self._require_unchanged(
+            scope, key, initial, "request changed during caller verification"
+        )
+        self._require_unbound(scope, "request acquired another private binding")
         binding = _RequestBinding.capture(
             scope,
             session,
