@@ -8,7 +8,8 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from graph_os.api.registry import Invoke
 
@@ -142,6 +143,16 @@ def create_api_application(
                 "ETag": f'"{registry.digest}"',
                 "Cache-Control": "private, no-store",
             },
+        )
+
+    @app.get("/docs", include_in_schema=False)
+    async def swagger_ui_route(request: Request) -> HTMLResponse:
+        # Resolve the sibling ``openapi.json`` route relative to wherever this
+        # sub-app is mounted, so the rendered page never hardcodes a mount
+        # prefix (GRAPHOS-OPS-R038).
+        openapi_url = f"{request.url.path.rsplit('/', 1)[0]}/openapi.json"
+        return get_swagger_ui_html(
+            openapi_url=openapi_url, title="GraphOS API — Swagger UI"
         )
 
     for op in registry:
