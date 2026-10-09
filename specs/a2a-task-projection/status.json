@@ -56,8 +56,16 @@
     {
       "id": "GRAPHOS-A2A-R003",
       "title": "No duplicate skill or prompt harvesting in the multiplexer",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0c897f1a373602981705d102a6d5a53eb95c0853",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0c897f1a373602981705d102a6d5a53eb95c0853",
+          "description": "GRAPHOS-A2A-R003 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R004",

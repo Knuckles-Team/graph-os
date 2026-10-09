@@ -29,8 +29,16 @@
     {
       "id": "GRAPHOS-MESSAGING-R001.1",
       "title": "Typed state model, transition table, and refusal tests",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "63a66f60915ab91346ce96e09d74b44df15ec22c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/63a66f60915ab91346ce96e09d74b44df15ec22c",
+          "description": "GRAPHOS-MESSAGING-R001.1 merged to the default branch in this commit."
+        }
+      ],
       "depends_on": []
     },
     {
