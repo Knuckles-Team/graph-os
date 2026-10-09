@@ -113,6 +113,31 @@ spec:
             {{- with .Values.graphos.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+        {{- if and $sidecar .Values.daemon.enabled }}
+        - name: daemon
+          # GRAPHOS-DEPLOY-R016: the one consolidated KG host daemon. Reuses
+          # the serving image and source mounts; an explicit env override
+          # takes the host role the shared ConfigMap no longer grants the
+          # graphos container above (Kubernetes env precedence: a
+          # container's own `env` wins over `envFrom` for the same key).
+          image: {{ include "graph-os.image" .Values.graphos.image }}
+          imagePullPolicy: {{ .Values.graphos.image.pullPolicy }}
+          command: ["graph-os-daemon"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "graph-os.fullname" . }}-graphos
+            - secretRef:
+                name: {{ .Values.runtimeSecret.name }}
+                optional: {{ .Values.runtimeSecret.optional }}
+          env:
+            - {name: KG_DAEMON_ROLE, value: host}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.daemon.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "graph-os.sharedVolumeMounts" . | nindent 12 }}
+        {{- end }}
       volumes:
         - name: tmp
           emptyDir: {}
