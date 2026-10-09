@@ -9,3 +9,8 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] Wire all operations and loaded fleet tools through hosted `invoke`, its exact scopes/policy and audit reservation.
 - [ ] Execute all positive, negative, replay, cross-tenant, cancellation, policy-change and restart tests in [test-spec.md](test-spec.md).
 - [ ] Run clean-checkout language, scanner, package and ephemeral served gates; record exact revision evidence and only then enable approval/mark accepted.
+- [x] Prove no duplicate skill/prompt harvest path (GRAPHOS-A2A-R003): a
+  static source-level absence check confirms graph-os never imports
+  agent-utilities' legacy `agent_utilities.mcp.multiplexer` /
+  `shared_multiplexer`, and that the skill/prompt body-harvest functions
+  are defined in exactly one module, `graph_os/fleet/multiplexer.py`.
