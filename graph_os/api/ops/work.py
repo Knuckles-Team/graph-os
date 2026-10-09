@@ -21,8 +21,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
+from graph_os.api.ops._common import Params
 from graph_os.api.registry import (
     AuditClass,
     Composite,
@@ -33,25 +34,21 @@ from graph_os.api.registry import (
 )
 
 
-class _Params(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class WorkItemsListParams(_Params):
+class WorkItemsListParams(Params):
     cursor: str | None = Field(default=None, max_length=1024)
     limit: int = Field(default=50, ge=1, le=100)
 
 
-class WorkItemRefParams(_Params):
+class WorkItemRefParams(Params):
     item_id: str = Field(min_length=1, max_length=80)
 
 
-class WorkOfferCreateParams(_Params):
+class WorkOfferCreateParams(Params):
     item_id: str = Field(min_length=1, max_length=80)
     terms: dict[str, Any] = Field(default_factory=dict)
 
 
-class WorkResult(_Params):
+class WorkResult(Params):
     value: dict[str, Any]
 
 

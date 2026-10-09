@@ -14,15 +14,11 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.invoke.pipeline import OperationRefused
-from graph_os.api.registry import Composite, Effect, OpSpec, Verb
+from graph_os.api.ops._common import Params, build_tenant_read_op, handle_tenant_read
+from graph_os.api.registry import OpSpec
 
 
-class _Params(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class PolicyReadParams(_Params):
+class PolicyReadParams(Params):
     pass
 
 
@@ -35,7 +31,7 @@ class PolicyState(BaseModel):
     rules: dict[str, str] = Field(default_factory=dict)
 
 
-class PolicyReadResult(_Params):
+class PolicyReadResult(Params):
     value: dict[str, Any]
 
 
@@ -46,36 +42,27 @@ class PolicyReader(Protocol):
     async def read(self, *, tenant: str) -> PolicyState: ...
 
 
-def _bound_reader(context: Any) -> PolicyReader:
-    reader = context.services.get("policy_reader")
-    if reader is None:
-        raise OperationRefused(
-            "UNAVAILABLE", {"reason": "policy reader is not composed"}
-        )
-    return reader
-
-
 async def handle_policy_read(
     context: Any, params: Mapping[str, Any], op: OpSpec
 ) -> dict[str, Any]:
     """Return this tenant's active policy state through the composed reader."""
-    reader = _bound_reader(context)
-    state = await reader.read(tenant=context.caller.tenant)
-    return {"value": state.model_dump(mode="json")}
+    return await handle_tenant_read(
+        context,
+        service_name="policy_reader",
+        unavailable_reason="policy reader is not composed",
+    )
 
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        OpSpec(
-            id="policy.read",
-            verb=Verb.ASK,
+        build_tenant_read_op(
+            op_id="policy.read",
             summary="Show this tenant's active policy state",
             examples=("show the active policy state",),
             params=PolicyReadParams,
             result=PolicyReadResult,
-            binding=Composite(handler="graph_os.api.ops.policy.handle_policy_read"),
-            scopes=frozenset({"policy:read"}),
-            effect=Effect.READ,
+            handler="graph_os.api.ops.policy.handle_policy_read",
+            scope="policy:read",
         ),
     )
 

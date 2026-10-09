@@ -8,26 +8,12 @@ is not composed, matching the ingest-runner-facade convention
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
 from graph_os.api.invoke.pipeline import OperationRefused
 from graph_os.api.ops import memory
 from graph_os.api.ops.memory import MemoryRecord
-
-
-def _context(
-    *,
-    store: object | None,
-    idempotency_key: str | None = "idem-1",
-    tenant: str = "tenant-a",
-):
-    caller = SimpleNamespace(tenant=tenant, principal="caller-a")
-    services = {} if store is None else {"memory_store": store}
-    return SimpleNamespace(
-        caller=caller, services=services, idempotency_key=idempotency_key
-    )
+from tests.api._ops_support import tenant_store_context as _context
 
 
 class _FakeMemoryStore:

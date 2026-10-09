@@ -14,15 +14,11 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict
 
-from graph_os.api.invoke.pipeline import OperationRefused
-from graph_os.api.registry import Composite, Effect, OpSpec, Verb
+from graph_os.api.ops._common import Params, build_tenant_read_op, handle_tenant_read
+from graph_os.api.registry import OpSpec
 
 
-class _Params(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class SecurityPostureReadParams(_Params):
+class SecurityPostureReadParams(Params):
     pass
 
 
@@ -35,7 +31,7 @@ class SecurityPosture(BaseModel):
     findings: tuple[str, ...] = ()
 
 
-class SecurityPostureReadResult(_Params):
+class SecurityPostureReadResult(Params):
     value: dict[str, Any]
 
 
@@ -46,38 +42,27 @@ class SecurityPostureReader(Protocol):
     async def read(self, *, tenant: str) -> SecurityPosture: ...
 
 
-def _bound_reader(context: Any) -> SecurityPostureReader:
-    reader = context.services.get("security_posture_reader")
-    if reader is None:
-        raise OperationRefused(
-            "UNAVAILABLE", {"reason": "security posture reader is not composed"}
-        )
-    return reader
-
-
 async def handle_security_posture_read(
     context: Any, params: Mapping[str, Any], op: OpSpec
 ) -> dict[str, Any]:
     """Return this tenant's security posture through the composed reader."""
-    reader = _bound_reader(context)
-    posture = await reader.read(tenant=context.caller.tenant)
-    return {"value": posture.model_dump(mode="json")}
+    return await handle_tenant_read(
+        context,
+        service_name="security_posture_reader",
+        unavailable_reason="security posture reader is not composed",
+    )
 
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        OpSpec(
-            id="security.posture.read",
-            verb=Verb.ASK,
+        build_tenant_read_op(
+            op_id="security.posture.read",
             summary="Show this tenant's current security posture",
             examples=("show the current security posture",),
             params=SecurityPostureReadParams,
             result=SecurityPostureReadResult,
-            binding=Composite(
-                handler="graph_os.api.ops.security.handle_security_posture_read"
-            ),
-            scopes=frozenset({"security:read"}),
-            effect=Effect.READ,
+            handler="graph_os.api.ops.security.handle_security_posture_read",
+            scope="security:read",
         ),
     )
 

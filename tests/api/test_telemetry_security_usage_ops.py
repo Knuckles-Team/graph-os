@@ -8,8 +8,6 @@ typed port, matching the ingest-runner-facade convention
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
 from graph_os.api.invoke.pipeline import OperationRefused
@@ -17,12 +15,7 @@ from graph_os.api.ops import security, telemetry, usage
 from graph_os.api.ops.security import SecurityPosture
 from graph_os.api.ops.telemetry import TelemetrySnapshot
 from graph_os.api.ops.usage import UsageSnapshot
-
-
-def _context(*, reader: object | None, service_name: str):
-    caller = SimpleNamespace(tenant="tenant-a", principal="caller-a")
-    services = {} if reader is None else {service_name: reader}
-    return SimpleNamespace(caller=caller, services=services, idempotency_key=None)
+from tests.api._ops_support import tenant_reader_context as _context
 
 
 class _FakeTelemetryReader:

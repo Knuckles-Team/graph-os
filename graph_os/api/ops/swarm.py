@@ -15,15 +15,11 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict
 
-from graph_os.api.invoke.pipeline import OperationRefused
-from graph_os.api.registry import Composite, Effect, OpSpec, Verb
+from graph_os.api.ops._common import Params, build_tenant_read_op, handle_tenant_read
+from graph_os.api.registry import OpSpec
 
 
-class _Params(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class SwarmTopologyReadParams(_Params):
+class SwarmTopologyReadParams(Params):
     pass
 
 
@@ -36,7 +32,7 @@ class SwarmTopology(BaseModel):
     nodes: tuple[str, ...] = ()
 
 
-class SwarmTopologyReadResult(_Params):
+class SwarmTopologyReadResult(Params):
     value: dict[str, Any]
 
 
@@ -47,38 +43,27 @@ class SwarmTopologyReader(Protocol):
     async def read(self, *, tenant: str) -> SwarmTopology: ...
 
 
-def _bound_reader(context: Any) -> SwarmTopologyReader:
-    reader = context.services.get("swarm_topology_reader")
-    if reader is None:
-        raise OperationRefused(
-            "UNAVAILABLE", {"reason": "swarm topology reader is not composed"}
-        )
-    return reader
-
-
 async def handle_swarm_topology_read(
     context: Any, params: Mapping[str, Any], op: OpSpec
 ) -> dict[str, Any]:
     """Return this tenant's swarm topology through the composed reader."""
-    reader = _bound_reader(context)
-    topology = await reader.read(tenant=context.caller.tenant)
-    return {"value": topology.model_dump(mode="json")}
+    return await handle_tenant_read(
+        context,
+        service_name="swarm_topology_reader",
+        unavailable_reason="swarm topology reader is not composed",
+    )
 
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        OpSpec(
-            id="swarm.topology.read",
-            verb=Verb.ASK,
+        build_tenant_read_op(
+            op_id="swarm.topology.read",
             summary="Show this tenant's current swarm topology",
             examples=("show the current swarm topology",),
             params=SwarmTopologyReadParams,
             result=SwarmTopologyReadResult,
-            binding=Composite(
-                handler="graph_os.api.ops.swarm.handle_swarm_topology_read"
-            ),
-            scopes=frozenset({"swarm:read"}),
-            effect=Effect.READ,
+            handler="graph_os.api.ops.swarm.handle_swarm_topology_read",
+            scope="swarm:read",
         ),
     )
 

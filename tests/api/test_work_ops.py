@@ -1,20 +1,19 @@
 """Focused contract for the GRAPHOS-OPS-R022.1 hosted work operations.
 
-Mirrors ``tests/api/test_capacity_ops.py``'s direct-handler pattern:
-operations are exercised through their declared handler, not the full
-``get_registry()`` assembly (that coverage lives in
-``tests/api/test_registry_factory.py``).
+Exercises the handler directly via ``tests/api/_ops_support``'s shared
+context builder; full-registry wiring is covered separately by
+``test_registry_factory.py``.
 """
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 from graph_os.api.ops import work
 from graph_os.api.registry import Effect, Registry, Surface
+from tests.api._ops_support import service_context
 
 
 class _FakeRunner:
@@ -46,13 +45,8 @@ class _FakeRunner:
         return offer
 
 
-def _context(**services: object) -> SimpleNamespace:
-    return SimpleNamespace(
-        caller=SimpleNamespace(session=object(), tenant="tenant:one"),
-        client=object(),
-        idempotency_key="key-1",
-        services=services,
-    )
+def _context(**services: object):
+    return service_context(tenant="tenant:one", **services)
 
 
 def test_work_ops_declare_exact_scopes_and_effects() -> None:

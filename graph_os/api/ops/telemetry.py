@@ -14,15 +14,11 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.invoke.pipeline import OperationRefused
-from graph_os.api.registry import Composite, Effect, OpSpec, Verb
+from graph_os.api.ops._common import Params, build_tenant_read_op, handle_tenant_read
+from graph_os.api.registry import OpSpec
 
 
-class _Params(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class TelemetryReadParams(_Params):
+class TelemetryReadParams(Params):
     pass
 
 
@@ -35,7 +31,7 @@ class TelemetrySnapshot(BaseModel):
     metrics: dict[str, float] = Field(default_factory=dict)
 
 
-class TelemetryReadResult(_Params):
+class TelemetryReadResult(Params):
     value: dict[str, Any]
 
 
@@ -46,38 +42,27 @@ class TelemetryReader(Protocol):
     async def read(self, *, tenant: str) -> TelemetrySnapshot: ...
 
 
-def _bound_reader(context: Any) -> TelemetryReader:
-    reader = context.services.get("telemetry_reader")
-    if reader is None:
-        raise OperationRefused(
-            "UNAVAILABLE", {"reason": "telemetry reader is not composed"}
-        )
-    return reader
-
-
 async def handle_telemetry_read(
     context: Any, params: Mapping[str, Any], op: OpSpec
 ) -> dict[str, Any]:
     """Return this tenant's telemetry snapshot through the composed reader."""
-    reader = _bound_reader(context)
-    snapshot = await reader.read(tenant=context.caller.tenant)
-    return {"value": snapshot.model_dump(mode="json")}
+    return await handle_tenant_read(
+        context,
+        service_name="telemetry_reader",
+        unavailable_reason="telemetry reader is not composed",
+    )
 
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        OpSpec(
-            id="telemetry.read",
-            verb=Verb.ASK,
+        build_tenant_read_op(
+            op_id="telemetry.read",
             summary="Show this tenant's telemetry snapshot",
             examples=("show telemetry for this tenant",),
             params=TelemetryReadParams,
             result=TelemetryReadResult,
-            binding=Composite(
-                handler="graph_os.api.ops.telemetry.handle_telemetry_read"
-            ),
-            scopes=frozenset({"telemetry:read"}),
-            effect=Effect.READ,
+            handler="graph_os.api.ops.telemetry.handle_telemetry_read",
+            scope="telemetry:read",
         ),
     )
 

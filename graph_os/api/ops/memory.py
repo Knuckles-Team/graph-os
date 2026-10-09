@@ -15,7 +15,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.invoke.pipeline import OperationRefused
+from graph_os.api.ops._common import Params, bound_service
 from graph_os.api.registry import (
     AuditClass,
     Composite,
@@ -26,15 +26,11 @@ from graph_os.api.registry import (
 )
 
 
-class _Params(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class MemoryReadParams(_Params):
+class MemoryReadParams(Params):
     key: str = Field(min_length=1, max_length=256)
 
 
-class MemoryWriteParams(_Params):
+class MemoryWriteParams(Params):
     key: str = Field(min_length=1, max_length=256)
     value: dict[str, Any] = Field(default_factory=dict)
 
@@ -49,7 +45,7 @@ class MemoryRecord(BaseModel):
     value: dict[str, Any] = Field(default_factory=dict)
 
 
-class MemoryResult(_Params):
+class MemoryResult(Params):
     value: dict[str, Any]
 
 
@@ -65,12 +61,9 @@ class MemoryStore(Protocol):
 
 
 def _bound_store(context: Any) -> MemoryStore:
-    store = context.services.get("memory_store")
-    if store is None:
-        raise OperationRefused(
-            "UNAVAILABLE", {"reason": "memory store is not composed"}
-        )
-    return store
+    return bound_service(
+        context, "memory_store", reason="memory store is not composed"
+    )
 
 
 async def handle_memory_read(

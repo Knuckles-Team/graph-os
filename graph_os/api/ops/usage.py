@@ -14,15 +14,11 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.invoke.pipeline import OperationRefused
-from graph_os.api.registry import Composite, Effect, OpSpec, Verb
+from graph_os.api.ops._common import Params, build_tenant_read_op, handle_tenant_read
+from graph_os.api.registry import OpSpec
 
 
-class _Params(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class UsageReadParams(_Params):
+class UsageReadParams(Params):
     pass
 
 
@@ -35,7 +31,7 @@ class UsageSnapshot(BaseModel):
     totals: dict[str, float] = Field(default_factory=dict)
 
 
-class UsageReadResult(_Params):
+class UsageReadResult(Params):
     value: dict[str, Any]
 
 
@@ -46,36 +42,27 @@ class UsageReader(Protocol):
     async def read(self, *, tenant: str) -> UsageSnapshot: ...
 
 
-def _bound_reader(context: Any) -> UsageReader:
-    reader = context.services.get("usage_reader")
-    if reader is None:
-        raise OperationRefused(
-            "UNAVAILABLE", {"reason": "usage reader is not composed"}
-        )
-    return reader
-
-
 async def handle_usage_read(
     context: Any, params: Mapping[str, Any], op: OpSpec
 ) -> dict[str, Any]:
     """Return this tenant's usage snapshot through the composed reader."""
-    reader = _bound_reader(context)
-    snapshot = await reader.read(tenant=context.caller.tenant)
-    return {"value": snapshot.model_dump(mode="json")}
+    return await handle_tenant_read(
+        context,
+        service_name="usage_reader",
+        unavailable_reason="usage reader is not composed",
+    )
 
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        OpSpec(
-            id="usage.read",
-            verb=Verb.ASK,
+        build_tenant_read_op(
+            op_id="usage.read",
             summary="Show this tenant's engine-sourced usage data",
             examples=("show usage for this tenant",),
             params=UsageReadParams,
             result=UsageReadResult,
-            binding=Composite(handler="graph_os.api.ops.usage.handle_usage_read"),
-            scopes=frozenset({"usage:read"}),
-            effect=Effect.READ,
+            handler="graph_os.api.ops.usage.handle_usage_read",
+            scope="usage:read",
         ),
     )
 

@@ -17,7 +17,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.invoke.pipeline import OperationRefused
+from graph_os.api.ops._common import Params, bound_service
 from graph_os.api.registry import (
     AuditClass,
     Composite,
@@ -28,28 +28,24 @@ from graph_os.api.registry import (
 )
 
 
-class _Params(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class OpsDoctorParams(_Params):
+class OpsDoctorParams(Params):
     pass
 
 
-class OpsConfigParams(_Params):
+class OpsConfigParams(Params):
     pass
 
 
-class OpsTenantsParams(_Params):
+class OpsTenantsParams(Params):
     cursor: str | None = None
     limit: int = Field(default=50, ge=1, le=200)
 
 
-class OpsBackupParams(_Params):
+class OpsBackupParams(Params):
     label: str = Field(min_length=1, max_length=256)
 
 
-class OpsRestoreParams(_Params):
+class OpsRestoreParams(Params):
     backup_id: str = Field(min_length=1, max_length=256)
 
 
@@ -101,23 +97,23 @@ class RestoreReceipt(BaseModel):
     status: str
 
 
-class OpsDoctorResult(_Params):
+class OpsDoctorResult(Params):
     value: DoctorReport
 
 
-class OpsConfigResult(_Params):
+class OpsConfigResult(Params):
     value: OperationalConfig
 
 
-class OpsTenantsResult(_Params):
+class OpsTenantsResult(Params):
     value: TenantPage
 
 
-class OpsBackupResult(_Params):
+class OpsBackupResult(Params):
     value: BackupReceipt
 
 
-class OpsRestoreResult(_Params):
+class OpsRestoreResult(Params):
     value: RestoreReceipt
 
 
@@ -143,12 +139,9 @@ class OpsAdminStore(Protocol):
 
 
 def _bound_store(context: Any) -> OpsAdminStore:
-    store = context.services.get("ops_admin_store")
-    if store is None:
-        raise OperationRefused(
-            "UNAVAILABLE", {"reason": "operational-admin store is not composed"}
-        )
-    return store
+    return bound_service(
+        context, "ops_admin_store", reason="operational-admin store is not composed"
+    )
 
 
 async def handle_ops_doctor(
