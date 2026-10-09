@@ -33,7 +33,7 @@ reviewed_on = "2026-10-09"
 [[pair]]
 left_file = "graph_os/api/ops/ops.py"
 left_name = "operations"
-left_digest = "sha256:0d7195b5caef1e7b8be6d1592253a057eb9750a40e4daf65cdde8704342f4eab"
+left_digest = "sha256:1dd92a3cf607864448698507dd859bedcd0b2837cddb97a0aeef56d1adc0a706"
 right_file = "graph_os/api/ops/ingest.py"
 right_name = "operations"
 right_digest = "sha256:ee097ee89d61f7ddcec595ea9f1a06767ad045baf374b12e808b69399a111d71"

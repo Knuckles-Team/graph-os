@@ -24,6 +24,9 @@ def test_host_deployment_scripts_point_to_graph_os_modules() -> None:
         "graph-os-production-ops": "graph_os.deployment.production_ops:main",
         "graph-os-connector-count-pins": "graph_os.fleet.connector_count_pins:main",
         "graph-os-release-canary": "graph_os.deployment.release_canary:main",
+        "graph-os-capability-layers": "graph_os.architecture.capability_layers:main",
+        "graph-os-check-import-boundaries": "graph_os.architecture.boundary_census:main",
+        "graph-os-hosting-config": "graph_os.deployment.host_config:main",
         "graph-os-wiring-sweep": "graph_os.evolution.wiring_sweep:main",
         "setup-config": "graph_os.deployment.cli:main",
     }
