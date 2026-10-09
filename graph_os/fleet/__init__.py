@@ -37,6 +37,12 @@ from .error_budget import (
     ThrottleMode,
     decide,
 )
+from .mcp_resource_reconciliation import (
+    MCP_RESOURCE_FAMILIES,
+    PublicationGateResult,
+    ReconciliationReceipt,
+    gate_mcp_resource_publication,
+)
 from .multiplexer import (
     MCPMultiplexer,
     attach_fleet_loader,
@@ -47,6 +53,7 @@ from .multiplexer import (
 
 __all__ = [
     "FLEET_COMPONENT_KINDS",
+    "MCP_RESOURCE_FAMILIES",
     "AimdConfig",
     "BudgetWindow",
     "CatalogComponent",
@@ -66,8 +73,10 @@ __all__ = [
     "OutcomeClass",
     "OutcomeSample",
     "Partition",
+    "PublicationGateResult",
     "ReadContext",
     "ReadReceipt",
+    "ReconciliationReceipt",
     "ServerPage",
     "ServerRegistration",
     "ThrottleDecision",
@@ -76,5 +85,6 @@ __all__ = [
     "auto_server_prefix",
     "clean_tool_name",
     "decide",
+    "gate_mcp_resource_publication",
     "get_server_prefix",
 ]

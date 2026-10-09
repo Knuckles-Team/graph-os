@@ -54,6 +54,7 @@ An obligation can be landed while acceptance remains open.
 | [`fleet-catalog-and-tools/spec.md`](fleet-catalog-and-tools/spec.md) | `GRAPHOS-FLEET-001` | `GRAPHOS-FLEET-R001`–`R028`, `PA-12` |
 | [`host-composition-boundary/spec.md`](host-composition-boundary/spec.md) | `GRAPHOS-HOST-001` | `GRAPHOS-HOST-R001`–`R019` |
 | [`hosted-api-operations/spec.md`](hosted-api-operations/spec.md) | `GRAPHOS-OPS-001` | `HO-01`–`HO-11` (defined in [requirements.md](hosted-api-operations/requirements.md) as `GRAPHOS-OPS-R001`–`R038`) |
+| [`mcp-resource-publication-reconciliation/spec.md`](mcp-resource-publication-reconciliation/spec.md) | `GRAPHOS-MCP-RESOURCES-001` | `GRAPHOS-MCP-RESOURCES-R001`–`R004` |
 | [`identity-access/spec.md`](identity-access/spec.md) | `GRAPHOS-IDENTITY-001` | `IA-01`–`IA-16` (defined in [requirements.md](identity-access/requirements.md) as `GRAPHOS-IDENTITY-R001`–`R024`) |
 | [`messaging-channel-supervision/spec.md`](messaging-channel-supervision/spec.md) | `GRAPHOS-MESSAGING-001` | `MSG-01`–`MSG-06` (defined in [requirements.md](messaging-channel-supervision/requirements.md) as `GRAPHOS-MESSAGING-R001`–`R006`) |
 | [`portable-deployment/spec.md`](portable-deployment/spec.md) | `GRAPHOS-DEPLOY-001` | `GRAPHOS-DEPLOY-R001`–`R015` |
