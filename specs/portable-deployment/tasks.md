@@ -120,4 +120,4 @@ qualification environment; this documentation phase performs none of them.
 - [ ] Record `graph-os-daemon --status` output that shows the host-lock holder.
 - [ ] Record the chat index sparse coverage before and after baseline ingestion.
 - [ ] Watch the serving container memory. The engine child counts against the serving container limit. Daemon-driven hydration raises that load.
-- [ ] Add the daemon container to the Helm production profile under `deploy/`.
+- [x] Add the daemon container to the Helm production profile under `deploy/`.
