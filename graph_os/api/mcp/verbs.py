@@ -3,17 +3,24 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
 from graph_os.api.mcp.discovery import (
+    NL_FALLBACK_OP_ID,
     FleetSearch,
     describe_op,
     find_visible,
+    nl_fallback_descriptor,
     visible_ops,
 )
 from graph_os.api.registry import Invoke
+
+#: A caller-scoped natural-language question, with no `op`/`intent`-matched
+#: registry operation, answered directly (GRAPHOS-HOST-R023). Returns the raw
+#: answer payload; raises to signal the fallback itself is unavailable.
+NLQuery = Callable[[str], Awaitable[Any]]
 
 VERBS = ("find", "ask", "why", "write", "act", "manage")
 PARAMETERS: dict[str, Any] = {
@@ -41,6 +48,7 @@ class MCPProjection:
     policy_gate: Any
     invoke: Invoke
     fleet_search: FleetSearch | None = None
+    nl_query: NLQuery | None = None
 
 
 def _envelope(
@@ -191,12 +199,16 @@ async def _resolve_op(
             _refusal("POLICY_UNAVAILABLE", projection, caller, verb),
         )
     candidates = [describe_op(item) for item in visible]
+    if verb == "ask" and projection.nl_query is not None:
+        candidates = [*candidates, nl_fallback_descriptor()]
     resolution = projection.resolver.resolve(
         verb, intent, candidates, scope_ref=scope_ref, params=arguments
     )
     resolved_op = resolution.op
     if not resolved_op:
         return "", arguments, None, _refusal("UNKNOWN_OP", projection, caller, verb)
+    if getattr(resolution, "fallback", False) and resolved_op == NL_FALLBACK_OP_ID:
+        return resolved_op, resolution.params, resolution, None
     resolved_arguments = resolution.params
     if not resolution.missing_required:
         return resolved_op, resolved_arguments, resolution, None
@@ -263,6 +275,38 @@ async def _invoke_and_render(
     return _envelope(outcome.value, projection.registry, meta=meta)
 
 
+async def _invoke_nl_fallback(
+    projection: MCPProjection, caller: Any, intent: str, execute: bool
+) -> dict[str, Any]:
+    """Answer a free-text ``ask`` through the bound natural-language fallback.
+
+    Read-only by construction (``ask`` always executes), so there is no
+    preview branch here; a disabled fallback (``nl_query is None``) never
+    reaches this function because :func:`_resolve_op` only offers the
+    synthetic descriptor when one is bound.
+    """
+
+    if not execute:
+        return _envelope(
+            {"preview": True, "op": NL_FALLBACK_OP_ID, "intent": intent},
+            projection.registry,
+        )
+    nl_query = projection.nl_query
+    if nl_query is None:
+        return _refusal("UNKNOWN_OP", projection, caller, NL_FALLBACK_OP_ID)
+    try:
+        value = await nl_query(intent)
+    except Exception:
+        return _refusal(
+            "UNAVAILABLE", projection, caller, NL_FALLBACK_OP_ID, {"intent": intent}
+        )
+    return _envelope(
+        value,
+        projection.registry,
+        meta={"resolved_op": NL_FALLBACK_OP_ID, "fallback": True},
+    )
+
+
 async def dispatch_verb(
     verb: str,
     projection: MCPProjection,
@@ -303,6 +347,12 @@ async def dispatch_verb(
     )
     if refusal is not None:
         return refusal
+    if (
+        resolution is not None
+        and getattr(resolution, "fallback", False)
+        and op == NL_FALLBACK_OP_ID
+    ):
+        return await _invoke_nl_fallback(projection, caller, intent or "", execute)
     selected = projection.registry.get(op)
     if selected is None:
         return _refusal("UNKNOWN_OP", projection, caller, op)
