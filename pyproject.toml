@@ -78,8 +78,8 @@ test = [
     # are installed only into an ephemeral build environment, not the runtime
     # venv. tests/test_dependency_manifest.py reads
     # `setuptools.config.pyprojecttoml` directly to prove the published
-    # manifest contract (GRAPHOS-HOST-R014), so the same floor must also be
-    # reachable at test time.
+    # manifest contract (host-composition-boundary spec, dependency-manifest
+    # requirement), so the same floor must also be reachable at test time.
     "setuptools>=83.0.0",
 ]
 webui = [
