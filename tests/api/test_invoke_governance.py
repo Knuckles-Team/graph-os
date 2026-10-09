@@ -437,6 +437,7 @@ def test_bound_service_execution_uses_configured_principal_and_exact_scopes():
     assert len(seen) == 1
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R007")
 def test_eg_audit_uses_actual_keyword_and_links_receipt(monkeypatch):
     receipts = []
     override = {}
