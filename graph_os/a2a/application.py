@@ -8,7 +8,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from .authority import A2AIdempotencyConflict, A2ATaskNotCancelable
+from .authority import (
+    A2AIdempotencyConflict,
+    A2AStreamingUnavailable,
+    A2ATaskNotCancelable,
+)
 from .models import A2AMessage
 from .routing import A2AAssemblyUnavailable
 from .service import A2AService
@@ -49,6 +53,11 @@ class _SendParams(_Params):
 
 class _TaskParams(_Params):
     id: str = Field(min_length=1, max_length=80)
+
+
+class _ResubscribeParams(_Params):
+    id: str = Field(min_length=1, max_length=80)
+    cursor: str | None = Field(default=None, max_length=1024)
 
 
 class _ListParams(_Params):
@@ -116,6 +125,15 @@ async def _invoke_method(
     if method == "tasks/cancel":
         cancel_params = _TaskParams.model_validate(raw_params)
         return await service.cancel_task(cancel_params.id)
+    if method == "tasks/resubscribe":
+        # Registered in the method table (GRAPHOS-A2A-R001) but fail-closed:
+        # durable streaming has no bounded, restart-safe event-cursor
+        # backing yet. Params are still validated so a malformed call is
+        # rejected as invalid, not treated as an unreachable method.
+        _ResubscribeParams.model_validate(raw_params)
+        raise A2AStreamingUnavailable(
+            "durable task streaming and resubscribe are not available yet"
+        )
     return _error(request_id, -32601, "Method not found", 404)
 
 
@@ -127,6 +145,8 @@ def _application_error(request_id: Any, error: Exception) -> JSONResponse:
         return _error(request_id, -32003, str(error), 503)
     if isinstance(error, A2ATaskNotCancelable):
         return _error(request_id, -32002, str(error), 409)
+    if isinstance(error, A2AStreamingUnavailable):
+        return _error(request_id, -32010, str(error), 501)
     # Pydantic errors may echo caller text in ``input_value``. Keep the wire
     # error stable and privacy-safe; details belong in local logs.
     return _error(request_id, -32602, "Invalid params")
@@ -161,6 +181,7 @@ def create_a2a_handlers(
         except (
             A2AIdempotencyConflict,
             A2AAssemblyUnavailable,
+            A2AStreamingUnavailable,
             A2ATaskNotCancelable,
             ValidationError,
             TypeError,

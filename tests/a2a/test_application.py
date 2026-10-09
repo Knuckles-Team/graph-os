@@ -153,6 +153,48 @@ def test_json_rpc_rejects_missing_idempotency_invalid_shape_and_unknown_task() -
     assert unknown.json()["error"]["code"] == -32601
 
 
+def test_json_rpc_refuses_resubscribe_until_streaming_is_implemented() -> None:
+    """GRAPHOS-A2A-R001.1: resubscribe is on the method table but fail-closed.
+
+    Durable streaming has no bounded, restart-safe event-cursor backing yet
+    (GRAPHOS-A2A-R001), so ``tasks/resubscribe`` must refuse distinctly from
+    an unrecognized method, and must still validate its params.
+    """
+    app, auth, authority = _app()
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer verified"}
+
+    refused = client.post(
+        "/a2a",
+        headers=headers,
+        json={
+            "jsonrpc": "2.0",
+            "id": "resubscribe",
+            "method": "tasks/resubscribe",
+            "params": {"id": authority.task.id, "cursor": None},
+        },
+    )
+    assert refused.status_code == 501
+    assert refused.json()["error"] == {
+        "code": -32010,
+        "message": "durable task streaming and resubscribe are not available yet",
+    }
+    assert auth.scopes == ["kg:read"]
+
+    invalid = client.post(
+        "/a2a",
+        headers=headers,
+        json={
+            "jsonrpc": "2.0",
+            "id": "resubscribe-invalid",
+            "method": "tasks/resubscribe",
+            "params": {},
+        },
+    )
+    assert invalid.status_code == 400
+    assert invalid.json()["error"]["code"] == -32602
+
+
 def test_json_rpc_preserves_service_error_translation() -> None:
     class ConflictAuthority(Authority):
         async def dispatch(self, **kwargs: Any) -> A2ATask:

@@ -9,6 +9,14 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] Wire all operations and loaded fleet tools through hosted `invoke`, its exact scopes/policy and audit reservation.
 - [ ] Execute all positive, negative, replay, cross-tenant, cancellation, policy-change and restart tests in [test-spec.md](test-spec.md).
 - [ ] Run clean-checkout language, scanner, package and ephemeral served gates; record exact revision evidence and only then enable approval/mark accepted.
+- [x] Register `tasks/resubscribe` on the A2A method table as a typed,
+  validated, explicitly fail-closed stub (GRAPHOS-A2A-R001.1, split from
+  GRAPHOS-A2A-R001): `A2AStreamingUnavailable` is raised and returned as a
+  distinct JSON-RPC error (`-32010`, HTTP 501) rather than "method not
+  found", proven by
+  `tests/a2a/test_application.py::test_json_rpc_refuses_resubscribe_until_streaming_is_implemented`.
+  The bounded, restart-safe event-cursor backing for real durable streaming
+  remains open under the parent requirement.
 - [x] Prove no duplicate skill/prompt harvest path (GRAPHOS-A2A-R003): a
   static source-level absence check confirms graph-os never imports
   agent-utilities' legacy `agent_utilities.mcp.multiplexer` /
