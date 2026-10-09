@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
@@ -87,20 +87,25 @@ def test_verify_current_from_session_requires_a_session() -> None:
 
 
 class FakeClient:
-    """A fake satisfying ``EpistemicClient.use_verified_context``."""
+    """A fake structurally satisfying ``graph_os.epistemic.EpistemicClient``."""
 
     def __init__(self, graph: str, context: Mapping[str, Any]) -> None:
         self.graph = graph
         self.context = context
+        self.placement: Any = None
+        self.cluster_topology: Any = None
 
     @contextlib.contextmanager
-    def use_verified_context(self, context: Mapping[str, Any]):
+    def use_verified_context(self, context: Mapping[str, Any]) -> Iterator[FakeClient]:
         previous = self.context
         self.context = context
         try:
             yield self
         finally:
             self.context = previous
+
+    async def health(self) -> dict[str, Any]:
+        return {"status": "ok"}
 
     async def close(self) -> None:
         return None
@@ -125,8 +130,11 @@ def test_build_client_factory_reuses_the_pooled_client() -> None:
             policy_version="policy:1",
         ),
     )
-    first = asyncio.run(factory("tenant:a"))
-    second = asyncio.run(factory("tenant:a"))
+
+    async def _connect_twice() -> tuple[Any, Any]:
+        return await factory("tenant:a"), await factory("tenant:a")
+
+    first, second = asyncio.run(_connect_twice())
     assert first is second
     assert created == ["graphos:ops"]
 
@@ -135,7 +143,11 @@ def test_build_service_claims_mints_exact_requested_scopes() -> None:
     claims_fn = bootstrap.build_service_claims(
         lambda: Actor(), audience="epistemic-graph", policy_version="policy:1"
     )
-    claims = asyncio.run(claims_fn("tenant:a", frozenset({"example:execute"})))
+
+    async def _claims() -> Mapping[str, Any]:
+        return await claims_fn("tenant:a", frozenset({"example:execute"}))
+
+    claims = asyncio.run(_claims())
     assert claims["scopes"] == ["example:execute"]
     assert claims["principal"] == "service:graph-os"
     assert claims["tenant"] == "tenant:a"
@@ -145,12 +157,18 @@ def test_build_service_claims_refuses_a_mismatched_tenant() -> None:
     claims_fn = bootstrap.build_service_claims(
         lambda: Actor(), audience="epistemic-graph", policy_version="policy:1"
     )
+
+    async def _claims() -> Mapping[str, Any]:
+        return await claims_fn("tenant:other", frozenset({"example:execute"}))
+
     with pytest.raises(epistemic.AuthorityError):
-        asyncio.run(claims_fn("tenant:other", frozenset({"example:execute"})))
+        asyncio.run(_claims())
 
 
 def test_deny_subject_access_denies() -> None:
-    allowed = asyncio.run(bootstrap.deny_subject_access(object(), "subject:one"))
+    allowed = asyncio.run(
+        bootstrap.deny_subject_access(object(), _caller(None), "subject:one")
+    )
     assert allowed is False
 
 

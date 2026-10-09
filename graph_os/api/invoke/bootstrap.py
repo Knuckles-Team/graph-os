@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import replace
-from typing import Any
+from typing import Any, Protocol
 
 from graph_os.api.invoke.eg_audit import EgAuditAdapter
 from graph_os.api.invoke.executor import (
@@ -65,7 +65,7 @@ class SessionRequiredError(RuntimeError):
     """``verify_current_from_session`` found no current, matching session."""
 
 
-class VerifiedSession:
+class VerifiedSession(Protocol):
     """The ambient session shape :func:`verify_current_from_session` needs."""
 
     actor: VerifiedActor
@@ -146,7 +146,7 @@ def build_service_claims(
     return _claims
 
 
-async def deny_subject_access(_caller: VerifiedCaller, _subject: str) -> bool:
+async def deny_subject_access(_client: Any, _caller: VerifiedCaller, _subject: str) -> bool:
     """Fail closed; no registered operation sets ``Executor.SERVICE`` yet."""
 
     return False
