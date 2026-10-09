@@ -31,3 +31,47 @@ class MfaEnrollment:
             raise IdentityUnavailable(
                 "a required group may not enroll with zero MFA methods"
             )
+
+
+def verify_totp_step(
+    enrollment: MfaEnrollment, used_steps: set[int], step: int
+) -> None:
+    """Accept a TOTP time-step once; refuse an unenrolled method or a replay.
+
+    Slice .2: the replay guard over the .1 typed enrollment model. The
+    caller is responsible for computing ``step`` from the shared secret;
+    this guards only the single-use property across a shared window set.
+    """
+    if "totp" not in enrollment.methods:
+        raise IdentityUnavailable("totp is not an enrolled method")
+    if step in used_steps:
+        raise IdentityUnavailable("TOTP code already used in this window")
+    used_steps.add(step)
+
+
+def consume_recovery_code(
+    enrollment: MfaEnrollment, used_codes: set[str], code: str
+) -> None:
+    """Consume a one-use recovery code; refuses replay or an unenrolled method."""
+    if "recovery_code" not in enrollment.methods:
+        raise IdentityUnavailable("recovery_code is not an enrolled method")
+    if not code:
+        raise IdentityUnavailable("recovery code required")
+    if code in used_codes:
+        raise IdentityUnavailable("recovery code already used")
+    used_codes.add(code)
+
+
+def enforce_group_requirement(
+    required_group: str, member_groups: frozenset[str], enrollment: MfaEnrollment
+) -> None:
+    """Refuse when a member of ``required_group`` has not enrolled any method.
+
+    ``required_group`` is the administrator-configured policy; ``enrollment``
+    is the principal's own current state, which may legitimately have no
+    ``required_group`` of its own while still being subject to this policy.
+    """
+    if required_group in member_groups and not enrollment.methods:
+        raise IdentityUnavailable(
+            f"MFA enrollment is required for group {required_group!r}"
+        )
