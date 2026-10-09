@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from graph_os.api.ops import access, agents, browser, capacity, fleet, get_registry
+from graph_os.api.ops import access, agents, browser, capacity, fleet, get_registry, ingest
 from graph_os.api.registry import (
     Composite,
     EgMethod,
@@ -44,6 +44,7 @@ def provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pat
             "explain:read",
             "capacity:read",
             "capacity:admin",
+            "ingest:write",
         )
     )
     scope_path.write_text(json.dumps(document))
@@ -66,6 +67,7 @@ def test_no_argument_factory_is_deterministic_and_complete(
         *browser.operations(),
         *capacity.operations(),
         *fleet.operations(),
+        *ingest.operations(),
     )
     assert {op.id for op in first} == {op.id for op in declared} | {
         "eg.query.Read",
