@@ -302,7 +302,7 @@
     {
       "id": "GRAPHOS-FLEET-R025",
       "title": "Skills from every installed package, and an always-offered core pack, join the find/load path",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -310,6 +310,13 @@
           "commit": "d16472d4df1dee6b2800fd1437842d579dde3eea",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/d16472d4df1dee6b2800fd1437842d579dde3eea",
           "description": "graph_os/fleet/local_skill_catalog.py resolves every agent_utilities.skill_providers-registered package installed in this process into the same catalog shape the fleet skill harvest produces; graph_os/fleet/multiplexer.py folds it into discover_tools/_catalog_fleet_probe with local-over-harvested precedence; graph_os/skills/core-pack.txt names the always-offered set. Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "d16472d4df1dee6b2800fd1437842d579dde3eea",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d16472d4df1dee6b2800fd1437842d579dde3eea",
+          "description": "Implementation merged to the default branch; the commit names this requirement."
         }
       ],
       "remaining": "universal-skills does not yet declare the agent_utilities.skill_providers entry point itself (tracked as a separate small PR in that repository); agent-connector-sdk and pipelines/repository-manager are not graph-os runtime dependencies, so their skills still reach graph-os only through the existing fleet harvest once they are mounted as fleet children, not through this local source."
