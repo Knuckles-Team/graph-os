@@ -53,7 +53,7 @@ class _Contract:
         }
 
 
-TTL = "@prefix ac: <https://example.org/ac#> . # fake connector ontology"
+TTL = "@prefix ac: <https://example.org/ac#> . ac:c a ac:AccessContract ."
 
 
 @pytest.fixture
@@ -150,3 +150,54 @@ def test_onboarding_registers_after_import(fake_sdk, monkeypatch) -> None:
     )
     assert len(catalog.mappings) == 2
     assert not any(m.approved for m in catalog.mappings)
+
+
+AC_NS = "https://knuckles-team.github.io/agent-connector-sdk/access#"
+DOMAIN_TTL = (
+    "@prefix ex: <https://example.org/onto#> .\n"
+    'ex:Ticket ex:comment """A ticket.\nSpans lines.""" .\n'
+)
+
+
+def _real_parser():
+    return pytest.importorskip("agent_connector_sdk.access_contract")
+
+
+def test_only_contract_bodies_reach_parser(fake_sdk) -> None:
+    pack = _Pack(
+        entries=(
+            _Entry("ontology://domain", DOMAIN_TTL.encode()),
+            _Entry("ontology://contracts", TTL.encode()),
+        )
+    )
+    catalog = VirtualCatalog()
+    assert ac.register_access_contracts(pack, connector="t", catalog=catalog) == 2
+    assert fake_sdk == [TTL]
+
+
+def test_malformed_contracts_file_is_skipped(monkeypatch, caplog) -> None:
+    def parse(text: str):
+        raise ValueError("bad turtle")
+
+    module = types.ModuleType("agent_connector_sdk.access_contract")
+    monkeypatch.setattr(module, "parse_access_contracts", parse, raising=False)
+    monkeypatch.setitem(sys.modules, "agent_connector_sdk.access_contract", module)
+    pack = _Pack(entries=(_Entry("ontology://broken", TTL.encode()),))
+    catalog = VirtualCatalog()
+    with caplog.at_level("WARNING"):
+        added = ac.register_access_contracts(pack, connector="t", catalog=catalog)
+    assert added == 0
+    assert "ontology://broken" in caplog.text
+
+
+def test_real_parser_skips_triple_quoted_domain_ontology() -> None:
+    sdk = _real_parser()
+    pack = _Pack(
+        entries=(
+            _Entry("ontology://domain", DOMAIN_TTL.encode()),
+            _Entry("ontology://contracts", b"@prefix ac: <" + AC_NS.encode() + b"> ."),
+        )
+    )
+    assert ac.parse_pack_contracts(pack) == ()
+    with pytest.raises(sdk.AccessContractError):
+        sdk.parse_access_contracts(DOMAIN_TTL)

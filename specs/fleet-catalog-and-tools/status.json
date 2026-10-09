@@ -134,15 +134,31 @@
     {
       "id": "GRAPHOS-FLEET-R012",
       "title": "EG-direct binding generator with reviewed exclusions",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "68e31b75248a9a547c2e9937b285db01d70dacd0",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/68e31b75248a9a547c2e9937b285db01d70dacd0",
+          "description": "GRAPHOS-FLEET-R012 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "The engine-binding generator and its exclusions file are on the default branch with tests (tests/api/test_eg_binding.py). The reachability report shows no served entry point imports graph_os/api/registry yet. Remaining: compose the registry into the served application."
     },
     {
       "id": "GRAPHOS-FLEET-R013",
       "title": "MCP projection exposes the six verbs with typed schemas",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "6b63aeb7ba0310277885d69a4a2da516000aa23f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/6b63aeb7ba0310277885d69a4a2da516000aa23f",
+          "description": "GRAPHOS-FLEET-R013 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "Implemented and unit-tested on the default branch (tests/api/test_mcp_verbs.py), but the MCP projection is not mounted into the served application yet. Remaining: mount it, with a test through the served entry point."
     },
     {
@@ -162,7 +178,7 @@
     {
       "id": "GRAPHOS-FLEET-R015",
       "title": "Typed operations cover agents, browser and fleet calls",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -170,6 +186,13 @@
           "commit": "e632abb7eab0398f2890a5441b8588d6b467a9b9",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/e632abb7eab0398f2890a5441b8588d6b467a9b9",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "68e31b75248a9a547c2e9937b285db01d70dacd0",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/68e31b75248a9a547c2e9937b285db01d70dacd0",
+          "description": "GRAPHOS-FLEET-R015 merged to the default branch in this commit."
         }
       ],
       "remaining": "Typed agents, browser and fleet operations are implemented and unit-tested on the default branch (tests/api/test_agent_browser_ops.py, tests/api/test_fleet_effect.py). Nothing serves them yet: the operations package is not composed into a registry that a mounted projection exposes. Remaining: compose and mount them, with a test through the served entry point."
@@ -279,7 +302,7 @@
     {
       "id": "GRAPHOS-FLEET-R025",
       "title": "Skills from every installed package, and an always-offered core pack, join the find/load path",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -287,6 +310,13 @@
           "commit": "d16472d4df1dee6b2800fd1437842d579dde3eea",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/d16472d4df1dee6b2800fd1437842d579dde3eea",
           "description": "graph_os/fleet/local_skill_catalog.py resolves every agent_utilities.skill_providers-registered package installed in this process into the same catalog shape the fleet skill harvest produces; graph_os/fleet/multiplexer.py folds it into discover_tools/_catalog_fleet_probe with local-over-harvested precedence; graph_os/skills/core-pack.txt names the always-offered set. Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "d16472d4df1dee6b2800fd1437842d579dde3eea",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d16472d4df1dee6b2800fd1437842d579dde3eea",
+          "description": "GRAPHOS-FLEET-R025 merged to the default branch in this commit."
         }
       ],
       "remaining": "universal-skills does not yet declare the agent_utilities.skill_providers entry point itself (tracked as a separate small PR in that repository); agent-connector-sdk and pipelines/repository-manager are not graph-os runtime dependencies, so their skills still reach graph-os only through the existing fleet harvest once they are mounted as fleet children, not through this local source."
@@ -294,36 +324,76 @@
     {
       "id": "GRAPHOS-FLEET-R026",
       "title": "The catalog admits each server on its own",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
+          "description": "GRAPHOS-FLEET-R026 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch."
     },
     {
       "id": "GRAPHOS-FLEET-R027",
       "title": "GraphOS onboards every configured fleet server",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
+          "description": "GRAPHOS-FLEET-R027 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch. Live acceptance needs GraphOS bound as importer of each fleet connector (EPISTEMIC_GRAPH_CONNECTOR_PACK_IMPORTERS wildcard or ConnectorPack.bind)."
     },
     {
       "id": "GRAPHOS-FLEET-R028",
       "title": "GraphOS renews every registration before its lease lapses",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
+          "description": "GRAPHOS-FLEET-R028 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch."
     },
     {
       "id": "GRAPHOS-FLEET-R029",
       "title": "The intent tools are the only MCP surface",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "db8d44259c3da06c2b0a48b685ca87a01debaaca",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/db8d44259c3da06c2b0a48b685ca87a01debaaca",
+          "description": "GRAPHOS-FLEET-R029 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "T19 merges with agent-utilities PR #54; T20-T22 remove MCP_TOOL_MODE, MCP_ALWAYS_LOAD* and the retired internal names."
     },
     {
       "id": "GRAPHOS-FLEET-R030",
       "title": "Fleet onboarding registers connector access contracts unapproved",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "9095a5cefabe772b8cbe06d1dcd16061c11ad1ea",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/9095a5cefabe772b8cbe06d1dcd16061c11ad1ea",
+          "description": "GRAPHOS-FLEET-R030 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "Not yet merged. Live reads need an approval path and a live operation binding for each source."
     }
   ]

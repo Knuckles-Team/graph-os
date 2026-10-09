@@ -117,7 +117,7 @@
     {
       "id": "GRAPHOS-HOST-R011",
       "title": "GraphOS serves the messaging channel and routing layer",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -125,6 +125,13 @@
           "commit": "6e13692cdaaaa022213080532a7d75f906f4374b",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/6e13692cdaaaa022213080532a7d75f906f4374b",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "afefd425c905c0a21ea94cfcda4abeafe02c048d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/afefd425c905c0a21ea94cfcda4abeafe02c048d",
+          "description": "GRAPHOS-HOST-R011 merged to the default branch in this commit."
         }
       ],
       "remaining": "The shared channel layer (routing, intake, leases, polling, governed send, reach) is served by the host, with the Telegram and Mattermost adapters registered as optional extras (tests/messaging/). Remaining: the other fifteen platform adapters, which first need one shared adapter base so they do not repeat each other; and the agent runtime side that consumes the reach port."
@@ -171,20 +178,44 @@
     {
       "id": "GRAPHOS-HOST-R017",
       "title": "Browser inventory lists native GraphOS tools",
-      "delivery_state": "BUILDING",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "a4928a7047e172576c510f4463ce1193e7e99b84",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/a4928a7047e172576c510f4463ce1193e7e99b84",
+          "description": "GRAPHOS-HOST-R017 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R018",
       "title": "Browser catalog reads run under the process authority",
-      "delivery_state": "BUILDING",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "a4928a7047e172576c510f4463ce1193e7e99b84",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/a4928a7047e172576c510f4463ce1193e7e99b84",
+          "description": "GRAPHOS-HOST-R018 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R019",
       "title": "GraphOS serves the service dashboard surface the web UI composes",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "975596a67ed0fe3f36061241f3624d2a2fcda9ef",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/975596a67ed0fe3f36061241f3624d2a2fcda9ef",
+          "description": "GRAPHOS-HOST-R019 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "tests/gateway/test_dashboard_api.py passes on branch fix/dashboard-routes. Merge, roll out graph-os, then confirm GET /api/dashboard/full returns 200 and /ws/dashboard streams a snapshot in the served web UI."
     },
     {
