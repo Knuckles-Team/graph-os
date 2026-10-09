@@ -9,6 +9,7 @@
     "GRAPHOS-FLEET-R003",
     "GRAPHOS-FLEET-R004",
     "GRAPHOS-FLEET-R005",
+    "GRAPHOS-FLEET-R005.1",
     "GRAPHOS-FLEET-R006",
     "GRAPHOS-FLEET-R007",
     "GRAPHOS-FLEET-R008",
@@ -93,9 +94,17 @@
     },
     {
       "id": "GRAPHOS-FLEET-R005",
-      "title": "A2A task routing with typed work-item and lease operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "A2A task routing with typed work-item and lease operations (rollup)",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R005.1 lands the typed WorkItem view; GetWorkItem/ListWorkItems operations, capability-based agent search, control-lease issuance/consumption, and the multiplexer tool-subset restriction (GRAPHOS-FLEET-R005.2+) are not yet specified."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R005.1",
+      "title": "Typed WorkItem view, the GetWorkItem/ListWorkItems producer",
+      "delivery_state": "BUILT",
+      "evidence": [],
+      "remaining": "graph_os/a2a/work_items.py adds WorkItemView, work_item_view, parse_work_item_view and list_work_item_views, exported from graph_os/a2a/__init__.py; tests/a2a/test_work_items.py passes (13 tests). Published on a branch/PR; not yet merged to the default branch. No GetWorkItem/ListWorkItems operation, capability search, or control lease yet (GRAPHOS-FLEET-R005.2+, not yet specified)."
     },
     {
       "id": "GRAPHOS-FLEET-R006",
