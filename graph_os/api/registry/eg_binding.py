@@ -117,6 +117,18 @@ def _load_scopes(root: Path) -> dict[str, str]:
     return scopes
 
 
+def load_generated_scopes(contract_root: Path | None = None) -> dict[str, str]:
+    """Return the pinned EG contract's scope name -> scope class mapping.
+
+    This is the single generated scope registry: every scope GraphOS itself
+    advertises must match a name and class recorded here rather than a
+    separately maintained list (GRAPHOS-IDENTITY-R002). ``contract_root`` is
+    for fixture and wheel integration tests; production uses the pinned wheel.
+    """
+
+    return _load_scopes(_contract_root(contract_root))
+
+
 def _schema_descriptor_ref(descriptor: Any, method_id: str) -> str:
     if not isinstance(descriptor, dict) or not isinstance(
         descriptor.get("schema"), str
