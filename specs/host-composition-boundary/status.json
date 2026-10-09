@@ -48,7 +48,7 @@
     {
       "id": "GRAPHOS-HOST-R003",
       "title": "Web UI rename cutover across GraphOS",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -56,6 +56,13 @@
           "commit": "ebb644b377cd8b0a92c5863f1d0213cf68a85095",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/ebb644b377cd8b0a92c5863f1d0213cf68a85095",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "description": "GRAPHOS-HOST-R003 merged to the default branch in this commit."
         }
       ]
     },
@@ -84,8 +91,16 @@
     {
       "id": "GRAPHOS-HOST-R005",
       "title": "graph_os.mcp_server.runtime serves retired MCP actions",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "description": "GRAPHOS-HOST-R005 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R006",
@@ -188,8 +203,16 @@
     {
       "id": "GRAPHOS-HOST-R013",
       "title": "Front ends import only public GraphOS/agent-runtime surfaces",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "description": "GRAPHOS-HOST-R013 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R014",
