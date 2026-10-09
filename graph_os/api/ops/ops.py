@@ -17,15 +17,8 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.ops._common import Params, bound_service
-from graph_os.api.registry import (
-    AuditClass,
-    Composite,
-    Effect,
-    Idempotency,
-    OpSpec,
-    Verb,
-)
+from graph_os.api.ops._common import Params, bound_service, build_read_op, build_write_op
+from graph_os.api.registry import Effect, OpSpec
 
 
 class OpsDoctorParams(Params):
@@ -207,64 +200,52 @@ async def handle_ops_restore(
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        OpSpec(
-            id="ops.doctor",
-            verb=Verb.ASK,
+        build_read_op(
+            op_id="ops.doctor",
             summary="Run operational diagnostics scoped to the caller's own tenant",
             examples=("run a diagnostic check on this tenant",),
             params=OpsDoctorParams,
             result=OpsDoctorResult,
-            binding=Composite(handler="graph_os.api.ops.ops.handle_ops_doctor"),
-            scopes=frozenset({"ops:read"}),
-            effect=Effect.READ,
+            handler="graph_os.api.ops.ops.handle_ops_doctor",
+            scope="ops:read",
         ),
-        OpSpec(
-            id="ops.config",
-            verb=Verb.ASK,
+        build_read_op(
+            op_id="ops.config",
             summary="Read the effective operational config for the caller's own tenant",
             examples=("show the current operational config",),
             params=OpsConfigParams,
             result=OpsConfigResult,
-            binding=Composite(handler="graph_os.api.ops.ops.handle_ops_config"),
-            scopes=frozenset({"ops:read"}),
-            effect=Effect.READ,
+            handler="graph_os.api.ops.ops.handle_ops_config",
+            scope="ops:read",
         ),
-        OpSpec(
-            id="ops.tenants",
-            verb=Verb.ASK,
+        build_read_op(
+            op_id="ops.tenants",
             summary="List tenants visible under the caller's own admin authority",
             examples=("list the tenants I can administer",),
             params=OpsTenantsParams,
             result=OpsTenantsResult,
-            binding=Composite(handler="graph_os.api.ops.ops.handle_ops_tenants"),
-            scopes=frozenset({"ops:read"}),
-            effect=Effect.READ,
+            handler="graph_os.api.ops.ops.handle_ops_tenants",
+            scope="ops:read",
         ),
-        OpSpec(
-            id="ops.backup",
-            verb=Verb.ACT,
+        build_write_op(
+            op_id="ops.backup",
             summary="Reserve a durable backup scoped to the caller's own tenant",
             examples=("back up this tenant now",),
             params=OpsBackupParams,
             result=OpsBackupResult,
-            binding=Composite(handler="graph_os.api.ops.ops.handle_ops_backup"),
-            scopes=frozenset({"ops:admin"}),
+            handler="graph_os.api.ops.ops.handle_ops_backup",
+            scope="ops:admin",
             effect=Effect.ADMIN,
-            idempotency=Idempotency.KEY_REQUIRED,
-            audit=AuditClass.EVENT,
         ),
-        OpSpec(
-            id="ops.restore",
-            verb=Verb.ACT,
+        build_write_op(
+            op_id="ops.restore",
             summary="Restore a durable backup scoped to the caller's own tenant",
             examples=("restore this tenant from a backup",),
             params=OpsRestoreParams,
             result=OpsRestoreResult,
-            binding=Composite(handler="graph_os.api.ops.ops.handle_ops_restore"),
-            scopes=frozenset({"ops:admin"}),
+            handler="graph_os.api.ops.ops.handle_ops_restore",
+            scope="ops:admin",
             effect=Effect.ADMIN,
-            idempotency=Idempotency.KEY_REQUIRED,
-            audit=AuditClass.EVENT,
         ),
     )
 

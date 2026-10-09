@@ -15,12 +15,10 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict
 
-from graph_os.api.ops._common import Params, build_tenant_read_op, handle_tenant_read
+from graph_os.api.ops._common import build_tenant_read_op, handle_tenant_read, read_op_models
 from graph_os.api.registry import OpSpec
 
-
-class SwarmTopologyReadParams(Params):
-    pass
+SwarmTopologyReadParams, SwarmTopologyReadResult = read_op_models("SwarmTopologyRead")
 
 
 class SwarmTopology(BaseModel):
@@ -30,10 +28,6 @@ class SwarmTopology(BaseModel):
 
     tenant: str
     nodes: tuple[str, ...] = ()
-
-
-class SwarmTopologyReadResult(Params):
-    value: dict[str, Any]
 
 
 @runtime_checkable

@@ -14,12 +14,10 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.ops._common import Params, build_tenant_read_op, handle_tenant_read
+from graph_os.api.ops._common import build_tenant_read_op, handle_tenant_read, read_op_models
 from graph_os.api.registry import OpSpec
 
-
-class PolicyReadParams(Params):
-    pass
+PolicyReadParams, PolicyReadResult = read_op_models("PolicyRead")
 
 
 class PolicyState(BaseModel):
@@ -29,10 +27,6 @@ class PolicyState(BaseModel):
 
     tenant: str
     rules: dict[str, str] = Field(default_factory=dict)
-
-
-class PolicyReadResult(Params):
-    value: dict[str, Any]
 
 
 @runtime_checkable

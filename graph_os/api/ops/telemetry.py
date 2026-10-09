@@ -14,12 +14,10 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.ops._common import Params, build_tenant_read_op, handle_tenant_read
+from graph_os.api.ops._common import build_tenant_read_op, handle_tenant_read, read_op_models
 from graph_os.api.registry import OpSpec
 
-
-class TelemetryReadParams(Params):
-    pass
+TelemetryReadParams, TelemetryReadResult = read_op_models("TelemetryRead")
 
 
 class TelemetrySnapshot(BaseModel):
@@ -29,10 +27,6 @@ class TelemetrySnapshot(BaseModel):
 
     tenant: str
     metrics: dict[str, float] = Field(default_factory=dict)
-
-
-class TelemetryReadResult(Params):
-    value: dict[str, Any]
 
 
 @runtime_checkable

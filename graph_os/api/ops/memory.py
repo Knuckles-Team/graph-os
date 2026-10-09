@@ -15,15 +15,8 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.ops._common import Params, bound_service
-from graph_os.api.registry import (
-    AuditClass,
-    Composite,
-    Effect,
-    Idempotency,
-    OpSpec,
-    Verb,
-)
+from graph_os.api.ops._common import Params, bound_service, build_read_op, build_write_op
+from graph_os.api.registry import OpSpec
 
 
 class MemoryReadParams(Params):
@@ -93,29 +86,23 @@ async def handle_memory_write(
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        OpSpec(
-            id="memory.read",
-            verb=Verb.ASK,
+        build_read_op(
+            op_id="memory.read",
             summary="Read one memory record scoped to the caller's own tenant",
             examples=("read this memory key",),
             params=MemoryReadParams,
             result=MemoryResult,
-            binding=Composite(handler="graph_os.api.ops.memory.handle_memory_read"),
-            scopes=frozenset({"memory:read"}),
-            effect=Effect.READ,
+            handler="graph_os.api.ops.memory.handle_memory_read",
+            scope="memory:read",
         ),
-        OpSpec(
-            id="memory.write",
-            verb=Verb.ACT,
+        build_write_op(
+            op_id="memory.write",
             summary="Write one memory record scoped to the caller's own tenant",
             examples=("remember this for later",),
             params=MemoryWriteParams,
             result=MemoryResult,
-            binding=Composite(handler="graph_os.api.ops.memory.handle_memory_write"),
-            scopes=frozenset({"memory:write"}),
-            effect=Effect.WRITE,
-            idempotency=Idempotency.KEY_REQUIRED,
-            audit=AuditClass.EVENT,
+            handler="graph_os.api.ops.memory.handle_memory_write",
+            scope="memory:write",
         ),
     )
 

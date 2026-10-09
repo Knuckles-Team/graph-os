@@ -23,15 +23,8 @@ from typing import Any
 
 from pydantic import Field
 
-from graph_os.api.ops._common import Params
-from graph_os.api.registry import (
-    AuditClass,
-    Composite,
-    Effect,
-    Idempotency,
-    OpSpec,
-    Verb,
-)
+from graph_os.api.ops._common import Params, build_read_op, build_write_op
+from graph_os.api.registry import OpSpec, Verb
 
 
 class WorkItemsListParams(Params):
@@ -89,42 +82,35 @@ async def handle_work(
 
 
 def operations() -> tuple[OpSpec, ...]:
-    handler = Composite(handler="graph_os.api.ops.work.handle_work")
+    handler = "graph_os.api.ops.work.handle_work"
     return (
-        OpSpec(
-            id="work.items.list",
-            verb=Verb.FIND,
+        build_read_op(
+            op_id="work.items.list",
             summary="List this tenant's bound work items",
             examples=("list my work items",),
             params=WorkItemsListParams,
             result=WorkResult,
-            binding=handler,
-            scopes=frozenset({"work:read"}),
-            effect=Effect.READ,
+            handler=handler,
+            scope="work:read",
+            verb=Verb.FIND,
         ),
-        OpSpec(
-            id="work.items.get",
-            verb=Verb.ASK,
+        build_read_op(
+            op_id="work.items.get",
             summary="Get one owned work item",
             examples=("show this work item",),
             params=WorkItemRefParams,
             result=WorkResult,
-            binding=handler,
-            scopes=frozenset({"work:read"}),
-            effect=Effect.READ,
+            handler=handler,
+            scope="work:read",
         ),
-        OpSpec(
-            id="work.offers.create",
-            verb=Verb.ACT,
+        build_write_op(
+            op_id="work.offers.create",
             summary="Create an offer against an owned work item",
             examples=("offer to take this work item",),
             params=WorkOfferCreateParams,
             result=WorkResult,
-            binding=handler,
-            scopes=frozenset({"work:write"}),
-            effect=Effect.WRITE,
-            idempotency=Idempotency.KEY_REQUIRED,
-            audit=AuditClass.EVENT,
+            handler=handler,
+            scope="work:write",
         ),
     )
 

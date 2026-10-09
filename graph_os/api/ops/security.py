@@ -14,12 +14,10 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict
 
-from graph_os.api.ops._common import Params, build_tenant_read_op, handle_tenant_read
+from graph_os.api.ops._common import build_tenant_read_op, handle_tenant_read, read_op_models
 from graph_os.api.registry import OpSpec
 
-
-class SecurityPostureReadParams(Params):
-    pass
+SecurityPostureReadParams, SecurityPostureReadResult = read_op_models("SecurityPostureRead")
 
 
 class SecurityPosture(BaseModel):
@@ -29,10 +27,6 @@ class SecurityPosture(BaseModel):
 
     tenant: str
     findings: tuple[str, ...] = ()
-
-
-class SecurityPostureReadResult(Params):
-    value: dict[str, Any]
 
 
 @runtime_checkable

@@ -1,8 +1,9 @@
-"""Focused authority tests for the policy and swarm read ports.
+"""Focused authority tests for the policy and swarm read ports (GRAPHOS-OPS-R021.3).
 
-Covers GRAPHOS-OPS-R021.3 (policy and swarm read operations): each is a
-single caller-scoped, read-only operation bound to one typed port, matching
-the ingest-runner-facade convention (GRAPHOS-OPS-R020.1/R020.2).
+``policy.read`` and ``swarm.topology.read`` are each a lone caller-scoped
+port bound through ``tests/api/_ops_support.py``'s ``tenant_reader_context``;
+see ``graph_os.api.ops.ingest`` for the facade convention they follow
+(GRAPHOS-OPS-R020.1/R020.2).
 """
 
 from __future__ import annotations
