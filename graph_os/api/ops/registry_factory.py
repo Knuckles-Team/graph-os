@@ -32,6 +32,8 @@ def get_registry() -> Registry:
         security,
         telemetry,
         usage,
+        policy,
+        swarm,
     )
 
     curated: list[OpSpec] = []
@@ -46,6 +48,8 @@ def get_registry() -> Registry:
         security,
         telemetry,
         usage,
+        policy,
+        swarm,
     ):
         for op in module.operations():
             if isinstance(op.binding, Composite):

@@ -20,6 +20,8 @@ from graph_os.api.ops import (
     security,
     telemetry,
     usage,
+    policy,
+    swarm,
 )
 from graph_os.api.registry import (
     Composite,
@@ -61,7 +63,9 @@ def provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pat
             "ingest:read",
             "decide:commit",
             "telemetry:read",
+            "policy:read",
             "usage:read",
+            "swarm:read",
         )
     )
     scope_path.write_text(json.dumps(document))
@@ -89,6 +93,8 @@ def test_no_argument_factory_is_deterministic_and_complete(
         *security.operations(),
         *telemetry.operations(),
         *usage.operations(),
+        *policy.operations(),
+        *swarm.operations(),
     )
     assert {op.id for op in first} == {op.id for op in declared} | {
         "eg.query.Read",
