@@ -17,12 +17,12 @@ from graph_os.api.ops import (
     fleet,
     get_registry,
     ingest,
+    memory,
+    policy,
     security,
+    swarm,
     telemetry,
     usage,
-    policy,
-    swarm,
-    memory,
 )
 from graph_os.api.registry import (
     Composite,

@@ -29,11 +29,12 @@ def get_registry() -> Registry:
         decide,
         fleet,
         ingest,
+        memory,
+        policy,
         security,
+        swarm,
         telemetry,
         usage,
-        policy,
-        swarm,
     )
 
     curated: list[OpSpec] = []
@@ -45,14 +46,13 @@ def get_registry() -> Registry:
         decide,
         fleet,
         ingest,
+        memory,
+        policy,
         security,
+        swarm,
         telemetry,
         usage,
-        policy,
-        swarm,
     ):
-    from . import access, agents, browser, capacity, decide, fleet, ingest, memory
-    for module in (access, agents, browser, capacity, decide, fleet, ingest, memory):
         for op in module.operations():
             if isinstance(op.binding, Composite):
                 namespace, _, name = op.binding.handler.rpartition(".")
