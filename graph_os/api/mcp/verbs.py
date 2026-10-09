@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -164,6 +164,48 @@ async def _try_find_discovery(
     return _envelope(found, projection.registry)
 
 
+def _is_nl_fallback(resolution: Any, op: str | None) -> bool:
+    """True when the resolver fell back to the free-text NL path for ``op``."""
+
+    return bool(
+        resolution is not None
+        and getattr(resolution, "fallback", False)
+        and op == NL_FALLBACK_OP_ID
+    )
+
+
+def _candidate_descriptors(
+    verb: str, projection: MCPProjection, visible: Sequence[Any]
+) -> list[Any]:
+    """Describe the visible ops, adding the synthetic NL descriptor for ``ask``."""
+
+    candidates = [describe_op(item) for item in visible]
+    if verb == "ask" and projection.nl_query is not None:
+        candidates = [*candidates, nl_fallback_descriptor()]
+    return candidates
+
+
+def _missing_required_preview(
+    projection: MCPProjection, resolved_op: str, resolution: Any
+) -> dict[str, Any]:
+    """Build the preview envelope for a resolution still missing required params."""
+
+    return _envelope(
+        {
+            "preview": True,
+            "op": resolved_op,
+            "params": resolution.params,
+            "missing_required": list(resolution.missing_required),
+        },
+        projection.registry,
+        meta={
+            "resolved_op": resolved_op,
+            "alternatives": list(resolution.alternatives),
+            "why": resolution.why,
+        },
+    )
+
+
 async def _resolve_op(
     verb: str,
     projection: MCPProjection,
@@ -198,34 +240,19 @@ async def _resolve_op(
             None,
             _refusal("POLICY_UNAVAILABLE", projection, caller, verb),
         )
-    candidates = [describe_op(item) for item in visible]
-    if verb == "ask" and projection.nl_query is not None:
-        candidates = [*candidates, nl_fallback_descriptor()]
+    candidates = _candidate_descriptors(verb, projection, visible)
     resolution = projection.resolver.resolve(
         verb, intent, candidates, scope_ref=scope_ref, params=arguments
     )
     resolved_op = resolution.op
     if not resolved_op:
         return "", arguments, None, _refusal("UNKNOWN_OP", projection, caller, verb)
-    if getattr(resolution, "fallback", False) and resolved_op == NL_FALLBACK_OP_ID:
+    if _is_nl_fallback(resolution, resolved_op):
         return resolved_op, resolution.params, resolution, None
     resolved_arguments = resolution.params
     if not resolution.missing_required:
         return resolved_op, resolved_arguments, resolution, None
-    preview = _envelope(
-        {
-            "preview": True,
-            "op": resolved_op,
-            "params": resolved_arguments,
-            "missing_required": list(resolution.missing_required),
-        },
-        projection.registry,
-        meta={
-            "resolved_op": resolved_op,
-            "alternatives": list(resolution.alternatives),
-            "why": resolution.why,
-        },
-    )
+    preview = _missing_required_preview(projection, resolved_op, resolution)
     return resolved_op, resolved_arguments, resolution, preview
 
 
@@ -307,6 +334,46 @@ async def _invoke_nl_fallback(
     )
 
 
+async def _dispatch_resolved_op(
+    verb: str,
+    projection: MCPProjection,
+    caller: Any,
+    op: str,
+    arguments: Mapping[str, Any],
+    *,
+    execute: bool,
+    resolution: Any,
+    plan_ref: str | None,
+    idempotency_key: str | None,
+) -> dict[str, Any]:
+    """Validate the resolved op against the verb, then preview or invoke it."""
+
+    selected = projection.registry.get(op)
+    if selected is None:
+        return _refusal("UNKNOWN_OP", projection, caller, op)
+    if selected.verb.value != verb:
+        return _refusal("VERB_MISMATCH", projection, caller, op)
+    if not execute:
+        return _envelope(
+            {
+                "preview": True,
+                "op": op,
+                "params": arguments,
+                "spec": describe_op(selected),
+            },
+            projection.registry,
+        )
+    return await _invoke_and_render(
+        projection,
+        caller,
+        op,
+        arguments,
+        plan_ref=plan_ref,
+        idempotency_key=idempotency_key,
+        resolution=resolution,
+    )
+
+
 async def dispatch_verb(
     verb: str,
     projection: MCPProjection,
@@ -347,35 +414,18 @@ async def dispatch_verb(
     )
     if refusal is not None:
         return refusal
-    if (
-        resolution is not None
-        and getattr(resolution, "fallback", False)
-        and op == NL_FALLBACK_OP_ID
-    ):
+    if _is_nl_fallback(resolution, op):
         return await _invoke_nl_fallback(projection, caller, intent or "", execute)
-    selected = projection.registry.get(op)
-    if selected is None:
-        return _refusal("UNKNOWN_OP", projection, caller, op)
-    if selected.verb.value != verb:
-        return _refusal("VERB_MISMATCH", projection, caller, op)
-    if not execute:
-        return _envelope(
-            {
-                "preview": True,
-                "op": op,
-                "params": arguments,
-                "spec": describe_op(selected),
-            },
-            projection.registry,
-        )
-    return await _invoke_and_render(
+    return await _dispatch_resolved_op(
+        verb,
         projection,
         caller,
         op,
         arguments,
+        execute=execute,
+        resolution=resolution,
         plan_ref=plan_ref,
         idempotency_key=idempotency_key,
-        resolution=resolution,
     )
 
 
