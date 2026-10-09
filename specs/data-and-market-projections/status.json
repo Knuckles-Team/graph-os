@@ -10,14 +10,22 @@
     "GRAPHOS-DATA-MARKET-R005",
     "GRAPHOS-DATA-MARKET-R006"
   ],
-  "delivery_state": "BUILDING",
+  "delivery_state": "LANDED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
+  "evidence": [
+    {
+      "kind": "merged_head",
+      "result": "passed",
+      "commit": "e61c0e3df8b79a5eec337e931b25ba2e47584b3e",
+      "url": "https://github.com/Knuckles-Team/graph-os/commit/e61c0e3df8b79a5eec337e931b25ba2e47584b3e",
+      "description": "Every requirement in this spec is merged to the default branch."
+    }
+  ],
   "requirements": [
     {
       "id": "GRAPHOS-DATA-MARKET-R001",
       "title": "Durable, deduplicated flip alert delivery",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -25,6 +33,13 @@
           "commit": "ebbc7e3e38470d3027668843d61b7332079a963d",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/ebbc7e3e38470d3027668843d61b7332079a963d",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "e61c0e3df8b79a5eec337e931b25ba2e47584b3e",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e61c0e3df8b79a5eec337e931b25ba2e47584b3e",
+          "description": "GRAPHOS-DATA-MARKET-R001 merged to the default branch in this commit."
         }
       ]
     },
@@ -101,8 +116,16 @@
     {
       "id": "GRAPHOS-DATA-MARKET-R006",
       "title": "Recurring DCA plans with deterministic, non-duplicating proposals",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "35385208a6190208f2839f6b36a07da835b07b1c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/35385208a6190208f2839f6b36a07da835b07b1c",
+          "description": "GRAPHOS-DATA-MARKET-R006 merged to the default branch in this commit."
+        }
+      ]
     }
   ]
 }
