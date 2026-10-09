@@ -51,6 +51,8 @@ def get_registry() -> Registry:
         policy,
         swarm,
     ):
+    from . import access, agents, browser, capacity, decide, fleet, ingest, memory
+    for module in (access, agents, browser, capacity, decide, fleet, ingest, memory):
         for op in module.operations():
             if isinstance(op.binding, Composite):
                 namespace, _, name = op.binding.handler.rpartition(".")
