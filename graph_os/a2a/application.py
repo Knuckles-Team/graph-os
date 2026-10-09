@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, Protocol, runtime_checkable
 
 from fastapi import FastAPI, Request
@@ -13,8 +14,8 @@ from .authority import (
     A2AStreamingUnavailable,
     A2ATaskNotCancelable,
 )
-from .models import A2AMessage
-from .routing import A2AAssemblyUnavailable
+from .models import A2AMessage, A2AOperationInvokeParams, A2APlanConfirmParams
+from .routing import A2AAssemblyUnavailable, A2AOperationBridgeUnavailable
 from .service import A2AService
 
 __all__ = [
@@ -95,6 +96,64 @@ async def _request_envelope(
     return request_id, method, params
 
 
+async def _send_message(service: A2AService, request: Request, raw_params: Any) -> Any:
+    send_params = _SendParams.model_validate(raw_params)
+    key = request.headers.get("Idempotency-Key", "")
+    if not key:
+        raise ValueError("Idempotency-Key is required")
+    return await service.send_message(
+        message=send_params.message,
+        idempotency_key=key,
+        context_budget_tokens=send_params.context_budget_tokens,
+    )
+
+
+async def _get_task(service: A2AService, raw_params: Any, request_id: Any) -> Any:
+    task_params = _TaskParams.model_validate(raw_params)
+    result = await service.get_task(task_params.id)
+    return result or _error(request_id, -32001, "Task not found", 404)
+
+
+def _resubscribe_stub(raw_params: Any) -> Any:
+    # Registered in the method table (GRAPHOS-A2A-R001) but fail-closed:
+    # durable streaming has no bounded, restart-safe event-cursor backing
+    # yet. Params are still validated so a malformed call is rejected as
+    # invalid, not treated as an unreachable method.
+    _ResubscribeParams.model_validate(raw_params)
+    raise A2AStreamingUnavailable(
+        "durable task streaming and resubscribe are not available yet"
+    )
+
+
+def _op_invoke_stub(raw_params: Any) -> Any:
+    # Registered in the method table (GRAPHOS-A2A-R006) but fail-closed:
+    # the shared hosted-operation registry's invoke path is not bridged in
+    # yet. Params are still validated so a malformed call is rejected as
+    # invalid, not treated as an unreachable method.
+    A2AOperationInvokeParams.model_validate(raw_params)
+    raise A2AOperationBridgeUnavailable(
+        "graphos.op/invoke is not bridged to the shared operation registry yet"
+    )
+
+
+def _plan_confirm_stub(raw_params: Any) -> Any:
+    # Registered in the method table (GRAPHOS-A2A-R005/R006) but
+    # fail-closed: the signed human approval exchange is not implemented
+    # end to end yet, so no approval attempt may succeed.
+    A2APlanConfirmParams.model_validate(raw_params)
+    raise A2AOperationBridgeUnavailable(
+        "graphos.plan/confirm is not available until the signed approval "
+        "exchange is implemented end to end"
+    )
+
+
+_SYNC_METHODS: dict[str, Callable[[Any], Any]] = {
+    "tasks/resubscribe": _resubscribe_stub,
+    "graphos.op/invoke": _op_invoke_stub,
+    "graphos.plan/confirm": _plan_confirm_stub,
+}
+
+
 async def _invoke_method(
     service: A2AService,
     request: Request,
@@ -104,19 +163,9 @@ async def _invoke_method(
 ) -> Any:
     """Validate and invoke one unary method on the shared service."""
     if method == "message/send":
-        send_params = _SendParams.model_validate(raw_params)
-        key = request.headers.get("Idempotency-Key", "")
-        if not key:
-            raise ValueError("Idempotency-Key is required")
-        return await service.send_message(
-            message=send_params.message,
-            idempotency_key=key,
-            context_budget_tokens=send_params.context_budget_tokens,
-        )
+        return await _send_message(service, request, raw_params)
     if method == "tasks/get":
-        task_params = _TaskParams.model_validate(raw_params)
-        result = await service.get_task(task_params.id)
-        return result or _error(request_id, -32001, "Task not found", 404)
+        return await _get_task(service, raw_params, request_id)
     if method == "tasks/list":
         list_params = _ListParams.model_validate(raw_params)
         return await service.list_tasks(
@@ -125,28 +174,27 @@ async def _invoke_method(
     if method == "tasks/cancel":
         cancel_params = _TaskParams.model_validate(raw_params)
         return await service.cancel_task(cancel_params.id)
-    if method == "tasks/resubscribe":
-        # Registered in the method table (GRAPHOS-A2A-R001) but fail-closed:
-        # durable streaming has no bounded, restart-safe event-cursor
-        # backing yet. Params are still validated so a malformed call is
-        # rejected as invalid, not treated as an unreachable method.
-        _ResubscribeParams.model_validate(raw_params)
-        raise A2AStreamingUnavailable(
-            "durable task streaming and resubscribe are not available yet"
-        )
+    sync_handler = _SYNC_METHODS.get(method)
+    if sync_handler is not None:
+        return sync_handler(raw_params)
     return _error(request_id, -32601, "Method not found", 404)
+
+
+_ERROR_CODES: dict[type[Exception], tuple[int, int]] = {
+    A2AIdempotencyConflict: (-32009, 409),
+    A2AAssemblyUnavailable: (-32003, 503),
+    A2ATaskNotCancelable: (-32002, 409),
+    A2AStreamingUnavailable: (-32010, 501),
+    A2AOperationBridgeUnavailable: (-32011, 501),
+}
 
 
 def _application_error(request_id: Any, error: Exception) -> JSONResponse:
     """Translate known service failures without echoing caller input."""
-    if isinstance(error, A2AIdempotencyConflict):
-        return _error(request_id, -32009, str(error), 409)
-    if isinstance(error, A2AAssemblyUnavailable):
-        return _error(request_id, -32003, str(error), 503)
-    if isinstance(error, A2ATaskNotCancelable):
-        return _error(request_id, -32002, str(error), 409)
-    if isinstance(error, A2AStreamingUnavailable):
-        return _error(request_id, -32010, str(error), 501)
+    mapped = _ERROR_CODES.get(type(error))
+    if mapped is not None:
+        code, status = mapped
+        return _error(request_id, code, str(error), status)
     # Pydantic errors may echo caller text in ``input_value``. Keep the wire
     # error stable and privacy-safe; details belong in local logs.
     return _error(request_id, -32602, "Invalid params")
@@ -172,7 +220,8 @@ def create_a2a_handlers(
         if isinstance(envelope, JSONResponse):
             return envelope
         request_id, method, raw_params = envelope
-        scope = "kg:write" if method in {"message/send", "tasks/cancel"} else "kg:read"
+        write_methods = {"message/send", "tasks/cancel", "graphos.plan/confirm"}
+        scope = "kg:write" if method in write_methods else "kg:read"
         await authenticator.authenticate(request, scope=scope)
         try:
             result = await _invoke_method(
@@ -181,6 +230,7 @@ def create_a2a_handlers(
         except (
             A2AIdempotencyConflict,
             A2AAssemblyUnavailable,
+            A2AOperationBridgeUnavailable,
             A2AStreamingUnavailable,
             A2ATaskNotCancelable,
             ValidationError,
