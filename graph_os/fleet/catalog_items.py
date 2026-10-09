@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -23,6 +25,7 @@ class CatalogItem:
     description: str = ""
     server: str | None = None
     schema: Mapping[str, Any] = field(default_factory=dict)
+    schema_fingerprint: str | None = None
     required_scopes: frozenset[str] = frozenset()
     body: str | None = field(default=None, repr=False)
     op: str | None = None
@@ -44,6 +47,8 @@ class CatalogItem:
             result["server"] = self.server
         if self.schema:
             result["input_schema"] = dict(self.schema)
+        if self.schema_fingerprint is not None:
+            result["schema_fingerprint"] = self.schema_fingerprint
         if self.op is not None:
             result["op"] = self.op
             result["params"] = dict(self.params)
@@ -200,19 +205,38 @@ def items_from_eg_catalog(snapshot: Any) -> tuple[CatalogItem, ...]:
     return tuple(items)
 
 
+def compute_schema_fingerprint(schema: Mapping[str, Any]) -> str:
+    """Canonical SHA-256 digest of a tool's actual served input schema.
+
+    GRAPHOS-FLEET-R002: every fleet tool pin's schema fingerprint must be
+    computed from the tool's real served schema rather than an empty
+    placeholder. An empty mapping never had a schema served for it, so
+    fingerprinting one would certify a placeholder as if it were real;
+    refuse instead.
+    """
+    if not schema:
+        raise ValueError("cannot fingerprint an empty schema")
+    canonical = json.dumps(dict(schema), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
 def _probed_item(
     server: str, kind: ItemKind, row: Mapping[str, Any]
 ) -> CatalogItem | None:
     name = row.get("name") or row.get("uri") or row.get("uriTemplate")
     if not isinstance(name, str) or not name:
         return None
+    schema = row.get("inputSchema") or {}
     return CatalogItem(
         id=f"fleet:{kind}:{server}/{name}",
         kind=kind,
         name=name,
         description=str(row.get("description") or ""),
         server=server,
-        schema=row.get("inputSchema") or {},
+        schema=schema,
+        schema_fingerprint=(
+            compute_schema_fingerprint(schema) if kind == "tool" and schema else None
+        ),
         annotations=(
             dict(row["annotations"])
             if isinstance(row.get("annotations"), Mapping)

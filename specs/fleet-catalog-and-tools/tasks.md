@@ -10,6 +10,7 @@ Check a task only after its linked code and tests land. A checked source task is
 - [ ] T06 — Install embedded/remote Eunomia policy in graph-os; prove exact scopes and principal rules at discover/load/call and fail-closed outage behavior. Cover GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R021.
 - [ ] T07 — Add atomic generation refresh, durable ordered delta receipts, last-known-good fallback, in-flight drain, replay, and replica convergence. Cover GRAPHOS-FLEET-R022 and PA-12.
 - [ ] T08 — Certify actual connector schemas and annotations; expose typed write-back and sanitized telemetry/security/CI feed metadata through registry ops. Cover GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R008.
+  - [x] GRAPHOS-FLEET-R002.1 (child, producer): `graph_os/fleet/catalog_items.py` (`compute_schema_fingerprint`, `CatalogItem.schema_fingerprint`, wired into `_probed_item`) + `tests/fleet/test_schema_fingerprint.py`.
 - [ ] T09 — Correct generated assembly agent parsing and all-or-nothing capacity admission, one re-decision, and release on stop. Cover GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010.
 - [ ] T10 — Run clean-checkout format/lint/types/tests, generated artifact and public-surface checks, CCCC, KISS, jscpd, dupehound, authority parity, and local served protocol matrix. Cover GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017.
 - [ ] T11 — Land reviewed code and record merge commits per slice in `spec.md`; do not mark ACCEPTED on source evidence alone.
