@@ -28,6 +28,9 @@
     "PA-12",
     "GRAPHOS-FLEET-R023",
     "GRAPHOS-FLEET-R024",
+    "GRAPHOS-FLEET-R024.1",
+    "GRAPHOS-FLEET-R024.2",
+    "GRAPHOS-FLEET-R024.3",
     "GRAPHOS-FLEET-R025",
     "GRAPHOS-FLEET-R026",
     "GRAPHOS-FLEET-R027",
@@ -295,7 +298,25 @@
     },
     {
       "id": "GRAPHOS-FLEET-R024",
-      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS",
+      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024.1",
+      "title": "Deploy-watch verdict is a typed GraphOS operation",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024.2",
+      "title": "Remaining fleet reconciler, autoscaler, scaling-authority and deploy-watch scheduling behavior is served by GraphOS",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024.3",
+      "title": "Agent runtime no longer ships the superseded fleet modules (cross-repo)",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
