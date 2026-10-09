@@ -55,7 +55,11 @@ data:
   KG_DAEMON_ROLE: "client"
   {{- else if include "graph-os.sidecar" . }}
   GRAPH_SERVICE_ENDPOINTS: "unix:///run/epistemic-graph/epistemic-graph.sock"
-  KG_DAEMON_ROLE: "host"
+  {{- /* GRAPHOS-DEPLOY-R016: the dedicated daemon container (graphos.yaml)
+         holds the host role via its own env override; this shared
+         ConfigMap's default keeps the graphos serving container at client
+         so it never races the daemon for the host lock. */}}
+  KG_DAEMON_ROLE: {{ if .Values.daemon.enabled }}"client"{{ else }}"host"{{ end }}
   {{- else }}
   # child placement: graph-os starts and supervises the engine itself.
   GRAPH_SERVICE_ENDPOINTS: ""
