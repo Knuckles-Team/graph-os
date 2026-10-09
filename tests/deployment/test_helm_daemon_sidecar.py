@@ -46,6 +46,7 @@ def _container(pod_spec: dict[str, Any], name: str) -> dict[str, Any] | None:
     )
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R016")
 def test_daemon_container_takes_host_role_in_sidecar_mode(tmp_path: Path) -> None:
     documents = _render(
         tmp_path,
@@ -61,6 +62,7 @@ def test_daemon_container_takes_host_role_in_sidecar_mode(tmp_path: Path) -> Non
     )
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R016")
 @pytest.mark.parametrize("mode", ["child", "shared"])
 def test_daemon_container_absent_outside_sidecar_mode(
     tmp_path: Path, mode: str
@@ -80,6 +82,7 @@ def test_daemon_container_absent_outside_sidecar_mode(
     assert _configmap_role(documents) == ("host" if mode == "child" else "client")
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R016")
 def test_daemon_disabled_falls_back_to_pre_r016_single_container(
     tmp_path: Path,
 ) -> None:

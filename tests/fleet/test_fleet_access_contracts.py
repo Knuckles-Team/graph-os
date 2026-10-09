@@ -79,6 +79,7 @@ def _pack() -> _Pack:
     )
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R030")
 def test_registers_unapproved_mappings(fake_sdk) -> None:
     catalog = VirtualCatalog()
     added = ac.register_access_contracts(
@@ -94,6 +95,7 @@ def test_registers_unapproved_mappings(fake_sdk) -> None:
     assert catalog.mapping_for(CLS, ontology) is None
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R030")
 def test_repeat_pass_adds_no_duplicate(fake_sdk) -> None:
     catalog = VirtualCatalog()
     ac.register_access_contracts(_pack(), connector="t", catalog=catalog)
@@ -101,6 +103,7 @@ def test_repeat_pass_adds_no_duplicate(fake_sdk) -> None:
     assert len(catalog.mappings) == 2
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R030")
 def test_missing_sdk_module_skips(monkeypatch) -> None:
     monkeypatch.delitem(
         sys.modules, "agent_connector_sdk.access_contract", raising=False
@@ -118,6 +121,7 @@ def test_missing_sdk_module_skips(monkeypatch) -> None:
     assert catalog.mappings == []
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R027")
 def test_onboarding_registers_after_import(fake_sdk, monkeypatch) -> None:
     import asyncio
 

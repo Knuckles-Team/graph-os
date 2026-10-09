@@ -70,6 +70,7 @@ async def test_forwarder_preserves_child_tool_error_as_outer_error(
     assert fixture.dispatches == ["fleet.call"]
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R029", "GRAPHOS-DEPLOY-R004")
 @pytest.mark.asyncio
 async def test_remove_host_forwarder_converges_only_after_verified_absence(
     tmp_path, caplog, monkeypatch: pytest.MonkeyPatch
@@ -237,6 +238,7 @@ def _mux_with_children(tmp_path, tool_map: dict[str, list[tuple[str, str]]]):
 # --------------------------------------------------------------------------- #
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R004")
 def test_load_catalog_excludes_self_and_disabled(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
     catalog = mux.load_catalog()
@@ -314,6 +316,7 @@ def test_load_catalog_still_rejects_when_neither_ref_nor_direct_key_present(
     assert "langfuse_credentials_missing" in caplog.text
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R021")
 async def test_mount_child_lazy_and_idempotent(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
 
@@ -412,6 +415,7 @@ async def test_recovered_child_replaces_exposed_schema_without_catalog_polling(
     await mux.aclose()
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R021")
 @pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     tmp_path, monkeypatch
@@ -470,6 +474,7 @@ async def test_schema_refresh_failure_fails_closed_without_stranding_transport(
     await mux.aclose()
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R021", "GRAPHOS-FLEET-R029")
 @pytest.mark.usefixtures("stdio_fleet_authority")
 async def test_schema_refresh_rolls_back_partial_host_registration_atomically(
     tmp_path, monkeypatch
@@ -1174,6 +1179,7 @@ async def test_list_catalog_single_server_drilldown(tmp_path):
     assert tool["description"] == "manage containers"
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R029")
 async def test_list_catalog_unknown_server(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "c")]})
     mux._kg_call = AsyncMock(return_value=None)
@@ -1600,6 +1606,7 @@ async def test_notify_tools_changed_returns_false_without_request_context():
     assert sent is False
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R004")
 async def test_notify_tools_changed_surfaces_send_failure(monkeypatch, caplog):
     """A LIVE client that rejects/drops the push must be visible via the
     return value (and logged with its real cause) — never swallowed into

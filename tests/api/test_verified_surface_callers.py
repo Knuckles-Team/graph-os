@@ -40,6 +40,7 @@ def attended_caller():
     ("age_ms", "eligible"),
     [(0, True), (900_000, True), (900_001, False), (-1, False)],
 )
+@pytest.mark.spec("GRAPHOS-IDENTITY-R003")
 def test_console_stepup_exact_freshness_boundary(
     monkeypatch, attended_caller, age_ms, eligible
 ):
@@ -61,6 +62,7 @@ def test_console_stepup_exact_freshness_boundary(
         {"origin": "null"},
     ],
 )
+@pytest.mark.spec("GRAPHOS-IDENTITY-R003")
 def test_console_needs_server_admission_cookie_and_exact_origin(
     monkeypatch, attended_caller, request_facts
 ):
@@ -81,6 +83,7 @@ def test_console_needs_server_admission_cookie_and_exact_origin(
         ("mfa_at_ms", None),
     ],
 )
+@pytest.mark.spec("GRAPHOS-IDENTITY-R003")
 def test_console_rejects_unattended_authority(
     monkeypatch, attended_caller, field, value
 ):

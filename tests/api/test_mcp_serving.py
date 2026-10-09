@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
 from pydantic import BaseModel, ConfigDict
 
 from graph_os.api.invoke import InvokeServices, invoke
@@ -52,6 +53,7 @@ LIVE_CONTRACT_TOOL_NAMES = frozenset(
 )
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R023", "GRAPHOS-HOST-R024", "GRAPHOS-HOST-R025")
 def test_register_intent_surface_matches_the_live_tool_contract() -> None:
     from fastmcp import FastMCP
 
@@ -202,6 +204,7 @@ def _build_projection(op: OpSpec) -> tuple[MCPProjection, _FixtureRuntime]:
     return projection, runtime
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R023", "GRAPHOS-HOST-R024", "GRAPHOS-HOST-R025")
 def test_dispatch_runs_through_the_real_invocation_pipeline() -> None:
     """``ask`` on a real op reaches the real ``invoke`` pipeline, not a stub."""
 
@@ -214,6 +217,7 @@ def test_dispatch_runs_through_the_real_invocation_pipeline() -> None:
     assert runtime.calls == [("example.ask", {"value": 7})]
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R023", "GRAPHOS-HOST-R024", "GRAPHOS-HOST-R025")
 def test_unauthenticated_caller_is_refused_before_the_pipeline() -> None:
     projection, runtime = _build_projection(_operation())
     unauthenticated = replace_caller_for_request(projection, authenticated=False)

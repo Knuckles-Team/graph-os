@@ -66,6 +66,7 @@ def hook_repo(tmp_path: Path) -> Path:
     return repo
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R003")
 def test_generated_shim_matches_the_known_template(hook_repo: Path) -> None:
     shim = hook_repo / ".git" / "hooks" / "pre-push"
     text = shim.read_text(encoding="utf-8")
@@ -74,6 +75,7 @@ def test_generated_shim_matches_the_known_template(hook_repo: Path) -> None:
     assert "--hook-type=pre-push" in text
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R003")
 def test_shim_runs_the_configured_gate_and_fails_closed(hook_repo: Path) -> None:
     shim = hook_repo / ".git" / "hooks" / "pre-push"
     result = subprocess.run(
@@ -87,6 +89,7 @@ def test_shim_runs_the_configured_gate_and_fails_closed(hook_repo: Path) -> None
     assert "audit-marker-gate" in result.stdout + result.stderr
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R003")
 def test_shim_fails_loudly_when_config_is_relocated(hook_repo: Path) -> None:
     shim = hook_repo / ".git" / "hooks" / "pre-push"
     config = hook_repo / ".pre-commit-config.yaml"

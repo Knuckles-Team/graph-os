@@ -25,6 +25,7 @@ _COMPLETE_ENTRY = {
 }
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R004")
 def test_every_pack_item_carries_all_required_annotations_fleet_wide() -> None:
     entries = [
         {**_COMPLETE_ENTRY, "pack": "p1", "name": "one"},
@@ -41,6 +42,7 @@ def test_every_pack_item_carries_all_required_annotations_fleet_wide() -> None:
             assert value not in (None, ""), f"{field_name} is empty for {item.id}"
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R004")
 def test_nested_annotations_mapping_is_also_accepted() -> None:
     entry = {
         "pack": "p",
@@ -58,6 +60,7 @@ def test_nested_annotations_mapping_is_also_accepted() -> None:
     assert item.annotations == entry["annotations"]
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R004")
 @pytest.mark.parametrize("missing_field", PACK_ANNOTATION_FIELDS)
 def test_missing_annotation_field_fails_closed(missing_field: str) -> None:
     entry = {k: v for k, v in _COMPLETE_ENTRY.items() if k != missing_field}

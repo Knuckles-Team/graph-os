@@ -466,6 +466,7 @@ def test_permission_governance_doctor_verifies_authority(monkeypatch):
     assert result["data"]["policy_count"] == 5
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R019")
 def test_eunomia_doctor_warns_when_narrowing_policy_is_off(monkeypatch):
     monkeypatch.setattr(
         "agent_utilities.core.config.AgentConfig",

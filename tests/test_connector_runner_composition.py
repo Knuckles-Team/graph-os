@@ -90,6 +90,7 @@ PACK_AUTHORITY = cast(PackImportAuthorityResolver, pack_import_authority)
         ({"auth_secret_ref": "literal-secret"}, "secret reference"),
     ],
 )
+@pytest.mark.spec("GRAPHOS-DEPLOY-R014")
 def test_config_refuses_missing_ambiguous_or_literal_auth(
     tmp_path: Path, overrides: dict[str, object], message: str
 ) -> None:
@@ -97,6 +98,7 @@ def test_config_refuses_missing_ambiguous_or_literal_auth(
         config(tmp_path, **overrides)
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R014")
 def test_composition_requires_dynamic_pack_import_authority(tmp_path: Path) -> None:
     with pytest.raises(TypeError, match="pack_import_authority is required"):
         ConnectorRunnerComposition(
@@ -106,6 +108,7 @@ def test_composition_requires_dynamic_pack_import_authority(tmp_path: Path) -> N
         )
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R014")
 @pytest.mark.asyncio
 async def test_injects_exact_authenticated_client_and_verified_context(
     tmp_path: Path,

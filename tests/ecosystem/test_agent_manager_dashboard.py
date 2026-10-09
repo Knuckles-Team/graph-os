@@ -12,9 +12,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from graph_os.ecosystem import AgentManagerDashboard, DashboardReport
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R008")
 def test_dashboard_importable_from_package_root() -> None:
     """Reachable via ``graph_os.ecosystem``, matching every sibling module."""
     from graph_os import ecosystem
@@ -23,6 +26,7 @@ def test_dashboard_importable_from_package_root() -> None:
     assert ecosystem.DashboardReport is DashboardReport
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R008")
 def test_run_against_empty_workspace_reports_missing_agents_md(tmp_path: Path) -> None:
     dashboard = AgentManagerDashboard(workspace=tmp_path, engine=None)
     report = dashboard.run()
@@ -36,6 +40,7 @@ def test_run_against_empty_workspace_reports_missing_agents_md(tmp_path: Path) -
     assert agents_md_rows and agents_md_rows[0].status == "error"
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R008")
 def test_run_against_workspace_with_agents_md_is_ok(tmp_path: Path) -> None:
     (tmp_path / "AGENTS.md").write_text("# AGENTS\n", encoding="utf-8")
     dashboard = AgentManagerDashboard(workspace=tmp_path)

@@ -200,6 +200,7 @@ def _run_in_session(coro: Any) -> Any:
         return asyncio.run(coro)
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R026", "GRAPHOS-FLEET-R027", "GRAPHOS-FLEET-R028")
 def test_endpoints_keep_only_enabled_streamable_http_servers() -> None:
     raw = json.dumps(
         {
@@ -223,6 +224,7 @@ def test_endpoints_keep_only_enabled_streamable_http_servers() -> None:
     )
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R026", "GRAPHOS-FLEET-R027", "GRAPHOS-FLEET-R028")
 def test_renewal_reregisters_only_lapsing_or_absent_leases() -> None:
     registry = _Registry(
         leases={
@@ -251,6 +253,7 @@ def test_renewal_reregisters_only_lapsing_or_absent_leases() -> None:
     assert all(params["ttl_secs"] == 86_400 for params, _key in registry.registers)
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R026", "GRAPHOS-FLEET-R028")
 def test_fresh_store_pass_registers_attests_and_imports_each_server(
     eg: _Registry,
 ) -> None:

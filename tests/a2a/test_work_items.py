@@ -28,6 +28,7 @@ _RECORD = {
 }
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 def test_projects_a_real_record_into_a_typed_view() -> None:
     view = work_item_view(_RECORD)
     assert view == WorkItemView(
@@ -41,6 +42,7 @@ def test_projects_a_real_record_into_a_typed_view() -> None:
     )
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 def test_optional_fields_default_when_absent() -> None:
     minimal = {
         "work_item_id": "workitem:orchestrator:x",
@@ -54,6 +56,7 @@ def test_optional_fields_default_when_absent() -> None:
     assert view.metadata == {}
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 @pytest.mark.parametrize("field_name", ["work_item_id", "kind", "tenant", "created_by"])
 def test_missing_required_field_is_refused(field_name: str) -> None:
     record = {k: v for k, v in _RECORD.items() if k != field_name}

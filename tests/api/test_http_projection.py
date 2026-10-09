@@ -60,6 +60,9 @@ def request(
     )
 
 
+@pytest.mark.spec(
+    "GRAPHOS-FLEET-R013", "GRAPHOS-OPS-R011", "GRAPHOS-OPS-R013", "GRAPHOS-OPS-R038"
+)
 async def test_http_params_refuse_duplicate_and_non_object_body() -> None:
     headers = [(b"content-type", b"application/json")]
     assert await _params(
@@ -69,6 +72,9 @@ async def test_http_params_refuse_duplicate_and_non_object_body() -> None:
         await _params(request("POST", "/ops/example", headers, b"[]"), generic=True)
 
 
+@pytest.mark.spec(
+    "GRAPHOS-FLEET-R013", "GRAPHOS-OPS-R011", "GRAPHOS-OPS-R013", "GRAPHOS-OPS-R038"
+)
 def test_openapi_contains_only_supplied_ops() -> None:
     model = SimpleNamespace(model_json_schema=lambda: {"type": "object"})
     op = SimpleNamespace(
@@ -79,6 +85,9 @@ def test_openapi_contains_only_supplied_ops() -> None:
     assert spec["x-registry-digest"] == "abc"
 
 
+@pytest.mark.spec(
+    "GRAPHOS-FLEET-R013", "GRAPHOS-OPS-R011", "GRAPHOS-OPS-R013", "GRAPHOS-OPS-R038"
+)
 def test_protocol_inventory_records_native_surfaces() -> None:
     paths = {item.path for item in PROTOCOL_ROUTES}
     assert {"/a2a", "/mcp", "/health", "/fleet/events", "/scim/v2/{path:path}"} <= paths

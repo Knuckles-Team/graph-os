@@ -83,6 +83,7 @@ def test_webui_co_service_uses_graph_os_host(monkeypatch: pytest.MonkeyPatch) ->
     assert started[0][1].__module__ == "graph_os.webui_host.webui_co_service"
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R011")
 def test_messaging_co_service_reaches_graphos_owned_intake(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -141,6 +142,7 @@ def test_console_script_targets_native_serving_entrypoint() -> None:
     assert 'graph-os = "graph_os.mcp_server.server:mcp_server"' in pyproject.read_text()
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R010")
 def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
     """GraphOS serves its shapes and packaged skills as SDK connector content.
 

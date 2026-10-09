@@ -69,6 +69,7 @@ async def test_lease_listing_uses_verified_tenant() -> None:
     )
 
 
+@pytest.mark.spec("GRAPHOS-IDENTITY-R019")
 def test_operations_require_console_confirmation_for_decisions() -> None:
     pytest.importorskip("graph_os.api.registry")
     from graph_os.api.ops.access import operations

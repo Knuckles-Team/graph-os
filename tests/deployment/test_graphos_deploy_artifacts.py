@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 
+import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +23,7 @@ def _templates() -> str:
     )
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R013")
 def test_chart_is_namespace_safe_and_schema_backed() -> None:
     schema = json.loads((CHART / "values.schema.json").read_text(encoding="utf-8"))
     props = schema["properties"]

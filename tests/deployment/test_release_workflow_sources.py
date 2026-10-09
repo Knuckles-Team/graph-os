@@ -107,6 +107,9 @@ def _manual_hooks_named(commands: str) -> set[str]:
     return named
 
 
+@pytest.mark.spec(
+    "GRAPHOS-A2A-R008", "GRAPHOS-HOST-R016", "GRAPHOS-OPS-R002", "GRAPHOS-OPS-R037"
+)
 def test_release_workflow_materializes_uv_path_sources_before_sync() -> None:
     steps = _gate_steps()
     before_sync = steps[: _step_index(steps, "uv sync --frozen --extra test")]
@@ -128,6 +131,9 @@ def test_release_workflow_materializes_uv_path_sources_before_sync() -> None:
         assert step["with"]["persist-credentials"] is False
 
 
+@pytest.mark.spec(
+    "GRAPHOS-A2A-R008", "GRAPHOS-HOST-R016", "GRAPHOS-OPS-R002", "GRAPHOS-OPS-R037"
+)
 def test_every_uvx_runs_after_a_pinned_uv() -> None:
     for name, job in _workflow()["jobs"].items():
         steps = job["steps"]

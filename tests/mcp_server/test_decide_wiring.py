@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
+import pytest
 from agent_utilities.decide.consumers import assembly, task_planner, topology
 from agent_utilities.knowledge_graph.virtual_graph import federation
 
@@ -45,6 +46,7 @@ def _patch(monkeypatch) -> dict:
     return seen
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R020", "GRAPHOS-HOST-R021", "GRAPHOS-HOST-R022")
 def test_installs_all_four_consumers(monkeypatch) -> None:
     seen = _patch(monkeypatch)
     client = _Client()
@@ -72,6 +74,7 @@ def test_installs_all_four_consumers(monkeypatch) -> None:
     assert catalog is not None and callable(provider)
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R020")
 def test_missing_client_skips_without_raising(monkeypatch) -> None:
     seen = _patch(monkeypatch)
 
@@ -83,6 +86,7 @@ def test_missing_client_skips_without_raising(monkeypatch) -> None:
     assert seen == {}
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R021")
 def test_assembler_fault_skips_planner_but_keeps_cross_source(monkeypatch) -> None:
     seen = _patch(monkeypatch)
 
@@ -103,6 +107,7 @@ def test_assembler_fault_skips_planner_but_keeps_cross_source(monkeypatch) -> No
     assert "topology" not in seen
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R021")
 def test_client_without_sparql_skips_cross_source(monkeypatch) -> None:
     seen = _patch(monkeypatch)
     result = decide_wiring.install_decide_consumers(
@@ -185,6 +190,7 @@ def test_solved_assembly_is_committed_and_published() -> None:
     assert publish_context["purpose_id"] == "agent_library.assembly_publish"
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R022")
 def test_unsolved_assembly_is_never_committed() -> None:
     class _AbstainingGraphs(_FakeGraphs):
         async def assemble(self, request: dict) -> dict:
@@ -221,6 +227,7 @@ class _FakeAssembler:
         )
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R022")
 def test_planned_task_gets_nonempty_skills_and_tools_from_fake_capability_source() -> (
     None
 ):

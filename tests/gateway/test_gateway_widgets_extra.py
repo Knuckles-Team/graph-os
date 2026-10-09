@@ -25,6 +25,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+import pytest
 from packaging.requirements import Requirement
 from setuptools.config.pyprojecttoml import read_configuration
 
@@ -37,6 +38,7 @@ def _extra_requirements(project: dict[str, Any]) -> list[str]:
     return list(optional[EXTRA])
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R006")
 def test_manifest_declares_the_gateway_widgets_extra() -> None:
     data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     optional = data["project"]["optional-dependencies"]
@@ -53,6 +55,7 @@ def test_manifest_declares_the_gateway_widgets_extra() -> None:
         )
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R006")
 def test_gateway_widgets_pins_the_connector_sdk_floor() -> None:
     data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     requirements = {
@@ -71,6 +74,7 @@ def test_gateway_widgets_pins_the_connector_sdk_floor() -> None:
     assert str(requirements["agent-connector-sdk"].specifier) == str(base.specifier)
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R006")
 def test_build_backend_metadata_matches_the_raw_manifest() -> None:
     """The real entry point: setuptools' own pyproject resolution (see PR #63)."""
     resolved = read_configuration(str(PYPROJECT))

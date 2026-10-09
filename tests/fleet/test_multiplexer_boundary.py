@@ -17,11 +17,13 @@ from graph_os.fleet.multiplexer import (
 from tests.fleet.catalog_fixture import multiplexer_from_fixture
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R004")
 def test_noncredential_field_cannot_expand_secret_environment_name() -> None:
     with pytest.raises(RuntimeError, match="credential field"):
         _resolve_runtime_value("${API_TOKEN}", sensitive=False)
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R004")
 def test_fleet_runtime_alias_prefers_direct_projection(monkeypatch) -> None:
     from agent_utilities.core.config import config
 
@@ -47,6 +49,7 @@ def test_fleet_runtime_alias_prefers_direct_projection(monkeypatch) -> None:
     )
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R004")
 def test_fleet_runtime_alias_uses_configured_ref_only_after_direct_miss(
     monkeypatch,
 ) -> None:
@@ -118,6 +121,7 @@ def test_large_but_bounded_child_catalog_is_admitted() -> None:
     assert len(_bounded_tool_catalog(tools)) == 5
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R033")
 def test_catalog_symlink_is_not_executed(tmp_path) -> None:
     target = tmp_path / "target.json"
     target.write_text(json.dumps({"mcpServers": {"child": {"command": "child"}}}))
@@ -130,6 +134,7 @@ def test_catalog_symlink_is_not_executed(tmp_path) -> None:
     assert multiplexer_from_fixture(link).load_catalog() == {}
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R033")
 def test_catalog_rejects_inline_child_credentials(tmp_path) -> None:
     catalog = tmp_path / "catalog.json"
     catalog.write_text(

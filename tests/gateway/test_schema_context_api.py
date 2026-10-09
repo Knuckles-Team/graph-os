@@ -32,6 +32,7 @@ def _valid_body() -> dict[str, object]:
     }
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R005")
 def test_route_is_registered_exactly_once() -> None:
     schema = _app().openapi()
 
@@ -41,6 +42,7 @@ def test_route_is_registered_exactly_once() -> None:
     assert schema["paths"][PATH].keys() == {"post"}
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R005")
 def test_malformed_body_returns_400() -> None:
     client = TestClient(_app())
 
@@ -49,6 +51,7 @@ def test_malformed_body_returns_400() -> None:
     assert response.status_code == 400
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R005")
 def test_non_object_body_returns_400() -> None:
     client = TestClient(_app())
 

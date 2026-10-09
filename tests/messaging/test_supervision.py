@@ -34,6 +34,7 @@ _ILLEGAL_PAIRS = [
 ]
 
 
+@pytest.mark.spec("GRAPHOS-MESSAGING-R001.1", "GRAPHOS-MESSAGING-R002")
 @pytest.mark.parametrize("current,target", _ALL_LEGAL_PAIRS)
 def test_legal_transition_succeeds(
     current: ChannelSupervisionState, target: ChannelSupervisionState
@@ -51,6 +52,7 @@ def test_legal_transition_succeeds(
         (ChannelSupervisionState.RUNNING, ChannelSupervisionState.STARTING),
     ],
 )
+@pytest.mark.spec("GRAPHOS-MESSAGING-R001.1", "GRAPHOS-MESSAGING-R002")
 def test_illegal_transition_refuses(
     current: ChannelSupervisionState, target: ChannelSupervisionState
 ) -> None:
@@ -63,6 +65,7 @@ def test_illegal_transition_refuses(
     assert exc_info.value.target is target
 
 
+@pytest.mark.spec("GRAPHOS-MESSAGING-R001.1", "GRAPHOS-MESSAGING-R002")
 def test_illegal_pairs_is_the_complement_of_the_table() -> None:
     """Every (current, target) pair not in the table is provably illegal,
     and the table is not vacuously empty for any reachable state."""

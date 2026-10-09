@@ -20,6 +20,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+import pytest
+
 import graph_os
 
 _FORBIDDEN_MODULES = (
@@ -53,6 +55,7 @@ def _imported_module_names(tree: ast.Module) -> set[str]:
     return names
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R003")
 def test_no_source_file_imports_the_legacy_au_multiplexer() -> None:
     offenders: dict[str, set[str]] = {}
     for path in _iter_source_files():
@@ -73,6 +76,7 @@ def test_no_source_file_imports_the_legacy_au_multiplexer() -> None:
     )
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R003")
 def test_skill_and_prompt_body_harvest_has_exactly_one_owner_module() -> None:
     owners: dict[str, list[str]] = {}
     for path in _iter_source_files():

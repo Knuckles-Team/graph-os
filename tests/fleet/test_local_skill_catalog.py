@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from graph_os.fleet.local_skill_catalog import (
     build_local_skill_catalog,
     core_pack_names,
@@ -31,6 +33,7 @@ def _write_skill(
     return skill_dir
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R025")
 def test_entry_point_style_provider_lists_its_two_fixture_skills(
     tmp_path: Path,
 ) -> None:
@@ -51,6 +54,7 @@ def test_entry_point_style_provider_lists_its_two_fixture_skills(
     assert one_entry["description"] == "first fixture skill"
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R025")
 def test_universal_skills_style_nested_path_source_is_listed(tmp_path: Path) -> None:
     """universal-skills resolves skills several directories deep
     (``<category>/<name>/SKILL.md``); this module only needs the final
@@ -77,6 +81,7 @@ def test_universal_skills_style_nested_path_source_is_listed(tmp_path: Path) -> 
     ]
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R025")
 def test_malformed_skill_is_reported_and_others_still_load(tmp_path: Path) -> None:
     """One unreadable/oversized skill must not sink the whole catalog build."""
     good = _write_skill(tmp_path, "good-skill", description="loads fine")

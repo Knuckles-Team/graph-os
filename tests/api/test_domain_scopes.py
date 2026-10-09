@@ -31,16 +31,19 @@ from graph_os.api.policy.domain_scopes import (
 from tests.api.test_eg_binding import _fixture
 
 
+@pytest.mark.spec("GRAPHOS-IDENTITY-R002", "GRAPHOS-IDENTITY-R020")
 def test_every_declared_scope_uses_a_shared_scope_class() -> None:
     for scope in GRAPHOS_DOMAIN_SCOPES:
         assert scope.scope_class in SCOPE_CLASSES
 
 
+@pytest.mark.spec("GRAPHOS-IDENTITY-R002", "GRAPHOS-IDENTITY-R020")
 def test_rejects_an_unknown_scope_class() -> None:
     with pytest.raises(ValueError, match="unknown scope class"):
         DomainScope("fleet:events", "superadmin")
 
 
+@pytest.mark.spec("GRAPHOS-IDENTITY-R002", "GRAPHOS-IDENTITY-R020")
 def test_scopes_by_name_indexes_every_declared_scope() -> None:
     indexed = scopes_by_name()
     assert set(indexed) == {scope.name for scope in GRAPHOS_DOMAIN_SCOPES}

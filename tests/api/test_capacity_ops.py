@@ -42,6 +42,7 @@ def _context(**services: object) -> SimpleNamespace:
     )
 
 
+@pytest.mark.spec("GRAPHOS-CAPACITY-R001.1", "GRAPHOS-CAPACITY-R002")
 def test_capacity_ops_declare_exact_scopes_and_admin_effect() -> None:
     registry = Registry(capacity.operations())
     assert len(registry) == 2
@@ -55,6 +56,7 @@ def test_capacity_ops_declare_exact_scopes_and_admin_effect() -> None:
     assert all(op.examples for op in registry)
 
 
+@pytest.mark.spec("GRAPHOS-CAPACITY-R001.1", "GRAPHOS-CAPACITY-R002")
 @pytest.mark.asyncio
 async def test_status_handler_reports_unbound_controller_closed() -> None:
     op = capacity.operations()[0]
@@ -62,6 +64,7 @@ async def test_status_handler_reports_unbound_controller_closed() -> None:
         await capacity.handle_capacity_status(_context(), _PARTITION_PARAMS, op)
 
 
+@pytest.mark.spec("GRAPHOS-CAPACITY-R001.1", "GRAPHOS-CAPACITY-R002")
 @pytest.mark.asyncio
 async def test_status_handler_reports_recorded_decision() -> None:
     registry = ThrottleRegistry()

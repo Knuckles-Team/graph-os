@@ -7,6 +7,8 @@ broad grant, missing conformance, or missing rollback proof blocks approval.
 
 from __future__ import annotations
 
+import pytest
+
 from graph_os.control_plane.admission.models import AdmissionIntent
 from graph_os.control_plane.admission.service import plan_admission
 
@@ -28,6 +30,7 @@ def _ready_intent(**overrides: object) -> AdmissionIntent:
     return AdmissionIntent.model_validate(base)
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R004")
 def test_dry_run_is_ready_when_every_condition_is_met() -> None:
     plan = plan_admission(_ready_intent())
 
@@ -37,6 +40,7 @@ def test_dry_run_is_ready_when_every_condition_is_met() -> None:
     assert len(plan.rollback_steps) >= 1
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R004")
 def test_dry_run_always_states_rollback_steps() -> None:
     """AD-01: the plan lists rollback steps whether or not it is ready."""
 
@@ -48,6 +52,7 @@ def test_dry_run_always_states_rollback_steps() -> None:
     assert ready.rollback_steps == blocked.rollback_steps
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R004")
 def test_unapproved_mapping_blocks_admission() -> None:
     plan = plan_admission(_ready_intent(mapping_approved=False))
 

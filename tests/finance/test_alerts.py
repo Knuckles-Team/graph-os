@@ -26,6 +26,7 @@ def _delivery(**overrides: object) -> FlipAlertDelivery:
     return FlipAlertDelivery.model_validate(base)
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R001", "GRAPHOS-DATA-MARKET-R006")
 def test_first_delivery_is_delivered() -> None:
     store = InMemoryAlertDeliveryStore()
 
@@ -34,6 +35,7 @@ def test_first_delivery_is_delivered() -> None:
     assert outcome == "delivered"
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R001", "GRAPHOS-DATA-MARKET-R006")
 def test_redelivery_of_the_same_event_is_a_duplicate() -> None:
     """FI-06/FI-07: an at-least-once transport retry or a restart replay of
     the same (tenant, event, subscriber) triple never causes a second
@@ -47,6 +49,7 @@ def test_redelivery_of_the_same_event_is_a_duplicate() -> None:
     assert second == "duplicate"
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R001", "GRAPHOS-DATA-MARKET-R006")
 def test_different_subscribers_both_receive_the_same_event() -> None:
     store = InMemoryAlertDeliveryStore()
 

@@ -85,6 +85,16 @@ def _curated(method: str, op_id: str) -> OpSpec:
     )
 
 
+@pytest.mark.spec(
+    "GRAPHOS-FLEET-R011",
+    "GRAPHOS-FLEET-R012",
+    "GRAPHOS-OPS-R007",
+    "GRAPHOS-OPS-R008",
+    "GRAPHOS-OPS-R010",
+    "GRAPHOS-OPS-R025",
+    "GRAPHOS-OPS-R028",
+    "GRAPHOS-OPS-R034",
+)
 def test_generates_exact_caller_bound_ops(tmp_path: Path) -> None:
     contract, exclusions = _fixture(tmp_path)
     ops = load_eg_bindings(contract_root=contract, exclusions_path=exclusions)
@@ -108,6 +118,16 @@ def test_generates_exact_caller_bound_ops(tmp_path: Path) -> None:
     assert all(op.executor.value == "caller" for op in ops)
 
 
+@pytest.mark.spec(
+    "GRAPHOS-FLEET-R011",
+    "GRAPHOS-FLEET-R012",
+    "GRAPHOS-OPS-R007",
+    "GRAPHOS-OPS-R008",
+    "GRAPHOS-OPS-R010",
+    "GRAPHOS-OPS-R025",
+    "GRAPHOS-OPS-R028",
+    "GRAPHOS-OPS-R034",
+)
 def test_curated_binding_suppresses_generated_method(tmp_path: Path) -> None:
     contract, exclusions = _fixture(tmp_path)
     ops = load_eg_bindings(
@@ -118,6 +138,16 @@ def test_curated_binding_suppresses_generated_method(tmp_path: Path) -> None:
     assert {op.id for op in ops} == {"eg.query.Admin", "eg.query.Service"}
 
 
+@pytest.mark.spec(
+    "GRAPHOS-FLEET-R011",
+    "GRAPHOS-FLEET-R012",
+    "GRAPHOS-OPS-R007",
+    "GRAPHOS-OPS-R008",
+    "GRAPHOS-OPS-R010",
+    "GRAPHOS-OPS-R025",
+    "GRAPHOS-OPS-R028",
+    "GRAPHOS-OPS-R034",
+)
 def test_curated_binding_cannot_weaken_engine_scope(tmp_path: Path) -> None:
     contract, exclusions = _fixture(tmp_path)
     unsafe = _curated("Admin", "query.admin").model_copy(

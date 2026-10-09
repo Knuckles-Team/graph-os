@@ -20,6 +20,7 @@ def _context(**services: object) -> SimpleNamespace:
     )
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R015", "GRAPHOS-FLEET-R018", "GRAPHOS-OPS-R023")
 def test_agent_and_browser_ops_have_unique_ids_and_surface_limits() -> None:
     registry = Registry((*agents.operations(), *browser.operations()))
     assert len(registry) == 12
@@ -33,6 +34,7 @@ def test_agent_and_browser_ops_have_unique_ids_and_surface_limits() -> None:
     assert all(op.examples for op in registry)
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R015", "GRAPHOS-FLEET-R018", "GRAPHOS-OPS-R023")
 @pytest.mark.asyncio
 async def test_agent_run_uses_the_existing_a2a_service(
     monkeypatch: pytest.MonkeyPatch,
@@ -65,6 +67,7 @@ async def test_agent_run_uses_the_existing_a2a_service(
     ]
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R015", "GRAPHOS-FLEET-R018", "GRAPHOS-OPS-R023")
 @pytest.mark.asyncio
 async def test_browser_op_uses_the_registered_authority(
     monkeypatch: pytest.MonkeyPatch,

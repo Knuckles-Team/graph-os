@@ -25,6 +25,7 @@ _VALID = {
 }
 
 
+@pytest.mark.spec("GRAPHOS-INGRESS-R001.1")
 def test_valid_mapping_renders_deterministic_redacted_profile() -> None:
     profile = public_ingress_profile_from_mapping(_VALID)
 
@@ -42,6 +43,7 @@ def test_valid_mapping_renders_deterministic_redacted_profile() -> None:
     )
 
 
+@pytest.mark.spec("GRAPHOS-INGRESS-R001.1")
 def test_loopback_http_origin_is_accepted() -> None:
     mapping = {
         **_VALID,
@@ -60,6 +62,7 @@ def test_loopback_http_origin_is_accepted() -> None:
         ({}, ("tls_secret_ref",)),
     ],
 )
+@pytest.mark.spec("GRAPHOS-INGRESS-R001.1")
 def test_missing_or_malformed_tls_ref_refuses(
     overrides: dict[str, object], removed_keys: tuple[str, ...]
 ) -> None:

@@ -199,6 +199,7 @@ def test_artifact_refusal(tmp_path, candidate, authority, field, value):
         _plan(tmp_path, candidate)
 
 
+@pytest.mark.spec("GRAPHOS-RELEASE-R001")
 def test_execute_candidate_stops_before_next_stage_on_missing_readiness(
     tmp_path, candidate, authority
 ):
@@ -221,6 +222,7 @@ def test_execute_candidate_stops_before_next_stage_on_missing_readiness(
     assert statuses == {"epistemic-graph": "released", "graph-os": "blocked"}
 
 
+@pytest.mark.spec("GRAPHOS-RELEASE-R001")
 def test_execute_candidate_releases_every_stage_when_all_ready(
     tmp_path, candidate, authority
 ):

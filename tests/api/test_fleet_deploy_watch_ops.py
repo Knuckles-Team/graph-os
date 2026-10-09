@@ -32,6 +32,7 @@ def _deny_all(_op: object, _caller: Caller) -> bool:
     return False
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R024.1")
 def test_operation_is_a_read_ask_scoped_to_mcp_delegate() -> None:
     (op,) = fleet_deploy_watch.operations()
     assert op.id == "fleet.deploy_watch.evaluate"
@@ -41,6 +42,7 @@ def test_operation_is_a_read_ask_scoped_to_mcp_delegate() -> None:
     assert Surface.MCP in op.surfaces
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R024.1")
 def test_registry_rejects_a_caller_missing_the_fleet_scope() -> None:
     registry = Registry(fleet_deploy_watch.operations())
     op = registry["fleet.deploy_watch.evaluate"]
@@ -49,6 +51,7 @@ def test_registry_rejects_a_caller_missing_the_fleet_scope() -> None:
     assert registry.find(unauthorized_caller, policy=_allow_all, verb=Verb.ASK) == ()
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R024.1")
 def test_registry_admits_a_caller_with_the_exact_fleet_scope() -> None:
     registry = Registry(fleet_deploy_watch.operations())
     op = registry["fleet.deploy_watch.evaluate"]

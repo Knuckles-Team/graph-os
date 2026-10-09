@@ -21,6 +21,7 @@ def _request() -> MarketReadRequest:
     return MarketReadRequest(tenant_id="tenant-a", account_id="acct-1", symbol="AAPL")
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R002", "GRAPHOS-DATA-MARKET-R003")
 def test_missing_binding_refuses_with_zero_provider_calls() -> None:
     provider = Mock(spec=[])
 
@@ -31,6 +32,7 @@ def test_missing_binding_refuses_with_zero_provider_calls() -> None:
     assert provider.mock_calls == []
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R002", "GRAPHOS-DATA-MARKET-R003")
 def test_mismatched_tenant_refuses_with_zero_provider_calls() -> None:
     """FI-02: tenant B's binding cannot read tenant A's market data."""
 
@@ -44,6 +46,7 @@ def test_mismatched_tenant_refuses_with_zero_provider_calls() -> None:
     assert provider.mock_calls == []
 
 
+@pytest.mark.spec("GRAPHOS-DATA-MARKET-R002", "GRAPHOS-DATA-MARKET-R003")
 def test_mismatched_account_refuses_with_zero_provider_calls() -> None:
     provider = Mock(spec=[])
     binding = AccountBinding(tenant_id="tenant-a", account_id="acct-2")

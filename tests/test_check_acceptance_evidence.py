@@ -173,6 +173,13 @@ def test_main_reports_gap_and_exits_nonzero(tmp_path: Path) -> None:
     assert exit_code == 1
 
 
+@pytest.mark.spec(
+    "GRAPHOS-ACCEPTANCE-R001",
+    "GRAPHOS-ACCEPTANCE-R002",
+    "GRAPHOS-ACCEPTANCE-R003",
+    "GRAPHOS-ACCEPTANCE-R004",
+    "GRAPHOS-ACCEPTANCE-R005",
+)
 def test_review_trail_refuses_same_identity_auditor() -> None:
     """GRAPHOS-ACCEPTANCE-R002: auditor must differ from the merged_head author."""
     decision = ReviewDecision(
@@ -185,6 +192,13 @@ def test_review_trail_refuses_same_identity_auditor() -> None:
         validate_review_trail(decision)
 
 
+@pytest.mark.spec(
+    "GRAPHOS-ACCEPTANCE-R001",
+    "GRAPHOS-ACCEPTANCE-R002",
+    "GRAPHOS-ACCEPTANCE-R003",
+    "GRAPHOS-ACCEPTANCE-R004",
+    "GRAPHOS-ACCEPTANCE-R005",
+)
 def test_review_trail_refuses_when_checker_still_reports_gap() -> None:
     """GRAPHOS-ACCEPTANCE-R002: the checker must report no gap before ACCEPTED."""
     decision = ReviewDecision(
@@ -197,6 +211,13 @@ def test_review_trail_refuses_when_checker_still_reports_gap() -> None:
         validate_review_trail(decision)
 
 
+@pytest.mark.spec(
+    "GRAPHOS-ACCEPTANCE-R001",
+    "GRAPHOS-ACCEPTANCE-R002",
+    "GRAPHOS-ACCEPTANCE-R003",
+    "GRAPHOS-ACCEPTANCE-R004",
+    "GRAPHOS-ACCEPTANCE-R005",
+)
 def test_review_trail_accepts_distinct_auditor_with_no_gap() -> None:
     decision = ReviewDecision(
         requirement_id="FIX-R002",

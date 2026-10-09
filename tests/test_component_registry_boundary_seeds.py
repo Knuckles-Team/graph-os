@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
 
 _SEEDS_PATH = (
@@ -24,6 +25,7 @@ def _load_seeds() -> dict[str, Any]:
     return yaml.safe_load(_SEEDS_PATH.read_text(encoding="utf-8"))
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R012")
 def test_boundary_seeds_file_exists_and_is_owned_by_graph_os() -> None:
     manifest = _load_seeds()
     assert manifest["schema"] == "graphos-boundary-owner-seeds/v1"

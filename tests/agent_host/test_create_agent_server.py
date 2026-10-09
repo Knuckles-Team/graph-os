@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from graph_os.agent_host import build_agent_host_app
@@ -32,12 +33,14 @@ def _client() -> TestClient:
     return TestClient(app)
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R009")
 def test_health() -> None:
     response = _client().get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R009")
 def test_agent_card() -> None:
     response = _client().get("/.well-known/agent-card.json")
     assert response.status_code == 200
@@ -46,6 +49,7 @@ def test_agent_card() -> None:
     assert card["protocolVersion"] == "0.3.0"
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R009")
 def test_message_send_runs_the_executor_and_returns_a_completed_task() -> None:
     response = _client().post(
         "/a2a",

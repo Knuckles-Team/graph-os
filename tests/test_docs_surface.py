@@ -5,9 +5,14 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).parents[1]
 
 
+@pytest.mark.spec(
+    "GRAPHOS-A2A-R008", "GRAPHOS-HOST-R016", "GRAPHOS-OPS-R002", "GRAPHOS-OPS-R037"
+)
 def test_readme_uses_the_public_title_and_exact_section_order() -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     headings = [line for line in readme.splitlines() if line.startswith("## ")]
@@ -48,6 +53,7 @@ def test_architecture_names_each_supported_ecosystem_entrypoint() -> None:
     )
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R012")
 def test_pages_uses_the_sanctioned_shared_brand_reference() -> None:
     pages = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
 

@@ -223,6 +223,7 @@ def test_migrate_config_file_rejects_invalid_renamed_document_without_writing(
     assert p.read_text() == original
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R011")
 def test_legacy_messaging_environment_input_fails_with_neutral_guidance(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

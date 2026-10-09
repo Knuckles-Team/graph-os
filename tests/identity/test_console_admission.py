@@ -105,6 +105,7 @@ def bound_fixture_parts():
     return backend, owner, scope, session
 
 
+@pytest.mark.spec("GRAPHOS-IDENTITY-R005")
 def test_actual_webui_export_and_same_caller_instance_then_cleanup():
     from agent_webui.oidc_session import BrowserSessionEvidence, verify_browser_session
 
@@ -135,6 +136,7 @@ def test_actual_webui_export_and_same_caller_instance_then_cleanup():
 @pytest.mark.parametrize(
     "change", ["revoke", "rotate", "expire", "refresh", "substitute", "narrow"]
 )
+@pytest.mark.spec("GRAPHOS-IDENTITY-R005")
 def test_transition_or_session_substitution_refuses_and_cleans(change):
     async def scenario():
         backend, owner, scope, session = bound_fixture_parts()
@@ -160,6 +162,7 @@ def test_transition_or_session_substitution_refuses_and_cleans(change):
     asyncio.run(scenario())
 
 
+@pytest.mark.spec("GRAPHOS-IDENTITY-R005")
 def test_scope_mutated_across_await_cannot_export_evidence():
     async def scenario():
         backend, owner, scope, session = bound_fixture_parts()

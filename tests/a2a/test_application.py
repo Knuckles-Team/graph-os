@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -153,6 +154,7 @@ def test_json_rpc_rejects_missing_idempotency_invalid_shape_and_unknown_task() -
     assert unknown.json()["error"]["code"] == -32601
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R001.1")
 def test_json_rpc_refuses_resubscribe_until_streaming_is_implemented() -> None:
     """GRAPHOS-A2A-R001.1: resubscribe is on the method table but fail-closed.
 
@@ -195,6 +197,7 @@ def test_json_rpc_refuses_resubscribe_until_streaming_is_implemented() -> None:
     assert invalid.json()["error"]["code"] == -32602
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R007", "GRAPHOS-ACP-R001")
 def test_json_rpc_preserves_service_error_translation() -> None:
     class ConflictAuthority(Authority):
         async def dispatch(self, **kwargs: Any) -> A2ATask:
@@ -230,6 +233,7 @@ def test_json_rpc_preserves_service_error_translation() -> None:
     }
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R007", "GRAPHOS-ACP-R001")
 def test_json_rpc_refuses_op_invoke_until_registry_bridge_exists() -> None:
     """GRAPHOS-A2A-R006.1: ``graphos.op/invoke`` is on the method table but
     fail-closed until it is bridged to the shared hosted-operation registry
@@ -267,6 +271,7 @@ def test_json_rpc_refuses_op_invoke_until_registry_bridge_exists() -> None:
     assert invalid.json()["error"]["code"] == -32602
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R007", "GRAPHOS-ACP-R001")
 def test_json_rpc_refuses_plan_confirm_until_approval_exchange_exists() -> None:
     """GRAPHOS-A2A-R005.1/R006.1: the human approval response method is
     registered but every confirmation attempt is rejected until the full

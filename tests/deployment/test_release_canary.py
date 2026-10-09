@@ -28,6 +28,7 @@ def test_entry_points_ready_requires_exact_direct_targets(monkeypatch) -> None:
     assert release_canary._entry_points_ready() is False
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R004", "GRAPHOS-OPS-R033")
 def test_run_canary_reports_only_aggregate_checks(monkeypatch) -> None:
     entries = [
         SimpleNamespace(name=name, value=value)
@@ -59,6 +60,7 @@ def test_run_canary_reports_only_aggregate_checks(monkeypatch) -> None:
     assert all(key in {"status", "checks", "privacySafe"} for key in report)
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R004")
 def test_declared_fastmcp_major_reads_graph_os_requirement(monkeypatch) -> None:
     monkeypatch.setattr(
         release_canary.importlib.metadata,
@@ -68,6 +70,7 @@ def test_declared_fastmcp_major_reads_graph_os_requirement(monkeypatch) -> None:
     assert release_canary._declared_fastmcp_major() == 4
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R004")
 def test_declared_fastmcp_major_is_none_when_absent(monkeypatch) -> None:
     monkeypatch.setattr(
         release_canary.importlib.metadata,

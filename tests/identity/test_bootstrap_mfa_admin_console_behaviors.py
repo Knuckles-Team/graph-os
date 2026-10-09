@@ -17,6 +17,15 @@ from graph_os.identity.mfa import (
 )
 
 
+@pytest.mark.spec(
+    "GRAPHOS-IDENTITY-R001",
+    "GRAPHOS-IDENTITY-R004.2",
+    "GRAPHOS-IDENTITY-R006.2",
+    "GRAPHOS-IDENTITY-R007.2",
+    "GRAPHOS-IDENTITY-R009",
+    "GRAPHOS-IDENTITY-R013",
+    "GRAPHOS-IDENTITY-R014",
+)
 def test_resolve_bootstrap_access_allows_loopback_mutation() -> None:
     principal = resolve_bootstrap_access(
         bind_host="127.0.0.1",
@@ -27,6 +36,15 @@ def test_resolve_bootstrap_access_allows_loopback_mutation() -> None:
     assert principal.bind_host == "127.0.0.1"
 
 
+@pytest.mark.spec(
+    "GRAPHOS-IDENTITY-R001",
+    "GRAPHOS-IDENTITY-R004.2",
+    "GRAPHOS-IDENTITY-R006.2",
+    "GRAPHOS-IDENTITY-R007.2",
+    "GRAPHOS-IDENTITY-R009",
+    "GRAPHOS-IDENTITY-R013",
+    "GRAPHOS-IDENTITY-R014",
+)
 def test_resolve_bootstrap_access_refuses_origin_mismatch() -> None:
     with pytest.raises(IdentityUnavailable):
         resolve_bootstrap_access(
@@ -37,6 +55,15 @@ def test_resolve_bootstrap_access_refuses_origin_mismatch() -> None:
         )
 
 
+@pytest.mark.spec(
+    "GRAPHOS-IDENTITY-R001",
+    "GRAPHOS-IDENTITY-R004.2",
+    "GRAPHOS-IDENTITY-R006.2",
+    "GRAPHOS-IDENTITY-R007.2",
+    "GRAPHOS-IDENTITY-R009",
+    "GRAPHOS-IDENTITY-R013",
+    "GRAPHOS-IDENTITY-R014",
+)
 def test_unsecured_mode_banner_flags_exposed_bind() -> None:
     principal = resolve_bootstrap_access(
         bind_host="10.0.0.5",

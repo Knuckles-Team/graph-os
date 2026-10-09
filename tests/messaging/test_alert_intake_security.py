@@ -12,6 +12,7 @@ from graph_os.messaging.alert_intake import (
 )
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R011")
 def test_alert_intake_defaults_to_loopback_and_requires_secret_reference():
     cfg = AgentConfig()
     assert cfg.messaging_alert_intake_host == "127.0.0.1"
@@ -28,6 +29,7 @@ def test_alert_intake_defaults_to_loopback_and_requires_secret_reference():
     assert configured.messaging_alert_intake_port == 9123
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R011")
 def test_alert_intake_bind_and_payload_bounds():
     assert _loopback_bind("127.0.0.1")
     assert _loopback_bind("::1")

@@ -108,6 +108,13 @@ async def test_sync_requires_an_idempotency_key() -> None:
         await sync_source(context, {"source_id": "src-1", "mode": "incremental"}, None)
 
 
+@pytest.mark.spec(
+    "GRAPHOS-OPS-R020.1",
+    "GRAPHOS-OPS-R020.2",
+    "GRAPHOS-OPS-R020.3",
+    "GRAPHOS-OPS-R020.4",
+    "GRAPHOS-OPS-R020.5",
+)
 def test_operation_declares_the_write_scope_and_audit_class() -> None:
     ops = {op.id: op for op in operations()}
     op = ops["ingest.sources.sync"]
@@ -116,6 +123,13 @@ def test_operation_declares_the_write_scope_and_audit_class() -> None:
     assert op.idempotency.value == "key_required"
 
 
+@pytest.mark.spec(
+    "GRAPHOS-OPS-R020.1",
+    "GRAPHOS-OPS-R020.2",
+    "GRAPHOS-OPS-R020.3",
+    "GRAPHOS-OPS-R020.4",
+    "GRAPHOS-OPS-R020.5",
+)
 async def test_index_returns_a_durable_job_receipt() -> None:
     runner = _FakeRunner()
     context = _context(runner=runner)
@@ -131,6 +145,13 @@ async def test_index_returns_a_durable_job_receipt() -> None:
     assert runner.index_calls == [("tenant-a", "repo-1", "idem-1")]
 
 
+@pytest.mark.spec(
+    "GRAPHOS-OPS-R020.1",
+    "GRAPHOS-OPS-R020.2",
+    "GRAPHOS-OPS-R020.3",
+    "GRAPHOS-OPS-R020.4",
+    "GRAPHOS-OPS-R020.5",
+)
 async def test_index_fails_closed_with_unavailable_when_runner_not_composed() -> None:
     context = _context(runner=None)
     with pytest.raises(OperationRefused) as excinfo:

@@ -13,6 +13,8 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNBOOK = REPO_ROOT / "docs" / "release-qualification-runbook.md"
 
@@ -21,6 +23,7 @@ def _runbook_text() -> str:
     return RUNBOOK.read_text(encoding="utf-8")
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R002", "GRAPHOS-DEPLOY-R005")
 def test_runbook_exists_and_is_linked_from_mkdocs() -> None:
     assert RUNBOOK.is_file()
     nav = (REPO_ROOT / "mkdocs.yml").read_text(encoding="utf-8")

@@ -50,6 +50,7 @@ def _split_package_requirements() -> dict[str, Requirement]:
     return found
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R014", "GRAPHOS-HOST-R020")
 def test_manifest_declares_every_split_package_as_a_version_range() -> None:
     """Each split repository is a plain PEP 508 floor, never a direct URL."""
     found = _split_package_requirements()

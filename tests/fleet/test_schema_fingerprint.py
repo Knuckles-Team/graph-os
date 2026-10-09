@@ -24,6 +24,7 @@ _REAL_SCHEMA = {
 }
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R002.1")
 def test_fingerprint_is_a_stable_sha256_of_the_real_schema() -> None:
     first = compute_schema_fingerprint(_REAL_SCHEMA)
     second = compute_schema_fingerprint(dict(_REAL_SCHEMA))
@@ -32,11 +33,13 @@ def test_fingerprint_is_a_stable_sha256_of_the_real_schema() -> None:
     assert all(ch in "0123456789abcdef" for ch in first)
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R002.1")
 def test_fingerprint_changes_with_the_served_schema() -> None:
     other = {**_REAL_SCHEMA, "required": []}
     assert compute_schema_fingerprint(_REAL_SCHEMA) != compute_schema_fingerprint(other)
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R002.1")
 def test_empty_schema_fingerprint_is_refused() -> None:
     with pytest.raises(ValueError, match="empty schema"):
         compute_schema_fingerprint({})

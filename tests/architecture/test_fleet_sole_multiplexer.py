@@ -10,6 +10,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+import pytest
+
 GRAPH_OS_ROOT = Path(__file__).resolve().parents[2] / "graph_os"
 FLEET_ROOT = GRAPH_OS_ROOT / "fleet"
 
@@ -23,6 +25,7 @@ def _multiplexer_class_defs(source_file: Path) -> list[str]:
     ]
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R006")
 def test_fleet_defines_the_multiplexer_implementation() -> None:
     found = {
         name: path
@@ -32,6 +35,7 @@ def test_fleet_defines_the_multiplexer_implementation() -> None:
     assert "MCPMultiplexer" in found
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R006")
 def test_no_multiplexer_class_is_defined_outside_graph_os_fleet() -> None:
     offenders = {
         (path, name)

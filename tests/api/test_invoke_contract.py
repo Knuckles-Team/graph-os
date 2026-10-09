@@ -235,6 +235,7 @@ def run(
     )
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R036")
 @pytest.mark.parametrize("surface", list(Surface))
 def test_equivalent_surface_authority_and_result(surface):
     services, runtime, audit, _, _ = setup_services()
@@ -257,6 +258,7 @@ def test_equivalent_surface_authority_and_result(surface):
         [],
     ],
 )
+@pytest.mark.spec("GRAPHOS-OPS-R036")
 def test_invalid_arguments_precede_authority_and_effect(params):
     services, runtime, audit, _, _ = setup_services()
     assert (
@@ -276,6 +278,7 @@ def test_invalid_arguments_precede_authority_and_effect(params):
         {"policy_revision": ""},
     ],
 )
+@pytest.mark.spec("GRAPHOS-OPS-R036")
 def test_invalid_or_insufficient_authority_has_no_effect(changes):
     services, runtime, audit, _, _ = setup_services()
     outcome = run(services, supplied=caller(**changes), idempotency_key="key")

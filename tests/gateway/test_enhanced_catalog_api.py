@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -280,6 +281,7 @@ def test_missing_or_failed_authority_never_fabricates_an_empty_catalog(
     assert failed.json() == {"detail": "catalog authority unavailable"}
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R017", "GRAPHOS-HOST-R018")
 def test_route_module_has_no_webui_or_au_gateway_fallback() -> None:
     source = api.__file__
     assert source is not None
@@ -288,6 +290,7 @@ def test_route_module_has_no_webui_or_au_gateway_fallback() -> None:
     assert "agent_utilities.gateway" not in text
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R017", "GRAPHOS-HOST-R018")
 def test_catalog_reads_run_under_the_configured_process_authority(
     monkeypatch: Any,
 ) -> None:
@@ -327,6 +330,7 @@ def test_catalog_reads_run_under_the_configured_process_authority(
     assert bound == []
 
 
+@pytest.mark.spec("GRAPHOS-HOST-R017", "GRAPHOS-HOST-R018")
 def test_failed_catalog_read_logs_its_cause(monkeypatch: Any, caplog: Any) -> None:
     async def denied() -> Any:
         raise RuntimeError("ACCESS_DENIED: lacks Read access to graph '__commons__'")

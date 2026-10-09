@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from tests.fleet.test_multiplexer_dynamic_gateway import CNT, _mux_with_children
 
 
@@ -39,6 +41,7 @@ def _fake_catalog_server(server_name: str, tools: list[tuple[str, str]]):
     )
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R031")
 async def test_discover_tools_ranks_catalog_tools_when_the_live_probe_times_out(
     tmp_path,
 ):
@@ -79,12 +82,14 @@ async def test_discover_tools_ranks_catalog_tools_when_the_live_probe_times_out(
     assert hit["stale"] is True
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R031")
 async def test_catalog_tool_probe_info_is_empty_with_no_installed_snapshot(tmp_path):
     mux = _mux_with_children(tmp_path, {CNT: []})
     assert mux._fleet_catalog is None
     assert mux._catalog_tool_probe_info() == {}
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R031")
 async def test_live_probe_tools_are_not_shadowed_by_the_catalog_fallback(tmp_path):
     """A server whose live probe DID answer ranks its live tools — the
     catalog snapshot is a fallback for a failed probe, never a substitute
