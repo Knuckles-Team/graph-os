@@ -16,7 +16,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from graph_os.api.invoke import InvokeServices, VerifiedCaller, invoke
+from graph_os.api.invoke import InvokeServices, invoke
 from graph_os.api.invoke.audit import EffectReservation
 from graph_os.api.invoke.plan import EgPlanStore
 from graph_os.api.mcp.resolve import IntentResolver
@@ -33,6 +33,7 @@ from graph_os.api.registry import (
     Surface,
     Verb,
 )
+from tests.api._support import make_verified_caller
 
 #: The agent runtime's previously served contract (``register_intent_tools``
 #: in ``agent_utilities/mcp/tools/intent_tools.py`` plus the two app launchers
@@ -78,30 +79,7 @@ class Params(BaseModel):
     value: int = 1
 
 
-def _caller(**changes):
-    facts = dict(
-        principal="person:one",
-        tenant="tenant:one",
-        effective_scopes=frozenset({"example:ask"}),
-        principal_kind="human",
-        authenticated=True,
-        delegated=False,
-        credential_kind="session",
-        policy_revision="revision:one",
-        request_id="request:one",
-    )
-    facts.update(changes)
-    facts.setdefault(
-        "engine_claims",
-        {
-            "principal": facts["principal"],
-            "tenant": facts["tenant"],
-            "scopes": list(facts["effective_scopes"]),
-            "policy_version": facts["policy_revision"],
-            "delegation": facts["delegated"],
-        },
-    )
-    return VerifiedCaller(**facts)
+_caller = make_verified_caller("example:ask")
 
 
 def _operation(**changes):

@@ -34,6 +34,7 @@ from graph_os.api.registry import (
     Surface,
     Verb,
 )
+from tests.api._support import make_verified_caller
 
 
 class Params(BaseModel):
@@ -43,30 +44,7 @@ class Params(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
-def caller(**changes):
-    facts = dict(
-        principal="person:one",
-        tenant="tenant:one",
-        effective_scopes=frozenset({"example:write"}),
-        principal_kind="human",
-        authenticated=True,
-        delegated=False,
-        credential_kind="session",
-        policy_revision="revision:one",
-        request_id="request:one",
-    )
-    facts.update(changes)
-    facts.setdefault(
-        "engine_claims",
-        {
-            "principal": facts["principal"],
-            "tenant": facts["tenant"],
-            "scopes": list(facts["effective_scopes"]),
-            "policy_version": facts["policy_revision"],
-            "delegation": facts["delegated"],
-        },
-    )
-    return VerifiedCaller(**facts)
+caller = make_verified_caller("example:write")
 
 
 def operation(**changes):

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
@@ -15,21 +15,7 @@ import pytest
 from graph_os import epistemic
 from graph_os.api.invoke import bootstrap
 from graph_os.api.invoke.steps import VerifiedCaller
-
-
-@dataclass
-class Actor:
-    """A fake structurally satisfying ``graph_os.epistemic.VerifiedActor``."""
-
-    actor_id: str = "service:graph-os"
-    tenant_id: str = "tenant:a"
-    roles: Iterable[str] = ("graph-client",)
-    authenticated: bool = True
-    current: bool = True
-
-    def ensure_credential_current(self) -> None:
-        if not self.current:
-            raise PermissionError("expired")
+from tests._support import Actor
 
 
 @dataclass
