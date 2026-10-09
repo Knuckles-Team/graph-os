@@ -111,6 +111,32 @@ qualification environment; this documentation phase performs none of them.
   restore and failed-startup/rollback evidence. Bind every redacted receipt to
   the exact profile/render/release and leave unsupported capability checks open.
 
+## GRAPHOS-DEPLOY-R007 split: one console-script collision per child
+
+GRAPHOS-DEPLOY-R007 is a rollup; split by code root/script per SPEC-SIZING-AND-DEPENDENCIES.md §3,
+producer (agent-utilities, which deletes its duplicate) before consumer (graph-os, which already
+owns the entry point). GRAPHOS-DEPLOY-R007.1 (`agent-utilities-doctor`) is tracked separately
+([agent-utilities PR #118](https://github.com/Knuckles-Team/agent-utilities/pull/118)).
+
+- [x] **GRAPHOS-DEPLOY-R007.2** — `setup-config` console-script collision.
+- [x] **GRAPHOS-DEPLOY-R007.3** — `graph-os-daemon` console-script collision.
+- [x] **GRAPHOS-DEPLOY-R007.4** — `agent-utilities-venv` console-script collision.
+- [x] **GRAPHOS-DEPLOY-R007.5** — `graph-os-release-canary` console-script collision.
+
+All four: graph-os already declares the script on main
+([merge `fd761d59a171c148b7f2d7d952369c3b2b1a8628`](https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628)).
+agent-utilities side: one PR removes all four duplicate registrations at once (same mechanical
+change, kept to one PR pair to keep CI load down) —
+[agent-utilities PR #120](https://github.com/Knuckles-Team/agent-utilities/pull/120). Open, not
+yet merged. None of the four underlying agent-utilities modules is deleted; each still has a real
+non-test importer (or, for `agent_utilities.deployment.cli`, a direct test importer and a
+`python -m` invocation path), so full module retirement remains separate, larger work.
+
+- [ ] Full module retirement of `agent_utilities.deployment.cli`, `.venv_sync`,
+  `.release_canary`, and `agent_utilities.gateway.daemon` remains separate, larger work (migrate
+  their remaining non-test importers first): the unresolved core of GRAPHOS-DEPLOY-R007 proper,
+  alongside `agent_utilities.deployment.doctor`'s retirement noted under R007.1.
+
 ## GRAPHOS-DEPLOY-R016 host daemon container
 
 - [x] Add the `graph-os-daemon` container to the internal deployment manifest. The container runs `python3 -m graph_os.gateway.daemon` with `KG_DAEMON_ROLE=host` and `KG_DEV_MODE=false`.
