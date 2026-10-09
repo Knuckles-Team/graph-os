@@ -12,6 +12,9 @@
     "GRAPHOS-FLEET-R007",
     "GRAPHOS-FLEET-R008",
     "GRAPHOS-FLEET-R009",
+    "GRAPHOS-FLEET-R009.1",
+    "GRAPHOS-FLEET-R009.2",
+    "GRAPHOS-FLEET-R009.3",
     "GRAPHOS-FLEET-R010",
     "GRAPHOS-FLEET-R011",
     "GRAPHOS-FLEET-R012",
@@ -106,7 +109,26 @@
     },
     {
       "id": "GRAPHOS-FLEET-R009",
-      "title": "Run admission evaluates, commits and publishes with capacity control",
+      "title": "Run admission evaluates, commits and publishes with capacity control (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Split into GRAPHOS-FLEET-R009.1/.2/.3; this row is satisfied once all three children land."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.1",
+      "title": "Capacity-acquisition primitive: all-or-nothing grant, one re-decision, release on stop",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.2",
+      "title": "Run admission acquires capacity before publish",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.3",
+      "title": "A2A routing and composition publish only after capacity grant",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
