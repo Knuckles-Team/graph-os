@@ -34,7 +34,7 @@
           "result": "passed",
           "commit": "e7ae64dec334e0f841ea668ef3423d6aebbf9b62",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/e7ae64dec334e0f841ea668ef3423d6aebbf9b62",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-DEPLOY-R001 merged to the default branch in this commit."
         }
       ]
     },
@@ -182,7 +182,7 @@
           "result": "passed",
           "commit": "e9d99298003518d7b54f33a9854b48e471f6926c",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/e9d99298003518d7b54f33a9854b48e471f6926c",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-DEPLOY-R013 merged to the default branch in this commit."
         }
       ],
       "remaining": "R013 remains BUILDING and the spec remains NOT_AUDITED. Provision and independently verify the R013 development Compose and production Kubernetes/Helm profiles with the required engine sidecar; record exact profile/render/release digests and the selected identity mode and secrets backend. Before accepting traffic, prove engine/application readiness, the required first-administrator/bootstrap authority, default authorization policy and selected secrets resolution, including refusal when any prerequisite is absent or unhealthy. Qualify none/local/external behavior through the served identity authority and its owning identity-access contract; Kubernetes observations or supplied booleans cannot establish it. Prove authenticated pulls of pinned extension images with configured pull-secret references and live CNI allow/deny behavior for the release-wide extension-port rule (including 9123), preserving external ingress/egress restrictions. Retain functional MCP/API and selected-browser, persistence/recovery and rollback receipts. See tasks.md for the exact remaining checklist; no live qualification or release acceptance is recorded here."

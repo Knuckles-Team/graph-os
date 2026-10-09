@@ -69,7 +69,7 @@
           "result": "passed",
           "commit": "20f773df9ddd416e10f1111cb7e35d245ce93f3b",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/20f773df9ddd416e10f1111cb7e35d245ce93f3b",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R002 merged to the default branch in this commit."
         }
       ],
       "remaining": "Inbound A2A routing and per-caller/session tool filtering exist and are tested on main, but typed GetWorkItem/ListWorkItems bound by control leases and read classification are not found anywhere in the repo."
@@ -105,7 +105,7 @@
           "result": "passed",
           "commit": "a7947166d00acd71360a13cf83cbd8b2c4d09b95",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/a7947166d00acd71360a13cf83cbd8b2c4d09b95",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R004 merged to the default branch in this commit."
         }
       ],
       "remaining": "fastmcp 4.0.5 is already required/locked and exercised by tests on main, but shared_multiplexer.py's own docstring states the FastMCP transport and the WebUI ASGI co-service still run on two different event loops, not one consolidated loop; native WebMCP support unconfirmed."
@@ -127,7 +127,7 @@
           "result": "passed",
           "commit": "100d015ca012fcb2b23931a2619c69f345fb1fd6",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R005 merged to the default branch in this commit."
         }
       ],
       "remaining": "Admission validates the registry against the generated provider pin and error table. Startup proof against an installed engine package is pending. Engine scopes are not adopted."
@@ -149,7 +149,7 @@
           "result": "passed",
           "commit": "100d015ca012fcb2b23931a2619c69f345fb1fd6",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R006 merged to the default branch in this commit."
         }
       ],
       "remaining": "The engine package ships no scopes contract yet. Scope coverage and wire-callable exclusion against the installed package remain unproven."
@@ -178,7 +178,7 @@
           "result": "passed",
           "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R008 merged to the default branch in this commit."
         }
       ],
       "remaining": "Confirm the generated engine bindings and published artifacts once the invoke, HTTP and MCP projection slices land."
@@ -214,7 +214,7 @@
           "result": "passed",
           "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R010 merged to the default branch in this commit."
         }
       ],
       "remaining": "Engine-sourced errors are refused until the engine contract file is available at the pinned engine revision; the generated engine error table and its tests return then."
@@ -229,7 +229,7 @@
           "result": "passed",
           "commit": "6b63aeb7ba0310277885d69a4a2da516000aa23f",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/6b63aeb7ba0310277885d69a4a2da516000aa23f",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R011 merged to the default branch in this commit."
         }
       ],
       "remaining": "The six MCP verbs, typed discovery, resources and the registry digest are implemented and unit-tested on the default branch (tests/api/test_mcp_verbs.py), but nothing mounts the MCP projection into the served application yet: the live MCP surface is still the multiplexer. Remaining: mount it, with a test through the served entry point."
@@ -265,7 +265,7 @@
           "result": "passed",
           "commit": "1fb96633563e97fe33ac9f118146afab402d8c6e",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/1fb96633563e97fe33ac9f118146afab402d8c6e",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R013 merged to the default branch in this commit."
         }
       ]
     },
@@ -432,7 +432,7 @@
           "result": "passed",
           "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R025 merged to the default branch in this commit."
         }
       ],
       "remaining": "Confirm the generated engine bindings and published artifacts once the invoke, HTTP and MCP projection slices land."
@@ -544,7 +544,7 @@
           "result": "passed",
           "commit": "b9141334e1baec2ba1d75ebf4a1e472cc49a743e",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/b9141334e1baec2ba1d75ebf4a1e472cc49a743e",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R033 merged to the default branch in this commit."
         }
       ],
       "remaining": "find_tools/load_tools/unload_tools/multiplexer_status exist and are tested on main, but find_tools has no browse=true (list_catalog remains a separate tool), and no evidence of the 64/256 load cap, 1h idle expiry, or opt-in LRU eviction."
@@ -600,7 +600,7 @@
           "result": "passed",
           "commit": "1fb96633563e97fe33ac9f118146afab402d8c6e",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/1fb96633563e97fe33ac9f118146afab402d8c6e",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-OPS-R038 merged to the default branch in this commit."
         }
       ]
     }

@@ -130,7 +130,7 @@
           "result": "passed",
           "commit": "afefd425c905c0a21ea94cfcda4abeafe02c048d",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/afefd425c905c0a21ea94cfcda4abeafe02c048d",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-HOST-R011 merged to the default branch in this commit."
         }
       ],
       "remaining": "The shared channel layer (routing, intake, leases, polling, governed send, reach) is served by the host, with the Telegram and Mattermost adapters registered as optional extras (tests/messaging/). Remaining: the other fifteen platform adapters, which first need one shared adapter base so they do not repeat each other; and the agent runtime side that consumes the reach port."
@@ -184,7 +184,7 @@
           "result": "passed",
           "commit": "a4928a7047e172576c510f4463ce1193e7e99b84",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/a4928a7047e172576c510f4463ce1193e7e99b84",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-HOST-R017 merged to the default branch in this commit."
         }
       ]
     },
@@ -198,7 +198,7 @@
           "result": "passed",
           "commit": "a4928a7047e172576c510f4463ce1193e7e99b84",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/a4928a7047e172576c510f4463ce1193e7e99b84",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-HOST-R018 merged to the default branch in this commit."
         }
       ]
     },
@@ -212,7 +212,7 @@
           "result": "passed",
           "commit": "975596a67ed0fe3f36061241f3624d2a2fcda9ef",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/975596a67ed0fe3f36061241f3624d2a2fcda9ef",
-          "description": "Implementation merged to the default branch; the commit names this requirement."
+          "description": "GRAPHOS-HOST-R019 merged to the default branch in this commit."
         }
       ],
       "remaining": "tests/gateway/test_dashboard_api.py passes on branch fix/dashboard-routes. Merge, roll out graph-os, then confirm GET /api/dashboard/full returns 200 and /ws/dashboard streams a snapshot in the served web UI."
