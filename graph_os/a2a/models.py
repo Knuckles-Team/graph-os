@@ -14,6 +14,8 @@ __all__ = [
     "A2AListResult",
     "A2AMessage",
     "A2APushNotificationAuthority",
+    "A2AOperationInvokeParams",
+    "A2APlanConfirmParams",
     "A2ARouteDecision",
     "A2ASkill",
     "A2AStreamingAuthority",
@@ -84,6 +86,32 @@ class A2ARouteDecision(_WireModel):
         ):
             raise ValueError("selected tool identities must be non-empty and unique")
         return normalized
+
+
+class A2AOperationInvokeParams(_WireModel):
+    """``graphos.op/invoke`` params (GRAPHOS-A2A-R006.1).
+
+    Mirrors the shared hosted-operation registry's ``invoke`` call shape so
+    the eventual bridge passes these fields through unchanged.
+    """
+
+    op: str = Field(min_length=1, max_length=256)
+    params: dict[str, Any] = Field(default_factory=dict)
+    plan_ref: str | None = Field(default=None, max_length=512)
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=256)
+
+
+class A2APlanConfirmParams(_WireModel):
+    """``graphos.plan/confirm`` params (GRAPHOS-A2A-R005.1/R006.1).
+
+    The signed human approval exchange this carries is not implemented yet;
+    see ``A2AOperationBridgeUnavailable``.
+    """
+
+    task_id: str = Field(min_length=1, max_length=80)
+    pending_call_id: str = Field(min_length=1, max_length=256)
+    plan_ref: str = Field(min_length=1, max_length=512)
+    signature: str = Field(min_length=1, max_length=4096)
 
 
 A2ATaskState = Literal[
