@@ -40,6 +40,7 @@ nav:
   - Operate:
       - Deployment and configuration: deployment.md
       - Release-qualification runbook: release-qualification-runbook.md
+      - Identity and authentication: identity.md
       - Capability status: status.md
       - Quality gate terms: quality-gate-terms.md
   - Glossary: glossary.md
