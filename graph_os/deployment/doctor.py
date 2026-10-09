@@ -2089,19 +2089,23 @@ def audit_prepush_shim(shim_text: str | None, *, repo_root: Any) -> dict[str, An
 
 
 def _check_prepush_hook() -> dict[str, Any]:
-    import subprocess
+    import shutil
+    import subprocess  # nosec B404 -- fixed-argv git prerequisite probes
     from pathlib import Path
 
+    git = shutil.which("git")
+    if git is None:
+        return _result("prepush_hook", "skip", "git unavailable (not on PATH)")
     try:
-        hook_path = subprocess.run(
-            ["git", "rev-parse", "--git-path", "hooks/pre-push"],
+        hook_path = subprocess.run(  # nosec B603 -- resolved git executable, fixed argv
+            [git, "rev-parse", "--git-path", "hooks/pre-push"],
             capture_output=True,
             text=True,
             timeout=5,
             check=True,
         ).stdout.strip()
-        repo_root = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
+        repo_root = subprocess.run(  # nosec B603 -- resolved git executable, fixed argv
+            [git, "rev-parse", "--show-toplevel"],
             capture_output=True,
             text=True,
             timeout=5,

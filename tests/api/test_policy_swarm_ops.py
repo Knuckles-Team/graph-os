@@ -32,18 +32,20 @@ class _FakePolicyReader:
         return PolicyState(tenant=tenant, rules={"default": "allow"})
 
 
-async def test_policy_read_returns_the_tenant_scoped_state() -> None:
+async def test_policy_read_returns_the_tenant_scoped_state(op_by_id) -> None:
     reader = _FakePolicyReader()
     context = _context(reader=reader, service_name="policy_reader")
-    result = await policy.handle_policy_read(context, {}, None)
+    op = op_by_id(policy.operations(), "policy.read")
+    result = await policy.handle_policy_read(context, {}, op)
     assert result == {"value": {"tenant": "tenant-a", "rules": {"default": "allow"}}}
     assert reader.calls == ["tenant-a"]
 
 
-async def test_policy_read_fails_closed_when_reader_not_composed() -> None:
+async def test_policy_read_fails_closed_when_reader_not_composed(op_by_id) -> None:
     context = _context(reader=None, service_name="policy_reader")
+    op = op_by_id(policy.operations(), "policy.read")
     with pytest.raises(OperationRefused) as excinfo:
-        await policy.handle_policy_read(context, {}, None)
+        await policy.handle_policy_read(context, {}, op)
     assert excinfo.value.code == "UNAVAILABLE"
 
 
@@ -64,18 +66,24 @@ class _FakeSwarmTopologyReader:
         return SwarmTopology(tenant=tenant, nodes=("node-1",))
 
 
-async def test_swarm_topology_read_returns_the_tenant_scoped_topology() -> None:
+async def test_swarm_topology_read_returns_the_tenant_scoped_topology(
+    op_by_id,
+) -> None:
     reader = _FakeSwarmTopologyReader()
     context = _context(reader=reader, service_name="swarm_topology_reader")
-    result = await swarm.handle_swarm_topology_read(context, {}, None)
+    op = op_by_id(swarm.operations(), "swarm.topology.read")
+    result = await swarm.handle_swarm_topology_read(context, {}, op)
     assert result == {"value": {"tenant": "tenant-a", "nodes": ["node-1"]}}
     assert reader.calls == ["tenant-a"]
 
 
-async def test_swarm_topology_read_fails_closed_when_reader_not_composed() -> None:
+async def test_swarm_topology_read_fails_closed_when_reader_not_composed(
+    op_by_id,
+) -> None:
     context = _context(reader=None, service_name="swarm_topology_reader")
+    op = op_by_id(swarm.operations(), "swarm.topology.read")
     with pytest.raises(OperationRefused) as excinfo:
-        await swarm.handle_swarm_topology_read(context, {}, None)
+        await swarm.handle_swarm_topology_read(context, {}, op)
     assert excinfo.value.code == "UNAVAILABLE"
 
 

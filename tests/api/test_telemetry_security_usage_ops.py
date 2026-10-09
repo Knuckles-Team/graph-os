@@ -34,18 +34,20 @@ class _FakeTelemetryReader:
         return TelemetrySnapshot(tenant=tenant, metrics={"requests": 1.0})
 
 
-async def test_telemetry_read_returns_a_tenant_scoped_snapshot() -> None:
+async def test_telemetry_read_returns_a_tenant_scoped_snapshot(op_by_id) -> None:
     reader = _FakeTelemetryReader()
     context = _context(reader=reader, service_name="telemetry_reader")
-    result = await telemetry.handle_telemetry_read(context, {}, None)
+    op = op_by_id(telemetry.operations(), "telemetry.read")
+    result = await telemetry.handle_telemetry_read(context, {}, op)
     assert result == {"value": {"tenant": "tenant-a", "metrics": {"requests": 1.0}}}
     assert reader.calls == ["tenant-a"]
 
 
-async def test_telemetry_read_fails_closed_when_reader_not_composed() -> None:
+async def test_telemetry_read_fails_closed_when_reader_not_composed(op_by_id) -> None:
     context = _context(reader=None, service_name="telemetry_reader")
+    op = op_by_id(telemetry.operations(), "telemetry.read")
     with pytest.raises(OperationRefused) as excinfo:
-        await telemetry.handle_telemetry_read(context, {}, None)
+        await telemetry.handle_telemetry_read(context, {}, op)
     assert excinfo.value.code == "UNAVAILABLE"
 
 
@@ -65,18 +67,24 @@ class _FakeSecurityReader:
         return SecurityPosture(tenant=tenant, findings=("clean",))
 
 
-async def test_security_posture_read_returns_a_tenant_scoped_posture() -> None:
+async def test_security_posture_read_returns_a_tenant_scoped_posture(
+    op_by_id,
+) -> None:
     reader = _FakeSecurityReader()
     context = _context(reader=reader, service_name="security_posture_reader")
-    result = await security.handle_security_posture_read(context, {}, None)
+    op = op_by_id(security.operations(), "security.posture.read")
+    result = await security.handle_security_posture_read(context, {}, op)
     assert result == {"value": {"tenant": "tenant-a", "findings": ["clean"]}}
     assert reader.calls == ["tenant-a"]
 
 
-async def test_security_posture_read_fails_closed_when_reader_not_composed() -> None:
+async def test_security_posture_read_fails_closed_when_reader_not_composed(
+    op_by_id,
+) -> None:
     context = _context(reader=None, service_name="security_posture_reader")
+    op = op_by_id(security.operations(), "security.posture.read")
     with pytest.raises(OperationRefused) as excinfo:
-        await security.handle_security_posture_read(context, {}, None)
+        await security.handle_security_posture_read(context, {}, op)
     assert excinfo.value.code == "UNAVAILABLE"
 
 
@@ -96,18 +104,20 @@ class _FakeUsageReader:
         return UsageSnapshot(tenant=tenant, totals={"tokens": 42.0})
 
 
-async def test_usage_read_returns_a_tenant_scoped_snapshot() -> None:
+async def test_usage_read_returns_a_tenant_scoped_snapshot(op_by_id) -> None:
     reader = _FakeUsageReader()
     context = _context(reader=reader, service_name="usage_reader")
-    result = await usage.handle_usage_read(context, {}, None)
+    op = op_by_id(usage.operations(), "usage.read")
+    result = await usage.handle_usage_read(context, {}, op)
     assert result == {"value": {"tenant": "tenant-a", "totals": {"tokens": 42.0}}}
     assert reader.calls == ["tenant-a"]
 
 
-async def test_usage_read_fails_closed_when_reader_not_composed() -> None:
+async def test_usage_read_fails_closed_when_reader_not_composed(op_by_id) -> None:
     context = _context(reader=None, service_name="usage_reader")
+    op = op_by_id(usage.operations(), "usage.read")
     with pytest.raises(OperationRefused) as excinfo:
-        await usage.handle_usage_read(context, {}, None)
+        await usage.handle_usage_read(context, {}, op)
     assert excinfo.value.code == "UNAVAILABLE"
 
 
