@@ -48,8 +48,10 @@
     {
       "id": "GRAPHOS-HOST-R003",
       "title": "Web UI rename cutover across GraphOS",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "4ca77fbff9e3"
+      ],
       "verified_by": []
     },
     {
@@ -65,8 +67,10 @@
     {
       "id": "GRAPHOS-HOST-R005",
       "title": "graph_os.mcp_server.runtime serves retired MCP actions",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "4ca77fbff9e3"
+      ],
       "verified_by": []
     },
     {
@@ -122,6 +126,7 @@
       "delivery_state": "LANDED",
       "landed_in": [
         "63a66f60915a",
+        "afefd425c905",
         "bc2b6941077e",
         "c467b28d2385"
       ],
@@ -140,8 +145,10 @@
     {
       "id": "GRAPHOS-HOST-R013",
       "title": "Front ends import only public GraphOS/agent-runtime surfaces",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "4ca77fbff9e3"
+      ],
       "verified_by": []
     },
     {
@@ -165,8 +172,10 @@
     {
       "id": "GRAPHOS-HOST-R016",
       "title": "main branch includes the published dependency composition",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "20f773df9ddd"
+      ],
       "verified_by": []
     },
     {
@@ -174,7 +183,8 @@
       "title": "Browser inventory lists native GraphOS tools",
       "delivery_state": "LANDED",
       "landed_in": [
-        "3b2c6ac9d864"
+        "3b2c6ac9d864",
+        "a4928a7047e1"
       ],
       "verified_by": []
     },
@@ -183,7 +193,8 @@
       "title": "Browser catalog reads run under the process authority",
       "delivery_state": "LANDED",
       "landed_in": [
-        "3b2c6ac9d864"
+        "3b2c6ac9d864",
+        "a4928a7047e1"
       ],
       "verified_by": []
     },
@@ -192,6 +203,7 @@
       "title": "GraphOS serves the service dashboard surface the web UI composes",
       "delivery_state": "LANDED",
       "landed_in": [
+        "975596a67ed0",
         "a504e36c3c7c"
       ],
       "verified_by": []
@@ -202,6 +214,7 @@
       "delivery_state": "LANDED",
       "landed_in": [
         "91c0d96adb17",
+        "c4e7f7197b78",
         "d7eb02776c45",
         "e96c8e3a5360"
       ],
@@ -212,7 +225,8 @@
       "title": "Serving start binds the assembler's commit and publish providers and installs the topology asker",
       "delivery_state": "LANDED",
       "landed_in": [
-        "117301017944"
+        "117301017944",
+        "e67f069a9ed4"
       ],
       "verified_by": []
     },
@@ -221,7 +235,8 @@
       "title": "Serving start binds the task planner's capability-search, guardrail and workflow lookups",
       "delivery_state": "LANDED",
       "landed_in": [
-        "af5f5c292007"
+        "af5f5c292007",
+        "e67f069a9ed4"
       ],
       "verified_by": []
     },

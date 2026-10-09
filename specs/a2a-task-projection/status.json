@@ -74,6 +74,7 @@
       "title": "No duplicate skill or prompt harvesting in the multiplexer",
       "delivery_state": "LANDED",
       "landed_in": [
+        "0c897f1a3736",
         "2cbed24252ec"
       ],
       "verified_by": []
@@ -83,6 +84,7 @@
       "title": "Served MCP bridge runs FastMCP 4, matching its declared version",
       "delivery_state": "LANDED",
       "landed_in": [
+        "17fcab3404c0",
         "d60b46fc6984"
       ],
       "verified_by": []
@@ -153,8 +155,10 @@
     {
       "id": "GRAPHOS-A2A-R008",
       "title": "First-party A2A facade, not a vendored wrapper",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "20f773df9ddd"
+      ],
       "verified_by": []
     }
   ]

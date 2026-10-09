@@ -35,8 +35,10 @@
     {
       "id": "GRAPHOS-MESSAGING-R002",
       "title": "Health-gated start",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "63a66f60915a"
+      ],
       "verified_by": []
     },
     {

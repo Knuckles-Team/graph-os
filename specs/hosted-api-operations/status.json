@@ -71,8 +71,10 @@
     {
       "id": "GRAPHOS-OPS-R002",
       "title": "Scoped A2A task routing and fleet tool exposure",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "20f773df9ddd"
+      ],
       "verified_by": []
     },
     {
@@ -85,22 +87,28 @@
     {
       "id": "GRAPHOS-OPS-R004",
       "title": "FastMCP 4 bridge for the MCP server",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "a7947166d00a"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R005",
       "title": "Stable auth error codes from the engine contract",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "100d015ca012"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R006",
       "title": "Consume the engine's packaged wire-callable contract",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "100d015ca012"
+      ],
       "verified_by": []
     },
     {
@@ -142,6 +150,7 @@
       "title": "Six resident MCP verbs with typed discovery",
       "delivery_state": "LANDED",
       "landed_in": [
+        "6b63aeb7ba03",
         "ea736715b7fb"
       ],
       "verified_by": []
@@ -158,6 +167,7 @@
       "title": "Generated HTTP API for every registry operation",
       "delivery_state": "LANDED",
       "landed_in": [
+        "1fb96633563e",
         "ea736715b7fb"
       ],
       "verified_by": []
@@ -329,8 +339,10 @@
     {
       "id": "GRAPHOS-OPS-R023",
       "title": "Agent, browser, RLM, and fleet call operations",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "e1d37ca10ef7"
+      ],
       "verified_by": []
     },
     {
@@ -464,8 +476,10 @@
     {
       "id": "GRAPHOS-OPS-R033",
       "title": "Dynamic multiplexer discovery, load, and call",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "b9141334e1ba"
+      ],
       "verified_by": []
     },
     {
@@ -487,15 +501,19 @@
     {
       "id": "GRAPHOS-OPS-R036",
       "title": "Pre-dispatch audit reservation for governed effects",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "a9025191159e"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R037",
       "title": "Native first-party A2A facade",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "20f773df9ddd"
+      ],
       "verified_by": []
     },
     {
@@ -503,6 +521,7 @@
       "title": "Generated OpenAPI served through Swagger UI",
       "delivery_state": "LANDED",
       "landed_in": [
+        "1fb96633563e",
         "ea736715b7fb",
         "f13ce20b05dc"
       ],

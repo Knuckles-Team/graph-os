@@ -30,8 +30,10 @@
     {
       "id": "GRAPHOS-DEPLOY-R001",
       "title": "Worker topology manifest is digest-pinned",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "e7ae64dec334"
+      ],
       "verified_by": []
     },
     {
@@ -56,8 +58,10 @@
     {
       "id": "GRAPHOS-DEPLOY-R004",
       "title": "mypy hook type-checks the test suite",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "9d8a787b8495"
+      ],
       "verified_by": []
     },
     {
@@ -84,7 +88,7 @@
     {
       "id": "GRAPHOS-DEPLOY-R007",
       "title": "GraphOS hosts deployment doctor and skill certification",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [],
       "verified_by": [],
       "rollup_of": [
@@ -98,36 +102,46 @@
     {
       "id": "GRAPHOS-DEPLOY-R007.1",
       "title": "`agent-utilities-doctor` console-script collision resolved",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fd761d59a171"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.2",
       "title": "`setup-config` console-script collision resolved",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fd761d59a171"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.3",
       "title": "`graph-os-daemon` console-script collision resolved",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fd761d59a171"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.4",
       "title": "`agent-utilities-venv` console-script collision resolved",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fd761d59a171"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.5",
       "title": "`graph-os-release-canary` console-script collision resolved",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fd761d59a171"
+      ],
       "verified_by": []
     },
     {
@@ -168,7 +182,8 @@
       "title": "Pipelines dependency is referenced at main, never pinned",
       "delivery_state": "LANDED",
       "landed_in": [
-        "0f780429fb19"
+        "0f780429fb19",
+        "6c4b89f91732"
       ],
       "verified_by": []
     },
@@ -177,16 +192,21 @@
       "title": "Development and production deployment profiles",
       "delivery_state": "LANDED",
       "landed_in": [
+        "0da5f7440603",
+        "2abb9ebb3905",
         "99028d9d9f82",
-        "d75db1ea42e8"
+        "d75db1ea42e8",
+        "e9d992980035"
       ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R014",
       "title": "Agent runtime split into connector SDK, GraphOS and engine",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fe7c5c9a4a32"
+      ],
       "verified_by": []
     },
     {
@@ -204,6 +224,7 @@
       "delivery_state": "LANDED",
       "landed_in": [
         "8b20c11b5dc5",
+        "eb31b7757681",
         "f3bcee6dfbcf"
       ],
       "verified_by": []

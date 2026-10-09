@@ -67,7 +67,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R004",
       "title": "Rollup",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
         "cd652df8f6c8"
       ],
@@ -80,8 +80,10 @@
     {
       "id": "GRAPHOS-IDENTITY-R004.1",
       "title": "Typed bootstrap-principal model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "cd652df8f6c8"
+      ],
       "verified_by": []
     },
     {
@@ -105,7 +107,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R006",
       "title": "Rollup",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
         "cd652df8f6c8"
       ],
@@ -118,8 +120,10 @@
     {
       "id": "GRAPHOS-IDENTITY-R006.1",
       "title": "Typed MFA enrollment model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "cd652df8f6c8"
+      ],
       "verified_by": []
     },
     {
@@ -134,7 +138,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R007",
       "title": "Rollup",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
         "cd652df8f6c8"
       ],
@@ -147,8 +151,10 @@
     {
       "id": "GRAPHOS-IDENTITY-R007.1",
       "title": "Typed admin-console tab model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "cd652df8f6c8"
+      ],
       "verified_by": []
     },
     {
@@ -251,7 +257,8 @@
       "delivery_state": "LANDED",
       "landed_in": [
         "d467b8f6c708",
-        "f0432f0a0cef"
+        "f0432f0a0cef",
+        "f22badda8f35"
       ],
       "verified_by": []
     },

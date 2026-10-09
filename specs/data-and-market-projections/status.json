@@ -35,7 +35,8 @@
       "title": "Server-side finance and markets reads and paper order submission",
       "delivery_state": "LANDED",
       "landed_in": [
-        "57391db3828f"
+        "57391db3828f",
+        "b1ee0584dbba"
       ],
       "verified_by": []
     },
@@ -44,7 +45,8 @@
       "title": "One-at-a-time application admission with rollback",
       "delivery_state": "LANDED",
       "landed_in": [
-        "33622be01de7"
+        "33622be01de7",
+        "fd761d59a171"
       ],
       "verified_by": []
     },
@@ -53,6 +55,7 @@
       "title": "schema_context query surface for tables and ontology mappings",
       "delivery_state": "LANDED",
       "landed_in": [
+        "0a1beb2aae13",
         "44ba09589820",
         "8a7010bd6592"
       ],
@@ -63,6 +66,7 @@
       "title": "Recurring DCA plans with deterministic, non-duplicating proposals",
       "delivery_state": "LANDED",
       "landed_in": [
+        "35385208a619",
         "e61c0e3df8b7"
       ],
       "verified_by": []

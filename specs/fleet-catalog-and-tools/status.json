@@ -50,6 +50,7 @@
       "title": "Typed pack publisher replaces placeholder ContentPack",
       "delivery_state": "LANDED",
       "landed_in": [
+        "18038a22a875",
         "8df218e2f742"
       ],
       "verified_by": []
@@ -181,7 +182,8 @@
       "title": "EG-direct binding generator with reviewed exclusions",
       "delivery_state": "LANDED",
       "landed_in": [
-        "4b83c69e2b41"
+        "4b83c69e2b41",
+        "68e31b75248a"
       ],
       "verified_by": []
     },
@@ -190,6 +192,7 @@
       "title": "MCP projection exposes the six verbs with typed schemas",
       "delivery_state": "LANDED",
       "landed_in": [
+        "6b63aeb7ba03",
         "ea736715b7fb"
       ],
       "verified_by": []
@@ -206,6 +209,7 @@
       "title": "Typed operations cover agents, browser and fleet calls",
       "delivery_state": "LANDED",
       "landed_in": [
+        "68e31b75248a",
         "e1d37ca10ef7"
       ],
       "verified_by": []
@@ -254,6 +258,7 @@
       "title": "Fleet capability checks require exact scopes, deny unknown tools",
       "delivery_state": "LANDED",
       "landed_in": [
+        "18038a22a875",
         "444cedaf2b6d",
         "e7a32f572005"
       ],
@@ -320,8 +325,10 @@
     {
       "id": "GRAPHOS-FLEET-R025",
       "title": "Skills from every installed package, and an always-offered core pack, join the find/load path",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "d16472d4df1d"
+      ],
       "verified_by": []
     },
     {
@@ -329,7 +336,8 @@
       "title": "The intent tools are the only MCP surface",
       "delivery_state": "LANDED",
       "landed_in": [
-        "d2b070392ec9"
+        "d2b070392ec9",
+        "db8d44259c3d"
       ],
       "verified_by": []
     },
@@ -338,7 +346,8 @@
       "title": "The catalog admits each server on its own",
       "delivery_state": "LANDED",
       "landed_in": [
-        "619d25ac8e69"
+        "619d25ac8e69",
+        "d9015e6d6cda"
       ],
       "verified_by": []
     },
@@ -350,7 +359,8 @@
         "5edd6cc9a3d7",
         "619d25ac8e69",
         "bbc73cd1532d",
-        "be2026dd4ebf"
+        "be2026dd4ebf",
+        "d9015e6d6cda"
       ],
       "verified_by": []
     },
@@ -359,7 +369,8 @@
       "title": "GraphOS renews every registration before its lease lapses",
       "delivery_state": "LANDED",
       "landed_in": [
-        "619d25ac8e69"
+        "619d25ac8e69",
+        "d9015e6d6cda"
       ],
       "verified_by": []
     },
@@ -369,6 +380,7 @@
       "delivery_state": "LANDED",
       "landed_in": [
         "7e0cc536c81a",
+        "9095a5cefabe",
         "f2284b64b6b3"
       ],
       "verified_by": []
