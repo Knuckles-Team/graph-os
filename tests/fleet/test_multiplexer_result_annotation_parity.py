@@ -42,10 +42,10 @@ def _child_result_with_annotations_and_meta() -> mcp.types.CallToolResult:
     )
 
 
-@pytest.mark.asyncio
-async def test_forwarded_result_preserves_content_annotations(
-    tmp_path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def _forward_annotated_result(tmp_path) -> ToolResult:
+    """Bind the shared annotated/meta-bearing child fixture and forward
+    one call through it, asserting the common dispatch/call-site shape
+    both parity tests below check before their own distinct assertion."""
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     fixture = await bind_governed_forwarder_fixture(
         mux, _child_result_with_annotations_and_meta()
@@ -54,6 +54,14 @@ async def test_forwarded_result_preserves_content_annotations(
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
     assert fixture.dispatches == ["fleet.call"]
     assert fixture.child_calls == [("synthetic", "tool", {})]
+    return forwarded
+
+
+@pytest.mark.asyncio
+async def test_forwarded_result_preserves_content_annotations(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    forwarded = await _forward_annotated_result(tmp_path)
 
     assert len(forwarded.content) == 1
     block = forwarded.content[0]
@@ -68,14 +76,7 @@ async def test_forwarded_result_preserves_meta(
 ) -> None:
     """The wire ``_meta`` — including a readOnlyHint-style key — must survive
     the child -> multiplexer -> host conversion, not be silently dropped."""
-    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    fixture = await bind_governed_forwarder_fixture(
-        mux, _child_result_with_annotations_and_meta()
-    )
-
-    forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
-    assert fixture.dispatches == ["fleet.call"]
-    assert fixture.child_calls == [("synthetic", "tool", {})]
+    forwarded = await _forward_annotated_result(tmp_path)
 
     assert forwarded.meta == {"readOnlyHint": True, "child_trace_id": "abc123"}
 

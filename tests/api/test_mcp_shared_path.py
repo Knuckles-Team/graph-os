@@ -338,14 +338,19 @@ async def _real_native_fixture():
     )
 
 
+async def _loaded_one_shot_fixture():
+    """A real-native fixture with one auto-unload one-shot item already
+    loaded, plus the paired events the pause/release tests below drive."""
+    state = await _real_native_fixture()
+    ops = state.binding.ops
+    await ops.load(state.caller, items=["fleet:tool:synthetic/tool"], auto_unload=True)
+    entered, release = asyncio.Event(), asyncio.Event()
+    return state, ops, entered, release
+
+
 def test_concurrent_one_shot_acquires_only_one_real_invocation() -> None:
     async def run():
-        state = await _real_native_fixture()
-        ops = state.binding.ops
-        await ops.load(
-            state.caller, items=["fleet:tool:synthetic/tool"], auto_unload=True
-        )
-        entered, release = asyncio.Event(), asyncio.Event()
+        state, ops, entered, release = await _loaded_one_shot_fixture()
         original = state.services.runtime.dispatch
         attempts = []
 
@@ -454,12 +459,7 @@ def test_consumed_one_shot_is_revocable_while_transport_setup_waits() -> None:
     from graph_os.fleet.gateway_ops import check_native_transport
 
     async def run():
-        state = await _real_native_fixture()
-        ops = state.binding.ops
-        await ops.load(
-            state.caller, items=["fleet:tool:synthetic/tool"], auto_unload=True
-        )
-        entered, release = asyncio.Event(), asyncio.Event()
+        state, ops, entered, release = await _loaded_one_shot_fixture()
         original = state.gateway._delegated_call
 
         async def paused(server, tool, arguments, caller):
