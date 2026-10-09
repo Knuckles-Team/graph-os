@@ -2,17 +2,34 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from graph_os.api.invoke.steps import principal_rule
+from graph_os.api.invoke.steps import VerifiedCaller, principal_rule
 from graph_os.api.ops import decide
 
 
-@dataclass(frozen=True)
-class _Caller:
-    effective_scopes: frozenset[str]
-    principal_kind: str
-    delegated: bool = False
+def _caller(**changes):
+    facts = dict(
+        principal="person:one",
+        tenant="tenant:one",
+        effective_scopes=frozenset({"decide:commit"}),
+        principal_kind="human",
+        authenticated=True,
+        delegated=False,
+        credential_kind="session",
+        policy_revision="revision:one",
+        request_id="request:one",
+    )
+    facts.update(changes)
+    facts.setdefault(
+        "engine_claims",
+        {
+            "principal": facts["principal"],
+            "tenant": facts["tenant"],
+            "scopes": list(facts["effective_scopes"]),
+            "policy_version": facts["policy_revision"],
+            "delegation": facts["delegated"],
+        },
+    )
+    return VerifiedCaller(**facts)
 
 
 def _op():
@@ -23,15 +40,11 @@ def _op():
 def test_decide_commit_is_service_only() -> None:
     op = _op()
     assert op.id == "decide.commit"
-    human = _Caller(
-        effective_scopes=frozenset({"decide:commit"}), principal_kind="human"
-    )
+    human = _caller(principal_kind="human")
     assert principal_rule(op, human) is not None, "a human-scoped token must be refused"
 
 
 def test_decide_commit_allows_a_service_principal() -> None:
     op = _op()
-    service = _Caller(
-        effective_scopes=frozenset({"decide:commit"}), principal_kind="service"
-    )
+    service = _caller(principal_kind="service")
     assert principal_rule(op, service) is None

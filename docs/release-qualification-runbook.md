@@ -64,14 +64,14 @@ a declared console entry point, the packaged engine binary, the folded
 numeric kernel, or the served FastMCP major is missing or mismatched — see
 `graph_os/deployment/release_canary.py`.
 
-## 5. Web UI (`agent-webui`, pending `GRAPHOS-DEPLOY-R005` rename)
+## 5. Web UI (`agent-webui`, pending an in-flight package rename)
 
 ```bash
 gh run list --workflow=release.yml -R Knuckles-Team/agent-webui --branch main --limit 1
 ```
 
 Same proof shape as stage 1. The optional `webui` extra's package name
-changes once `GRAPHOS-DEPLOY-R005` lands in both `agent-webui` and here;
+changes once that in-flight rename lands in both `agent-webui` and here;
 this stage's check does not depend on that name.
 
 ## 6. Connector package fleet
@@ -99,5 +99,5 @@ redeployment proceeds. See `graph_os/deployment/production_ops.py`.
 
 This runbook proves each stage's own automated check; it is not itself a
 live first-boot, identity, image-pull, or CNI-enforcement acceptance
-receipt. Those remain tracked separately under `GRAPHOS-DEPLOY-R013` in
-`specs/portable-deployment/tasks.md`.
+receipt. Those remain tracked separately in the portable-deployment work
+plan, `specs/portable-deployment/tasks.md`.

@@ -119,9 +119,10 @@ async def index_repository(context: Any, params: Mapping[str, Any], op: Any) -> 
     if not context.idempotency_key:
         raise ValueError("Idempotency-Key is required")
     runner = _bound_runner(context)
+    repo_id = params["repo_id"]
     receipt = await runner.index_repository(
         tenant=context.caller.tenant,
-        repo_id=params["repo_id"],
+        repo_id=repo_id,
         idempotency_key=context.idempotency_key,
     )
     return {"value": receipt.model_dump(mode="json")}

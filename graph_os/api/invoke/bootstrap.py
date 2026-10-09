@@ -146,7 +146,9 @@ def build_service_claims(
     return _claims
 
 
-async def deny_subject_access(_client: Any, _caller: VerifiedCaller, _subject: str) -> bool:
+async def deny_subject_access(
+    _client: Any, _caller: VerifiedCaller, _subject: str
+) -> bool:
     """Fail closed; no registered operation sets ``Executor.SERVICE`` yet."""
 
     return False
