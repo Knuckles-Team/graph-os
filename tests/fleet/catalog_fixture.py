@@ -59,10 +59,10 @@ async def bind_governed_forwarder_fixture(mux: MCPMultiplexer, result: Any) -> A
     from types import SimpleNamespace
 
     from fastmcp import FastMCP
-    from graph_os.api.invoke import InvokeServices, VerifiedCaller, invoke
-    from graph_os.api.invoke.audit import EffectReservation
 
     from graph_os.api.errors import FleetRefusal
+    from graph_os.api.invoke import InvokeServices, VerifiedCaller, invoke
+    from graph_os.api.invoke.audit import EffectReservation
     from graph_os.api.mcp.registration import FleetMCPBinding, register_mcp_tools
     from graph_os.api.mcp.verbs import MCPProjection
     from graph_os.api.ops.fleet import handle_fleet_call, operations

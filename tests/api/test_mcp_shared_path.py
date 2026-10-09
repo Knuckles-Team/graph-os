@@ -10,8 +10,8 @@ from typing import Any
 import pytest
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from graph_os.api.invoke import OpError, OpResult, VerifiedCaller
 
+from graph_os.api.invoke import OpError, OpResult, VerifiedCaller
 from graph_os.api.mcp.registration import (
     RESIDENT_NAMES,
     FleetMCPBinding,
