@@ -153,22 +153,24 @@ class _FakeGraphs:
         return {"graph_id": "g1"}
 
 
-def test_solved_assembly_is_committed_and_published() -> None:
-    """GRAPHOS-HOST-R021: a solved assembly commits through the bound engine
-    client, with the graph-os-minted mutation context (fake engine records
-    the call)."""
-    session = _session()
-    graphs = _FakeGraphs()
+def _run_assembler(session, graphs):
     assembler = assembly.Assembler(
         graphs,
         "tenant-x",
         commit_context=decide_wiring._commit_context(session),
         publish_context=decide_wiring._publish_context(session),
     )
-
-    answer = asyncio.run(
+    return asyncio.run(
         assembler.assemble({"tenant_id": "tenant-x"}, lambda reasons: None)
     )
+
+
+def test_solved_assembly_is_committed_and_published() -> None:
+    """GRAPHOS-HOST-R021: a solved assembly commits through the bound engine
+    client, with the graph-os-minted mutation context (fake engine records
+    the call)."""
+    graphs = _FakeGraphs()
+    answer = _run_assembler(_session(), graphs)
 
     assert answer.committed is not None
     assert len(graphs.committed) == 1
@@ -181,23 +183,12 @@ def test_solved_assembly_is_committed_and_published() -> None:
 
 
 def test_unsolved_assembly_is_never_committed() -> None:
-    session = _session()
-
     class _AbstainingGraphs(_FakeGraphs):
         async def assemble(self, request: dict) -> dict:
             return {"record": {"outcome": {"outcome": "abstained", "reasons": []}}}
 
     graphs = _AbstainingGraphs()
-    assembler = assembly.Assembler(
-        graphs,
-        "tenant-x",
-        commit_context=decide_wiring._commit_context(session),
-        publish_context=decide_wiring._publish_context(session),
-    )
-
-    answer = asyncio.run(
-        assembler.assemble({"tenant_id": "tenant-x"}, lambda reasons: None)
-    )
+    answer = _run_assembler(_session(), graphs)
 
     assert answer.committed is None
     assert graphs.committed == []
