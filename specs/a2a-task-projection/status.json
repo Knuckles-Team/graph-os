@@ -6,10 +6,16 @@
     "GRAPHOS-A2A-R001",
     "GRAPHOS-A2A-R001.1",
     "GRAPHOS-A2A-R002",
+    "GRAPHOS-A2A-R002.1",
+    "GRAPHOS-A2A-R002.2",
     "GRAPHOS-A2A-R003",
     "GRAPHOS-A2A-R004",
     "GRAPHOS-A2A-R005",
+    "GRAPHOS-A2A-R005.1",
+    "GRAPHOS-A2A-R005.2",
     "GRAPHOS-A2A-R006",
+    "GRAPHOS-A2A-R006.1",
+    "GRAPHOS-A2A-R006.2",
     "GRAPHOS-A2A-R007",
     "GRAPHOS-A2A-R008"
   ],
@@ -51,7 +57,28 @@
       "title": "Inbound task routing with caller-filtered tool exposure",
       "delivery_state": "SPECIFIED",
       "evidence": [],
-      "remaining": "Work-item routing is implemented and tested, but caller-filtered tool-subset exposure is not: dispatch() raises A2AAssemblyUnavailable whenever decision.selected_tools is non-empty instead of restricting exposure, per an explicit comment that the carrier cannot enforce it."
+      "remaining": "Split into GRAPHOS-A2A-R002.1 (fail-closed refusal, delivered) and GRAPHOS-A2A-R002.2 (caller-filtered tool-subset enforcement, owner AU signed dispatch carrier)."
+    },
+    {
+      "id": "GRAPHOS-A2A-R002.1",
+      "title": "Fail-closed refusal when assembly selects a tool subset",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0000000000000000000000000000000000000000",
+          "description": "GRAPHOS-A2A-R002.1 merged to the default branch in this commit (placeholder; orchestrator re-promotes to the real merge SHA). Exercised by tests/a2a/test_authority.py::test_selected_tool_subset_is_refused_before_durable_admission."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R002.2",
+      "title": "Caller-filtered tool-subset enforcement at dispatch",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Needs AU's signed agent-dispatch carrier to accept and enforce an allowed-tool subset; owner spec not yet created."
     },
     {
       "id": "GRAPHOS-A2A-R003",
@@ -86,21 +113,57 @@
       "id": "GRAPHOS-A2A-R005",
       "title": "Durable, fail-closed A2A approval exchange for tool calls",
       "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Split into GRAPHOS-A2A-R005.1 (graphos.plan/confirm registered and fail-closed, delivered) and GRAPHOS-A2A-R005.2 (the full signed human approval chain and input-required task emission)."
+    },
+    {
+      "id": "GRAPHOS-A2A-R005.1",
+      "title": "Fail-closed graphos.plan/confirm stub on the A2A method table",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "ebe2d828e5454d363df3e01a65d9aa684682f01c",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/ebe2d828e5454d363df3e01a65d9aa684682f01c",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0000000000000000000000000000000000000000",
+          "description": "GRAPHOS-A2A-R005.1 merged to the default branch in this commit (placeholder; orchestrator re-promotes to the real merge SHA). Exercised by tests/a2a/test_application.py::test_json_rpc_refuses_plan_confirm_until_approval_exchange_exists."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R005.2",
+      "title": "Full signed human approval chain and input-required task emission",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Needs the input-required task state, pending-call envelope, and an atomic compare-and-set human grant consumption; owner spec not yet created."
     },
     {
       "id": "GRAPHOS-A2A-R006",
       "title": "Operation invoke and plan-confirm methods for A2A",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "evidence": [],
+      "remaining": "Split into GRAPHOS-A2A-R006.1 (both methods registered on the method table, typed and validated, fail-closed, delivered) and GRAPHOS-A2A-R006.2 (bridge to the shared hosted-operation registry's invoke path with Surface.A2A)."
+    },
+    {
+      "id": "GRAPHOS-A2A-R006.1",
+      "title": "Register graphos.op/invoke and graphos.plan/confirm, fail-closed",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0000000000000000000000000000000000000000",
+          "description": "GRAPHOS-A2A-R006.1 merged to the default branch in this commit (placeholder; orchestrator re-promotes to the real merge SHA). Exercised by tests/a2a/test_application.py::test_json_rpc_refuses_op_invoke_until_registry_bridge_exists and ::test_json_rpc_refuses_plan_confirm_until_approval_exchange_exists."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R006.2",
+      "title": "Bridge graphos.op/invoke to the shared hosted-operation registry",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "graph_os/api/invoke/pipeline.py already implements the single operation chokepoint (Surface.A2A exists in the registry) but A2AService/composition do not yet hold an InvokeServices/Registry to call it with."
     },
     {
       "id": "GRAPHOS-A2A-R007",

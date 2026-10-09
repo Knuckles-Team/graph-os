@@ -228,3 +228,82 @@ def test_json_rpc_preserves_service_error_translation() -> None:
         "code": -32009,
         "message": "idempotency conflict",
     }
+
+
+def test_json_rpc_refuses_op_invoke_until_registry_bridge_exists() -> None:
+    """GRAPHOS-A2A-R006.1: ``graphos.op/invoke`` is on the method table but
+    fail-closed until it is bridged to the shared hosted-operation registry
+    (``Surface.A2A``), with a distinct error code, not method-not-found.
+    """
+    app, auth, _authority = _app()
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer verified"}
+
+    refused = client.post(
+        "/a2a",
+        headers=headers,
+        json={
+            "jsonrpc": "2.0",
+            "id": "invoke",
+            "method": "graphos.op/invoke",
+            "params": {"op": "kg.search", "params": {}},
+        },
+    )
+    assert refused.status_code == 501
+    assert refused.json()["error"]["code"] == -32011
+    assert auth.scopes == ["kg:read"]
+
+    invalid = client.post(
+        "/a2a",
+        headers=headers,
+        json={
+            "jsonrpc": "2.0",
+            "id": "invoke-invalid",
+            "method": "graphos.op/invoke",
+            "params": {},
+        },
+    )
+    assert invalid.status_code == 400
+    assert invalid.json()["error"]["code"] == -32602
+
+
+def test_json_rpc_refuses_plan_confirm_until_approval_exchange_exists() -> None:
+    """GRAPHOS-A2A-R005.1/R006.1: the human approval response method is
+    registered but every confirmation attempt is rejected until the full
+    signed exchange is implemented end to end.
+    """
+    app, auth, authority = _app()
+    client = TestClient(app)
+    headers = {"Authorization": "Bearer verified"}
+
+    refused = client.post(
+        "/a2a",
+        headers=headers,
+        json={
+            "jsonrpc": "2.0",
+            "id": "confirm",
+            "method": "graphos.plan/confirm",
+            "params": {
+                "task_id": authority.task.id,
+                "pending_call_id": "call-1",
+                "plan_ref": "plan-1",
+                "signature": "sig",
+            },
+        },
+    )
+    assert refused.status_code == 501
+    assert refused.json()["error"]["code"] == -32011
+    assert auth.scopes == ["kg:write"]
+
+    invalid = client.post(
+        "/a2a",
+        headers=headers,
+        json={
+            "jsonrpc": "2.0",
+            "id": "confirm-invalid",
+            "method": "graphos.plan/confirm",
+            "params": {},
+        },
+    )
+    assert invalid.status_code == 400
+    assert invalid.json()["error"]["code"] == -32602
