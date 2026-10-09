@@ -14,3 +14,6 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
   agent-utilities' legacy `agent_utilities.mcp.multiplexer` /
   `shared_multiplexer`, and that the skill/prompt body-harvest functions
   are defined in exactly one module, `graph_os/fleet/multiplexer.py`.
+- [x] Add a release-canary check proving the promoted environment serves the
+  FastMCP major it declares (GRAPHOS-A2A-R004). Semantic/composition proof
+  that FastMCP 4 runs end to end remains open.
