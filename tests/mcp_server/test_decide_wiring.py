@@ -1,5 +1,5 @@
-"""GRAPHOS-HOST-R020/R021: serving start installs the decide consumers,
-guarded, with bound commit/publish providers."""
+"""GRAPHOS-HOST-R020/R021/R022: serving start installs the decide consumers,
+guarded, with bound commit/publish providers and task-planner lookups."""
 
 from __future__ import annotations
 
@@ -65,6 +65,9 @@ def test_installs_all_four_consumers(monkeypatch) -> None:
     assert seen["topology"][2]()  # non-empty published templates
     assert seen["planner"].assembler == "assembler"
     assert seen["planner"].driver is asyncio.run
+    assert callable(seen["planner"].capability_search)
+    assert callable(seen["planner"].guardrail_source)
+    assert callable(seen["planner"].workflows)
     catalog, provider = seen["cross"]
     assert catalog is not None and callable(provider)
 
@@ -193,3 +196,52 @@ def test_unsolved_assembly_is_never_committed() -> None:
     assert answer.committed is None
     assert graphs.committed == []
     assert graphs.published == []
+
+
+class _FakeAssembler:
+    """A minimal assembler stand-in: ``assemble_mapped`` only, no topology."""
+
+    tenant = "tenant-x"
+
+    async def assemble_mapped(self, goal: str, mapped: list[str]):
+        return assembly.Assembled(
+            result={
+                "record": {"outcome": {"outcome": "solved", "reasons": []}},
+                "agents": [
+                    {
+                        "agent_id": "agent-1",
+                        "tools": [{"component_id": "tool-1"}],
+                        "skills": [{"component_id": "skill-1"}],
+                        "model_identity": "model-1",
+                        "system_prompt": {"component_id": "prompt-1"},
+                    }
+                ],
+            },
+            reason="solved",
+        )
+
+
+def test_planned_task_gets_nonempty_skills_and_tools_from_fake_capability_source() -> (
+    None
+):
+    """GRAPHOS-HOST-R022: the task planner's reuse lookup feeds plan.agents
+    from a fake capability source, while the assembled components still
+    carry the agent's non-empty skills and tools."""
+
+    async def fake_capability_search(task_iris):
+        return [{"kind": "a2a_agent", "id": "agent-xyz"}]
+
+    planner = task_planner.TaskPlanner(
+        assembler=_FakeAssembler(),
+        templates=None,
+        capability_search=fake_capability_search,
+    )
+
+    plan = asyncio.run(planner.plan("implement the thing"))
+
+    assert plan.agents, "expected at least one planned agent"
+    agent = plan.agents[0]
+    assert agent["skills"] == ["skill-1"]
+    assert agent["tools"] == ["tool-1"]
+    assert agent["reuses"] == "agent-xyz"
+    assert agent["source"] == "a2a"

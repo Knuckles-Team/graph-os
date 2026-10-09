@@ -2,7 +2,7 @@
 
 GraphOS owns the policy inputs the consumers need. Each install step is
 guarded: a missing input logs a reason and skips that consumer. A failure here
-never stops serving (GRAPHOS-HOST-R020, GRAPHOS-HOST-R021).
+never stops serving (GRAPHOS-HOST-R020, GRAPHOS-HOST-R021, GRAPHOS-HOST-R022).
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import asyncio
 import logging
 import secrets
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -93,12 +93,101 @@ def _install_topology(assembler: Any, run: Callable[[Any], Any]) -> None:
     topology.install_topology(assembler, run, _published_templates)
 
 
-def _install_planner(assembler: Any, run: Callable[[Any], Any]) -> None:
+def _capability_search(eg_client: Any, session: Any) -> Callable[[Sequence[str]], Any]:
+    """The planner's reuse lookup: registered A2A agent cards, served from EG."""
+    from agent_utilities.layers.clients import AgentClient
+
+    client = AgentClient(eg_client, session)
+
+    async def lookup(_task_iris: Sequence[str]) -> list[dict[str, Any]]:
+        try:
+            result = await client.agents()
+        except Exception as exc:
+            logger.warning("capability search unavailable: %s", exc)
+            return []
+        rows = getattr(result, "components", None)
+        if rows is None:
+            rows = result if isinstance(result, Sequence) else []
+        hits: list[dict[str, Any]] = []
+        for row in rows:
+            component_id = (
+                row.get("component_id")
+                if isinstance(row, Mapping)
+                else getattr(row, "component_id", None)
+            )
+            if component_id:
+                hits.append({"kind": "a2a_agent", "id": str(component_id)})
+        return hits
+
+    return lookup
+
+
+def _guardrail_source(engine: Any) -> Callable[[Sequence[str]], Any]:
+    """The planner's policy rules: one side-effect-free AU action-policy
+    verdict per task (never raises; fails closed -- AU-CONTROL-R017)."""
+    from agent_utilities.orchestration.action_policy import (
+        ActionRequest,
+        get_action_policy,
+    )
+
+    policy = get_action_policy(engine)
+
+    async def lookup(tasks: Sequence[str]) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for task in tasks:
+            decision = policy.evaluate(
+                ActionRequest(kind="agent_execute", target=task, source="task_planner")
+            )
+            rows.append(
+                {
+                    "id": f"action-policy:{task}",
+                    "requirement": "AU-CONTROL-R017",
+                    "rule": f"{decision.decision} at tier {decision.tier} "
+                    f"({decision.reason})",
+                }
+            )
+        return rows
+
+    return lookup
+
+
+def _workflow_lookup(engine: Any) -> Callable[[Sequence[str]], Any]:
+    """The planner's compiled-workflow lookup: the registered graph workflow
+    store's semantic match over the planned tasks."""
+    from agent_utilities.knowledge_graph.workflow_store import WorkflowStore
+
+    store = WorkflowStore(engine)
+
+    async def lookup(tasks: Sequence[str]) -> Mapping[str, Any] | None:
+        try:
+            hits = store.find_similar(" ".join(tasks), top_k=1)
+        except Exception as exc:
+            logger.warning("workflow lookup unavailable: %s", exc)
+            return None
+        return hits[0] if hits else None
+
+    return lookup
+
+
+def _install_planner(
+    assembler: Any,
+    run: Callable[[Any], Any],
+    eg_client: Any,
+    session: Any,
+    engine: Any,
+) -> None:
     from agent_utilities.decide.consumers import task_planner as tp
 
     templates = getattr(tp, "installed_templates", lambda: None)()
     tp.install_task_planner(
-        tp.TaskPlanner(assembler=assembler, templates=templates, driver=run)
+        tp.TaskPlanner(
+            assembler=assembler,
+            templates=templates,
+            driver=run,
+            capability_search=_capability_search(eg_client, session),
+            guardrail_source=_guardrail_source(engine),
+            workflows=_workflow_lookup(engine),
+        )
     )
 
 
@@ -170,7 +259,7 @@ def install_decide_consumers(
         except Exception as exc:
             logger.warning("topology asker install skipped: %s", exc)
         try:
-            _install_planner(assembler, run)
+            _install_planner(assembler, run, eg_client, session, engine)
             installed["task_planner"] = True
         except Exception as exc:
             logger.warning("task planner install skipped: %s", exc)

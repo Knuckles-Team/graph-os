@@ -23,9 +23,10 @@
     "GRAPHOS-HOST-R018",
     "GRAPHOS-HOST-R019",
     "GRAPHOS-HOST-R020",
-    "GRAPHOS-HOST-R021"
+    "GRAPHOS-HOST-R021",
+    "GRAPHOS-HOST-R022"
   ],
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
   "evidence": [],
   "requirements": [
@@ -91,8 +92,16 @@
     {
       "id": "GRAPHOS-HOST-R008",
       "title": "GraphOS hosts its own boundary modules",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "eb31b775768129c7d22513265413f255c6056659",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/eb31b775768129c7d22513265413f255c6056659",
+          "description": "GRAPHOS-HOST-R008 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R009",
@@ -231,7 +240,14 @@
       "title": "Serving start binds the assembler's commit/publish providers and installs the topology asker",
       "delivery_state": "BUILDING",
       "evidence": [],
-      "remaining": "Merge, roll out graph-os, then confirm a live assembly commits and publishes against the served engine. Planner capability-search/guardrail/workflow lookups are not yet bound."
+      "remaining": "Merge, roll out graph-os, then confirm a live assembly commits and publishes against the served engine."
+    },
+    {
+      "id": "GRAPHOS-HOST-R022",
+      "title": "Serving start binds the task planner's capability-search, guardrail and workflow lookups",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Merge, roll out graph-os, then confirm a live plan's reuse hits, guardrail rows and workflow match are non-degenerate against the served engine."
     }
   ]
 }
