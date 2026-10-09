@@ -28,7 +28,7 @@
     "GRAPHOS-IDENTITY-R023",
     "GRAPHOS-IDENTITY-R024"
   ],
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
   "evidence": [],
   "requirements": [
@@ -271,7 +271,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R019",
       "title": "Access operations for elevation and approval decisions",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -279,6 +279,13 @@
           "commit": "9f238618e6e9aaa68cb37abde6ac25be6980db08",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/9f238618e6e9aaa68cb37abde6ac25be6980db08",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "f0432f0a0cefde3f4fc30dccf52af2f0994d1a49",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/f0432f0a0cefde3f4fc30dccf52af2f0994d1a49",
+          "description": "GRAPHOS-IDENTITY-R019 merged to the default branch in this commit."
         }
       ]
     },
