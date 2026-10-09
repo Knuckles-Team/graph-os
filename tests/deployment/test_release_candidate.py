@@ -16,9 +16,11 @@ from graph_os.deployment.cli import main
 from graph_os.deployment.genesis_environments import BUILTIN_ENVIRONMENTS_DIR
 from graph_os.deployment.release_candidate import (
     CandidateError,
+    ExitCriteriaError,
     _canonical_digest,
     plan_candidate,
     read_candidate,
+    read_exit_criteria_matrix,
 )
 
 _KEY = b"disposable-test-trust-key"
@@ -195,6 +197,55 @@ def test_artifact_refusal(tmp_path, candidate, authority, field, value):
     candidate["artifacts"][0][field] = value
     with pytest.raises(CandidateError):
         _plan(tmp_path, candidate)
+
+
+_EXIT_CRITERIA_OBLIGATIONS = (
+    "ingestion-receipt",
+    "sparql-query-proof",
+    "natural-language-query-proof",
+    "orchestration-graph",
+    "connector-certification",
+    "write-back-receipt",
+    "browser-identity-login",
+    "typed-abstention",
+)
+
+
+def _exit_criteria_rows():
+    return [
+        {
+            "obligation_id": obligation,
+            "description": f"{obligation} is proven by its mapped test",
+            "test_reference": f"tests/release/test_{obligation.replace('-', '_')}.py",
+        }
+        for obligation in _EXIT_CRITERIA_OBLIGATIONS
+    ]
+
+
+def test_exit_criteria_matrix_one_row_per_readiness_obligation():
+    """T-RL-10 (GRAPHOS-RELEASE-R003.1): a valid matrix carries one row per
+    readiness obligation named in GRAPHOS-RELEASE-R003."""
+    matrix = read_exit_criteria_matrix(_exit_criteria_rows())
+    assert {row.obligation_id for row in matrix.rows} == set(_EXIT_CRITERIA_OBLIGATIONS)
+
+
+def test_exit_criteria_matrix_refuses_empty():
+    with pytest.raises(ExitCriteriaError, match="exit_criteria_empty"):
+        read_exit_criteria_matrix([])
+
+
+def test_exit_criteria_matrix_refuses_duplicate_obligation():
+    rows = _exit_criteria_rows()
+    rows.append(dict(rows[0]))
+    with pytest.raises(ExitCriteriaError, match="exit_criteria_duplicate_obligation"):
+        read_exit_criteria_matrix(rows)
+
+
+def test_exit_criteria_matrix_refuses_malformed_test_reference():
+    rows = _exit_criteria_rows()
+    rows[0]["test_reference"] = "not a path; rm -rf /"
+    with pytest.raises(ExitCriteriaError, match="exit_criteria_row_invalid"):
+        read_exit_criteria_matrix(rows)
 
 
 @pytest.mark.parametrize("field", ["artifacts", "stages"])
