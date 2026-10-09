@@ -1586,7 +1586,9 @@ def test_skills_check_requires_exact_suite_without_persisting_local_path(
     result = D._check_skills()
 
     assert result["status"] == "warn"
-    assert "graph-ingestion-and-integration" in result["data"]["missing"]
+    # The required suite is AU's bundled set; the synthetic source holds none of it.
+    assert result["data"]["missing"]
+    assert "graph-query-and-explanation" not in result["data"]["missing"]
     assert str(tmp_path) not in json.dumps(result)
 
 

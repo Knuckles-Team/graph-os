@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+from agent_utilities.core import config as au_config
 from agent_utilities.core.config import (
     AgentConfig,
     ConfigurationSourceError,
@@ -225,10 +226,24 @@ def test_migrate_config_file_rejects_invalid_renamed_document_without_writing(
 def test_legacy_messaging_environment_input_fails_with_neutral_guidance(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """A retired key from the process environment fails closed at the same
+    value-free ``ConfigurationSourceError`` boundary as a staged document
+    (see ``test_xdg_load_rejects_invalid_governance_catalog_without_writing``
+    above). ``AgentConfig()`` only runs the staged-xdg load path on its first
+    call per process (``_ensure_env_loaded`` memoizes via the module-level
+    ``_env_loaded`` flag); later callers in the same suite would otherwise
+    skip straight to the plain, unwrapped settings ``ValidationError``, which
+    made this assertion depend on test execution order. Force the first-call
+    state so the boundary this test names is the one actually exercised.
+    """
     monkeypatch.setenv(_RETIRED_MESSAGING_MODEL, "addressed-model")
+    monkeypatch.setattr(au_config, "_env_loaded", False)
 
-    with pytest.raises(ValueError, match="MESSAGING_ADDRESSED_MODEL"):
+    with pytest.raises(ConfigurationSourceError) as raised:
         AgentConfig()
+
+    assert raised.value.source_type == "xdg"
+    assert raised.value.error_class == "ValidationError"
 
 
 def test_migrate_config_file_reports_but_keeps_unknown_by_default(

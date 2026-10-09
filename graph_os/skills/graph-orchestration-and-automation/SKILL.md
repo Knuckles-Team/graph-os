@@ -27,6 +27,7 @@ avoid expressing its acceptance criteria.
 
 | Tool | Actions | Notes |
 |---|---|---|
+| `agent_library` | `get`, `list`, `save`, `seed_roles` | the Agent Library a solved `graph.assemble()` draft is saved to for reuse (AU-CONTROL-R024) |
 | `graph_orchestrate` | `dispatch`, `swarm` (goal → decompose → parallel waves → verify → synthesize), `execute_agent`, `execute_workflow`/`compile_workflow`, `status`, `request_approval`/`grant_approval`, `consensus`/`start_debate`, `computer_use` (GUI agent on a gui-sandbox), `optimize_component` (DSPy pass), `distill_skills`, `loop_cycle`, `publish_proposal`, `failure_ingest` | the fleet execution entrypoint |
 | `graph_workflows` | `compile`, `compile_process`, `list`, `execute`, `execute_dynamic`, `dispatch`, `status`, `export` | `execute_dynamic` uses upstream Harness DynamicWorkflow for model-authored topology, but every catalog call re-enters GraphOS; `dynamic_fallback=stored_dag` is explicit and applies only when Harness is unavailable |
 | `graph_loops` | `submit` (`objective` + `kind`=research\|develop\|skill), `list`, `run` (advance all active Loops one cycle), `drive` (run ONE Loop by id to completion, durably/resumable), `cancel`, `prioritize`, `state` (live EvolutionState — stage, saturation, backlog), `specs` (SpecProposal backlog), `review` (approve/edit/reject a distilled spec), `placement_control` (manual-trigger one governed placement-mining pass), `gaps` (the open canonical `:Gap` backlog, highest priority first — CONCEPT:AU-AHE.harness.canonical-gap-lifecycle), `submit_gap` (file one Gap by hand — `data_json={source,signature,statement,domain,severity,concept_ids}`), `gap` (one Gap by id — reuses `loop_id` — plus its provenance: the SpecProposal it was `SPECIFIED_BY` and the develop-Loop that `RESOLVES` it) | one entrypoint for research/develop/skill Loops, the unified Gap->SDD->Implement->Promote->Close lifecycle every discovery track files into, plus observing and steering the self-evolution flywheel |
@@ -60,11 +61,11 @@ auto-hydrate before delegating rather than failing:
    `execute_workflow` (compile an ad-hoc natural-language multi-step task into a reusable
    workflow first, then run it).
 
-An **in-band alternative** exists when the caller is itself an MCP client connected
-through the mcp-multiplexer in `dynamic` mode: `find_tools`/`load_tools` mounts the
-discovered tools directly in the client instead of running them remotely. Use
-`graph_orchestrate` for autonomous/headless delegation; use the multiplexer meta-tools
-when an interactive client should gain the tools itself. Both share the same KG
+An **in-band alternative** exists when the caller is itself an MCP client of
+graph-os: `find(action="tools", intent=...)` discovers a fleet tool and
+`act(action="fleet.call", params={...})` calls it directly. Use
+`graph_orchestrate` for autonomous/headless delegation; use `fleet.call` when an
+interactive client calls the tool itself. Both share the same KG
 `Server -[:PROVIDES]-> CallableResource` substrate.
 
 ## Workflow

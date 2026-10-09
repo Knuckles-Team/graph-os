@@ -12,52 +12,57 @@ description: >-
 
 # Using Graph OS
 
-Graph OS is an MCP server (and REST twin) that fronts a fleet of other MCP
-servers behind a small set of **always-on** tools plus a **discover, load,
-call** lifecycle for everything else. This skill describes what is actually
-callable today; one section at the end names what is staged but not yet
-reachable.
+Graph OS is an MCP server (and REST twin) that serves **one tool contract**:
+the intent tools `ask` (read), `find` (discover), `write`, `act` (run),
+`manage` (configure, approve, load fleet servers) and `why` (explain), plus
+two MCP Apps launchers. Every graph-os operation and every fleet tool is
+reached through these tools. This skill describes what is callable today.
+
+## Call shape
+
+Each intent tool takes `action="<tool>.<op>"` plus `params={...}`, or a
+natural-language `intent` with `action` empty.
+
+- `find(action="describe")` lists every operation.
+  `find(action="describe", params={"action": "<op>"})` returns one
+  operation's arguments.
+- `write`, `act` and `manage` preview first. Resubmit the returned
+  `plan_ref` with `execute=true` to run the plan.
 
 ## Discover before concluding a tool doesn't exist
 
-Most of the fleet (hundreds of tools across dozens of servers) is not in your
-tool list until you load it. Four meta-tools, always present, make the fleet
-discoverable and loadable (`graph_os/fleet/multiplexer.py`):
+The MCP fleet (hundreds of tools across dozens of servers) is reached
+through the same tools (`graph_os/fleet/multiplexer.py`):
 
-- `find_tools(query, top_k=0)` — semantic search of the **entire** fleet (and
-  any fleet-served `skill://` resources) for a natural-language task. Call
-  this first before assuming a capability is missing. Returns ranked,
-  prefixed names plus an `unavailable` map of unreachable servers.
-- `list_catalog(server="", include_tools=true)` — flat browse of every
-  configured server; pass `server` to drill into one server's full tool list.
-- `load_tools(tools=[...], servers=[...], auto_unload=false)` — mounts tools
-  or whole servers so they become callable server-side this session. This
-  also works for graph-os's own granular tools when a condensed profile has
-  held them back (`MCP_TOOL_MODE=intent`): pass the bare name, e.g.
-  `load_tools(tools=["graph_query"])`. `auto_unload=true` retracts a tool
-  after its next call (one-shot use).
-- `unload_tools(tools=[...], servers=[...], toolsets=[...])` — retract
-  loaded tools; `servers=["graph-os"]` retracts graph-os's own condensed
-  surface at once. Nothing is deleted; `load_tools` brings it straight back.
-- `multiplexer_status()` — health of every aggregated child server (state,
-  restart count, concurrency, in-flight/queued calls), no arguments.
+- `find(action="tools", intent="...")` — semantic search of the **entire**
+  fleet, including fleet-served `skill://` resources. Call it before
+  assuming a capability is missing. It returns ranked, prefixed names and
+  an `unavailable` map of unreachable servers.
+- `find(action="catalog")` — browse every configured server.
+  `params={"server": "<name>"}` drills into one server's tools.
+- `find(action="status")` — health of every fleet child server, the
+  unadmitted servers and the last onboarding pass.
+- `act(action="fleet.call", params={"tool": "<prefixed name>",
+  "arguments": {...}})` — calls one fleet tool.
+- `manage(action="fleet.load"|"fleet.unload", params={...})` — mounts or
+  releases fleet servers ahead of use. A call mounts what it needs, so
+  this step is optional.
 
-A skill is just another catalog item: `find_tools("...")` ranks
-`skill://<name>/SKILL.md` resources alongside tools. `load_tools(tools=
-["skill://<name>/SKILL.md"])` returns that skill's body (its `SKILL.md` text)
-in the load result — read and follow it directly, or hand it to
-`graph_orchestrate` with `skill_name=<name>` to have a delegated agent run it
-instead of running it yourself.
+A skill is a catalog item: `find(action="tools", ...)` ranks
+`skill://<name>/SKILL.md` resources beside tools. Read the skill body and
+follow it, or hand it to `graph_orchestrate` with `skill_name=<name>`.
 
-The MCP server's own `initialize` instructions (`graph_os/mcp_server/
-runtime.py`, `_build_server`) restate this same discover-first rule to every
-connecting client, so the above is also what any agent is told directly on
-connect.
+Browser control (`browser_control`), A2A tasks (`graph_a2a`) and the RLM
+control plane (`graph_rlm`) are `act` operations, not listed tools.
+
+The MCP server's `initialize` instructions (`graph_os/mcp_server/
+runtime.py`, `_build_server`) restate this contract to every client.
 
 ## Query the knowledge graph before reading code
 
-Before grepping source, use graph-os's own always-on tools — they are
-registered under these exact names (`agent_utilities/mcp/tools/`, served
+Before grepping source, use graph-os's own operations. Reach each one
+through an intent tool, e.g. `ask(action="graph_code.code_context",
+params={...})`. They are registered under these exact names (`agent_utilities/mcp/tools/`, served
 through graph-os's `REGISTERED_TOOLS`/`_execute_tool` dispatch in
 `graph_os/mcp_server/runtime.py`, with a REST `/api` twin):
 
@@ -73,8 +78,7 @@ through graph-os's `REGISTERED_TOOLS`/`_execute_tool` dispatch in
   `analogy`, `memory`, `discover`, and others described in the tool's own
   `mode` parameter.
 - `graph_config(action="get"|"describe"|"set", key=...)` — inspect or change
-  runtime configuration, including the always-load set
-  (`key="MCP_ALWAYS_LOAD"`).
+  runtime configuration.
 
 Prefer these over reading files directly when the question is "how does this
 work," "who calls this," or "what would this change affect" — the graph is

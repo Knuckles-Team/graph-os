@@ -15,6 +15,7 @@ import argparse
 import importlib
 import importlib.metadata
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -62,6 +63,40 @@ def _numeric_kernel_ready() -> bool:
         return False
 
 
+def _leading_major_version(text: str) -> int | None:
+    match = re.match(r"\s*(\d+)", text)
+    return int(match.group(1)) if match else None
+
+
+def _declared_fastmcp_major() -> int | None:
+    for requirement in importlib.metadata.requires("graph-os") or ():
+        name, _, specifier = requirement.partition(">=")
+        if name.strip() != "fastmcp":
+            continue
+        return _leading_major_version(specifier)
+    return None
+
+
+def _served_fastmcp_matches_declared() -> bool:
+    """Prove the promoted environment serves the FastMCP major it declares.
+
+    GraphOS's MCP bridge is a FastMCP 4 composition. A floor that resolves to
+    an installed FastMCP 3.x build would serve requests on the wrong major
+    version while the declared dependency still reads as satisfied.
+    """
+
+    try:
+        declared_major = _declared_fastmcp_major()
+        served_major = _leading_major_version(importlib.metadata.version("fastmcp"))
+        return (
+            declared_major is not None
+            and served_major is not None
+            and declared_major == served_major
+        )
+    except Exception:  # noqa: BLE001 - the result is intentionally aggregate-only
+        return False
+
+
 def run_canary() -> dict[str, Any]:
     """Return only aggregate booleans; never return paths, versions, or identities."""
 
@@ -69,6 +104,7 @@ def run_canary() -> dict[str, Any]:
         "entry_points": _entry_points_ready(),
         "engine_binary": _engine_binary_ready(),
         "numeric_kernel": _numeric_kernel_ready(),
+        "served_fastmcp_matches_declared": _served_fastmcp_matches_declared(),
     }
     return {
         "status": "passed" if all(checks.values()) else "failed",
