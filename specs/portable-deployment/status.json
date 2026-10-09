@@ -67,7 +67,7 @@
     },
     {
       "id": "GRAPHOS-DEPLOY-R005",
-      "title": "Web UI rename cutover across GraphOS",
+      "title": "Web UI keeps its component package name",
       "delivery_state": "BUILT",
       "evidence": [
         {
@@ -77,7 +77,8 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/ebb644b377cd8b0a92c5863f1d0213cf68a85095",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
-      ]
+      ],
+      "remaining": "Rescoped by operator decision 2026-10-09: no rename cutover; agent-webui stays the component name and only user-visible strings read Graph OS (agent-webui PR #51)."
     },
     {
       "id": "GRAPHOS-DEPLOY-R006",
