@@ -115,6 +115,7 @@ def test_federation_reader_proof_file_exists_and_names_the_right_assertion() -> 
             "in this environment -- its tests/ tree (never shipped in an "
             "installed distribution) cannot be checked from here"
         )
+    assert _AU_ROOT is not None  # narrows for mypy; pytest.skip() above exits
 
     entry = lookup_query_dialect("query_dialect:federated")
     assert entry is not None and entry.proof is not None
@@ -155,6 +156,7 @@ def test_eg_obs_ingest_fail_open_proof_exists_in_source() -> None:
             "from here; see epistemic-graph src/server/obs/mod.rs::tests::"
             "bug_037_obs_ingest_post_bypasses_the_deny_gate directly"
         )
+    assert obs_mod is not None  # narrows for mypy; pytest.skip() above exits
 
     source = obs_mod.read_text(encoding="utf-8")
     assert "bug_037_obs_ingest_post_bypasses_the_deny_gate" in source
@@ -208,6 +210,12 @@ def test_websocket_dashboard_citation_does_not_regress_to_the_dead_module() -> N
             "agent-webui sibling repo not present in this environment -- the "
             "cited server.py cannot be checked from here"
         )
+    assert server_py is not None  # narrows for mypy; pytest.skip() above exits
     source = server_py.read_text(encoding="utf-8")
-    assert "_dashboard_ws" in source
+    # GOC-60-W05 moved this off a dedicated `_dashboard_ws` handler onto the
+    # generic websocket branch of `WebUIAuthorizationMiddleware.__call__`,
+    # read-only-classified via `_WEBSOCKET_READ_ONLY_PATHS`; assert the
+    # enforcement this test actually cites, not the retired symbol name.
+    assert "WebUIAuthorizationMiddleware" in source
+    assert "_WEBSOCKET_READ_ONLY_PATHS" in source
     assert "/ws/dashboard" in source

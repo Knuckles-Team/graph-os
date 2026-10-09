@@ -157,7 +157,7 @@ def enumerate_query_dialect_surfaces(
     branches = _find_run_graph_query_scope_branches(tree)
     if not branches:
         raise RuntimeError(
-            f"{path}: found zero `if scope == ...` branches inside "
+            f"{path}: found zero scope-dispatch branches inside "  # nosec B608 -- no SQL; bandit misreads this prose
             "_run_graph_query — either the function was renamed/restructured "
             "(update this introspector) or something is wrong; refusing to "
             "report an empty surface set silently"
