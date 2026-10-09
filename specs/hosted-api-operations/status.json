@@ -23,6 +23,11 @@
     "GRAPHOS-OPS-R018",
     "GRAPHOS-OPS-R019",
     "GRAPHOS-OPS-R020",
+    "GRAPHOS-OPS-R020.1",
+    "GRAPHOS-OPS-R020.2",
+    "GRAPHOS-OPS-R020.3",
+    "GRAPHOS-OPS-R020.4",
+    "GRAPHOS-OPS-R020.5",
     "GRAPHOS-OPS-R021",
     "GRAPHOS-OPS-R022",
     "GRAPHOS-OPS-R023",
@@ -348,16 +353,40 @@
     {
       "id": "GRAPHOS-OPS-R020",
       "title": "Ingest operations through a typed SDK runner facade",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "68a2364fda13b26117e06bf8c823ddaf4881deed",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/68a2364fda13b26117e06bf8c823ddaf4881deed",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ]
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Split into GRAPHOS-OPS-R020.1 through R020.5 (net-new, sliced by delivery layer). R020.1 (typed runner port + ingest.sources.sync) is building; R020.2-R020.5 (repository/source inventory, pack/job management, drift repair, embedding admission) remain SPECIFIED."
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.1",
+      "title": "Typed ingest runner port and the source-sync entry point",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "graph_os/ingest/service.py (IngestRunner port, sync_source) and graph_os/api/ops/ingest.py (ingest.sources.sync) are implemented and unit-tested; pending merge to the default branch."
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.2",
+      "title": "Repository indexing and source inventory operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3",
+      "title": "Pack and job management operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.4",
+      "title": "Drift listing and repair-with-approval operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.5",
+      "title": "Embedding admission and re-embedding operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-OPS-R021",
