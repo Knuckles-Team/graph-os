@@ -16,6 +16,12 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GIA-10:** Run all portable tests on the exact candidate commit; run Ruff, Mypy, hooks, CCCC, KISS, Dupehound, jscpd, frozen lock and wheel checks. Fix findings without weakening thresholds; record each job in `evidence.md`.
 - [ ] **GIA-11:** Merge the reviewed implementation to default branch; record exact commit and re-run acceptance evidence against that commit. Update delivery and acceptance states individually.
 
+## Rapid-delivery split (2026-10-09)
+
+- [x] **GIA-RD-01:** Split `GRAPHOS-IDENTITY-R004`, `R006`, `R007` into `.1` (typed model +
+  validation + refusal tests under `graph_os/identity/`) and `.2` (remaining behavior,
+  stays `SPECIFIED`). Parents are now rollups. See `requirements.md`/`status.json`.
+
 ## Source ID coverage
 
 `GRAPHOS-IDENTITY-R001`, `GRAPHOS-IDENTITY-R002`–`GRAPHOS-IDENTITY-R017`, `GRAPHOS-IDENTITY-R018`, `GRAPHOS-IDENTITY-R019`, `GRAPHOS-IDENTITY-R020`, `GRAPHOS-IDENTITY-R021`, `GRAPHOS-IDENTITY-R022`, and `GRAPHOS-IDENTITY-R023` map to IA requirements in `spec.md`. Source IDs identify intended work, not completion. Cross-repository owners implement their side of the contract stated in this spec; GraphOS tasks cannot close their delivery without their own accepted evidence.

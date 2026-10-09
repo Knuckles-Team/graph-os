@@ -7,9 +7,15 @@
     "GRAPHOS-IDENTITY-R002",
     "GRAPHOS-IDENTITY-R003",
     "GRAPHOS-IDENTITY-R004",
+    "GRAPHOS-IDENTITY-R004.1",
+    "GRAPHOS-IDENTITY-R004.2",
     "GRAPHOS-IDENTITY-R005",
     "GRAPHOS-IDENTITY-R006",
+    "GRAPHOS-IDENTITY-R006.1",
+    "GRAPHOS-IDENTITY-R006.2",
     "GRAPHOS-IDENTITY-R007",
+    "GRAPHOS-IDENTITY-R007.1",
+    "GRAPHOS-IDENTITY-R007.2",
     "GRAPHOS-IDENTITY-R008",
     "GRAPHOS-IDENTITY-R009",
     "GRAPHOS-IDENTITY-R010",
@@ -76,17 +82,22 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R004",
-      "title": "Loopback bootstrap principal with origin guarding",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "3da6fc31887d0fb87d129922e424f2c7faa1ba8c",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/3da6fc31887d0fb87d129922e424f2c7faa1ba8c",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ]
+      "title": "Loopback bootstrap principal with origin guarding (rollup)",
+      "delivery_state": "SPECIFIED",
+      "children": ["GRAPHOS-IDENTITY-R004.1", "GRAPHOS-IDENTITY-R004.2"],
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R004.1",
+      "title": "Typed loopback bootstrap-principal model with refusal tests",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R004.2",
+      "title": "Bootstrap resolution path, Host/Origin validation, unsecured-mode indicators",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-IDENTITY-R005",
@@ -104,31 +115,41 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R006",
-      "title": "Optional MFA with TOTP, WebAuthn, and recovery codes",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "22d9b125817ea1bb8f24949f1e854a0889c3e01e",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/22d9b125817ea1bb8f24949f1e854a0889c3e01e",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ]
+      "title": "Optional MFA with TOTP, WebAuthn, and recovery codes (rollup)",
+      "delivery_state": "SPECIFIED",
+      "children": ["GRAPHOS-IDENTITY-R006.1", "GRAPHOS-IDENTITY-R006.2"],
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R006.1",
+      "title": "Typed MFA enrollment model with refusal tests",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R006.2",
+      "title": "TOTP, WebAuthn, recovery-code ceremonies and group enforcement",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-IDENTITY-R007",
-      "title": "Admin console tabs with mapping dry-run and mode wizard",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "22d9b125817ea1bb8f24949f1e854a0889c3e01e",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/22d9b125817ea1bb8f24949f1e854a0889c3e01e",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ]
+      "title": "Admin console tabs with mapping dry-run and mode wizard (rollup)",
+      "delivery_state": "SPECIFIED",
+      "children": ["GRAPHOS-IDENTITY-R007.1", "GRAPHOS-IDENTITY-R007.2"],
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R007.1",
+      "title": "Typed admin-console tab model with refusal tests",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R007.2",
+      "title": "Mapping dry-run preview and mode-transition wizard",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-IDENTITY-R008",
