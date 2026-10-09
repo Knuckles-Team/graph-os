@@ -1130,8 +1130,13 @@ def _check_eunomia() -> dict[str, Any]:
         if mode == "none":
             return _result(
                 "eunomia",
-                "ok",
-                "native MCP policy authorization is explicitly disabled",
+                "warn",
+                "narrowing Eunomia authorization is off for this deployment",
+                remediation=(
+                    "Set EUNOMIA_TYPE=embedded (with a runtime policy file) or "
+                    "EUNOMIA_TYPE=remote (with a bounded endpoint) so discover, "
+                    "load, and call all narrow through Eunomia."
+                ),
                 data={"mode": "none", "ready": True},
             )
         if mode == "embedded":

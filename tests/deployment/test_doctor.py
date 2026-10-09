@@ -466,6 +466,22 @@ def test_permission_governance_doctor_verifies_authority(monkeypatch):
     assert result["data"]["policy_count"] == 5
 
 
+def test_eunomia_doctor_warns_when_narrowing_policy_is_off(monkeypatch):
+    monkeypatch.setattr(
+        "agent_utilities.core.config.AgentConfig",
+        lambda: SimpleNamespace(
+            eunomia_type="none",
+            eunomia_allowed_private_hosts=[],
+        ),
+    )
+
+    result = D._check_eunomia()
+
+    assert result["status"] == "warn"
+    assert result["data"]["mode"] == "none"
+    assert result["remediation"]
+
+
 def test_outbound_auth_doctor_reports_redacted_readiness(monkeypatch):
     monkeypatch.setattr(
         "agent_utilities.mcp.client_credentials.outbound_auth_configuration_status",
