@@ -223,7 +223,14 @@
       "title": "Serving start installs the decide consumers",
       "delivery_state": "BUILDING",
       "evidence": [],
-      "remaining": "Merge, roll out graph-os, then confirm a live plan has no assembler_not_installed gap. Commit/publish providers and planner lookups are not yet bound."
+      "remaining": "Merge, roll out graph-os, then confirm a live plan has no assembler_not_installed gap."
+    },
+    {
+      "id": "GRAPHOS-HOST-R021",
+      "title": "Serving start binds the assembler's commit/publish providers and installs the topology asker",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Merge, roll out graph-os, then confirm a live assembly commits and publishes against the served engine. Planner capability-search/guardrail/workflow lookups are not yet bound."
     }
   ]
 }

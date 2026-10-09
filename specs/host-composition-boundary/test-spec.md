@@ -14,7 +14,8 @@ On a supported Python version, clone this repository, run `uv sync --extra test`
 | Open UI co-service, reload catalog and close it | One FastMCP loop/multiplexer, no blocked loop or lost generation notification. |
 | Package wheel and import it in a fresh environment | Console scripts resolve and declared extras control optional imports. |
 | GRAPHOS-HOST-R019: mount the dashboard routes; open `/ws/dashboard` and send a `subscribe` message | REST reads answer 200; the stream sends a snapshot, then an update scoped to the subscribed widgets. |
-| GRAPHOS-HOST-R020: call `install_decide_consumers` with a fake client, then with a failing client, a failing assembler and a client without SPARQL | All three consumers install. Each fault skips only its own consumer and raises nothing. |
+| GRAPHOS-HOST-R020: call `install_decide_consumers` with a fake client, then with a failing client, a failing assembler and a client without SPARQL | All four consumers install. Each fault skips only its own consumer and raises nothing. |
+| GRAPHOS-HOST-R021: assemble a request through a fake engine client with the bound `commit_context`/`publish_context` providers | The fake client's `commit_decision` and `publish_graph` each record one call for a solved assembly; an abstained assembly records neither. |
 
 ## Negative cases
 
