@@ -1,10 +1,9 @@
 """Usage read operation (GRAPHOS-OPS-R024.3).
 
-Implements the usage portion of GRAPHOS-OPS-R024: a single ``usage.read``
-operation sourcing usage data from the engine, through one typed port,
-rather than a local counter, matching the ingest-runner facade convention
-in :mod:`graph_os.api.ops.ingest`. An uncomposed reader fails closed with a
-typed ``UNAVAILABLE`` refusal.
+``usage.read`` sources its numbers from the engine's own ``usage_reader``
+port, not a counter GraphOS keeps on the side. The OpSpec/refusal/params
+plumbing lives in :mod:`graph_os.api.ops._common`; this module owns only
+the port protocol and the per-tenant totals shape.
 """
 
 from __future__ import annotations

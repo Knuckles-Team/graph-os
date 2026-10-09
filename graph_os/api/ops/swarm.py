@@ -1,11 +1,9 @@
 """Swarm topology read operation (GRAPHOS-OPS-R021.3, swarm slice).
 
-Implements the swarm portion of GRAPHOS-OPS-R021: a single
-``swarm.topology.read`` operation surfacing the current swarm topology to an
-authorized caller through one typed port, matching the ingest-runner facade
-convention in :mod:`graph_os.api.ops.ingest`. An uncomposed reader fails
-closed with a typed ``UNAVAILABLE`` refusal rather than fabricating a
-topology.
+``swarm.topology.read`` reflects back whatever the composed
+``swarm_topology_reader`` port currently holds for the caller's own tenant
+-- GraphOS never invents a topology of its own. The shared OpSpec/refusal/
+params scaffolding lives in :mod:`graph_os.api.ops._common`.
 """
 
 from __future__ import annotations

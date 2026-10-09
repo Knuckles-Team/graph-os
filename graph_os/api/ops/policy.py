@@ -1,10 +1,10 @@
 """Policy read operation (GRAPHOS-OPS-R021.3, policy slice).
 
-Implements the policy portion of GRAPHOS-OPS-R021: a single ``policy.read``
-operation surfacing the active policy state to an authorized caller through
-one typed port, matching the ingest-runner facade convention in
-:mod:`graph_os.api.ops.ingest`. An uncomposed reader fails closed with a
-typed ``UNAVAILABLE`` refusal rather than fabricating a policy state.
+``policy.read`` hands back the caller's own tenant's active policy state
+from the composed ``policy_reader`` port. The OpSpec wiring, the
+not-composed-yet refusal, and the trivial params/result pair all come from
+:mod:`graph_os.api.ops._common`; this module only supplies the port
+protocol, the state shape, and the service name.
 """
 
 from __future__ import annotations

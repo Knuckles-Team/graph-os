@@ -1,10 +1,9 @@
 """Telemetry read operation (GRAPHOS-OPS-R024.1).
 
-Implements the telemetry portion of GRAPHOS-OPS-R024: a single
-``telemetry.read`` operation bound to the engine's tenant-scoped telemetry
-method through one typed port, matching the ingest-runner-facade convention
-in :mod:`graph_os.api.ops.ingest`. An uncomposed reader fails closed with a
-typed ``UNAVAILABLE`` refusal rather than fabricating a snapshot.
+``telemetry.read`` is the engine's own tenant-scoped telemetry method,
+reached through the composed ``telemetry_reader`` port -- never a snapshot
+GraphOS fabricates locally. See :mod:`graph_os.api.ops._common` for the
+OpSpec, refusal, and params/result scaffolding this module reuses.
 """
 
 from __future__ import annotations

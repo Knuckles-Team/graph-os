@@ -1,10 +1,10 @@
 """Security posture read operation (GRAPHOS-OPS-R024.2).
 
-Implements the security portion of GRAPHOS-OPS-R024: a single
-``security.posture.read`` operation surfacing the current security posture
-to an authorized caller through one typed port, matching the ingest-runner
-facade convention in :mod:`graph_os.api.ops.ingest`. An uncomposed reader
-fails closed with a typed ``UNAVAILABLE`` refusal.
+``security.posture.read`` surfaces whatever the composed
+``security_posture_reader`` port currently reports for the caller's own
+tenant. :mod:`graph_os.api.ops._common` supplies the OpSpec, the
+not-composed refusal, and the empty-params/result pair; this module adds
+only the port protocol and the findings shape.
 """
 
 from __future__ import annotations
