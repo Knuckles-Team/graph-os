@@ -27,6 +27,16 @@ from .catalog_reader import (
     ServerPage,
     ServerRegistration,
 )
+from .error_budget import (
+    AimdConfig,
+    BudgetWindow,
+    OutcomeClass,
+    OutcomeSample,
+    Partition,
+    ThrottleDecision,
+    ThrottleMode,
+    decide,
+)
 from .multiplexer import (
     MCPMultiplexer,
     attach_fleet_loader,
@@ -37,6 +47,8 @@ from .multiplexer import (
 
 __all__ = [
     "FLEET_COMPONENT_KINDS",
+    "AimdConfig",
+    "BudgetWindow",
     "CatalogComponent",
     "CatalogServer",
     "ComponentContent",
@@ -51,12 +63,18 @@ __all__ = [
     "FleetCatalogReadPort",
     "FleetCatalogReader",
     "MCPMultiplexer",
+    "OutcomeClass",
+    "OutcomeSample",
+    "Partition",
     "ReadContext",
     "ReadReceipt",
     "ServerPage",
     "ServerRegistration",
+    "ThrottleDecision",
+    "ThrottleMode",
     "attach_fleet_loader",
     "auto_server_prefix",
     "clean_tool_name",
+    "decide",
     "get_server_prefix",
 ]
