@@ -43,7 +43,12 @@ permissions:
 jobs:
   gates:
     name: gates
-    runs-on: ubuntu-latest
+    # Homelab self-hosted runner for same-repo push/PR traffic (the org
+    # runner group is scoped to the 6 core repos already); a fork PR's head
+    # repo never matches `github.repository`, so it always lands on the
+    # GitHub-hosted runner -- self-hosted capacity is never offered to an
+    # untrusted fork without the separate first-run approval gate.
+    runs-on: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted", "homelab"]') || 'ubuntu-latest' }}
     env:
       CARGO_BUILD_JOBS: "4"
       CARGO_PROFILE_DEV_DEBUG: "0"
@@ -196,12 +201,51 @@ jobs:
           PYTHONPATH="$eg_source${PYTHONPATH:+:$PYTHONPATH}" uv run --no-sync python -c \
             'from pathlib import Path; import epistemic_graph; from epistemic_graph.generated import connector_pack, source_ingestion, storage; root = Path(".uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph").resolve(); assert Path(epistemic_graph.__file__).resolve().is_relative_to(root); assert connector_pack.ConnectorPackStatusRequest; assert source_ingestion.SourceCheckpoint; assert storage.send_agent_component_content'
 
-      - name: Locked-environment type check and full test suite (manual-stage hooks)
+      - name: Locked-environment type check (manual-stage hook, always full)
+        run: uvx --from pre-commit==4.6.0 pre-commit run mypy-env --hook-stage manual --all-files
+
+      # Operator decision (2026-10-09): PR gates run a fast subset so a PR
+      # auto-merges within minutes -- lint and the spec check already ran
+      # full above (the commit-stage pre-commit step), the type check just
+      # ran full too, and only the test matrix narrows here. `push` to main
+      # and a release tag are never `pull_request` and keep running the full
+      # suite unchanged via the manual-stage `pytest` hook, exactly as before.
+      - name: Resolve pull-request test scope
+        if: github.event_name == 'pull_request'
+        id: pr-test-scope
         run: |
           set -euo pipefail
-          for hook in mypy-env pytest; do
-            uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
-          done
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' \
+            pipelines-hook pr-test-scope --base-ref "$PRE_COMMIT_FROM_REF" \
+            --src-root graph_os --tests-root tests > "$RUNNER_TEMP/pr-test-scope.txt"
+          cat "$RUNNER_TEMP/pr-test-scope.txt"
+          {
+            echo "scope<<PR_TEST_SCOPE_EOF"
+            cat "$RUNNER_TEMP/pr-test-scope.txt"
+            echo "PR_TEST_SCOPE_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Full test suite (push to main / release tag; manual-stage hook)
+        if: github.event_name != 'pull_request'
+        run: uvx --from pre-commit==4.6.0 pre-commit run pytest --hook-stage manual --all-files
+
+      - name: Test suite -- pull request fast subset
+        if: github.event_name == 'pull_request'
+        env:
+          SCOPE: ${{ steps.pr-test-scope.outputs.scope }}
+        run: |
+          set -euo pipefail
+          if [ "$SCOPE" = "NONE" ]; then
+            echo "pr-test-scope: no graph_os/tests change in this diff; skipping pytest"
+          elif [ "$SCOPE" = "FULL" ]; then
+            echo "pr-test-scope: unmapped source change (or an unreadable diff); running the full suite"
+            scripts/local_hook.sh pytest
+          else
+            echo "pr-test-scope: running only the tests this diff affects:"
+            echo "$SCOPE"
+            mapfile -t affected_tests <<< "$SCOPE"
+            scripts/local_hook.sh pytest "${affected_tests[@]}"
+          fi
 
   scanner-quality:
     name: Scanner quality (cccc, KISS, dupehound, jscpd)
@@ -274,7 +318,7 @@ jobs:
   build:
     name: build
     needs: [gates]
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted", "homelab"]') || 'ubuntu-latest' }}
     env:
       SOURCE_DATE_EPOCH: "0"
     steps:
