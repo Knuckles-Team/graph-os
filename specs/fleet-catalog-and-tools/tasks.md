@@ -28,3 +28,4 @@ Check a task only after its linked code and tests land. A checked source task is
 - [ ] T19 (GRAPHOS-FLEET-R030): Read ontology entries from the real pack archive accessor; confirm the duck-typed `entries` read against the SDK archive.
 - [x] T23 (GRAPHOS-FLEET-R030): Parse only ontology bodies that use the access-contract vocabulary. Log and skip a body the parser rejects.
 - [ ] T20 (GRAPHOS-FLEET-R030): Bind each source to a live operation call and add an operator approval path.
+- [x] T24 (GRAPHOS-FLEET-R031): Add `MCPMultiplexer._catalog_tool_probe_info` reading tool descriptors off the installed EG catalog snapshot, and fall back to it in `discover_tools` only for a server whose live probe errored.
