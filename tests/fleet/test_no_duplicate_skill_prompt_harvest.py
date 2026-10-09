@@ -4,8 +4,9 @@ and prompts through exactly one owner.
 agent-utilities ships its own legacy MCP multiplexer
 (``agent_utilities.mcp.multiplexer`` / ``agent_utilities.mcp.shared_multiplexer``)
 with its own skill/prompt body-harvest path. graph-os owns fleet composition
-and discovery (AGENTS.md, "graph_os.fleet | MCP child lifecycle, catalog
-discovery..."); its served package must never import that legacy path, and
+and discovery (``graph-os-repository-development`` skill, "graph_os.fleet |
+MCP child lifecycle, catalog discovery..."); its served package must never
+import that legacy path, and
 must define the skill/prompt body-harvest functions
 (:func:`graph_os.fleet.multiplexer._harvest_resource_bodies`,
 :func:`~graph_os.fleet.multiplexer._bounded_skill_catalog`,
