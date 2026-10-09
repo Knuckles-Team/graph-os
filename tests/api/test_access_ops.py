@@ -80,5 +80,6 @@ def test_operations_require_console_confirmation_for_decisions() -> None:
     assert "approvals.grant" not in ops
     assert "approvals.deny" not in ops
     op = ops["access.elevation.approve"]
+    assert op.confirm is not None
     assert op.confirm.value == "console"
     assert op.principals.value == "human_undelegated"

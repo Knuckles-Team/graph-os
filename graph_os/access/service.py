@@ -63,7 +63,9 @@ async def approve_elevation(context: Any, params: Mapping[str, Any], op: Any) ->
 
 async def deny_elevation(context: Any, params: Mapping[str, Any], op: Any) -> Any:
     """Keep the unsupported design operation distinct from EG revoke."""
-    raise NotImplementedError("ELEVATION_DENY_UNAVAILABLE: native EG deny is required")
+    raise NotImplementedError(  # ABSTRACT-OK: no native EG deny verb exists yet
+        "ELEVATION_DENY_UNAVAILABLE: native EG deny is required"
+    )
 
 
 async def list_leases(context: Any, params: Mapping[str, Any], op: Any) -> Any:
