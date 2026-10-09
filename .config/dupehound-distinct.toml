@@ -39,3 +39,13 @@ right_name = "operations"
 right_digest = "sha256:ee097ee89d61f7ddcec595ea9f1a06767ad045baf374b12e808b69399a111d71"
 reason = "Both declare an unrelated domain's own OpSpec registry (operational-admin vs ingestion) using the one mandated declarative registration shape every ops module shares by design; the registry factory, not this duplication, is the single point of consolidation."
 reviewed_on = "2026-10-09"
+
+[[pair]]
+left_file = "graph_os/api/ops/memory.py"
+left_name = "handle_memory_read"
+left_digest = "sha256:ba4b92341ba10f9124bb7da1001702bb95c9ce81ad641d7528833ba5e175e48d"
+right_file = "graph_os/ingest/service.py"
+right_name = "get_source_status"
+right_digest = "sha256:f288854a2cf4839aab497bc23a366988633b3cfed471ac31846ada771951386e"
+reason = "Both are independent typed read handlers in unrelated domains (tenant memory record read vs ingestion source status) that share the one mandated bind-await-return read-handler shape; consolidating would couple the memory store and ingest runner ports."
+reviewed_on = "2026-10-09"
