@@ -22,6 +22,12 @@ from .models import (
 )
 from .routing import A2AAssemblyUnavailable, A2ARouter, OrchestratorA2ARouter
 from .service import A2ACardMetadata, A2AService
+from .work_items import (
+    WorkItemView,
+    list_work_item_views,
+    parse_work_item_view,
+    work_item_view,
+)
 
 __all__ = [
     "A2AAgentCard",
@@ -41,7 +47,11 @@ __all__ = [
     "AmbientA2AAuthenticator",
     "OrchestratorA2ARouter",
     "WorkItemA2AAuthority",
+    "WorkItemView",
     "compose_a2a",
     "create_a2a_application",
     "create_a2a_handlers",
+    "list_work_item_views",
+    "parse_work_item_view",
+    "work_item_view",
 ]
