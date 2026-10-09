@@ -46,6 +46,7 @@ An obligation can be landed while acceptance remains open.
 | Directory | Spec ID | Owned requirement IDs |
 |---|---|---|
 | [`a2a-task-projection/spec.md`](a2a-task-projection/spec.md) | `GRAPHOS-A2A-001` | `A2A-01`–`A2A-07` (defined in [requirements.md](a2a-task-projection/requirements.md) as `GRAPHOS-A2A-R001`–`R008`) |
+| [`a2a-capability-and-history-projection/spec.md`](a2a-capability-and-history-projection/spec.md) | `GRAPHOS-A2A-003` | `A2A-H01`–`A2A-H07` (defined in [requirements.md](a2a-capability-and-history-projection/requirements.md) as `GRAPHOS-A2A-R001`, `R001.1`–`R007`); depends on `GRAPHOS-A2A-002` |
 | [`adaptive-capacity/spec.md`](adaptive-capacity/spec.md) | `GRAPHOS-CAPACITY-001` | `GRAPHOS-CAPACITY-R001`–`R002` |
 | [`conversational-acp-gateway/spec.md`](conversational-acp-gateway/spec.md) | `GRAPHOS-ACP-001` | `GRAPHOS-ACP-R001` |
 | [`data-and-market-projections/spec.md`](data-and-market-projections/spec.md) | `GRAPHOS-DATA-MARKET-001` | `GRAPHOS-DATA-MARKET-R001`–`R006` |
