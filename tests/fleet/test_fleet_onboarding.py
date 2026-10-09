@@ -405,7 +405,7 @@ def test_other_engine_error_checking_status_stays_failed(eg: _Registry) -> None:
     def broken_status(_params: Any, _key: Any) -> Any:
         raise RuntimeError("INTERNAL: status store unavailable")
 
-    eg._on_status = broken_status  # type: ignore[method-assign]
+    eg._on_status = broken_status  # type: ignore[method-assign,assignment]
     eg.leases["alpha-mcp"] = _FAR_FUTURE_LEASE_MS
 
     report = _run_in_session(onboard_fleet(_onboarding(eg), (ALPHA,)))
