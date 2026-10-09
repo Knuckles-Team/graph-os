@@ -23,13 +23,9 @@ from fastmcp.tools import Tool
 
 from graph_os.fleet.multiplexer import (
     _LOCAL_SESSION_META_KEY,
-    SessionVisibilityMiddleware,
     _fleet_required_capabilities,
-    _gated_tool_names,
     _make_forwarder,
-    _provider_tools,
     _register_forwarder,
-    _register_meta_tools,
     _require_fleet_capability,
     _session_key,
     _tool_is_verbose,
@@ -47,22 +43,6 @@ CNT_TOOL = "cm_container_operations"
 CNT_PREFIXED = "cm__container_operations"
 CNT_IMAGE_PREFIXED = "cm__image_operations"
 CNT_INFO_PREFIXED = "cm__info_operations"
-
-
-def test_local_tool_visibility_uses_the_graph_os_fastmcp_host() -> None:
-    tool = SimpleNamespace(name="graph_jobs")
-    resource = SimpleNamespace(name="status")
-    mcp = SimpleNamespace(
-        _local_provider=SimpleNamespace(
-            _components={"tool:graph_jobs": tool, "resource:status": resource}
-        ),
-        _intent_gated_tools=("graph_jobs",),
-    )
-
-    assert _provider_tools(mcp) == {"graph_jobs": tool}
-    assert _gated_tool_names(mcp) == {"graph_jobs"}
-    assert _provider_tools(SimpleNamespace()) == {}
-    assert _gated_tool_names(SimpleNamespace()) == set()
 
 
 def _write_config(tmp_path: Path, servers: dict[str, Any]) -> Path:
@@ -225,26 +205,6 @@ async def _list_session_tool_names(client: Any, session_id: str) -> set[str]:
     return {t.name for t in result.tools}
 
 
-def _mux_with_meta_tools_host(tmp_path):
-    """A mux wired to a fresh FastMCP host with meta-tools registered and
-    ``SessionVisibilityMiddleware`` attached -- shared setup for the
-    session-visibility dynamic-gateway tests below. Returns ``(mux, mcp)``."""
-    from fastmcp import FastMCP
-
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mux._global_visible = {
-        "find_tools",
-        "list_catalog",
-        "load_tools",
-        "unload_tools",
-        "multiplexer_status",
-    }
-    mcp.add_middleware(SessionVisibilityMiddleware(mux))
-    return mux, mcp
-
-
 async def _wait_for_condition(predicate, timeout: float = 1.0) -> None:
     deadline = asyncio.get_running_loop().time() + timeout
     while not predicate():
@@ -269,22 +229,6 @@ def _mux_with_children(tmp_path, tool_map: dict[str, list[tuple[str, str]]]):
 
     mux._start_child = AsyncMock(side_effect=fake_start_child)  # type: ignore[method-assign]
     return mux
-
-
-def _wired_meta_tool_server(tmp_path):
-    """One mux with a live ``CNT`` child, its meta-tools registered on a real
-    FastMCP host, ``_host_mcp`` bound (so ``tool_dispatchable`` recognizes
-    those meta-tools as genuinely host-registered), and the session
-    visibility middleware attached -- the shared live-client setup for the
-    ``load_tools`` notification/dispatch tests below."""
-    from fastmcp import FastMCP
-
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mux._host_mcp = mcp
-    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
-    return mux, mcp
 
 
 # --------------------------------------------------------------------------- #
@@ -643,103 +587,6 @@ async def _mount_schema_child(tmp_path):
     _register_forwarder(host, mux, mounted[0])
     mux.session_loaded(_SCHEMA_SESSION).add(prefixed_name)
     return mux, host, prefixed_name, mux.children[_SCHEMA_SERVER]
-
-
-async def test_detached_schema_refresh_notifies_the_affected_session_on_next_request(
-    tmp_path, monkeypatch
-):
-    """A background recovery never reuses a stale request context.
-
-    Instead it queues a revision for the session that had the forwarded tool
-    loaded. The regular ``tools/list`` middleware then delivers MCP's standard
-    notification through that new request's real outbound context.
-    """
-    mux, host, prefixed_name, runtime = await _mount_schema_child(tmp_path)
-    server_name, session_key = _SCHEMA_SERVER, _SCHEMA_SESSION
-    await asyncio.create_task(
-        mux._refresh_child_tools(
-            server_name,
-            runtime,
-            mux.load_catalog()[server_name],
-            mux._catalog_epoch,
-            [],
-        )
-    )
-
-    assert mux._session_notifications.pending_generation(session_key) == 1
-    assert mux._session_loaded[session_key] == set()
-    assert await host.get_tool(prefixed_name) is None
-
-    class _LiveContext:
-        session_id = session_key
-        request_context = SimpleNamespace(meta={})
-
-        def __init__(self) -> None:
-            self.notifications: list[object] = []
-
-        async def send_notification(self, notification) -> None:
-            self.notifications.append(notification)
-
-    context = _LiveContext()
-    monkeypatch.setattr(
-        "fastmcp.server.dependencies.get_http_request", lambda: object()
-    )
-    monkeypatch.setattr("fastmcp.server.dependencies.get_context", lambda: context)
-    middleware = SessionVisibilityMiddleware(mux, host)
-
-    async def call_next(_context):
-        return []
-
-    assert await middleware.on_list_tools(SimpleNamespace(), call_next) == []
-    assert len(context.notifications) == 1
-    assert context.notifications[0].method == "notifications/tools/list_changed"
-    assert not mux._session_notifications.has_pending(session_key)
-    assert session_key not in mux._session_loaded
-    await mux.aclose()
-
-
-async def test_removed_cached_tool_notifies_before_session_gate(tmp_path, monkeypatch):
-    """A stale cached call gets its list-changed notice before ToolError."""
-    mux, host, prefixed_name, runtime = await _mount_schema_child(tmp_path)
-    server_name, session_key = _SCHEMA_SERVER, _SCHEMA_SESSION
-    await mux._refresh_child_tools(
-        server_name,
-        runtime,
-        mux.load_catalog()[server_name],
-        mux._catalog_epoch,
-        [],
-    )
-    assert mux._session_notifications.pending_generation(session_key) == 1
-    assert mux._session_loaded[session_key] == set()
-
-    class _LiveContext:
-        session_id = session_key
-        request_context = SimpleNamespace(meta={})
-        message = SimpleNamespace(name=prefixed_name)
-
-        def __init__(self) -> None:
-            self.notifications: list[object] = []
-
-        async def send_notification(self, notification) -> None:
-            self.notifications.append(notification)
-
-    context = _LiveContext()
-    monkeypatch.setattr(
-        "fastmcp.server.dependencies.get_http_request", lambda: object()
-    )
-    monkeypatch.setattr("fastmcp.server.dependencies.get_context", lambda: context)
-    middleware = SessionVisibilityMiddleware(mux, host)
-
-    async def should_not_dispatch(_context):
-        pytest.fail("a removed tool must be rejected by the session gate")
-
-    with pytest.raises(ToolError, match="not loaded in this session"):
-        await middleware.on_call_tool(context, should_not_dispatch)
-    assert len(context.notifications) == 1
-    assert context.notifications[0].method == "notifications/tools/list_changed"
-    assert not mux._session_notifications.has_pending(session_key)
-    assert session_key not in mux._session_loaded
-    await mux.aclose()
 
 
 async def test_mount_child_unknown_server(tmp_path):
@@ -1334,24 +1181,6 @@ async def test_list_catalog_unknown_server(tmp_path):
     assert "error" in cat
 
 
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_list_catalog_meta_tool_registered(tmp_path):
-    from fastmcp import FastMCP
-
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
-    mux._kg_call = AsyncMock(return_value=None)
-    _seed_probe(mux, {CNT: [(CNT_TOOL, "containers")]})
-
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    names = {t.name for t in await mcp.list_tools()}
-    assert "list_catalog" in names
-
-    tool = await mcp.get_tool("list_catalog")
-    result = await tool.fn()
-    assert result.structured_content["total_servers"] == 1
-
-
 # --------------------------------------------------------------------------- #
 # Unique prefixes (collision-free at any scale)
 # --------------------------------------------------------------------------- #
@@ -1551,168 +1380,6 @@ async def _registered_tool_names(mcp) -> set[str]:
     return {t.name for t in tools}
 
 
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_meta_tools_registered_and_load_exposes(tmp_path):
-    from fastmcp import FastMCP
-
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-
-    names = await _registered_tool_names(mcp)
-    assert {"find_tools", "load_tools", "unload_tools", "multiplexer_status"} <= names
-    # Nothing from the child is exposed yet.
-    assert CNT_PREFIXED not in names
-
-    # Invoke load_tools' underlying fn to mount + expose the container tool.
-    load = await mcp.get_tool("load_tools")
-    await load.fn(servers=[CNT])
-
-    names_after = await _registered_tool_names(mcp)
-    assert CNT_PREFIXED in names_after  # forwarder registered process-globally
-    assert CNT_PREFIXED in mux._exposed
-    # ...and made visible to this (default, context-less) session.
-    session_key = _session_key()
-    assert CNT_PREFIXED in mux.session_loaded(session_key)
-
-    # unload retracts it from THIS session; the forwarder stays registered
-    # (other sessions may still have it loaded) — visibility is the middleware's job.
-    unload = await mcp.get_tool("unload_tools")
-    await unload.fn(tools=[CNT_PREFIXED])
-    assert CNT_PREFIXED not in mux.session_loaded(session_key)
-    assert CNT_PREFIXED in mux._exposed  # still globally registered
-
-
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_per_session_disclosure_isolation(tmp_path):
-    """Plan Phase 5: one session's load_tools must not leak to another session.
-
-    D-W2-6: the underlying MCP SDK (fastmcp 4.0.0b1 / mcp 2.0.0) gives NO
-    stable ambient per-connection identity for stdio/in-memory transports —
-    ``Context.session_id``, the low-level ``ServerSession``, and its
-    ``Connection`` are all reconstructed fresh on EVERY request, even within
-    one open client connection (verified empirically against the pinned SDK,
-    see :func:`graph_os.fleet.multiplexer._explicit_local_session_key`).
-    Two concurrent local ``Client`` connections therefore cannot be told apart
-    by the server unless they say who they are — exactly like two concurrent
-    HTTP requests would be indistinguishable without a session/auth header.
-    Each session here declares itself via the standard MCP request ``_meta``
-    (``_LOCAL_SESSION_META_KEY``), which is carried on every request INCLUDING
-    ``tools/list`` (via the low-level ``ClientSession.list_tools(params=...)``
-    — the high-level ``Client.list_tools()`` wrapper doesn't expose ``meta``).
-    """
-    from fastmcp import Client
-
-    mux, mcp = _mux_with_meta_tools_host(tmp_path)
-
-    async with Client(mcp) as a:
-        # Session A loads the container server's tools.
-        await a.call_tool(
-            "load_tools",
-            {"servers": [CNT]},
-            meta={_LOCAL_SESSION_META_KEY: "session-A"},
-        )
-        a_tools = await _list_session_tool_names(a, "session-A")
-        # A fresh session B has loaded nothing.
-        async with Client(mcp) as b:
-            b_tools = await _list_session_tool_names(b, "session-B")
-            # B cannot even call A's tool (gated until B loads it). Matched on
-            # the SessionVisibilityMiddleware's own gate message (not just
-            # "any ToolError") — this test's fixture forwards to a mocked
-            # child session that ALSO raises ToolError("delegated_child_tool_failed")
-            # on ANY call, loaded or not, so an unmatched ``pytest.raises``
-            # here would pass even if the session gate were wide open (see
-            # D-W2-6 closure notes). The precise match is the difference
-            # between "never reached the child" (gate held) and "reached the
-            # child, which then failed" (gate did NOT hold).
-            with pytest.raises(ToolError, match="not loaded in this session"):
-                await b.call_tool(
-                    CNT_PREFIXED, {}, meta={_LOCAL_SESSION_META_KEY: "session-B"}
-                )
-
-    # A sees its loaded tool + the meta-tools; B sees only the meta-tools.
-    assert CNT_PREFIXED in a_tools
-    assert CNT_PREFIXED not in b_tools
-    assert {"find_tools", "load_tools"} <= a_tools
-    assert {"find_tools", "load_tools"} <= b_tools
-
-
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_one_shot_tool_call_prunes_session_visibility_state(tmp_path):
-    """Auto-unload must leave no process-global key after the one-shot call."""
-    from fastmcp import Client, FastMCP
-
-    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    mcp = FastMCP("test-mux")
-
-    @mcp.tool()
-    async def graph_jobs() -> str:
-        return "ok"
-
-    mux._local_gated = {"graph_jobs"}
-    _register_meta_tools(mcp, mux)
-    mux._global_visible = {
-        "find_tools",
-        "list_catalog",
-        "load_tools",
-        "unload_tools",
-        "multiplexer_status",
-    }
-    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
-
-    async with Client(mcp) as client:
-        await client.call_tool(
-            "load_tools",
-            {"tools": ["graph_jobs"], "auto_unload": True},
-        )
-        assert len(mux._session_loaded) == 1
-        assert len(mux._auto_unload) == 1
-        await client.call_tool("graph_jobs", {})
-
-    assert mux._session_loaded == {}
-    assert mux._auto_unload == {}
-
-
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_explicit_unload_prunes_session_visibility_state(tmp_path):
-    """List-only one-shot sessions retract visibility before termination."""
-    from fastmcp import Client, FastMCP
-
-    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    mcp = FastMCP("test-mux")
-    mux._local_gated = {"graph_jobs"}
-    _register_meta_tools(mcp, mux)
-
-    async with Client(mcp) as client:
-        await client.call_tool(
-            "load_tools",
-            {"tools": ["graph_jobs"], "auto_unload": True},
-        )
-        await client.call_tool("unload_tools", {"tools": ["graph_jobs"]})
-
-    assert mux._session_loaded == {}
-    assert mux._auto_unload == {}
-
-
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_find_tools_meta_returns_structured(tmp_path):
-    from fastmcp import FastMCP
-
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "containers")]})
-    mux._kg_call = AsyncMock(return_value=None)
-    _seed_probe(mux, {CNT: [(CNT_TOOL, "manage docker containers")]})
-
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    find = await mcp.get_tool("find_tools")
-    result = await find.fn(query="docker containers", top_k=3)
-
-    payload = result.structured_content
-    assert payload["count"] >= 1
-    assert payload["results"][0]["prefixed_name"] == CNT_PREFIXED
-    assert "unavailable" in payload
-
-
 def test_prefix_sanity():
     # Guards the (server -> prefix) assumption the rest of the suite relies on.
     assert get_server_prefix(CNT) == "cm"
@@ -1893,146 +1560,6 @@ async def test_tool_dispatchable_is_session_scoped_after_expose(tmp_path):
     assert mux.tool_dispatchable(CNT_PREFIXED, session_key="session-B") is False
 
 
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_list_catalog_mounted_matches_dispatch_reality_across_sessions(
-    tmp_path,
-):
-    """End-to-end reproduction of the control-plane desync report: session A's
-    load_tools call makes a tool globally registered, but list_catalog must
-    tell a DIFFERENT session B the truth about what B can dispatch — not what
-    the child process happens to be doing.
-
-    D-W2-6: session A and session B are two concurrent LOCAL (non-HTTP)
-    ``Client`` connections, which the pinned SDK cannot distinguish on its own
-    (see the isolation-regression note on ``test_per_session_disclosure_isolation``).
-    Both declare themselves via ``_LOCAL_SESSION_META_KEY`` on every
-    ``call_tool`` — including the ``list_catalog``/``load_tools`` META-TOOL
-    calls, which (unlike raw ``tools/list``) are ordinary tool calls and so
-    support ``meta=`` through the high-level ``Client`` API directly.
-    """
-    from fastmcp import Client, FastMCP
-
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    mux._kg_call = AsyncMock(return_value=None)
-    _seed_probe(mux, {CNT: [(CNT_TOOL, "manage containers")]})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-    mux._global_visible = {
-        "find_tools",
-        "list_catalog",
-        "load_tools",
-        "unload_tools",
-        "multiplexer_status",
-    }
-    mcp.add_middleware(SessionVisibilityMiddleware(mux, mcp))
-
-    async with Client(mcp) as a:
-        await a.call_tool(
-            "load_tools",
-            {"servers": [CNT]},
-            meta={_LOCAL_SESSION_META_KEY: "session-A"},
-        )
-
-        async with Client(mcp) as b:
-            cat_b = await b.call_tool(
-                "list_catalog",
-                {"server": CNT},
-                meta={_LOCAL_SESSION_META_KEY: "session-B"},
-            )
-            payload_b = cat_b.structured_content
-            entry_b = next(
-                t for t in payload_b["tools"] if t["prefixed_name"] == CNT_PREFIXED
-            )
-            # The child process IS running (session A mounted it)...
-            assert payload_b["process_running"] is True
-            # ...but session B never loaded it, so list_catalog must NOT claim
-            # it's dispatchable — and an actual call must agree with that claim.
-            assert entry_b["mounted"] is False
-            # Precise match (see the analogous note in
-            # test_per_session_disclosure_isolation): this fixture's mocked
-            # child session fails on ANY invocation, so only a message match
-            # proves the SESSION GATE — not the mock — rejected the call.
-            with pytest.raises(ToolError, match="not loaded in this session"):
-                await b.call_tool(
-                    CNT_PREFIXED, {}, meta={_LOCAL_SESSION_META_KEY: "session-B"}
-                )
-
-        # Session A, which DID load it, is told the truth the other way.
-        cat_a = await a.call_tool(
-            "list_catalog",
-            {"server": CNT},
-            meta={_LOCAL_SESSION_META_KEY: "session-A"},
-        )
-        entry_a = next(
-            t
-            for t in cat_a.structured_content["tools"]
-            if t["prefixed_name"] == CNT_PREFIXED
-        )
-        assert entry_a["mounted"] is True
-
-
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_three_concurrent_local_sessions_blast_radius(tmp_path):
-    """D-W2-6 blast-radius proof: reproduces the independently-observed symptom
-    ("...leaks process-global multiplexer session visibility and creates three
-    downstream legacy sessions per public task dispatch") with THREE concurrent
-    local sessions sharing one in-process multiplexer/FastMCP instance — the
-    shape a task-dispatch orchestrator that fans a public task out into several
-    internal sessions would produce.
-
-    Severity check: confirms the leak is (or after the fix, is NOT) BOTH a tool
-    NAME-disclosure issue (visible in ``tools/list``) AND a cross-session
-    INVOCATION issue (actually callable) — the two are independent and must be
-    checked separately, since a name-only leak is a much lower-severity finding
-    than one that also lets a session invoke a tool it never loaded.
-    """
-    from fastmcp import Client
-
-    mux, mcp = _mux_with_meta_tools_host(tmp_path)
-
-    async with (
-        Client(mcp) as owner,
-        Client(mcp) as sibling_one,
-        Client(mcp) as sibling_two,
-    ):
-        # The "owning" task session loads and uses the container tool.
-        await owner.call_tool(
-            "load_tools",
-            {"servers": [CNT]},
-            meta={_LOCAL_SESSION_META_KEY: "task-owner"},
-        )
-        owner_tools = await _list_session_tool_names(owner, "task-owner")
-
-        # Two SIBLING task sessions, spawned alongside the owner in the same
-        # public-task dispatch, never loaded it.
-        sibling_one_tools = await _list_session_tool_names(
-            sibling_one, "task-sibling-1"
-        )
-        sibling_two_tools = await _list_session_tool_names(
-            sibling_two, "task-sibling-2"
-        )
-
-        # Severity finding 1: NAME DISCLOSURE — siblings must not see the tool.
-        assert CNT_PREFIXED in owner_tools
-        assert CNT_PREFIXED not in sibling_one_tools
-        assert CNT_PREFIXED not in sibling_two_tools
-
-        # Severity finding 2: INVOCATION — siblings must not be able to call it
-        # either, even by naming it directly (skipping discovery entirely).
-        # Matched on the session-gate's own message: this fixture's mocked
-        # child ALWAYS raises ToolError("delegated_child_tool_failed") once a
-        # call reaches it, loaded or not, so an unmatched ``pytest.raises``
-        # would pass even with the gate wide open — see D-W2-6 severity notes.
-        with pytest.raises(ToolError, match="not loaded in this session"):
-            await sibling_one.call_tool(
-                CNT_PREFIXED, {}, meta={_LOCAL_SESSION_META_KEY: "task-sibling-1"}
-            )
-        with pytest.raises(ToolError, match="not loaded in this session"):
-            await sibling_two.call_tool(
-                CNT_PREFIXED, {}, meta={_LOCAL_SESSION_META_KEY: "task-sibling-2"}
-            )
-
-
 def test_local_session_meta_cannot_override_an_authenticated_http_session(
     monkeypatch,
 ):
@@ -2065,79 +1592,6 @@ def test_local_session_meta_cannot_override_an_authenticated_http_session(
     assert _session_key() == "real-authenticated-http-session"
 
 
-def test_session_key_isolates_distinct_tenants_via_authenticated_token_claims(
-    monkeypatch,
-):
-    """GOC-48 known-bad proof: drive the token-claims branch of ``_session_key``
-    (the HTTP fallback when no ``Context.session_id`` is available — e.g. a
-    streamable-http transport in front of an OIDC-authenticated caller) through
-    the REAL production cascade, with two principals differing only by tenant,
-    and prove they land in distinct, stable multiplexer session buckets.
-
-    This is the mechanism ``SessionVisibilityMiddleware`` relies on to keep one
-    principal's loaded-tool catalog (``load_tools``/``tools/list``) from leaking
-    into another's — D-I5-1's real, already-shipped resolution. It is NOT proof
-    that remote MCP child sessions are per-principal: ``MCPMultiplexer.children``
-    is keyed only by ``server_name`` (one ``ChildRuntime`` per configured
-    server, shared by every caller regardless of tenant), and outbound child
-    auth (``MCP_CLIENT_AUTH``) is one fleet-global service-account credential.
-    That deeper isolation gap is unresolved on this branch — see the GOC-48
-    lane report; it requires a per-principal remote-OAuth broker
-    (``agent_utilities/mcp/remote_oauth_broker.py``) that does not exist on
-    `main` (GOC-85 has not landed it) and is deliberately out of this test's
-    and this lane's scope to build.
-    """
-    mock_request = MagicMock()
-    monkeypatch.setattr(
-        "fastmcp.server.dependencies.get_http_request",
-        lambda: mock_request,
-    )
-    mock_context = MagicMock()
-    mock_context.session_id = None
-    monkeypatch.setattr(
-        "fastmcp.server.dependencies.get_context",
-        lambda: mock_context,
-    )
-
-    def _token(client_id: str, sub: str, tenant_id: str) -> SimpleNamespace:
-        return SimpleNamespace(
-            client_id=client_id, claims={"sub": sub, "tenant_id": tenant_id}
-        )
-
-    token_alice = _token("svc-client", "principal-alice", "tenant-a")
-    token_bob = _token("svc-client", "principal-bob", "tenant-b")
-    token_alice_again = _token("svc-client", "principal-alice", "tenant-a")
-
-    monkeypatch.setattr(
-        "fastmcp.server.dependencies.get_access_token", lambda: token_alice
-    )
-    key_alice = _session_key()
-
-    monkeypatch.setattr(
-        "fastmcp.server.dependencies.get_access_token", lambda: token_bob
-    )
-    key_bob = _session_key()
-
-    monkeypatch.setattr(
-        "fastmcp.server.dependencies.get_access_token",
-        lambda: token_alice_again,
-    )
-    key_alice_again = _session_key()
-
-    assert key_alice.startswith("http_")
-    assert key_bob.startswith("http_")
-    assert key_alice != key_bob, (
-        "two distinct tenants collapsed onto the same multiplexer session "
-        "bucket -- SessionVisibilityMiddleware would leak one principal's "
-        "loaded tool catalog into the other's tools/list"
-    )
-    assert key_alice == key_alice_again, (
-        "the same principal must resolve to a stable session bucket across "
-        "calls, or SessionVisibilityMiddleware would treat every request as "
-        "a brand-new session and never retain loaded tools"
-    )
-
-
 async def test_notify_tools_changed_returns_false_without_request_context():
     from graph_os.fleet.multiplexer import _notify_tools_changed
 
@@ -2168,101 +1622,6 @@ async def test_notify_tools_changed_surfaces_send_failure(monkeypatch, caplog):
     assert any("list_changed" in r.message for r in caplog.records)
 
 
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_load_tools_reports_notification_sent_true_inside_a_live_session(
-    tmp_path,
-):
-    """BUG-050: the field is ``notification_sent`` (not ``notified``) precisely
-    because ``True`` here only ever means "the server's push did not raise" —
-    never "this client's own tool list is refreshed". See
-    ``test_load_tools_notification_sent_true_does_not_imply_the_tool_is_dispatchable_yet``
-    for the negative case that motivated the rename."""
-    from fastmcp import Client
-
-    _mux, mcp = _wired_meta_tool_server(tmp_path)
-
-    async with Client(mcp) as client:
-        result = await client.call_tool("load_tools", {"servers": [CNT]})
-
-    assert result.structured_content["newly_exposed"]
-    assert result.structured_content["notification_sent"] is True
-    assert "notified" not in result.structured_content
-
-
-async def test_load_tools_reports_notification_not_sent_outside_a_request_context(
-    tmp_path,
-):
-    """Calling the core helper with no live client context (e.g. the tool's
-    own ``.fn()`` invoked directly, as in ``test_meta_tools_registered_and_load_exposes``)
-    must be truthful that the push was never even attempted — a caller that
-    only checked ``newly_exposed`` would otherwise wrongly assume its own
-    client's tool list is already fresh."""
-    from graph_os.fleet.multiplexer import load_session_tools
-
-    mux = _mux_with_children(tmp_path, {CNT: [(CNT_TOOL, "manage containers")]})
-    from fastmcp import FastMCP
-
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-
-    payload = await load_session_tools(mcp, mux, servers=[CNT])
-
-    assert payload["newly_exposed"]
-    assert payload["notification_sent"] is False
-    assert "notified" not in payload
-
-
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_load_tools_notification_sent_true_does_not_imply_universal_callability(
-    tmp_path,
-):
-    """BUG-050 negative test: ``notification_sent: True`` is scoped to the
-    session that made the call — it must never be read as "the tool is now
-    callable", full stop, by any caller. Prove it the way the real incident
-    happened: session A calls ``load_tools`` and gets ``notification_sent:
-    True`` back, but an entirely independent caller (session B — standing in
-    for a delegated subagent with no shared refresh channel) that never called
-    ``load_tools`` itself still gets a hard ``ToolError`` calling the SAME tool
-    name, in the SAME live multiplexer, moments later. If ``notification_sent:
-    True`` meant what the retired ``notified`` name implied ("the tool is
-    callable now"), this would have to succeed; it must not."""
-    from fastmcp import Client
-
-    _mux, mcp = _wired_meta_tool_server(tmp_path)
-
-    # The in-memory transport gives no real per-connection identity (see
-    # ``_session_key``'s docstring), so two independent sessions must declare
-    # themselves via ``_LOCAL_SESSION_META_KEY`` on every request — exactly
-    # the convention ``test_per_session_disclosure_isolation`` already
-    # established — or both collapse onto the shared ``__local_stdio__``
-    # bucket and this test would wrongly "pass" the OLD, false way: not
-    # because session isolation held, but because there was only one session.
-    async with Client(mcp) as session_a:
-        result = await session_a.call_tool(
-            "load_tools",
-            {"servers": [CNT]},
-            meta={_LOCAL_SESSION_META_KEY: "session-A"},
-        )
-        assert result.structured_content["notification_sent"] is True
-        assert result.structured_content["newly_exposed"]
-
-    # A second, independent session never loaded the tool. Truthful behavior:
-    # the field being True for session A carries zero information about what
-    # session B can dispatch. Matched on the SessionVisibilityMiddleware's own
-    # gate message (not just "any ToolError"): this fixture's mocked child
-    # session ALSO raises ToolError("delegated_child_tool_failed") on any
-    # call, loaded or not, so an unmatched ``pytest.raises`` would pass even
-    # with the session gate wide open — the precise match is what proves the
-    # call never reached the child at all.
-    async with Client(mcp) as session_b:
-        with pytest.raises(ToolError, match="not loaded in this session"):
-            await session_b.call_tool(
-                CNT_PREFIXED,
-                {"action": "list"},
-                meta={_LOCAL_SESSION_META_KEY: "session-B"},
-            )
-
-
 def test_load_tools_field_contract_never_reintroduces_notified(tmp_path):
     """BUG-050 contract guard: the field name is retired, not merely renamed at
     one call site. Grepping the source is the cheapest durable guard against a
@@ -2275,37 +1634,6 @@ def test_load_tools_field_contract_never_reintroduces_notified(tmp_path):
     source = inspect.getsource(multiplexer)
     assert '"notified"' not in source
     assert "notified: NotRequired[bool]" not in source
-    assert source.count('"notification_sent"') >= 3
-
-
-async def test_load_tools_description_documents_the_client_refresh_caveat(tmp_path):
-    """BUG-050 doc guard: the tool description an agent actually reads must
-    itself carry the caveat, not just an internal docstring nobody sees at
-    call time. This is the artifact that would have prevented the real
-    incident — a caller with no ``ToolSearch``-equivalent had nothing in the
-    tool description telling it ``notification_sent: True`` is not proof of
-    callability, or what to do instead. Read the description through the same
-    client-protocol view a real caller sees (``client.list_tools()``), not a
-    private FastMCP internal, so this survives a FastMCP version bump."""
-    from fastmcp import Client, FastMCP
-
-    mux = _mux_with_children(tmp_path, {})
-    mcp = FastMCP("test-mux")
-    _register_meta_tools(mcp, mux)
-
-    async with Client(mcp) as client:
-        listed = await client.list_tools()
-    load_tools_tool = next(t for t in listed if t.name == "load_tools")
-    description = load_tools_tool.description or ""
-
-    assert "notification_sent" in description
-    assert "notified" not in description
-    # The caveat itself: sending is not the same as the caller's own client
-    # having refreshed, and MCP notifications carry no acknowledgement.
-    assert "no ack" in description or "no such tool" in description
-    # Actionable guidance for a caller with no refresh mechanism of its own.
-    assert "ToolSearch" in description
-    assert "reconnect" in description or "restart" in description
 
 
 async def test_forced_reprobe_does_not_evict_a_live_joinable_probe(tmp_path):
@@ -2363,55 +1691,6 @@ async def test_aclose_cancels_a_forced_probe_too(tmp_path):
     await mux.aclose()
     assert forced.cancelled()
     assert not mux._probe_tasks
-
-
-@pytest.mark.usefixtures("stdio_fleet_authority")
-async def test_load_tools_changes_the_wire_tool_list_a_live_client_observes(tmp_path):
-    """Track 9 of the pydantic-ai native-adoption program (provider prompt-cache
-    discipline, CONCEPT:AU-ORCH.optimization.provider-prompt-cache — see
-    ``reports/program/pydantic-ai-native-adoption.md``): proves that ``load_tools``
-    changes the ACTUAL tool list an already-connected MCP client's ``list_tools()``
-    returns, not just an internal bookkeeping flag.
-
-    Why this matters for prompt-cache discipline: ``agent_utilities.caching.
-    prompt_cache.fold_prompt_cache_hint`` sets Anthropic's
-    ``anthropic_cache_tool_definitions=True`` by DEFAULT on every agent call —
-    a cache breakpoint at the end of the tools block, banking on that block
-    staying byte-identical across a run. A downstream client's toolset
-    (e.g. ``pydantic_ai.mcp.MCPToolset``, whose own docs state its cached tool
-    list "is cached and invalidated by `notifications/tools/list_changed`")
-    rebuilds ``ModelRequestParameters.function_tools`` from a FRESH
-    ``list_tools()`` the moment it is notified — and ``_notify_tools_changed``
-    (proven elsewhere in this file to fire on every ``load_tools``/``unload_tools``)
-    is exactly that notification. This test proves the tool list the notification
-    refers to is genuinely different, not merely re-sent unchanged: the cache
-    breakpoint at the tools block is invalidated on every dynamic load/unload
-    mid-run, for any client honoring the notification as designed. Pydantic-ai's
-    native `Capability`/`ToolSearch` deferred-disclosure model (Track 1/2 of the
-    same program) does NOT have this cost — the full tool set is registered from
-    turn one and only a message-history-appended exchange changes, which is
-    prompt-cache-safe by the framework's own design (see
-    ``pydantic_ai.capabilities.ToolSearch``'s docstring).
-    """
-    from fastmcp import Client
-
-    _mux, mcp = _wired_meta_tool_server(tmp_path)
-
-    async with Client(mcp) as client:
-        before = {t.name for t in await client.list_tools()}
-        assert CNT_PREFIXED not in before
-
-        result = await client.call_tool("load_tools", {"servers": [CNT]})
-        assert result.structured_content["notification_sent"] is True
-
-        after = {t.name for t in await client.list_tools()}
-
-    # The exact wire-visible tool set changed mid-session — a client's next
-    # model request carries a DIFFERENT tools array than its first, which is
-    # precisely what invalidates a provider's cache breakpoint set at the end
-    # of that array.
-    assert after != before
-    assert CNT_PREFIXED in after
 
 
 def _mock_authenticated_http_caller(monkeypatch, *, scopes):

@@ -25,10 +25,15 @@ def _service() -> A2AService:
     return _SERVICE
 
 
-def register_a2a_tools(mcp: Any) -> None:
-    """Register one action router and the protocol-native unary routes."""
+def register_a2a_tools(mcp: Any, *, tools: Any = None) -> None:
+    """Register one action router and the protocol-native unary routes.
 
-    @mcp.tool(
+    The ``graph_a2a`` operation registers on ``tools`` (graph-os's backing
+    server, reached through ``act``) and the HTTP routes on the served ``mcp``.
+    """
+    registrar = tools if tools is not None else mcp
+
+    @registrar.tool(
         name="graph_a2a",
         description=(
             "Discover or manage governed unary A2A tasks. Actions: card, send, "

@@ -91,42 +91,32 @@ metrics, traces, and audit surfaces over speculative configuration changes.
 
 ### 3. Manage tool visibility responsibly
 
-Use the intent verbs `ask`, `find`, `write`, `act`, `manage`, and `why` when a
-small tool surface is appropriate. Use `find_tools` or `list_catalog` to discover
-a capability, `load_tools` to expose only what the current task needs, and
-`unload_tools` when finished. Pin an exact tool when ambiguity would be unsafe.
+graph-os serves one tool contract: `ask`, `find`, `write`, `act`, `manage`
+and `why`. Each takes `action="<tool>.<op>"` plus `params`, or a natural-language
+`intent` with `action` empty. `find(action="describe")` lists operations;
+`find(action="describe", params={"action": "<op>"})` returns one operation's
+arguments. Pin an exact `action` when ambiguity is unsafe.
 
-**The six intent verbs** (`MCP_TOOL_MODE=intent`, graph-os's default profile — the
-granular surface still registers fully, REST + `_execute_tool` unaffected; verbs
-just front it for small/cheap-LLM sessions): `<verb>(intent="<natural language>",
-hints_json="{...}", execute=true)`. `hints_json={"tool": "..."}` pins an exact tool,
-bypassing ranking entirely; `execute=false` returns only the routing decision.
-
-| Verb | Resolves to (examples) | Use for |
+| Tool | Reaches (examples) | Use for |
 |---|---|---|
-| `ask` | `graph_query`, `graph_search`, `graph_analyze`, `nl_query`, `ask_data`, `graph_explain`, … | Any natural-language read/analysis question |
-| `find` | every verb, unfiltered (+ fleet-wide when a multiplexer is attached) | Capability discovery when you don't know the verb either |
-| `write` | `graph_write`, `graph_ingest`, `graph_writeback`, `source_sync`, `graph_etl`, … | Ingest/mutate/persist intents |
-| `act` | `graph_orchestrate`, `graph_loops`, `graph_goals`, `graph_sandbox`, `graph_bus`, … | Execute/orchestrate/schedule intents |
-| `manage` | `graph_configure`, `graph_secret`, `graph_sessions`, `graph_kvcache`, `graph_ontology`, … + the load/unload lifecycle | Configure/admin intents, and reclaiming tool-list context |
-| `why` | `graph_explain`, `graph_evaluate`, `graph_observe`, … | Explain a decision/belief/change — including the routing decision itself |
+| `ask` | `graph_query`, `graph_search`, `graph_analyze`, `nl_query`, `ask_data`, `graph_explain`, … | Natural-language read and analysis |
+| `find` | `describe`, `capabilities`, fleet `tools`, `catalog`, `status` | Discovery of operations and fleet tools |
+| `write` | `graph_write`, `graph_ingest`, `graph_writeback`, `source_sync`, `graph_etl`, … | Ingest, mutate and persist |
+| `act` | `graph_orchestrate`, `graph_loops`, `graph_goals`, `graph_sandbox`, `graph_bus`, `browser_control`, `graph_a2a`, `graph_rlm`, `fleet.call` | Execute, orchestrate and call fleet tools |
+| `manage` | `graph_configure`, `graph_secret`, `graph_sessions`, `graph_kvcache`, `graph_ontology`, `fleet.load`, `fleet.unload` | Configure, approve and mount fleet servers |
+| `why` | `graph_explain`, `graph_evaluate`, `graph_observe`, … | Explain a decision, belief or change |
 
-Resolution ranks each candidate against its generated Capability Power Descriptor
-(falling back per-capability to a lexical score over its docstring, never a silent
-gap), blends in a learned reward EMA from a durable-bandit outcome loop (a capability
-that keeps failing under a verb sinks in the ranking), and serves a repeated
-`(verb, intent, hints)` from a small bounded cache. `find(...)` never dispatches, so
-it never records an outcome. Reclaiming context is a `manage` concern, not a 7th
-verb — `manage(intent="...", hints_json='{"action": "load", "tools": [...],
-"auto_unload": true}')` pulls a tool in for one call and auto-retracts it right after.
+`write`, `act` and `manage` preview first. Resubmit the returned `plan_ref` with
+`execute=true`. An intent without `action` ranks candidates against their
+Capability Power Descriptors and a learned reward score. `find` never dispatches.
 
 **Onboarding a brand-new child MCP server** (as opposed to using one that already
 exists) keeps three surfaces in lockstep: the `mcp_config*.json` server entry
 (`command`/`args`/`env`), the README `mcp_config` examples (regenerated from the one
 authoritative env set), and the live registry — `graph_configure(action="register_mcp",
 config_key="<name>", config_value="{...}")` merges the entry and persists it. Verify
-with `list_catalog()`/`find_tools(...)`/`multiplexer_status`, then `load_tools(servers=
-["<name>"])`.
+with `find(action="catalog")`, `find(action="tools", intent=...)` and
+`find(action="status")`, then `act(action="fleet.call", params={...})`.
 
 ### 4. Remediate minimally
 

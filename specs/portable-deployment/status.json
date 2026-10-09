@@ -20,15 +20,23 @@
     "GRAPHOS-DEPLOY-R015",
     "GRAPHOS-DEPLOY-R016"
   ],
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
   "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-DEPLOY-R001",
       "title": "Worker topology manifest is digest-pinned",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "e7ae64dec334e0f841ea668ef3423d6aebbf9b62",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e7ae64dec334e0f841ea668ef3423d6aebbf9b62",
+          "description": "GRAPHOS-DEPLOY-R001 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R002",
@@ -125,7 +133,7 @@
     {
       "id": "GRAPHOS-DEPLOY-R013",
       "title": "Development and production deployment profiles",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "merged_head",
@@ -168,6 +176,13 @@
           "commit": "7d700fc7cefca8c680bb5879cca71a1d1ff3a5e3",
           "url": "https://github.com/Knuckles-Team/graph-os/actions/runs/37173473826",
           "description": "PR #25 exact-head Release workflow passed gates (commit/push hooks, locked-environment mypy and full pytest), scanner quality and wheel build. Release-tag dependency readiness and publication were skipped; no installed-package, live-profile, identity, image-pull or CNI acceptance is inferred."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "e9d99298003518d7b54f33a9854b48e471f6926c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e9d99298003518d7b54f33a9854b48e471f6926c",
+          "description": "GRAPHOS-DEPLOY-R013 merged to the default branch in this commit."
         }
       ],
       "remaining": "R013 remains BUILDING and the spec remains NOT_AUDITED. Provision and independently verify the R013 development Compose and production Kubernetes/Helm profiles with the required engine sidecar; record exact profile/render/release digests and the selected identity mode and secrets backend. Before accepting traffic, prove engine/application readiness, the required first-administrator/bootstrap authority, default authorization policy and selected secrets resolution, including refusal when any prerequisite is absent or unhealthy. Qualify none/local/external behavior through the served identity authority and its owning identity-access contract; Kubernetes observations or supplied booleans cannot establish it. Prove authenticated pulls of pinned extension images with configured pull-secret references and live CNI allow/deny behavior for the release-wide extension-port rule (including 9123), preserving external ingress/egress restrictions. Retain functional MCP/API and selected-browser, persistence/recovery and rollback receipts. See tasks.md for the exact remaining checklist; no live qualification or release acceptance is recorded here."
@@ -195,8 +210,16 @@
     {
       "id": "GRAPHOS-DEPLOY-R016",
       "title": "One host daemon process shares the in-pod engine",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "eb31b775768129c7d22513265413f255c6056659",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/eb31b775768129c7d22513265413f255c6056659",
+          "description": "GRAPHOS-DEPLOY-R016 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "The internal deployment manifest carries the daemon container and its contract test. The manifest is not applied. Live receipts for host-lock ownership, process identity and sparse index growth are pending. The Helm production profile does not yet carry the daemon container."
     }
   ]

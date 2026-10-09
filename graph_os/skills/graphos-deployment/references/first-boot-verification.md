@@ -38,9 +38,10 @@ service token:
 ## 4. MCP and API control plane
 
 - [ ] An MCP client completes `initialize` and `tools/list` over the API
-      hostname with a real credential; the native `graph_*` verbs are listed.
-- [ ] `find_tools` returns fleet items for a caller holding `mcp:discover`;
-      `load_tools` + one read-only call succeeds for a caller holding
+      hostname with a real credential; the intent tools `ask`, `find`, `write`,
+      `act`, `manage` and `why` are listed.
+- [ ] `find(action="tools")` returns fleet items for a caller holding
+      `mcp:discover`; one read-only `act(action="fleet.call")` succeeds for a caller holding
       `mcp:delegate`; a caller without them is refused.
 - [ ] The same read through the HTTP API returns the same result (surfaces
       agree).
