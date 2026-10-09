@@ -8,7 +8,16 @@ from pathlib import Path
 
 import pytest
 
-from graph_os.api.ops import access, agents, browser, capacity, decide, fleet, get_registry, ingest
+from graph_os.api.ops import (
+    access,
+    agents,
+    browser,
+    capacity,
+    decide,
+    fleet,
+    get_registry,
+    ingest,
+)
 from graph_os.api.registry import (
     Composite,
     EgMethod,
@@ -45,6 +54,7 @@ def provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pat
             "capacity:read",
             "capacity:admin",
             "ingest:write",
+            "ingest:read",
             "decide:commit",
         )
     )

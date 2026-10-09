@@ -614,6 +614,7 @@ def browser_producer_path(monkeypatch):
     import time
 
     from agent_utilities.security.request_identity import VerifiedLocalBearer
+
     from graph_os.identity.admission import BrowserAdmission
     from graph_os.identity.broker import GraphOSBrowserAuthority
     from graph_os.identity.browser import csrf_token_for

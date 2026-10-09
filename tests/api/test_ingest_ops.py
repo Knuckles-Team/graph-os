@@ -150,9 +150,7 @@ async def test_list_sources_returns_the_tenant_inventory() -> None:
     result = await list_sources(context, {}, None)
     assert result == {
         "value": {
-            "sources": [
-                {"source_id": "src-1", "tenant": "tenant-a", "state": "active"}
-            ]
+            "sources": [{"source_id": "src-1", "tenant": "tenant-a", "state": "active"}]
         }
     }
     assert runner.list_calls == ["tenant-a"]

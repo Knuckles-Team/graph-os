@@ -45,7 +45,9 @@ def test_every_seed_names_owning_modules_and_a_public_surface() -> None:
         owned = seed.get("owned_module_paths")
         surface = seed.get("public_import_surface")
         assert isinstance(owned, list) and owned, f"{owner} has no owned_module_paths"
-        assert isinstance(surface, list) and surface, f"{owner} has no public_import_surface"
+        assert isinstance(surface, list) and surface, (
+            f"{owner} has no public_import_surface"
+        )
         assert all(isinstance(path, str) and path for path in owned)
         assert all(isinstance(name, str) and name for name in surface)
 
