@@ -180,8 +180,16 @@
     {
       "id": "GRAPHOS-OPS-R011",
       "title": "Six resident MCP verbs with typed discovery",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "6b63aeb7ba0310277885d69a4a2da516000aa23f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/6b63aeb7ba0310277885d69a4a2da516000aa23f",
+          "description": "Implementation merged to the default branch; the commit names this requirement."
+        }
+      ],
       "remaining": "The six MCP verbs, typed discovery, resources and the registry digest are implemented and unit-tested on the default branch (tests/api/test_mcp_verbs.py), but nothing mounts the MCP projection into the served application yet: the live MCP surface is still the multiplexer. Remaining: mount it, with a test through the served entry point."
     },
     {
@@ -201,7 +209,7 @@
     {
       "id": "GRAPHOS-OPS-R013",
       "title": "Generated HTTP API for every registry operation",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -209,6 +217,13 @@
           "commit": "9e34d398efb01573a49ea15b09cdd75de675810d",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/9e34d398efb01573a49ea15b09cdd75de675810d",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "1fb96633563e97fe33ac9f118146afab402d8c6e",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/1fb96633563e97fe33ac9f118146afab402d8c6e",
+          "description": "Implementation merged to the default branch; the commit names this requirement."
         }
       ]
     },
@@ -522,8 +537,16 @@
     {
       "id": "GRAPHOS-OPS-R038",
       "title": "Generated OpenAPI served through Swagger UI",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "1fb96633563e97fe33ac9f118146afab402d8c6e",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/1fb96633563e97fe33ac9f118146afab402d8c6e",
+          "description": "Implementation merged to the default branch; the commit names this requirement."
+        }
+      ]
     }
   ]
 }
