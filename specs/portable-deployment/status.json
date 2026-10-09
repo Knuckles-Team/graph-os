@@ -20,7 +20,7 @@
     "GRAPHOS-DEPLOY-R015",
     "GRAPHOS-DEPLOY-R016"
   ],
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
   "evidence": [],
   "requirements": [
@@ -210,8 +210,16 @@
     {
       "id": "GRAPHOS-DEPLOY-R016",
       "title": "One host daemon process shares the in-pod engine",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "eb31b775768129c7d22513265413f255c6056659",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/eb31b775768129c7d22513265413f255c6056659",
+          "description": "GRAPHOS-DEPLOY-R016 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "The internal deployment manifest carries the daemon container and its contract test. The manifest is not applied. Live receipts for host-lock ownership, process identity and sparse index growth are pending. The Helm production profile does not yet carry the daemon container."
     }
   ]

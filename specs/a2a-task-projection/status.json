@@ -12,7 +12,7 @@
     "GRAPHOS-A2A-R007",
     "GRAPHOS-A2A-R008"
   ],
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
   "evidence": [],
   "requirements": [
@@ -38,8 +38,16 @@
     {
       "id": "GRAPHOS-A2A-R004",
       "title": "Served MCP bridge runs FastMCP 4, matching its declared version",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "17fcab3404c017ce178074181ee241a1236ade90",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/17fcab3404c017ce178074181ee241a1236ade90",
+          "description": "GRAPHOS-A2A-R004 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "No live-deployment probe confirming the served FastMCP version exists in the repo (no probe script/test found anywhere); only the declared/locked-version match (fastmcp 4.0.5) and local composition/semantic tests are present."
     },
     {
