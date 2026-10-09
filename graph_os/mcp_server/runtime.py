@@ -343,7 +343,9 @@ async def _execute_tool(tool_name: str, **kwargs) -> Any:
     return await _guarded()
 
 
-def served_legacy_actions_within_approved_mapping(served_actions: tuple[str, ...]) -> None:
+def served_legacy_actions_within_approved_mapping(
+    served_actions: tuple[str, ...],
+) -> None:
     """Refuse a served-actions set containing an action with no approved
     legacy-host mapping (RF-ADR-009 host-composition-boundary R005)."""
     validate_served_actions(served_actions, APPROVED_ACTION_MAPPING)
