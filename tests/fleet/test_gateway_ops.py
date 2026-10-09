@@ -25,7 +25,20 @@ async def test_catalog_is_one_filtered_view_across_kinds() -> None:
         ),
         CatalogItem("fleet:prompt:s/guide", "prompt", "guide", server="s"),
         CatalogItem("fleet:skill:s/review", "skill", "review", server="s"),
-        *connector_items([{"pack": "p", "name": "sync", "op": "ingest.sources.sync"}]),
+        *connector_items(
+            [
+                {
+                    "pack": "p",
+                    "name": "sync",
+                    "op": "ingest.sources.sync",
+                    "capability": "ingest.sources.sync",
+                    "schema_digest": "sha256:" + "a" * 64,
+                    "modality": "text",
+                    "cost": "low",
+                    "latency": "sub-second",
+                }
+            ]
+        ),
     )
 
     async def source():
@@ -240,7 +253,18 @@ async def test_combined_source_admits_only_registered_eg_server() -> None:
         }
 
     async def sdk():
-        return ({"pack": "p", "name": "sync", "op": "ingest.sources.sync"},)
+        return (
+            {
+                "pack": "p",
+                "name": "sync",
+                "op": "ingest.sources.sync",
+                "capability": "ingest.sources.sync",
+                "schema_digest": "sha256:" + "a" * 64,
+                "modality": "text",
+                "cost": "low",
+                "latency": "sub-second",
+            },
+        )
 
     items = await CombinedFleetSource(verified=verified, live=live, sdk=sdk)()
     assert [item.id for item in items] == ["connector:p/sync", "fleet:tool:good/read"]

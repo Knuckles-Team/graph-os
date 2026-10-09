@@ -241,6 +241,37 @@ def items_from_child_probe(
     return tuple(item for item in items if item is not None)
 
 
+PACK_ANNOTATION_FIELDS: tuple[str, ...] = (
+    "capability",
+    "schema_digest",
+    "modality",
+    "cost",
+    "latency",
+)
+
+
+def _pack_annotations(entry: Mapping[str, Any]) -> dict[str, Any]:
+    """Required catalog annotations for a fleet pack item (GRAPHOS-FLEET-R004).
+
+    Every connector pack item's catalog entry must carry its capability,
+    schema digest, modality, cost and latency so pack items are comparable
+    fleet-wide. An entry missing, or emptying, one of these fails closed
+    rather than publishing an incomplete catalog row; ``annotations`` may
+    carry them as a nested mapping, or each may sit directly on the entry.
+    """
+    nested = entry.get("annotations")
+    source: Mapping[str, Any] = nested if isinstance(nested, Mapping) else entry
+    annotations: dict[str, Any] = {}
+    for field_name in PACK_ANNOTATION_FIELDS:
+        value = source.get(field_name)
+        if value is None or (isinstance(value, str) and not value):
+            raise ValueError(
+                f"connector pack item missing required annotation: {field_name}"
+            )
+        annotations[field_name] = value
+    return annotations
+
+
 def connector_items(entries: Iterable[Mapping[str, Any]]) -> tuple[CatalogItem, ...]:
     """Expose SDK pack entries as typed operation pointers, never native tools."""
     items: list[CatalogItem] = []
@@ -255,6 +286,7 @@ def connector_items(entries: Iterable[Mapping[str, Any]]) -> tuple[CatalogItem, 
                 op=op,
                 params=entry.get("params", {}),
                 required_scopes=frozenset(entry.get("required_scopes", ())),
+                annotations=_pack_annotations(entry),
             )
         )
     return tuple(items)
