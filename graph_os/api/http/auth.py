@@ -66,15 +66,9 @@ class AmbientHTTPAuthenticator:
         age_ms = int(time.time() * 1000) - caller.mfa_at_ms
         return 0 <= age_ms <= 900_000
 
-    def _credential_kind(self, request: Request) -> str:
-        """Classify the presented credential; refuse ambiguous or malformed ones."""
-        state = request.scope.get("state") or {}
-        cookie = request.cookies.get("__Host-graphos_session")
-        admitted = state.get("graphos_session_admitted") is True
-        if cookie is not None or admitted:
-            if not cookie or not admitted or self._verify_browser_session is None:
-                raise HTTPAuthenticationError("Verified browser authority required")
-            return "session"
+    @staticmethod
+    def _require_exact_bearer(request: Request) -> str:
+        """Validate one well-formed bearer header; refuse anything ambiguous."""
         authorization = request.headers.getlist("authorization")
         if len(authorization) != 1:
             raise HTTPAuthenticationError("Verified bearer required")
@@ -82,6 +76,17 @@ class AmbientHTTPAuthenticator:
         if scheme.lower() != "bearer" or not token or any(c.isspace() for c in token):
             raise HTTPAuthenticationError("Verified bearer required")
         return "bearer"
+
+    def _credential_kind(self, request: Request) -> str:
+        """Classify the presented credential; refuse ambiguous or malformed ones."""
+        state = request.scope.get("state") or {}
+        cookie = request.cookies.get("__Host-graphos_session")
+        admitted = state.get("graphos_session_admitted") is True
+        if cookie is None and not admitted:
+            return self._require_exact_bearer(request)
+        if not cookie or not admitted or self._verify_browser_session is None:
+            raise HTTPAuthenticationError("Verified browser authority required")
+        return "session"
 
     async def _browser_mfa(
         self, request: Request, session: Any, kind: str
