@@ -2,6 +2,13 @@
 
 from .digest import canonical_op, canonical_registry, registry_digest
 from .registry import Caller, Invoke, PolicyDecision, Registry, authorized
+from .scopes import (
+    DOMAIN_SCOPE_CLASSES,
+    FinanceScope,
+    FleetScope,
+    LoopsScope,
+    OpsScope,
+)
 from .spec import (
     AuditClass,
     Composite,
@@ -22,6 +29,7 @@ from .spec import (
 )
 
 __all__ = [
+    "DOMAIN_SCOPE_CLASSES",
     "AuditClass",
     "Caller",
     "Composite",
@@ -30,10 +38,14 @@ __all__ = [
     "EgMethod",
     "EgSchemaRef",
     "Executor",
+    "FinanceScope",
+    "FleetScope",
     "HttpShape",
     "Idempotency",
     "Invoke",
+    "LoopsScope",
     "OpSpec",
+    "OpsScope",
     "PolicyDecision",
     "PrincipalRule",
     "Registry",
