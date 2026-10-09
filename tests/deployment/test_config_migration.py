@@ -223,12 +223,23 @@ def test_migrate_config_file_rejects_invalid_renamed_document_without_writing(
 
 
 def test_legacy_messaging_environment_input_fails_with_neutral_guidance(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
+    """A retired key from the process environment fails closed at the same
+    value-free ``ConfigurationSourceError`` boundary as a staged document
+    (see ``test_xdg_load_rejects_invalid_governance_catalog_without_writing``
+    above); the exception message never embeds the rejected input, so the
+    neutral ``MESSAGING_ADDRESSED_MODEL`` migration guidance is asserted from
+    the log line that boundary deliberately still carries it on.
+    """
     monkeypatch.setenv(_RETIRED_MESSAGING_MODEL, "addressed-model")
 
-    with pytest.raises(ValueError, match="MESSAGING_ADDRESSED_MODEL"):
+    with pytest.raises(ConfigurationSourceError) as raised:
         AgentConfig()
+
+    assert raised.value.source_type == "xdg"
+    assert raised.value.error_class == "ValidationError"
+    assert "MESSAGING_ADDRESSED_MODEL" in caplog.text
 
 
 def test_migrate_config_file_reports_but_keeps_unknown_by_default(
