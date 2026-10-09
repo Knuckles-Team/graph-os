@@ -114,3 +114,34 @@ bypass the gate); startup refused for a non-loopback bind in `none` means a
 missing acknowledgement; discovery empty with `POLICY_UNAVAILABLE` means
 Eunomia is on and the policy service is unreachable — restore it, never turn
 Eunomia off to compensate.
+
+## Cutover acceptance
+
+Verify this sequence against the installed release before relying on it; see
+[Not available yet](#not-available-yet) above.
+
+Use a fresh store or a backed-up existing one and record the running image
+digest before changing identity mode. The mode is durable engine state:
+changing `GRAPHOS_AUTH_MODE` after first boot is not a transition. Run the CLI
+under an administrator's own authority; it prompts for the password and second
+factor. `none → local` uses `graph-os-identity claim --username <name>`;
+`local → external` requires an enabled IdP, reviewed mapping dry-run and a
+linked administrator before `graph-os-identity transition --to external
+--local-fallback break-glass --as <name>`. The signer rotates and sessions are
+revoked. If the IdP is unavailable, the local break-glass administrator must
+still be able to sign in with MFA.
+
+A browser probe must check the whole path. For local sign-in, submit the
+browser's JSON `/auth/login` request from the same origin, complete MFA for the
+administrator, and fetch `/auth/session` with the resulting
+`__Host-graphos_session` cookie. For external sign-in, begin at
+`/auth/oidc/{idp_id}/login`, follow the IdP's PKCE authorization-code form and
+callback, then fetch `/auth/session` with that cookie. Compare the returned
+principal and **server-resolved** role for ordinary and administrator test
+users. Never infer admin authority from a UI label or a service token.
+
+Capture only statuses and synthetic principal identifiers as evidence. Never
+log session cookies, bearer tokens, passwords, TOTP seeds, setup codes or reset
+tokens. A Keycloak discovery success, health response, and test-namespace pass
+are preparatory checks; repeat the browser path on the production URL after
+rollout. See the public `docs/identity.md` for the full operator sequence.

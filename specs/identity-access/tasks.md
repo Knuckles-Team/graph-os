@@ -19,3 +19,15 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 ## Source ID coverage
 
 `GRAPHOS-IDENTITY-R001`, `GRAPHOS-IDENTITY-R002`–`GRAPHOS-IDENTITY-R017`, `GRAPHOS-IDENTITY-R018`, `GRAPHOS-IDENTITY-R019`, `GRAPHOS-IDENTITY-R020`, `GRAPHOS-IDENTITY-R021`, `GRAPHOS-IDENTITY-R022`, and `GRAPHOS-IDENTITY-R023` map to IA requirements in `spec.md`. Source IDs identify intended work, not completion. Cross-repository owners implement their side of the contract stated in this spec; GraphOS tasks cannot close their delivery without their own accepted evidence.
+
+## Strict producer follow-through
+
+- [ ] Qualify EG credential-derived context and authoritative source expiry;
+  reject bare lookup and missing generated capability.
+- [ ] Inject existing verified broker and secret-backed issuer, preserving the
+  strict prepared claims and exact scope ceiling without local grants.
+- [ ] Qualify EG session reference/expiry/pending/MFA response and atomic rotation.
+- [ ] Implement the existing WebUI evidence port with request-local private
+  bindings, after-await rechecks and exact C caller-session-instance pairing.
+- [ ] Prove cleanup, cancellation, refresh and concurrent request isolation at
+  the mounted E/C integration boundary before claiming browser availability.

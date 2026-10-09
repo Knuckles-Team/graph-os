@@ -30,3 +30,29 @@ For each test, `evidence.md` must link a reproducible job or command with exact 
 Run repository checks from a clean checkout with `uv sync --extra test`, `uv run pytest`, `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy graph_os`, `uvx --from pre-commit==4.6.0 pre-commit run --all-files`, and the release workflow's build/lock checks. The scanner workflow provisions pinned CCCC, KISS, Dupehound and jscpd. Use the repository's configured thresholds and differential baseline; do not change them to fit this implementation. The current hook configuration names `complexity-staged`, `kiss-staged`, `dupehound-changed`, `complexity-census`, `kiss-census`, `jscpd-differential`, `jscpd-census`, and `scanner-versions`; the release workflow pins tool versions. Apply KISS with ports and one composition root, preserve the orphan-module gate, and reject duplicate issuer, policy and RBAC implementations. Record unavailable tool/threshold as a gap, never as a pass.
 
 No pass on an unrelated branch, unmerged patch or earlier commit qualifies the exact landed commit. Acceptance requires IT-01 through IT-14, scanner/quality/release jobs, portable fresh-checkout proof, and resolved design decisions. A row can remain partial even if this umbrella spec is otherwise accepted.
+
+## Strict producer regression slice
+
+Focused source tests cover malformed/missing authority fields, immutable copied
+resolution/context sets, direct-only delegation, exact scope narrowing and
+source-expiry-bounded local claim preparation. Browser tests cover duplicate or
+invalid cookies, exact configured Origin, mutation CSRF, cookie lifetime,
+private credential digests and request/session-instance substitution, including
+mutation across an await. Source fixtures do not qualify the EG producer, local
+signing keys, session persistence, installed generated bindings or mounted
+HTTP/MCP/WebUI serving. Those acceptance requirements remain outstanding.
+
+Additional source tests verify RS256 signatures using ephemeral in-memory test
+keys read through the injected existing key-store port, refusal without key
+provisioning, and current-authority changes during issuance. Request-lifecycle
+fixtures exercise the actual WebUI evidence/export class with synthetic backend
+and token-verifier owners: same caller-instance resolution, after-await request
+mutation, rotation/revocation, refresh invalidation, cancellation cleanup and
+concurrent same-subject isolation. These establish the composed source behavior
+only; no real EG/session/key-store binding or mounted deployment is qualified.
+
+Deterministic await regressions revoke, rotate, expire or alter caller authority
+during token verification in both initial binding and pre-invocation checks.
+All must refuse with no invocation or retained binding. A separate case changes
+caller policy during the final session resolution and requires refusal before
+evidence return. These preserve the earlier cookie and effective-route probes.
