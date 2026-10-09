@@ -149,8 +149,16 @@
     {
       "id": "GRAPHOS-IDENTITY-R008.1",
       "title": "Typed API-key grant model with refusal tests",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "description": "graph_os/identity/api_keys.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R008.2",
@@ -171,8 +179,16 @@
     {
       "id": "GRAPHOS-IDENTITY-R009.1",
       "title": "Typed OIDC mapping-rule model with refusal tests",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "description": "graph_os/identity/oidc.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R009.2",
@@ -193,8 +209,16 @@
     {
       "id": "GRAPHOS-IDENTITY-R010.1",
       "title": "Typed LDAPS bind-config model with refusal tests",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "description": "graph_os/identity/ldap.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R010.2",
