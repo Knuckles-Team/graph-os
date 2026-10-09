@@ -21,6 +21,11 @@ from .test_engine_resolution import resolution_value
 from .test_issuer import SETTINGS
 from .test_modes_and_browser import ORIGIN, request_scope
 
+# Synthetic fixture tokens only; OwnersFixture.verify_token accepts no others
+# and no live issuer, provider or production credential ever uses them.
+_FIXTURE_TOKEN = "fixture-local-token"  # sanitizer:ignore - synthetic test token, not a real credential
+_OTHER_FIXTURE_TOKEN = "other-fixture-local-token"  # sanitizer:ignore - synthetic test token, not a real credential
+
 
 class CallerFixture:
     def __init__(self, resolution):
@@ -64,7 +69,7 @@ class OwnersFixture:
         return self.state
 
     async def verify_token(self, token):
-        if token not in {"fixture-local-token", "other-fixture-local-token"}:
+        if token not in {_FIXTURE_TOKEN, _OTHER_FIXTURE_TOKEN}:
             raise PermissionError("invalid fixture token")
         return SimpleNamespace(
             claims=claims_for(
@@ -82,7 +87,7 @@ class OwnersFixture:
         )
 
 
-def forwarded_scope(token="fixture-local-token"):
+def forwarded_scope(token=_FIXTURE_TOKEN):
     scope = request_scope()
     scope["headers"].append((b"authorization", f"Bearer {token}".encode()))
     return scope
@@ -105,9 +110,7 @@ def test_actual_webui_export_and_same_caller_instance_then_cleanup():
 
     async def scenario():
         backend, owner, scope, session = bound_fixture_parts()
-        async with owner._bind_request(
-            scope, session, forwarded_token="fixture-local-token"
-        ):
+        async with owner._bind_request(scope, session, forwarded_token=_FIXTURE_TOKEN):
             evidence = await owner.verify_request(scope)
             assert isinstance(evidence, BrowserSessionEvidence)
             assert evidence.request_scope is scope
@@ -135,9 +138,7 @@ def test_actual_webui_export_and_same_caller_instance_then_cleanup():
 def test_transition_or_session_substitution_refuses_and_cleans(change):
     async def scenario():
         backend, owner, scope, session = bound_fixture_parts()
-        async with owner._bind_request(
-            scope, session, forwarded_token="fixture-local-token"
-        ):
+        async with owner._bind_request(scope, session, forwarded_token=_FIXTURE_TOKEN):
             if change == "revoke":
                 backend.error = PermissionError("revoked")
             elif change == "rotate":
@@ -162,9 +163,7 @@ def test_transition_or_session_substitution_refuses_and_cleans(change):
 def test_scope_mutated_across_await_cannot_export_evidence():
     async def scenario():
         backend, owner, scope, session = bound_fixture_parts()
-        async with owner._bind_request(
-            scope, session, forwarded_token="fixture-local-token"
-        ):
+        async with owner._bind_request(scope, session, forwarded_token=_FIXTURE_TOKEN):
 
             async def mutation():
                 await asyncio.sleep(0)
@@ -189,7 +188,7 @@ def test_cancellation_during_live_check_propagates_and_releases_binding():
 
         async def request():
             async with owner._bind_request(
-                scope, session, forwarded_token="fixture-local-token"
+                scope, session, forwarded_token=_FIXTURE_TOKEN
             ):
                 backend.on_resolve = pause
                 await owner.verify_request(scope)
@@ -217,7 +216,7 @@ def test_concurrent_same_subject_requests_never_share_session_instances():
         async def request(index):
             scope = forwarded_scope()
             async with owner._bind_request(
-                scope, sessions[index], forwarded_token="fixture-local-token"
+                scope, sessions[index], forwarded_token=_FIXTURE_TOKEN
             ):
                 ready[index].set()
                 await ready[1 - index].wait()
@@ -259,7 +258,7 @@ def test_missing_real_eg_session_contract_has_typed_unavailable_refusal():
             async with owner._bind_request(
                 forwarded_scope(),
                 CallerFixture(backend.resolution),
-                forwarded_token="fixture-local-token",
+                forwarded_token=_FIXTURE_TOKEN,
             ):
                 pytest.fail("missing authority reached request body")
         assert owner._requests == {}
@@ -279,12 +278,12 @@ def test_mutated_scope_never_leaves_a_private_binding(phase):
             backend.on_resolve = mutate
             with pytest.raises(PermissionError):
                 async with owner._bind_request(
-                    scope, session, forwarded_token="fixture-local-token"
+                    scope, session, forwarded_token=_FIXTURE_TOKEN
                 ):
                     pytest.fail("mutated initial request was admitted")
         else:
             async with owner._bind_request(
-                scope, session, forwarded_token="fixture-local-token"
+                scope, session, forwarded_token=_FIXTURE_TOKEN
             ):
                 scope["query_string"] = b"different=target"
                 with pytest.raises(PermissionError):
@@ -298,9 +297,7 @@ def test_mutated_scope_never_leaves_a_private_binding(phase):
 def test_transport_failure_propagates_and_cleans_live_request():
     async def scenario():
         backend, owner, scope, session = bound_fixture_parts()
-        async with owner._bind_request(
-            scope, session, forwarded_token="fixture-local-token"
-        ):
+        async with owner._bind_request(scope, session, forwarded_token=_FIXTURE_TOKEN):
             backend.error = RuntimeError("fixture transport unavailable")
             with pytest.raises(RuntimeError, match="transport unavailable"):
                 await owner.verify_request(scope)
@@ -347,7 +344,7 @@ def test_authority_change_during_token_await_refuses_and_cleans(phase, change):
         )
         with pytest.raises(PermissionError):
             async with owner._bind_request(
-                scope, session, forwarded_token="fixture-local-token"
+                scope, session, forwarded_token=_FIXTURE_TOKEN
             ):
                 entered = True
                 triggered = True
@@ -372,9 +369,7 @@ def test_final_session_await_rechecks_caller_facts_before_return():
         backend = OwnersFixture()
         scope, session = forwarded_scope(), CallerFixture(backend.resolution)
         owner = backend.producer()
-        async with owner._bind_request(
-            scope, session, forwarded_token="fixture-local-token"
-        ):
+        async with owner._bind_request(scope, session, forwarded_token=_FIXTURE_TOKEN):
             calls = 0
 
             async def mutate_during_final_resolve():

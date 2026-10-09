@@ -149,7 +149,9 @@ def _require_routing_fields(scope: Mapping[str, Any]) -> tuple[Any, ...]:
     return values
 
 
-def _require_routing_context(scope: Mapping[str, Any]) -> tuple[str, bytes, bytes, str | None]:
+def _require_routing_context(
+    scope: Mapping[str, Any],
+) -> tuple[str, bytes, bytes, str | None]:
     """The exact target/root/scheme fields, or refuse."""
     raw_path, query = scope.get("raw_path"), scope.get("query_string")
     if type(raw_path) is not bytes or type(query) is not bytes:

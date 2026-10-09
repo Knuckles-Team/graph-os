@@ -17,6 +17,8 @@ from graph_os.identity.engine import IdentityUnavailable
 
 TOKEN = base64.urlsafe_b64encode(b"s" * 32).decode().rstrip("=")
 ORIGIN = "https://console.invalid"
+# Synthetic fixture token only; nothing resolves or verifies it as a real JWT.
+_FIXTURE_FORWARDED_TOKEN = "private-fixture-jwt"  # sanitizer:ignore - synthetic test token, not a real credential
 
 
 def request_scope():
@@ -123,7 +125,7 @@ def test_same_object_mutation_across_await_invalidates_snapshot(field, value):
             scope,
             session,
             session_ref="opaque-ref",
-            forwarded_token="private-fixture-jwt",
+            forwarded_token=_FIXTURE_FORWARDED_TOKEN,
         )
 
         async def authority_recheck():
@@ -136,7 +138,7 @@ def test_same_object_mutation_across_await_invalidates_snapshot(field, value):
                 scope,
                 session,
                 session_ref="opaque-ref",
-                forwarded_token="private-fixture-jwt",
+                forwarded_token=_FIXTURE_FORWARDED_TOKEN,
             )
 
     asyncio.run(scenario())
@@ -148,7 +150,10 @@ def test_same_object_mutation_across_await_invalidates_snapshot(field, value):
 def test_credential_and_proof_header_substitution_refuses(name):
     scope, session = request_scope(), object()
     binding = _RequestBinding.capture(
-        scope, session, session_ref="opaque-ref", forwarded_token="private-fixture-jwt"
+        scope,
+        session,
+        session_ref="opaque-ref",
+        forwarded_token=_FIXTURE_FORWARDED_TOKEN,
     )
     scope["headers"] = [(key, val) for key, val in scope["headers"] if key != name]
     scope["headers"].append((name, b"different"))
@@ -157,7 +162,7 @@ def test_credential_and_proof_header_substitution_refuses(name):
             scope,
             session,
             session_ref="opaque-ref",
-            forwarded_token="private-fixture-jwt",
+            forwarded_token=_FIXTURE_FORWARDED_TOKEN,
         )
 
 
@@ -168,16 +173,24 @@ def test_instance_and_pairing_identity_not_subject_equivalence(change):
         {"subject": "same-subject", "tenant": "same-tenant"},
     )
     binding = _RequestBinding.capture(
-        scope, session, session_ref="opaque-ref", forwarded_token="private-fixture-jwt"
+        scope,
+        session,
+        session_ref="opaque-ref",
+        forwarded_token=_FIXTURE_FORWARDED_TOKEN,
     )
     binding.ensure_unchanged(
-        scope, session, session_ref="opaque-ref", forwarded_token="private-fixture-jwt"
+        scope,
+        session,
+        session_ref="opaque-ref",
+        forwarded_token=_FIXTURE_FORWARDED_TOKEN,
     )
     with pytest.raises(PermissionError):
         binding.ensure_unchanged(
             dict(scope) if change == "scope" else scope,
             dict(session) if change == "session" else session,
             session_ref="different" if change == "reference" else "opaque-ref",
-            forwarded_token="different" if change == "token" else "private-fixture-jwt",
+            forwarded_token="different"
+            if change == "token"
+            else _FIXTURE_FORWARDED_TOKEN,
         )
-    assert TOKEN not in repr(binding) and "private-fixture-jwt" not in repr(binding)
+    assert TOKEN not in repr(binding) and _FIXTURE_FORWARDED_TOKEN not in repr(binding)
