@@ -362,10 +362,10 @@ def test_request_state_does_not_supply_principal_tenant_scopes_or_stepup():
 def test_real_http_endpoint_and_mcp_projection_share_verified_context(revoked):
     import asyncio
 
-    from graph_os.api.invoke import OpResult
     from starlette.responses import JSONResponse
 
     from graph_os.api.http.routes import make_endpoint
+    from graph_os.api.invoke import OpResult
     from graph_os.api.mcp.verbs import MCPProjection, dispatch_verb
     from graph_os.api.registry import Surface, Verb
 
