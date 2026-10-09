@@ -42,6 +42,7 @@ permissions:
 
 jobs:
   gates:
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}
     name: gates
     # Homelab self-hosted runner for same-repo push/PR traffic (the org
     # runner group is scoped to the 6 core repos already); a fork PR's head
@@ -248,6 +249,7 @@ jobs:
           fi
 
   scanner-quality:
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}
     name: Scanner quality (cccc, KISS, dupehound, jscpd)
     runs-on: ubuntu-latest
     env:
@@ -316,6 +318,7 @@ jobs:
           key: ${{ steps.scanner-cache-identity.outputs.key }}
 
   build:
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}
     name: build
     needs: [gates]
     runs-on: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted", "homelab"]') || 'ubuntu-latest' }}
@@ -337,6 +340,7 @@ jobs:
           retention-days: 7
 
   publish-pypi:
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}
     name: publish
     needs: build
     if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
