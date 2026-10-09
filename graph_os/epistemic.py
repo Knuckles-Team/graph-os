@@ -325,6 +325,21 @@ class EpistemicClientPool:
             self._clients[target] = client
             return client
 
+    async def connected_client(
+        self, context: ClientContext, graph: str
+    ) -> EpistemicClient:
+        """Return the graph-bound transport client, connecting on first use.
+
+        Unlike :meth:`bind`, this does not also scope
+        ``use_verified_context``: a caller that applies that scoping itself
+        around each individual request (the invocation pipeline's
+        ``ClientFactory`` port, :mod:`graph_os.api.invoke.executor`) can
+        reuse one long-lived client across many different callers' requests
+        instead of opening a connection per request.
+        """
+
+        return await self._client_for(context, graph)
+
     @contextlib.asynccontextmanager
     async def bind(
         self,
