@@ -84,14 +84,25 @@
       "id": "GRAPHOS-IDENTITY-R004",
       "title": "Loopback bootstrap principal with origin guarding (rollup)",
       "delivery_state": "SPECIFIED",
-      "children": ["GRAPHOS-IDENTITY-R004.1", "GRAPHOS-IDENTITY-R004.2"],
+      "children": [
+        "GRAPHOS-IDENTITY-R004.1",
+        "GRAPHOS-IDENTITY-R004.2"
+      ],
       "evidence": []
     },
     {
       "id": "GRAPHOS-IDENTITY-R004.1",
       "title": "Typed loopback bootstrap-principal model with refusal tests",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "description": "graph_os/identity/bootstrap.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R004.2",
@@ -117,14 +128,25 @@
       "id": "GRAPHOS-IDENTITY-R006",
       "title": "Optional MFA with TOTP, WebAuthn, and recovery codes (rollup)",
       "delivery_state": "SPECIFIED",
-      "children": ["GRAPHOS-IDENTITY-R006.1", "GRAPHOS-IDENTITY-R006.2"],
+      "children": [
+        "GRAPHOS-IDENTITY-R006.1",
+        "GRAPHOS-IDENTITY-R006.2"
+      ],
       "evidence": []
     },
     {
       "id": "GRAPHOS-IDENTITY-R006.1",
       "title": "Typed MFA enrollment model with refusal tests",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "description": "graph_os/identity/mfa.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R006.2",
@@ -136,14 +158,25 @@
       "id": "GRAPHOS-IDENTITY-R007",
       "title": "Admin console tabs with mapping dry-run and mode wizard (rollup)",
       "delivery_state": "SPECIFIED",
-      "children": ["GRAPHOS-IDENTITY-R007.1", "GRAPHOS-IDENTITY-R007.2"],
+      "children": [
+        "GRAPHOS-IDENTITY-R007.1",
+        "GRAPHOS-IDENTITY-R007.2"
+      ],
       "evidence": []
     },
     {
       "id": "GRAPHOS-IDENTITY-R007.1",
       "title": "Typed admin-console tab model with refusal tests",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "description": "graph_os/identity/admin_console.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R007.2",
