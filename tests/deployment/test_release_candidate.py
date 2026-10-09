@@ -16,7 +16,9 @@ from graph_os.deployment.cli import main
 from graph_os.deployment.genesis_environments import BUILTIN_ENVIRONMENTS_DIR
 from graph_os.deployment.release_candidate import (
     CandidateError,
+    LocalGateResult,
     _canonical_digest,
+    gate_release,
     plan_candidate,
     read_candidate,
 )
@@ -195,6 +197,26 @@ def test_artifact_refusal(tmp_path, candidate, authority, field, value):
     candidate["artifacts"][0][field] = value
     with pytest.raises(CandidateError):
         _plan(tmp_path, candidate)
+
+
+def test_gate_release_blocks_on_any_red_local_gate(tmp_path, candidate, authority):
+    """T-RL-09 (GRAPHOS-RELEASE-R002): a failing local gate blocks the push and
+    names it; once every gate is green, the push proceeds."""
+    plan = _plan(tmp_path, candidate)
+    gates = (
+        LocalGateResult(name="k8s-namespace-smoke", green=True),
+        LocalGateResult(name="k8s-schema-probe", green=False),
+    )
+    blocked = gate_release(plan, local_gates=gates)
+    assert blocked["allowed"] is False
+    assert blocked["status"] == "blocked"
+    assert blocked["failed_gates"] == ("k8s-schema-probe",)
+
+    green_gates = tuple(LocalGateResult(name=g.name, green=True) for g in gates)
+    allowed = gate_release(plan, local_gates=green_gates)
+    assert allowed["allowed"] is True
+    assert allowed["status"] == "allowed"
+    assert allowed["failed_gates"] == ()
 
 
 @pytest.mark.parametrize("field", ["artifacts", "stages"])

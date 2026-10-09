@@ -70,6 +70,13 @@ class Candidate(_Closed):
     stages: tuple[Stage, ...] = Field(min_length=1, max_length=256)
 
 
+class LocalGateResult(_Closed):
+    """One local-Kubernetes-validation gate's reported outcome for this candidate."""
+
+    name: Identifier
+    green: bool
+
+
 def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -263,5 +270,27 @@ def plan_candidate(
             }
             for key in ordered
         ],
+        "redacted": True,
+    }
+
+
+def gate_release(
+    plan: dict[str, Any], *, local_gates: tuple[LocalGateResult, ...]
+) -> dict[str, Any]:
+    """Refuse push/deploy until every local Kubernetes validation gate is green.
+
+    GRAPHOS-RELEASE-R002: local Kubernetes validation runs in a dedicated test
+    namespace as part of release qualification (that runner is a separate
+    adapter, see tasks.md); this is the pure, offline-testable aggregation
+    decision it must feed: any one red gate blocks the push deterministically,
+    and the block names every failing gate rather than only the first.
+    """
+    failed = tuple(gate.name for gate in local_gates if not gate.green)
+    allowed = not failed
+    return {
+        "status": "allowed" if allowed else "blocked",
+        "allowed": allowed,
+        "manifest_digest": plan["manifest_digest"],
+        "failed_gates": failed,
         "redacted": True,
     }
