@@ -1,14 +1,11 @@
 """Focused contract for the GRAPHOS-CAPACITY-R002 hosted operations.
 
-Mirrors ``tests/api/test_agent_browser_ops.py``'s direct-handler pattern:
-operations are exercised through their declared handler, not the full
-``get_registry()`` assembly (that coverage lives in
-``tests/api/test_registry_factory.py``).
+Exercises the operation's handler directly, via ``tests/api/_ops_support``'s
+shared context builder, rather than the full ``get_registry()`` assembly
+(that coverage lives in ``tests/api/test_registry_factory.py``).
 """
 
 from __future__ import annotations
-
-from types import SimpleNamespace
 
 import pytest
 
@@ -24,6 +21,7 @@ from graph_os.fleet.error_budget import (
     decide,
 )
 from graph_os.fleet.throttle_service import ThrottleRegistry
+from tests.api._ops_support import service_context as _context
 
 _PARTITION_PARAMS = {
     "tenant": "t1",
@@ -31,15 +29,6 @@ _PARTITION_PARAMS = {
     "operation_class": "read",
     "policy_revision": "p1",
 }
-
-
-def _context(**services: object) -> SimpleNamespace:
-    return SimpleNamespace(
-        caller=SimpleNamespace(session=object()),
-        client=object(),
-        idempotency_key="key-1",
-        services=services,
-    )
 
 
 def test_capacity_ops_declare_exact_scopes_and_admin_effect() -> None:
