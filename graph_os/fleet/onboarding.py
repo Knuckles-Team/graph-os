@@ -241,8 +241,11 @@ class FleetOnboarding:
         unchanged content reuses attest's digest-derived idempotency key
         under a freshly randomized request (``request_id``, ``attempt_nonce``,
         ``created_at_ms``), which EG refuses as ``IDEMPOTENCY_CONFLICT``
-        (GRAPHOS-FLEET-R027). The caller treats an unchanged server as
-        renewed rather than re-onboarded.
+        (GRAPHOS-FLEET-R027). Instead it renews the server's own
+        registration lease (the same margin-gated call ``_renew_all`` makes
+        for every endpoint, so this is a real but usually-idempotent renewal
+        opportunity, not a bare skip) and the caller treats it as renewed
+        rather than re-onboarded.
         """
 
         from graph_os.deployment.semantic_provisioning import import_attested_pack
@@ -258,6 +261,8 @@ class FleetOnboarding:
                 commons=self.commons_client,
                 pack=pack,
             )
+        else:
+            await self.renew({endpoint.name: endpoint.url})
         self.register_contracts(endpoint, pack)
         return changed
 

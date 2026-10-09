@@ -374,6 +374,29 @@ def test_admitted_server_with_changed_pack_imports_new_revision(
     ]
 
 
+def test_onboard_renews_the_servers_lease_when_the_pack_is_unchanged(
+    eg: _Registry,
+) -> None:
+    """GRAPHOS-FLEET-R027/R028: confirming an unchanged pack still calls the
+    server's own lease renewal -- it does not just skip and relabel.
+
+    Calls ``onboard`` directly (not through ``onboard_fleet``) so the pass's
+    own up-front ``_renew_all`` cannot have already renewed this lease,
+    proving the renewal call lives on the unchanged-pack path itself.
+    """
+
+    digest = asyncio.run(_head_digest(ALPHA, _HEAD_CATALOG))
+    eg.heads["alpha-mcp"] = (_HEAD_CATALOG, digest)
+    assert "alpha-mcp" not in eg.leases  # no lease yet: a renewal call is due
+
+    changed = _run_in_session(_onboarding(eg).onboard(ALPHA, auth=None))
+
+    assert changed is False
+    assert eg.attested == []
+    registered = {params["name"]: params["url"] for params, _key in eg.registers}
+    assert registered["alpha-mcp"] == ALPHA.url
+
+
 def test_other_engine_error_checking_status_stays_failed(eg: _Registry) -> None:
     """GRAPHOS-FLEET-R027: a non-conflict engine error is never treated as
     success; the server stays failed, not onboarded or renewed.
