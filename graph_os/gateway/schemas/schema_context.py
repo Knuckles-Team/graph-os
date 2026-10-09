@@ -3,10 +3,9 @@
 
 GDM-02 (``specs/data-and-market-projections/tasks.md``): these models and
 ``graph_os.gateway.schema_context_service`` are the typed prerequisite for
-the not-yet-wired GDM-03 ``POST /graph/schema/context`` REST route and
-``graph_schema`` MCP action. Mounting those routes is a separate,
-single-owner change; this module does not touch ``kg_server.py`` or
-``graph_os.mcp_server.runtime``.
+GDM-03's ``POST /graph/schema/context`` REST route
+(``graph_os.gateway.schema_context_api``). A ``graph_schema`` MCP action is
+not yet wired; this module does not touch ``graph_os.mcp_server.runtime``.
 
 Every field here is taken directly from the design in
 ``specs/data-and-market-projections/plan.md`` ("Schema context" section),
