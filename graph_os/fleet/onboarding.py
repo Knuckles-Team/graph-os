@@ -233,21 +233,67 @@ class FleetOnboarding:
                 now_ms=now_ms,
             )
 
-    async def onboard(self, endpoint: FleetEndpoint, *, auth: Any) -> None:
-        """Capture, attest and import one server's catalog."""
+    async def onboard(self, endpoint: FleetEndpoint, *, auth: Any) -> bool:
+        """Capture one server's catalog; attest and import only when it changed.
+
+        Returns whether EG's catalog actually changed. A server already
+        admitted with an unchanged pack is never re-attested: re-attesting
+        unchanged content reuses attest's digest-derived idempotency key
+        under a freshly randomized request (``request_id``, ``attempt_nonce``,
+        ``created_at_ms``), which EG refuses as ``IDEMPOTENCY_CONFLICT``
+        (GRAPHOS-FLEET-R027). The caller treats an unchanged server as
+        renewed rather than re-onboarded.
+        """
 
         from graph_os.deployment.semantic_provisioning import import_attested_pack
 
         capture = self.capture or capture_server_pack
         pack = await capture(endpoint, auth=auth)
-        await import_attested_pack(
-            self.engine,
-            self.session,
-            client=self.tenant_client,
-            commons=self.commons_client,
-            pack=pack,
-        )
+        changed = not await self.pack_unchanged(endpoint, pack)
+        if changed:
+            await import_attested_pack(
+                self.engine,
+                self.session,
+                client=self.tenant_client,
+                commons=self.commons_client,
+                pack=pack,
+            )
         self.register_contracts(endpoint, pack)
+        return changed
+
+    async def pack_unchanged(self, endpoint: FleetEndpoint, pack: Any) -> bool:
+        """True when EG already holds ``pack`` unchanged under its current head.
+
+        Reads EG's durable ``ConnectorPack.status`` for the connector -- a
+        status read, never a mutation -- and recomputes the pack digest with
+        the catalog binding the head itself carries. A mismatch (new content)
+        or an absent head (never onboarded) both mean "not unchanged", so the
+        caller proceeds to a real attest and import.
+        """
+
+        from epistemic_graph.connector_pack import pack_digest
+        from epistemic_graph.generated.connector_pack import ConnectorPackStatusRequest
+        from epistemic_graph.generated.storage import send_connector_pack_status
+
+        from graph_os.deployment.semantic_provisioning import _bind_session_graph
+
+        tenant_id = str(self.session.engine_verified_context()["tenant"])
+        graph = str(self.session.graph)
+        with _bind_session_graph(graph):
+            status = await send_connector_pack_status(
+                self.tenant_client,
+                ConnectorPackStatusRequest(
+                    connector=endpoint.name, tenant_id=tenant_id
+                ),
+                graph,
+            )
+        head = status.head
+        if head is None:
+            return False
+        digest = pack_digest(
+            endpoint.name, head.catalog, pack.archive.server, pack.archive.entries
+        )
+        return head.pack_digest == digest
 
     def register_contracts(self, endpoint: FleetEndpoint, pack: Any) -> None:
         """Register the pack's access contracts as unapproved mappings."""
@@ -309,12 +355,12 @@ async def _onboard_all(
         return
     for endpoint in pending:
         try:
-            await onboarding.onboard(endpoint, auth=auth)
+            changed = await onboarding.onboard(endpoint, auth=auth)
         except Exception as exc:  # one child must not stop the fleet
             report.failed[endpoint.name] = _failure(exc)
             logger.warning("fleet onboarding of %s failed: %s", endpoint.name, exc)
         else:
-            report.onboarded.append(endpoint.name)
+            (report.onboarded if changed else report.renewed).append(endpoint.name)
 
 
 async def onboard_fleet(

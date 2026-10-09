@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import threading
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -50,6 +51,8 @@ class _Registry(FakeEgEngine):
         self.registers: list[tuple[dict[str, Any], str]] = []
         self.attested: list[str] = []
         self.list_error: Exception | None = None
+        #: connector -> (catalog binding dict, pack_digest hex) of its head.
+        self.heads: dict[str, tuple[dict[str, Any], str]] = {}
 
     def _on_ListRegisteredServers(self, _params: Any, _key: Any) -> Any:
         if self.list_error is not None:
@@ -98,6 +101,33 @@ class _Registry(FakeEgEngine):
 
     def _on_catalog_request_owner_principal(self, _params: Any, _key: Any) -> Any:
         return OWNER
+
+    def _on_status(self, params: Any, _key: Any) -> Any:
+        request = params["op"]["request"]
+        connector = request["connector"]
+        head_entry = self.heads.get(connector)
+        head = None
+        if head_entry is not None:
+            catalog, digest = head_entry
+            head = {
+                "binding_revision": 1,
+                "catalog": catalog,
+                "committed_at_ms": 1,
+                "pack_digest": digest,
+                "record_id": f"record:{connector}",
+                "server_package_version": "1.0.0",
+            }
+        return {
+            "connector": connector,
+            "head": head,
+            "importer": None,
+            "last_receipt": None,
+            "members": {"published": 0, "retired": 0, "withdrawn": 0},
+            "projection": {"projection": "none"},
+            "schema_version": 1,
+            "tenant_id": request["tenant_id"],
+            "warnings": [],
+        }
 
 
 class _RecordingSink:
@@ -275,6 +305,93 @@ def test_admitted_servers_renew_without_recapture(eg: _Registry) -> None:
 
     assert captured == ["beta-mcp"]
     assert "alpha-mcp" in report.renewed
+
+
+_HEAD_CATALOG = {
+    "configuration_revision": 1,
+    "catalog_generation": 1,
+    "snapshot_digest": "5" * 64,
+    "child_connection_generation": 1,
+    "authorization_scope_digest": "4" * 64,
+}
+#: A lease nowhere near its renewal margin, so a test can isolate the
+#: onboarding-digest signal from the unrelated lease-renewal signal.
+_FAR_FUTURE_LEASE_MS = int(time.time() * 1000) + 30 * 86_400_000
+
+
+async def _head_digest(endpoint: FleetEndpoint, catalog: dict[str, Any]) -> str:
+    """The pack digest EG would already store for ``endpoint``'s served pack."""
+
+    from epistemic_graph.connector_pack import pack_digest
+    from epistemic_graph.generated.connector_pack import McpCatalogSnapshotBinding
+
+    pack = await _served_pack(endpoint)
+    binding = McpCatalogSnapshotBinding(**catalog)
+    return pack_digest(
+        endpoint.name, binding, pack.archive.server, pack.archive.entries
+    )
+
+
+def test_admitted_server_with_unchanged_pack_renews_without_reattest(
+    eg: _Registry,
+) -> None:
+    """GRAPHOS-FLEET-R027: an already-admitted, unchanged server is never
+    re-attested (which would hit EG's IDEMPOTENCY_CONFLICT); it is renewed.
+    """
+
+    digest = asyncio.run(_head_digest(ALPHA, _HEAD_CATALOG))
+    eg.heads["alpha-mcp"] = (_HEAD_CATALOG, digest)
+    eg.leases["alpha-mcp"] = _FAR_FUTURE_LEASE_MS
+
+    report = _run_in_session(onboard_fleet(_onboarding(eg), (ALPHA, BETA)))
+
+    assert report.failed == {}
+    assert sorted(report.onboarded) == ["beta-mcp"]
+    assert "alpha-mcp" in report.renewed
+    assert eg.attested == ["beta-mcp"]
+    assert [connector for connector, _binding in _RecordingSink.imported] == [
+        "beta-mcp"
+    ]
+
+
+def test_admitted_server_with_changed_pack_imports_new_revision(
+    eg: _Registry,
+) -> None:
+    """GRAPHOS-FLEET-R027: a changed pack is attested and imported, never
+    skipped as if unchanged.
+    """
+
+    eg.heads["alpha-mcp"] = (_HEAD_CATALOG, "9" * 64)  # stale digest: content differs
+
+    report = _run_in_session(onboard_fleet(_onboarding(eg), (ALPHA, BETA)))
+
+    assert report.failed == {}
+    assert sorted(report.onboarded) == ["alpha-mcp", "beta-mcp"]
+    assert eg.attested == ["alpha-mcp", "beta-mcp"]
+    assert sorted(c for c, _binding in _RecordingSink.imported) == [
+        "alpha-mcp",
+        "beta-mcp",
+    ]
+
+
+def test_other_engine_error_checking_status_stays_failed(eg: _Registry) -> None:
+    """GRAPHOS-FLEET-R027: a non-conflict engine error is never treated as
+    success; the server stays failed, not onboarded or renewed.
+    """
+
+    def broken_status(_params: Any, _key: Any) -> Any:
+        raise RuntimeError("INTERNAL: status store unavailable")
+
+    eg._on_status = broken_status  # type: ignore[method-assign]
+    eg.leases["alpha-mcp"] = _FAR_FUTURE_LEASE_MS
+
+    report = _run_in_session(onboard_fleet(_onboarding(eg), (ALPHA,)))
+
+    assert "alpha-mcp" not in report.onboarded
+    assert "alpha-mcp" not in report.renewed
+    assert report.failed == {
+        "alpha-mcp": "RuntimeError: INTERNAL: status store unavailable"
+    }
 
 
 def test_self_registrations_renew_at_their_live_url_without_a_served_url(

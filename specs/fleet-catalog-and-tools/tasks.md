@@ -24,6 +24,7 @@ Check a task only after its linked code and tests land. A checked source task is
 - [x] T16 (GRAPHOS-FLEET-R027): Add `graph_os/fleet/onboarding.py`, the `onboard-fleet` command and the background boot pass.
 - [x] T17 (GRAPHOS-FLEET-R028): Renew fleet and self-served leases each pass with windowed idempotency keys; refresh the catalog after admission.
 - [ ] T18 (GRAPHOS-FLEET-R027): Bind GraphOS as the fleet importer in the deployment, roll out, and record the live `multiplexer_status` child count.
+- [x] T24 (GRAPHOS-FLEET-R027): Skip re-attest and re-import for an already-admitted server whose captured pack digest is unchanged; renew it instead of re-onboarding. Re-attesting unchanged content reused attest's digest-derived idempotency key under a freshly randomized request body, which EG refused as `IDEMPOTENCY_CONFLICT` on every pass after the first.
 - [x] T18 (GRAPHOS-FLEET-R030): Register each connector access contract as an unapproved virtual mapping during onboarding.
 - [ ] T19 (GRAPHOS-FLEET-R030): Read ontology entries from the real pack archive accessor; confirm the duck-typed `entries` read against the SDK archive.
 - [x] T23 (GRAPHOS-FLEET-R030): Parse only ontology bodies that use the access-contract vocabulary. Log and skip a body the parser rejects.
