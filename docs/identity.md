@@ -1,6 +1,6 @@
 # Identity and authentication
 
-> The identity broker, local users, and mode transitions are available from train 7. Check the installed release and [capability status](status.md) before following this runbook. Earlier releases use the external OIDC configuration described in [deployment](deployment.md).
+> The identity broker, local users, and mode transitions are available from the identity-broker release. Check the installed release and [capability status](status.md) before following this runbook. Earlier releases use the external OIDC configuration described in [deployment](deployment.md).
 
 Graph OS keeps identity state in the engine and serves browser sign-in from its own identity broker. The durable mode is `none`, `local`, or `external`. `GRAPHOS_AUTH_MODE` seeds only a fresh store; a later environment edit does not change the stored mode. Use `graph-os-identity transition` to change it. The engine still applies the same scopes and RBAC decisions in each mode.
 

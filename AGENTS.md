@@ -22,13 +22,9 @@ fabricated receipt to make it appear complete.
 
 ## Non-negotiables
 
-- GraphOS authenticates, composes, routes, supervises, and projects. Durable
-  graph state and RDF/OWL/SHACL semantics belong to `epistemic-graph`; agent
-  decisions and workflows belong to `agent-utilities`; source-specific
-  transport and effects belong to `agent-connector-sdk` and connector
-  services; browser presentation belongs to `agent-webui`. Dependencies point
-  toward those authorities through public contracts — never copy their
-  implementations here.
+- Module ownership and dependency boundaries (what belongs to `epistemic-graph`,
+  `agent-utilities`, `agent-connector-sdk`, `agent-webui` vs. GraphOS itself):
+  see [`graph_os/skills/graph-os-repository-development/SKILL.md`](graph_os/skills/graph-os-repository-development/SKILL.md).
 - MCP and REST routes share the same application service and authorization
   decision.
 - Security is fail closed: validated identity, tenant isolation, and the

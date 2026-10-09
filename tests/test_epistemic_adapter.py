@@ -4,28 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from collections.abc import Iterable, Iterator, Mapping
-from dataclasses import dataclass
+from collections.abc import Iterator, Mapping
 from typing import Any, cast
 
 import pytest
 
 from graph_os import epistemic as adapter
-
-
-@dataclass
-class Actor:
-    """A fake structurally satisfying ``graph_os.epistemic.VerifiedActor``."""
-
-    actor_id: str = "service:graph-os"
-    tenant_id: str = "tenant:a"
-    roles: Iterable[str] = ("graph-client",)
-    authenticated: bool = True
-    current: bool = True
-
-    def ensure_credential_current(self) -> None:
-        if not self.current:
-            raise PermissionError("expired")
+from tests._support import Actor
 
 
 class Placement:

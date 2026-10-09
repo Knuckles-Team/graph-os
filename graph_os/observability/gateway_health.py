@@ -70,7 +70,7 @@ _background_tasks: set[Any] = set()
 def _get_buffer() -> Any:
     global _buffer
     if _buffer is None:
-        from agent_utilities.observability.health import HealthTrendBuffer
+        from graph_os.observability.health import HealthTrendBuffer
 
         _buffer = HealthTrendBuffer(window_s=_WINDOW_S)
     return _buffer
@@ -111,7 +111,7 @@ async def _check_and_record(trend: dict[str, Any]) -> None:
     triggering window. Never raises.
     """
     try:
-        from agent_utilities.observability import health as h
+        from graph_os.observability import health as h
 
         history = _history
         baseline = (

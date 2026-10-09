@@ -6,7 +6,6 @@ hosted operations.
 from __future__ import annotations
 
 from graph_os.fleet.error_budget import (
-    AimdConfig,
     BudgetWindow,
     OutcomeClass,
     OutcomeSample,
@@ -15,18 +14,8 @@ from graph_os.fleet.error_budget import (
     decide,
 )
 from graph_os.fleet.throttle_service import ThrottleRegistry
-
-_PARTITION = Partition(
-    tenant="t1", child="search", operation_class="read", policy_revision="p1"
-)
-_CONFIG = AimdConfig(
-    version="v1",
-    alpha=2,
-    beta=0.5,
-    floor=1,
-    min_sample_count=4,
-    error_budget_fraction=0.2,
-)
+from tests.fleet._support import CAPACITY_CONFIG as _CONFIG
+from tests.fleet._support import CAPACITY_PARTITION as _PARTITION
 
 
 def test_unknown_partition_reports_no_decision_not_fabricated_health() -> None:

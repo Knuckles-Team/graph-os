@@ -115,7 +115,7 @@ missing acknowledgement; discovery empty with `POLICY_UNAVAILABLE` means
 Eunomia is on and the policy service is unreachable — restore it, never turn
 Eunomia off to compensate.
 
-## Cutover acceptance (train 7)
+## Cutover acceptance
 
 Verify this sequence against the installed release before relying on it; see
 [Not available yet](#not-available-yet) above.
