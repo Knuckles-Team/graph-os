@@ -135,6 +135,18 @@ graphos:
   tolerations: []
   affinity: {}
 
+# GRAPHOS-DEPLOY-R016: the consolidated KG host daemon (console script
+# `graph-os-daemon`), split out of the graphos container into its own
+# container in the same pod. Reuses the graphos image, source mounts and
+# process identity; reaches the engine over the shared Unix socket volume
+# (unified-in-process + engine.placement=sidecar only). Ignored otherwise:
+# the graphos container itself keeps the host role (see configmap.yaml).
+daemon:
+  enabled: true
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: "2", memory: 4Gi}
+
 engine:
   # unified-in-process only: sidecar | child.
   placement: sidecar
