@@ -14,6 +14,12 @@ from typing import TYPE_CHECKING, Any
 
 from agent_utilities.messaging.models import EventType, InboundEvent
 
+from graph_os.messaging.supervision import (
+    ChannelSupervisionState,
+    legal_targets,
+    transition,
+)
+
 if TYPE_CHECKING:
     from agent_utilities.messaging.base import MessagingBackend
 
@@ -64,6 +70,14 @@ class InboundRouter:
         self._default_handler: EventHandler | None = None
         self._running = False
         self._tasks: list[asyncio.Task[None]] = []
+        # CONCEPT:GRAPHOS-MESSAGING-R001 — typed per-backend supervision state
+        # (graph_os.messaging.supervision), read by state_of().
+        self._states: dict[str, ChannelSupervisionState] = {}
+
+    def state_of(self, backend_id: str) -> ChannelSupervisionState | None:
+        """The current typed supervision state of a registered backend, or
+        ``None`` if ``backend_id`` was never registered."""
+        return self._states.get(backend_id)
 
     def register_backend(self, backend: MessagingBackend) -> None:
         """Register a connected messaging backend for event listening.
@@ -72,6 +86,7 @@ class InboundRouter:
             backend: A connected ``MessagingBackend`` instance.
         """
         self._backends.append(backend)
+        self._states[backend.id] = ChannelSupervisionState.STOPPED
         logger.info(
             "[CONCEPT:AU-ECO.messaging.native-backend-abstraction] Registered backend '%s' for inbound routing.",
             backend.id,
@@ -117,6 +132,36 @@ class InboundRouter:
         """
         self._default_handler = handler
 
+    def _start_one_backend(
+        self, backend: MessagingBackend
+    ) -> asyncio.Task[None] | None:
+        """Advance one backend through STARTING to RUNNING (or back to
+        STOPPED when unconnected) and return its supervisor task, if any.
+
+        CONCEPT:GRAPHOS-MESSAGING-R002 — a backend observed unconnected at
+        start is never promoted to RUNNING.
+        """
+        self._states[backend.id] = transition(
+            self._states.get(backend.id, ChannelSupervisionState.STOPPED),
+            ChannelSupervisionState.STARTING,
+        )
+        if not backend.is_connected:
+            logger.warning(
+                "[CONCEPT:AU-ECO.messaging.native-backend-abstraction] Backend '%s' is not connected, skipping.",
+                backend.id,
+            )
+            self._states[backend.id] = transition(
+                ChannelSupervisionState.STARTING, ChannelSupervisionState.STOPPED
+            )
+            return None
+        self._states[backend.id] = transition(
+            ChannelSupervisionState.STARTING, ChannelSupervisionState.RUNNING
+        )
+        return asyncio.create_task(
+            self._supervise_backend(backend),
+            name=f"messaging-router-{backend.id}",
+        )
+
     async def start(self) -> None:
         """Start listening on all registered backends.
 
@@ -132,17 +177,9 @@ class InboundRouter:
         )
 
         for backend in self._backends:
-            if not backend.is_connected:
-                logger.warning(
-                    "[CONCEPT:AU-ECO.messaging.native-backend-abstraction] Backend '%s' is not connected, skipping.",
-                    backend.id,
-                )
-                continue
-            task = asyncio.create_task(
-                self._supervise_backend(backend),
-                name=f"messaging-router-{backend.id}",
-            )
-            self._tasks.append(task)
+            task = self._start_one_backend(backend)
+            if task is not None:
+                self._tasks.append(task)
 
         # CONCEPT:AU-ECO.messaging.durable-inbound-pending — durable-inbox reaper: re-answers inbound turns that were recorded
         # pending but never got a reply (engine down / crashed mid-flight), so nothing is lost.
@@ -213,14 +250,36 @@ class InboundRouter:
         CONCEPT:AU-ECO.messaging.native-backend-abstraction
         """
         self._running = False
+        # CONCEPT:GRAPHOS-MESSAGING-R004 — drain, don't abandon: mark every
+        # supervised backend STOPPING before cancellation, STOPPED only once
+        # its tasks have actually been awaited below.
+        self._advance_states(ChannelSupervisionState.STOPPING)
         for task in self._tasks:
             task.cancel()
         if self._tasks:
             await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks.clear()
+        self._advance_states(
+            ChannelSupervisionState.STOPPED,
+            only_from=ChannelSupervisionState.STOPPING,
+        )
         logger.info(
             "[CONCEPT:AU-ECO.messaging.native-backend-abstraction] Inbound router stopped."
         )
+
+    def _advance_states(
+        self,
+        target: ChannelSupervisionState,
+        *,
+        only_from: ChannelSupervisionState | None = None,
+    ) -> None:
+        """Move every tracked backend whose current state legally allows
+        ``target`` (optionally restricted to ``only_from``) to ``target``."""
+        for backend_id, state in list(self._states.items()):
+            if only_from is not None and state is not only_from:
+                continue
+            if target in legal_targets(state):
+                self._states[backend_id] = transition(state, target)
 
     async def _supervise_backend(self, backend: MessagingBackend) -> None:
         """Keep a backend's listener ALIVE across recoverable failures (self-healing).
