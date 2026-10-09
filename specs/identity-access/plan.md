@@ -66,3 +66,66 @@ One engine-backed authority eliminates local/engine disagreement. Unavailable en
 4. Add identity/access operations and exact scope registry wiring; only then advertise routes.
 5. Add OIDC/LDAP/SCIM/brokered SAML/optional SMTP adapters and CLI/doctor.
 6. Run the three-mode decision oracle, browser/MCP/CLI flows, scanner and release gates; record exact evidence.
+
+## Bounded producer implementation
+
+`identity.engine` parses and freezes the authoritative response shape;
+`identity.issuer` prepares consistent local claims and narrowed context and
+signs through the existing read-only secret-backed key-ring port. Its injected
+credential authority is checked before signing and again before returning the
+token. It never generates, writes or rotates a deployment key or grants broker
+authority. `identity.browser` validates exact cookie/Origin/CSRF transport and
+captures private immutable request bindings. These source components are not
+a mounted authentication implementation.
+
+The serving composition must still inject qualified EG credential resolution,
+current policy, source expiry, an existing broker and signing authority. Browser
+session reference/expiry/MFA fields require a separately qualified EG response.
+No adapter may invent those fields or use a bare user lookup. Until the public
+generated binding and actual owners supply them, issuance and browser admission
+remain unavailable. Use the existing WebUI evidence class and C adapter; E must
+supply the exact caller-session instance bound by the producer. If scope-only
+verification cannot enforce that pairing, revise the C-owned interface before
+activation. No self-minted broker or parked implementation fallback is present.
+
+The EG public source DTO is `IdentityReply<RequestContextClaims>` with
+`PrincipalResolution<RequestContextClaims>` at `kind=resolution/value`.
+GraphOS rejects a missing or null `request_context`, including the internal
+`PrincipalResolution<()>` shape. Optional context `node` and `priority` may be
+omitted or null; neither becomes identity authority. The public resolution
+context does not yet supply source credential expiry or browser-session proof;
+these remain separate required authority inputs, never guessed from the policy
+version or a successful context parse. Source-aligned synthetic wire fixtures
+are not evidence that Rust serialization or generated bindings ran.
+
+`identity.ports` defines injected composition facts with mandatory source expiry;
+these are not new EG wire fields or a replacement WebUI evidence DTO.
+`UnavailableIdentityAuthority` explicitly refuses until qualified EG adapters
+supply those facts. `GraphOSBrowserAuthority` implements the existing WebUI port
+using a private per-request registry, exact caller-session instance, original
+credential and forwarded-token pairing. It checks snapshots after awaited
+owner calls, rechecks current authority before exporting evidence, and removes
+bindings on rotation/refusal/cancellation or context-manager exit. Refresh must
+invalidate the old binding before establishing a new one.
+
+E owns the integration sequence: enter `BrowserAdmission.request` with the
+original request; this producer rejects incoming cookie-plus-bearer ambiguity,
+issues the token from that exact cookie and obtains C's current caller session
+from that token before creating a private binding. Hand its returned normalized
+scope to C, inject this owner's `session_for_request` into C and this owner as
+the WebUI authority; call `before_invocation` with
+the resulting exact caller session immediately before dispatch; exit the
+context manager on every outcome. Request state cannot create authority. The
+owner is intentionally task-bound: a task handoff must be qualified explicitly,
+not repaired with an ambient or shared process session. This lifecycle does not
+implement persistent session creation/rotation or mount any route.
+
+Token verification may await remote key retrieval, so a session result read
+before verification is not a current-state fence. Initial binding resolves
+again after verification and refuses a changed session reference. Evidence
+verification likewise ends its awaited owner calls with live session
+resolution; request snapshot, token lifetime, current caller facts and rotation
+are then checked synchronously before return. A refusal removes the private
+binding immediately, before the request context exits. The qualified EG
+adapter must uphold its live-resolution consistency contract; this ordering is
+not a distributed transaction or a substitute for final engine authorization.
