@@ -26,7 +26,11 @@
     "GRAPHOS-IDENTITY-R010.1",
     "GRAPHOS-IDENTITY-R010.2",
     "GRAPHOS-IDENTITY-R011",
+    "GRAPHOS-IDENTITY-R011.1",
+    "GRAPHOS-IDENTITY-R011.2",
     "GRAPHOS-IDENTITY-R012",
+    "GRAPHOS-IDENTITY-R012.1",
+    "GRAPHOS-IDENTITY-R012.2",
     "GRAPHOS-IDENTITY-R013",
     "GRAPHOS-IDENTITY-R014",
     "GRAPHOS-IDENTITY-R015",
@@ -303,21 +307,61 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R011",
-      "title": "SCIM 2.0 provisioning server",
+      "title": "SCIM 2.0 provisioning server (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "children": [
+        "GRAPHOS-IDENTITY-R011.1",
+        "GRAPHOS-IDENTITY-R011.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R011.1",
+      "title": "Typed SCIM service-credential model with refusal tests",
       "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
           "result": "passed",
-          "commit": "08af0611ecc4f8af8894a14b4e8d6f520045fee8",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/08af0611ecc4f8af8894a14b4e8d6f520045fee8",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "117ad5b56bc6e7a8e39e415405ab57eedc218d3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/117ad5b56bc6e7a8e39e415405ab57eedc218d3d",
+          "description": "graph_os/identity/scim.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
         }
       ]
     },
     {
+      "id": "GRAPHOS-IDENTITY-R011.2",
+      "title": "SCIM create/update/patch/deactivate server surface",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
       "id": "GRAPHOS-IDENTITY-R012",
-      "title": "Native SAML service provider",
+      "title": "Native SAML service provider (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "children": [
+        "GRAPHOS-IDENTITY-R012.1",
+        "GRAPHOS-IDENTITY-R012.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.1",
+      "title": "Typed SAML service-provider model with refusal tests",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "117ad5b56bc6e7a8e39e415405ab57eedc218d3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/117ad5b56bc6e7a8e39e415405ab57eedc218d3d",
+          "description": "graph_os/identity/saml.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.2",
+      "title": "Assertion verification and SAML sign-in",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
