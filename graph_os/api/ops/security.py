@@ -18,10 +18,12 @@ from graph_os.api.registry import OpSpec
 SecurityPostureReadParams, SecurityPostureReadResult = _common.read_op_models(
     "SecurityPostureRead"
 )
-#: A tenant-scoped security posture; the reader owns its exact shape.
-SecurityPosture = _common.tenant_state_model(
-    "SecurityPosture", field_name="findings", field_type=tuple[str, ...], default=()
-)
+
+
+class SecurityPosture(_common.TenantState):
+    """A tenant-scoped security posture; the reader owns its exact shape."""
+
+    findings: tuple[str, ...] = ()
 
 
 @runtime_checkable

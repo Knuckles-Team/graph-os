@@ -18,11 +18,12 @@ from typing import Any, Protocol, runtime_checkable
 from pydantic import Field
 
 from graph_os.api.ops._common import (
+    FrozenState,
     Params,
+    TenantState,
     bound_service,
     build_read_op,
     build_write_op,
-    frozen_model,
 )
 from graph_os.api.registry import Effect, OpSpec
 
@@ -48,37 +49,39 @@ class OpsRestoreParams(Params):
     backup_id: str = Field(min_length=1, max_length=256)
 
 
-#: One tenant-scoped diagnostic report; the store owns its exact shape.
-DoctorReport = frozen_model(
-    "DoctorReport",
-    tenant=(str, ...),
-    status=(str, ...),
-    checks=(dict[str, Any], Field(default_factory=dict)),
-)
+class DoctorReport(TenantState):
+    """One tenant-scoped diagnostic report; the store owns its exact shape."""
 
-#: One tenant-scoped operational config snapshot.
-OperationalConfig = frozen_model(
-    "OperationalConfig",
-    tenant=(str, ...),
-    settings=(dict[str, Any], Field(default_factory=dict)),
-)
+    status: str
+    checks: dict[str, Any] = Field(default_factory=dict)
 
-#: One cursor-paged slice of tenants visible to the caller's own authority.
-TenantPage = frozen_model(
-    "TenantPage",
-    tenants=(tuple[str, ...], ()),
-    next_cursor=(str | None, None),
-)
 
-#: One durable backup receipt; the store owns its exact shape.
-BackupReceipt = frozen_model(
-    "BackupReceipt", tenant=(str, ...), backup_id=(str, ...), status=(str, ...)
-)
+class OperationalConfig(TenantState):
+    """One tenant-scoped operational config snapshot."""
 
-#: One durable restore receipt; the store owns its exact shape.
-RestoreReceipt = frozen_model(
-    "RestoreReceipt", tenant=(str, ...), backup_id=(str, ...), status=(str, ...)
-)
+    settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class TenantPage(FrozenState):
+    """One cursor-paged slice of tenants visible to the caller's own authority."""
+
+    tenants: tuple[str, ...] = ()
+    next_cursor: str | None = None
+
+
+class _TenantReceipt(TenantState):
+    """Shared shape for the store's durable backup/restore receipts."""
+
+    backup_id: str
+    status: str
+
+
+class BackupReceipt(_TenantReceipt):
+    """One durable backup receipt; the store owns its exact shape."""
+
+
+class RestoreReceipt(_TenantReceipt):
+    """One durable restore receipt; the store owns its exact shape."""
 
 
 class OpsDoctorResult(Params):

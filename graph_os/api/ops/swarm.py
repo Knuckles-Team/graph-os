@@ -17,10 +17,12 @@ from graph_os.api.registry import OpSpec
 SwarmTopologyReadParams, SwarmTopologyReadResult = _common.read_op_models(
     "SwarmTopologyRead"
 )
-#: The current, tenant-scoped swarm topology; the reader owns its shape.
-SwarmTopology = _common.tenant_state_model(
-    "SwarmTopology", field_name="nodes", field_type=tuple[str, ...], default=()
-)
+
+
+class SwarmTopology(_common.TenantState):
+    """The current, tenant-scoped swarm topology; the reader owns its shape."""
+
+    nodes: tuple[str, ...] = ()
 
 
 @runtime_checkable

@@ -11,17 +11,18 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
+from pydantic import Field
+
 from graph_os.api.ops import _common
 from graph_os.api.registry import OpSpec
 
 UsageReadParams, UsageReadResult = _common.read_op_models("UsageRead")
-#: A tenant-scoped usage snapshot; the reader owns its exact shape.
-UsageSnapshot = _common.tenant_state_model(
-    "UsageSnapshot",
-    field_name="totals",
-    field_type=dict[str, float],
-    default_factory=dict,
-)
+
+
+class UsageSnapshot(_common.TenantState):
+    """A tenant-scoped usage snapshot; the reader owns its exact shape."""
+
+    totals: dict[str, float] = Field(default_factory=dict)
 
 
 @runtime_checkable
