@@ -175,7 +175,7 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
     registration = register_connector_content(mcp, connector_content())
 
     assert (registration.skills, registration.prompts, registration.resources) == (
-        14,
+        15,
         0,
         1,
     )
@@ -192,6 +192,7 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
         "graph-orchestration-and-automation",
         "graph-os-development",
         "graph-os-evolution",
+        "graph-os-repository-development",
         "graph-query-and-explanation",
         "graph-research-and-analysis",
         "graph-runtime-and-governance",
@@ -219,6 +220,8 @@ def test_graphos_runtime_shapes_use_connector_content_contract() -> None:
         "skill://graph-os-development/_manifest",
         "skill://graph-os-evolution/SKILL.md",
         "skill://graph-os-evolution/_manifest",
+        "skill://graph-os-repository-development/SKILL.md",
+        "skill://graph-os-repository-development/_manifest",
         "skill://graph-query-and-explanation/SKILL.md",
         "skill://graph-query-and-explanation/_manifest",
         "skill://graph-research-and-analysis/SKILL.md",
