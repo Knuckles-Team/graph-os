@@ -4,6 +4,7 @@
   "owner_repo": "graph-os",
   "requirement_ids": [
     "GRAPHOS-CAPACITY-R001",
+    "GRAPHOS-CAPACITY-R001.1",
     "GRAPHOS-CAPACITY-R002"
   ],
   "delivery_state": "SPECIFIED",
@@ -12,9 +13,16 @@
   "requirements": [
     {
       "id": "GRAPHOS-CAPACITY-R001",
-      "title": "AIMD error-budget throttling that only narrows automatically",
+      "title": "AIMD error-budget throttling that only narrows automatically (rollup)",
       "delivery_state": "SPECIFIED",
       "evidence": []
+    },
+    {
+      "id": "GRAPHOS-CAPACITY-R001.1",
+      "title": "Pure partitioned AIMD decision rule",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "graph_os/fleet/error_budget.py and tests/fleet/test_error_budget.py are implemented and unit-tested, exported from graph_os/fleet/__init__.py. Not yet consumed by a limiter at a real fleet dispatch point (GRAPHOS-CAPACITY-R001.2, not yet specified) or by the GRAPHOS-CAPACITY-R002 status/mode operations."
     },
     {
       "id": "GRAPHOS-CAPACITY-R002",
