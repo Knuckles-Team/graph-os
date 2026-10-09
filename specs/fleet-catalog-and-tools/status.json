@@ -5,9 +5,11 @@
   "requirement_ids": [
     "GRAPHOS-FLEET-R001",
     "GRAPHOS-FLEET-R002",
+    "GRAPHOS-FLEET-R002.1",
     "GRAPHOS-FLEET-R003",
     "GRAPHOS-FLEET-R004",
     "GRAPHOS-FLEET-R005",
+    "GRAPHOS-FLEET-R005.1",
     "GRAPHOS-FLEET-R006",
     "GRAPHOS-FLEET-R007",
     "GRAPHOS-FLEET-R008",
@@ -32,6 +34,9 @@
     "GRAPHOS-FLEET-R023",
     "GRAPHOS-FLEET-R023.1",
     "GRAPHOS-FLEET-R024",
+    "GRAPHOS-FLEET-R024.1",
+    "GRAPHOS-FLEET-R024.2",
+    "GRAPHOS-FLEET-R024.3",
     "GRAPHOS-FLEET-R025",
     "GRAPHOS-FLEET-R026",
     "GRAPHOS-FLEET-R027",
@@ -59,9 +64,17 @@
     },
     {
       "id": "GRAPHOS-FLEET-R002",
-      "title": "Tool schema fingerprints recomputed from served schemas",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "Tool schema fingerprints recomputed from served schemas (rollup)",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R002.1 lands the typed fingerprint model; the fleet-wide automated re-certification check (GRAPHOS-FLEET-R002.2) is not yet specified."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R002.1",
+      "title": "Per-tool schema fingerprint computed from the served schema",
+      "delivery_state": "BUILT",
+      "evidence": [],
+      "remaining": "graph_os/fleet/catalog_items.py adds compute_schema_fingerprint() and CatalogItem.schema_fingerprint, wired into _probed_item for tool rows; tests/fleet/test_schema_fingerprint.py passes (6 tests). Published on a branch/PR; not yet merged to the default branch. No fleet-wide automated re-certification check yet (GRAPHOS-FLEET-R002.2, not yet specified)."
     },
     {
       "id": "GRAPHOS-FLEET-R003",
@@ -85,9 +98,17 @@
     },
     {
       "id": "GRAPHOS-FLEET-R005",
-      "title": "A2A task routing with typed work-item and lease operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "A2A task routing with typed work-item and lease operations (rollup)",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R005.1 lands the typed WorkItem view; GetWorkItem/ListWorkItems operations, capability-based agent search, control-lease issuance/consumption, and the multiplexer tool-subset restriction (GRAPHOS-FLEET-R005.2+) are not yet specified."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R005.1",
+      "title": "Typed WorkItem view, the GetWorkItem/ListWorkItems producer",
+      "delivery_state": "BUILT",
+      "evidence": [],
+      "remaining": "graph_os/a2a/work_items.py adds WorkItemView, work_item_view, parse_work_item_view and list_work_item_views, exported from graph_os/a2a/__init__.py; tests/a2a/test_work_items.py passes (13 tests). Published on a branch/PR; not yet merged to the default branch. No GetWorkItem/ListWorkItems operation, capability search, or control lease yet (GRAPHOS-FLEET-R005.2+, not yet specified)."
     },
     {
       "id": "GRAPHOS-FLEET-R006",
@@ -325,7 +346,25 @@
     },
     {
       "id": "GRAPHOS-FLEET-R024",
-      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS",
+      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024.1",
+      "title": "Deploy-watch verdict is a typed GraphOS operation",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024.2",
+      "title": "Remaining fleet reconciler, autoscaler, scaling-authority and deploy-watch scheduling behavior is served by GraphOS",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024.3",
+      "title": "Agent runtime no longer ships the superseded fleet modules (cross-repo)",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },

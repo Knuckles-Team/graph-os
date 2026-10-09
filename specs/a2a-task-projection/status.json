@@ -4,6 +4,7 @@
   "owner_repo": "graph-os",
   "requirement_ids": [
     "GRAPHOS-A2A-R001",
+    "GRAPHOS-A2A-R001.1",
     "GRAPHOS-A2A-R002",
     "GRAPHOS-A2A-R003",
     "GRAPHOS-A2A-R004",
@@ -19,6 +20,13 @@
     {
       "id": "GRAPHOS-A2A-R001",
       "title": "A2A facade over the engine and agent services",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Unary agent-card discovery and task send/get/list/cancel are implemented and tested. Durable task streaming and resubscribe without a second task store are not; split into GRAPHOS-A2A-R001.1 (fail-closed tasks/resubscribe stub, delivered) plus the still-open event-cursor-backed streaming slice."
+    },
+    {
+      "id": "GRAPHOS-A2A-R001.1",
+      "title": "Fail-closed tasks/resubscribe stub on the A2A method table",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from .doctor_support import _prescription, _result
@@ -20,6 +21,33 @@ from .doctor_support import _prescription, _result
 # (services/<name>/k8s/manifests.yaml, verified live against the running cluster
 # 2026-08-16), the real AgentConfig env-var keys this doctor itself reads (never
 # invented), and the documented gotcha for that service.
+
+
+def _cpu_has_avx2(cpuinfo_text: str) -> bool:
+    """Parse ``/proc/cpuinfo``-style text for the ``avx2`` CPU flag.
+
+    Pure string parsing (no I/O): this is the feature-detection logic
+    GRAPHOS-DEPLOY-R015 guards. It is exercised in tests only against
+    synthetic fixture text, never against the real execution host, so the
+    guard test passes identically on an AVX2-capable or non-AVX2 runner.
+    """
+    for line in cpuinfo_text.splitlines():
+        label, _, value = line.partition(":")
+        if label.strip().lower() in {"flags", "features"} and "avx2" in value.split():
+            return True
+    return False
+
+
+def cpu_has_avx2() -> bool:
+    """Best-effort local AVX2 feature check; never raises, defaults to ``False``.
+
+    Informational only (surfaced on the trino check's gotcha, pinned to a
+    pre-AVX2-baseline image tag); it gates no deployment decision.
+    """
+    try:
+        return _cpu_has_avx2(Path("/proc/cpuinfo").read_text())
+    except OSError:
+        return False
 
 
 def _endpoint_host_port(endpoint: str, default_port: int) -> tuple[str, int] | None:
@@ -543,6 +571,7 @@ def _check_trino(live: bool = False, *, probe_http: Any = None) -> dict[str, Any
         "live_probed": True,
         "reachable": ok,
         "http_status": status,
+        "avx2_baseline_safe": cpu_has_avx2(),
     }
     if not ok:
         return _result(
