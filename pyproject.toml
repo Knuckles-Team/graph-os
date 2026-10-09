@@ -73,6 +73,14 @@ test = [
     "mypy>=2.3.0",
     "ruff==0.16.0",
     "types-PyYAML>=6.0.12.20250915",
+    # DEV/TEST-ONLY. setuptools is already a `[build-system] requires` floor
+    # (>=83.0.0) for this project's own PEP 517 backend -- build requirements
+    # are installed only into an ephemeral build environment, not the runtime
+    # venv. tests/gateway/test_gateway_widgets_extra.py reads
+    # `setuptools.config.pyprojecttoml` directly (same pattern as PR #63's
+    # dependency-manifest test), so the same floor must also be reachable at
+    # test time.
+    "setuptools>=83.0.0",
 ]
 webui = [
     "agent-webui>=2.6.0,<3.0.0",
