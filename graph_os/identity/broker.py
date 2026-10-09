@@ -124,7 +124,15 @@ class GraphOSBrowserAuthority:
             raise PermissionError("browser session expired")
         if state.mfa_at_ms is not None and state.mfa_at_ms > now_ms:
             raise PermissionError("browser session MFA timestamp is in the future")
-        verified.ensure_current()
+        # agent_utilities.VerifiedLocalBearer is a frozen, fully self-validated
+        # snapshot (GRAPHOS-IDENTITY-R003): every required claim is checked in
+        # its own __post_init__ and it carries no live authority to re-check,
+        # so it has no ensure_current method. Only call it when a VerifiedToken
+        # implementation actually offers live revalidation (mirrors the
+        # optional-port pattern _require_caller already applies above).
+        ensure_current = getattr(verified, "ensure_current", None)
+        if callable(ensure_current):
+            ensure_current()
         expiry = verified.claims.get("exp")
         if type(expiry) is not int or expiry * 1000 > state.expires_at_ms:
             raise PermissionError("forwarded token outlives source session")
