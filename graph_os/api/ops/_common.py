@@ -39,6 +39,18 @@ class _FrozenState(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
+def frozen_model(name: str, **fields: Any) -> type[BaseModel]:
+    """A frozen, closed payload model, field spec passed straight through.
+
+    Every hosted-ops reply/report/receipt model is a flat, frozen,
+    extra-forbidding record -- ``create_model``'s own ``(type, default)``
+    field convention, scoped to one name, instead of each module repeating
+    the same ``BaseModel``/``ConfigDict(frozen=True, extra="forbid")`` class
+    header.
+    """
+    return create_model(name, __base__=_FrozenState, **fields)
+
+
 def tenant_state_model(
     name: str,
     *,
@@ -59,11 +71,8 @@ def tenant_state_model(
         if default_factory is not None
         else default
     )
-    return create_model(
-        name,
-        __base__=_FrozenState,
-        tenant=(str, ...),
-        **{field_name: (field_type, field_spec)},
+    return frozen_model(
+        name, tenant=(str, ...), **{field_name: (field_type, field_spec)}
     )
 
 
@@ -155,6 +164,7 @@ __all__ = [
     "build_read_op",
     "build_tenant_read_op",
     "build_write_op",
+    "frozen_model",
     "handle_tenant_read",
     "read_op_models",
     "tenant_state_model",

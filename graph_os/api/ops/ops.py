@@ -15,13 +15,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
 from graph_os.api.ops._common import (
     Params,
     bound_service,
     build_read_op,
     build_write_op,
+    frozen_model,
 )
 from graph_os.api.registry import Effect, OpSpec
 
@@ -47,52 +48,37 @@ class OpsRestoreParams(Params):
     backup_id: str = Field(min_length=1, max_length=256)
 
 
-class DoctorReport(BaseModel):
-    """One tenant-scoped diagnostic report; the store owns its exact shape."""
+#: One tenant-scoped diagnostic report; the store owns its exact shape.
+DoctorReport = frozen_model(
+    "DoctorReport",
+    tenant=(str, ...),
+    status=(str, ...),
+    checks=(dict[str, Any], Field(default_factory=dict)),
+)
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+#: One tenant-scoped operational config snapshot.
+OperationalConfig = frozen_model(
+    "OperationalConfig",
+    tenant=(str, ...),
+    settings=(dict[str, Any], Field(default_factory=dict)),
+)
 
-    tenant: str
-    status: str
-    checks: dict[str, Any] = Field(default_factory=dict)
+#: One cursor-paged slice of tenants visible to the caller's own authority.
+TenantPage = frozen_model(
+    "TenantPage",
+    tenants=(tuple[str, ...], ()),
+    next_cursor=(str | None, None),
+)
 
+#: One durable backup receipt; the store owns its exact shape.
+BackupReceipt = frozen_model(
+    "BackupReceipt", tenant=(str, ...), backup_id=(str, ...), status=(str, ...)
+)
 
-class OperationalConfig(BaseModel):
-    """One tenant-scoped operational config snapshot."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    tenant: str
-    settings: dict[str, Any] = Field(default_factory=dict)
-
-
-class TenantPage(BaseModel):
-    """One cursor-paged slice of tenants visible to the caller's own authority."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    tenants: tuple[str, ...] = ()
-    next_cursor: str | None = None
-
-
-class BackupReceipt(BaseModel):
-    """One durable backup receipt; the store owns its exact shape."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    tenant: str
-    backup_id: str
-    status: str
-
-
-class RestoreReceipt(BaseModel):
-    """One durable restore receipt; the store owns its exact shape."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    tenant: str
-    backup_id: str
-    status: str
+#: One durable restore receipt; the store owns its exact shape.
+RestoreReceipt = frozen_model(
+    "RestoreReceipt", tenant=(str, ...), backup_id=(str, ...), status=(str, ...)
+)
 
 
 class OpsDoctorResult(Params):
