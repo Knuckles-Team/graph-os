@@ -9,6 +9,7 @@
     "policy",
     "secrets",
     "graphos",
+    "daemon",
     "engine",
     "service"
   ],
@@ -201,6 +202,9 @@
     },
     "graphos": {
       "$ref": "#/$defs/graphos"
+    },
+    "daemon": {
+      "$ref": "#/$defs/daemon"
     },
     "engine": {
       "$ref": "#/$defs/engine"
@@ -491,6 +495,22 @@
           "type": "array"
         },
         "affinity": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "daemon": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "resources"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "resources": {
           "type": "object"
         }
       },
