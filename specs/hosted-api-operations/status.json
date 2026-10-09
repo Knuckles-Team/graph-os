@@ -24,11 +24,23 @@
     "GRAPHOS-OPS-R019",
     "GRAPHOS-OPS-R020",
     "GRAPHOS-OPS-R021",
+    "GRAPHOS-OPS-R021.1",
+    "GRAPHOS-OPS-R021.2",
+    "GRAPHOS-OPS-R021.3",
     "GRAPHOS-OPS-R022",
+    "GRAPHOS-OPS-R022.1",
+    "GRAPHOS-OPS-R022.2",
     "GRAPHOS-OPS-R023",
     "GRAPHOS-OPS-R024",
+    "GRAPHOS-OPS-R024.1",
+    "GRAPHOS-OPS-R024.2",
+    "GRAPHOS-OPS-R024.3",
+    "GRAPHOS-OPS-R024.4",
+    "GRAPHOS-OPS-R024.5",
     "GRAPHOS-OPS-R025",
     "GRAPHOS-OPS-R026",
+    "GRAPHOS-OPS-R026.1",
+    "GRAPHOS-OPS-R026.2",
     "GRAPHOS-OPS-R027",
     "GRAPHOS-OPS-R028",
     "GRAPHOS-OPS-R029",
@@ -371,6 +383,37 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
+      ],
+      "rollup": true,
+      "children": [
+        "GRAPHOS-OPS-R021.1",
+        "GRAPHOS-OPS-R021.2",
+        "GRAPHOS-OPS-R021.3"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R021.1",
+      "title": "Decide operations (service-executed) \u2014 decide slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R021.2",
+      "title": "Retrieval, context, and freshness read operations \u2014 retrieval slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": [
+        "GRAPHOS-OPS-R021.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R021.3",
+      "title": "Policy and swarm read operations \u2014 policy slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": [
+        "GRAPHOS-OPS-R021.2"
       ]
     },
     {
@@ -385,6 +428,27 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/c4835dbb48f3958a4d9273220fe7a6ff60a4183a",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
+      ],
+      "rollup": true,
+      "children": [
+        "GRAPHOS-OPS-R022.1",
+        "GRAPHOS-OPS-R022.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.1",
+      "title": "Work-item and offer operations \u2014 work slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2",
+      "title": "Evolution loop, schedule, and proposal operations \u2014 evolution slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": [
+        "GRAPHOS-OPS-R022.1"
       ]
     },
     {
@@ -413,6 +477,57 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/63410f550a0b76b8e97e3210da8b6ff256f48232",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
+      ],
+      "rollup": true,
+      "children": [
+        "GRAPHOS-OPS-R024.1",
+        "GRAPHOS-OPS-R024.2",
+        "GRAPHOS-OPS-R024.3",
+        "GRAPHOS-OPS-R024.4",
+        "GRAPHOS-OPS-R024.5"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R024.1",
+      "title": "Telemetry operations \u2014 telemetry slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R024.2",
+      "title": "Security operations \u2014 security slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": [
+        "GRAPHOS-OPS-R024.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R024.3",
+      "title": "Usage operations \u2014 usage slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": [
+        "GRAPHOS-OPS-R024.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R024.4",
+      "title": "Memory operations \u2014 memory slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": [
+        "GRAPHOS-OPS-R024.3"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R024.5",
+      "title": "Operational admin operations \u2014 admin slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": [
+        "GRAPHOS-OPS-R024.4"
       ]
     },
     {
@@ -449,6 +564,27 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/1f3b30ff69312556daa87e636d543d1f1ad9f391",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
+      ],
+      "rollup": true,
+      "children": [
+        "GRAPHOS-OPS-R026.1",
+        "GRAPHOS-OPS-R026.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R026.1",
+      "title": "API-surface drift gate \u2014 api-surface slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R026.2",
+      "title": "Backward-compatibility drift gate \u2014 backward-compat slice",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "depends_on": [
+        "GRAPHOS-OPS-R026.1"
       ]
     },
     {
