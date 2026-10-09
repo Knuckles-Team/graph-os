@@ -454,7 +454,7 @@
     {
       "id": "GRAPHOS-OPS-R023",
       "title": "Agent, browser, RLM, and fleet call operations",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -462,6 +462,13 @@
           "commit": "e632abb7eab0398f2890a5441b8588d6b467a9b9",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/e632abb7eab0398f2890a5441b8588d6b467a9b9",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "e1d37ca10ef7e14540629848249e9b328ada1574",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e1d37ca10ef7e14540629848249e9b328ada1574",
+          "description": "GRAPHOS-OPS-R023 merged to the default branch in this commit."
         }
       ]
     },
@@ -701,7 +708,7 @@
     {
       "id": "GRAPHOS-OPS-R036",
       "title": "Pre-dispatch audit reservation for governed effects",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -709,6 +716,13 @@
           "commit": "5d86560021f51048cf14f1d399d76c2f95912f09",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/5d86560021f51048cf14f1d399d76c2f95912f09",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "a9025191159ea14ed4b8407c686af1c806431dc7",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/a9025191159ea14ed4b8407c686af1c806431dc7",
+          "description": "GRAPHOS-OPS-R036 merged to the default branch in this commit."
         }
       ]
     },
