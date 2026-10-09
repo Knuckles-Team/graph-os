@@ -99,6 +99,13 @@
           "commit": "9a9b3f5c8ecb3e62f99ab79770ed06d015fb0365",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/9a9b3f5c8ecb3e62f99ab79770ed06d015fb0365",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "19d17d245957970ef98127d8830d0321ccab4f64",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/19d17d245957970ef98127d8830d0321ccab4f64",
+          "description": "graph_os/api/ops/write_back.py adds WriteBackPreviewRequest/WriteBackPreviewResult and preview_write_back(), which refuses a blank idempotency key and never applies a write; tests/api/test_write_back_preview.py passes (4 tests). No unguarded native child tool for D18 exists in this repo today. Remaining: bind this as an OpSpec (Confirm.PLAN, Idempotency.KEY_REQUIRED) in the operation registry and prove a restart/fault test."
         }
       ]
     },
@@ -150,26 +157,36 @@
       "id": "GRAPHOS-FLEET-R006",
       "title": "Multiplexer skill and prompt harvest path removed",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "evidence": [],
+      "remaining": "Skipped this pass: graph_os/fleet/multiplexer.py and local_skill_catalog.py still rely on the harvest path as a fallback behind GRAPHOS-FLEET-R025's local-over-harvested precedence; removing it safely needs the resident-tool catalog (R018/R020) landed first, which exceeds this slice's investigation budget."
     },
     {
       "id": "GRAPHOS-FLEET-R007",
       "title": "Bridge upgraded to FastMCP 4",
       "delivery_state": "SPECIFIED",
       "evidence": [],
-      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( \u2014 no hits), so the 'single com"
+      "remaining": "Skipped this pass: fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no served bridge module (.prompt()/.resource()/.resource_template() registration, one composed server loop) was found in this repo to extend within budget."
     },
     {
       "id": "GRAPHOS-FLEET-R008",
       "title": "RUM, security-audit and CI/CD feeds join the catalog",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "BUILDING",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "19d17d245957970ef98127d8830d0321ccab4f64",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/19d17d245957970ef98127d8830d0321ccab4f64",
+          "description": "graph_os/fleet/feeds.py adds FeedEvent/FeedEventRejected and rum_event()/security_audit_event()/cicd_event(), each refusing an unsanitized payload or a missing tenant; tests/fleet/test_feeds.py passes (15 tests). Remaining: wire real connector ingestion for each feed and pass events through connector_items()/_pack_annotations() into the registry/tenant-boundary check."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R009",
       "title": "Run admission evaluates, commits and publishes with capacity control",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "evidence": [],
+      "remaining": "Skipped this pass: names 3 code roots (graph_os/a2a/routing.py, graph_os/a2a/composition.py, control_plane/runs/admission.py) above the 2-root split threshold; needs sizing into producer-first children before implementation, which exceeds this slice's investigation budget."
     },
     {
       "id": "GRAPHOS-FLEET-R010",
