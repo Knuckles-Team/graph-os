@@ -12,19 +12,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from graph_os.api.ops._common import (
-    build_tenant_read_op,
-    handle_tenant_read,
-    read_op_models,
-    tenant_state_model,
-)
+from graph_os.api.ops import _common
 from graph_os.api.registry import OpSpec
 
-SecurityPostureReadParams, SecurityPostureReadResult = read_op_models(
+SecurityPostureReadParams, SecurityPostureReadResult = _common.read_op_models(
     "SecurityPostureRead"
 )
 #: A tenant-scoped security posture; the reader owns its exact shape.
-SecurityPosture = tenant_state_model(
+SecurityPosture = _common.tenant_state_model(
     "SecurityPosture", field_name="findings", field_type=tuple[str, ...], default=()
 )
 
@@ -40,7 +35,7 @@ async def handle_security_posture_read(
     context: Any, params: Mapping[str, Any], op: OpSpec
 ) -> dict[str, Any]:
     """Return this tenant's security posture through the composed reader."""
-    return await handle_tenant_read(
+    return await _common.handle_tenant_read(
         context,
         service_name="security_posture_reader",
         unavailable_reason="security posture reader is not composed",
@@ -49,7 +44,7 @@ async def handle_security_posture_read(
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        build_tenant_read_op(
+        _common.build_tenant_read_op(
             op_id="security.posture.read",
             summary="Show this tenant's current security posture",
             examples=("show the current security posture",),

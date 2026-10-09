@@ -13,17 +13,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from graph_os.api.ops._common import (
-    build_tenant_read_op,
-    handle_tenant_read,
-    read_op_models,
-    tenant_state_model,
-)
+from graph_os.api.ops import _common
 from graph_os.api.registry import OpSpec
 
-SwarmTopologyReadParams, SwarmTopologyReadResult = read_op_models("SwarmTopologyRead")
+SwarmTopologyReadParams, SwarmTopologyReadResult = _common.read_op_models(
+    "SwarmTopologyRead"
+)
 #: The current, tenant-scoped swarm topology; the reader owns its shape.
-SwarmTopology = tenant_state_model(
+SwarmTopology = _common.tenant_state_model(
     "SwarmTopology", field_name="nodes", field_type=tuple[str, ...], default=()
 )
 
@@ -39,7 +36,7 @@ async def handle_swarm_topology_read(
     context: Any, params: Mapping[str, Any], op: OpSpec
 ) -> dict[str, Any]:
     """Return this tenant's swarm topology through the composed reader."""
-    return await handle_tenant_read(
+    return await _common.handle_tenant_read(
         context,
         service_name="swarm_topology_reader",
         unavailable_reason="swarm topology reader is not composed",
@@ -48,7 +45,7 @@ async def handle_swarm_topology_read(
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        build_tenant_read_op(
+        _common.build_tenant_read_op(
             op_id="swarm.topology.read",
             summary="Show this tenant's current swarm topology",
             examples=("show the current swarm topology",),

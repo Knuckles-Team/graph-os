@@ -12,17 +12,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from graph_os.api.ops._common import (
-    build_tenant_read_op,
-    handle_tenant_read,
-    read_op_models,
-    tenant_state_model,
-)
+from graph_os.api.ops import _common
 from graph_os.api.registry import OpSpec
 
-PolicyReadParams, PolicyReadResult = read_op_models("PolicyRead")
+PolicyReadParams, PolicyReadResult = _common.read_op_models("PolicyRead")
 #: The active, tenant-scoped policy state; the reader owns its exact shape.
-PolicyState = tenant_state_model(
+PolicyState = _common.tenant_state_model(
     "PolicyState", field_name="rules", field_type=dict[str, str], default_factory=dict
 )
 
@@ -38,7 +33,7 @@ async def handle_policy_read(
     context: Any, params: Mapping[str, Any], op: OpSpec
 ) -> dict[str, Any]:
     """Return this tenant's active policy state through the composed reader."""
-    return await handle_tenant_read(
+    return await _common.handle_tenant_read(
         context,
         service_name="policy_reader",
         unavailable_reason="policy reader is not composed",
@@ -47,7 +42,7 @@ async def handle_policy_read(
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        build_tenant_read_op(
+        _common.build_tenant_read_op(
             op_id="policy.read",
             summary="Show this tenant's active policy state",
             examples=("show the active policy state",),

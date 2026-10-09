@@ -12,17 +12,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from graph_os.api.ops._common import (
-    build_tenant_read_op,
-    handle_tenant_read,
-    read_op_models,
-    tenant_state_model,
-)
+from graph_os.api.ops import _common
 from graph_os.api.registry import OpSpec
 
-TelemetryReadParams, TelemetryReadResult = read_op_models("TelemetryRead")
+TelemetryReadParams, TelemetryReadResult = _common.read_op_models("TelemetryRead")
 #: A tenant-scoped telemetry snapshot; the reader owns its exact shape.
-TelemetrySnapshot = tenant_state_model(
+TelemetrySnapshot = _common.tenant_state_model(
     "TelemetrySnapshot",
     field_name="metrics",
     field_type=dict[str, float],
@@ -41,7 +36,7 @@ async def handle_telemetry_read(
     context: Any, params: Mapping[str, Any], op: OpSpec
 ) -> dict[str, Any]:
     """Return this tenant's telemetry snapshot through the composed reader."""
-    return await handle_tenant_read(
+    return await _common.handle_tenant_read(
         context,
         service_name="telemetry_reader",
         unavailable_reason="telemetry reader is not composed",
@@ -50,7 +45,7 @@ async def handle_telemetry_read(
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        build_tenant_read_op(
+        _common.build_tenant_read_op(
             op_id="telemetry.read",
             summary="Show this tenant's telemetry snapshot",
             examples=("show telemetry for this tenant",),
