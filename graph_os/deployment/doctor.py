@@ -2033,6 +2033,84 @@ def _check_hooks() -> dict[str, Any]:
     return _result("hooks", "ok", f"{len(installed)} agent hook(s) healthy", data=rep)
 
 
+def _resolve_prepush_shim_config(shim_text: str) -> str | None:
+    """Extract the ``--config=<path>`` pre-commit's ``hook-impl`` resolves."""
+    import re
+
+    match = re.search(r"--config=(\S+)", shim_text)
+    return match.group(1) if match else None
+
+
+def audit_prepush_shim(shim_text: str | None, *, repo_root: Any) -> dict[str, Any]:
+    """GRAPHOS-DEPLOY-R003: a relocated config path or missing hook is a failure.
+
+    Never a silent pass-through: a missing shim, a shim that does not invoke
+    pre-commit, a shim with no ``--config`` reference, or a reference whose
+    file does not exist under ``repo_root`` all report ``fail`` with the exact
+    reason, never ``ok``/``skip``.
+    """
+    if not shim_text:
+        return _result("prepush_hook", "fail", "no pre-push hook is installed", data={})
+    if "pre_commit" not in shim_text and "pre-commit" not in shim_text:
+        return _result(
+            "prepush_hook",
+            "fail",
+            "installed pre-push hook does not invoke pre-commit",
+            data={"installed": True},
+        )
+    config = _resolve_prepush_shim_config(shim_text)
+    if config is None:
+        return _result(
+            "prepush_hook",
+            "fail",
+            "pre-push hook has no --config reference",
+            data={"installed": True, "config_path": None},
+        )
+    resolved = repo_root / config
+    if not resolved.is_file():
+        return _result(
+            "prepush_hook",
+            "fail",
+            f"pre-push hook's configuration path does not resolve: {config}",
+            remediation="re-run `uvx pre-commit install --hook-type pre-push`",
+            data={"installed": True, "config_path": config, "config_exists": False},
+        )
+    return _result(
+        "prepush_hook",
+        "ok",
+        "pre-push hook resolves to its pre-commit configuration",
+        data={"installed": True, "config_path": config, "config_exists": True},
+    )
+
+
+def _check_prepush_hook() -> dict[str, Any]:
+    import subprocess
+    from pathlib import Path
+
+    try:
+        hook_path = subprocess.run(
+            ["git", "rev-parse", "--git-path", "hooks/pre-push"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True,
+        ).stdout.strip()
+        repo_root = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError) as exc:
+        return _result(
+            "prepush_hook", "skip", f"git unavailable ({type(exc).__name__})"
+        )
+    shim = Path(hook_path)
+    shim_text = shim.read_text() if shim.is_file() else None
+    return audit_prepush_shim(shim_text, repo_root=Path(repo_root))
+
+
 def _check_venv_drift() -> dict[str, Any]:
     """Is the shared uv-workspace venv still what its lock says it should be?
 
@@ -2233,6 +2311,7 @@ CHECKS: dict[str, Callable[..., dict[str, Any]]] = {
     "mcp_fleet_secrets": _check_mcp_fleet_secrets,
     "mcp_fleet": _check_mcp_fleet,
     "hooks": _check_hooks,
+    "prepush_hook": _check_prepush_hook,
     "observability": _check_observability,
     "langfuse": _check_langfuse,
     "a2a_persistence": _check_a2a_persistence,
