@@ -9,3 +9,6 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] Wire all operations and loaded fleet tools through hosted `invoke`, its exact scopes/policy and audit reservation.
 - [ ] Execute all positive, negative, replay, cross-tenant, cancellation, policy-change and restart tests in [test-spec.md](test-spec.md).
 - [ ] Run clean-checkout language, scanner, package and ephemeral served gates; record exact revision evidence and only then enable approval/mark accepted.
+- [x] Add a release-canary check proving the promoted environment serves the
+  FastMCP major it declares (GRAPHOS-A2A-R004). Semantic/composition proof
+  that FastMCP 4 runs end to end remains open.
