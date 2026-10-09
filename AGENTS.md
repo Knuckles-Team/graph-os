@@ -35,6 +35,7 @@ fabricated receipt to make it appear complete.
 - Never push to `main`. Work on a topic branch in a dedicated worktree (see
   the repository development skill's "Branching & isolation" section) and
   open a pull request; hosted CI (`release.yml`) is the merge gate.
+- Fresh worktree: `scripts/bootstrap.sh --siblings-only && uv run pytest tests/<file>`.
 
 ---
 *Navigation index — kept lean on purpose. Detailed procedure lives in the
