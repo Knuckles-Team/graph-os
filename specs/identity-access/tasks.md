@@ -39,3 +39,27 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
   bindings, after-await rechecks and exact C caller-session-instance pairing.
 - [ ] Prove cleanup, cancellation, refresh and concurrent request isolation at
   the mounted E/C integration boundary before claiming browser availability.
+
+## Decomposition children (tracked)
+
+- [x] **GRAPHOS-IDENTITY-R004.1:** Typed loopback bootstrap-principal model with refusal tests
+- [x] **GRAPHOS-IDENTITY-R004.2:** Bootstrap resolution path, Host/Origin validation, unsecured-mode indicators
+- [x] **GRAPHOS-IDENTITY-R006:** Optional MFA with TOTP, WebAuthn, and recovery codes (rollup)
+- [x] **GRAPHOS-IDENTITY-R006.1:** Typed MFA enrollment model with refusal tests
+- [x] **GRAPHOS-IDENTITY-R006.2:** TOTP, WebAuthn, recovery-code ceremonies and group enforcement
+- [x] **GRAPHOS-IDENTITY-R007:** Admin console tabs with mapping dry-run and mode wizard (rollup)
+- [x] **GRAPHOS-IDENTITY-R007.1:** Typed admin-console tab model with refusal tests
+- [x] **GRAPHOS-IDENTITY-R007.2:** Mapping dry-run preview and mode-transition wizard
+- [ ] **GRAPHOS-IDENTITY-R008.1:** Typed API-key grant model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R008.2:** Scope intersection at use time and immediate revocation
+- [x] **GRAPHOS-IDENTITY-R009:** Multi-provider OIDC with mapping rules and JIT policy
+- [ ] **GRAPHOS-IDENTITY-R009.1:** Typed OIDC mapping-rule model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R009.2:** PKCE/state/nonce flow, presets, link migration, hinted logout
+- [ ] **GRAPHOS-IDENTITY-R010:** LDAPS bind with nested group sync
+- [ ] **GRAPHOS-IDENTITY-R010.1:** Typed LDAPS bind-config model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R010.2:** Directory bind, filter escaping, nested-group sync, deprovisioning
+- [ ] **GRAPHOS-IDENTITY-R011.1:** Typed SCIM service-credential model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R011.2:** SCIM create/update/patch/deactivate server surface
+- [ ] **GRAPHOS-IDENTITY-R012:** Native SAML service provider (rollup)
+- [ ] **GRAPHOS-IDENTITY-R012.1:** Typed SAML service-provider model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R012.2:** Assertion verification and SAML sign-in

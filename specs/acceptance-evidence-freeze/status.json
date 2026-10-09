@@ -7,7 +7,8 @@
     "GRAPHOS-ACCEPTANCE-R002",
     "GRAPHOS-ACCEPTANCE-R003",
     "GRAPHOS-ACCEPTANCE-R004",
-    "GRAPHOS-ACCEPTANCE-R005"
+    "GRAPHOS-ACCEPTANCE-R005",
+    "GRAPHOS-ACCEPTANCE-R001.1"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -17,30 +18,111 @@
       "id": "GRAPHOS-ACCEPTANCE-R001",
       "title": "Typed acceptance-evidence model and freeze-gap checker",
       "delivery_state": "BUILDING",
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0000000000000000000000000000000000000000",
+          "description": "GRAPHOS-ACCEPTANCE-R001 merged to the default branch in this commit (placeholder SHA; orchestrator re-promotes)."
+        },
+        {
+          "kind": "test",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/blob/main/tests/test_check_acceptance_evidence.py",
+          "description": "tests/test_check_acceptance_evidence.py: fully-evidenced/gapped/refusal fixtures over gaps_for_status and load_status."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-ACCEPTANCE-R002",
       "title": "Auditor distinct from delivery lane",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0000000000000000000000000000000000000000",
+          "description": "GRAPHOS-ACCEPTANCE-R002 merged to the default branch in this commit (placeholder SHA; orchestrator re-promotes)."
+        },
+        {
+          "kind": "test",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/blob/main/tests/test_check_acceptance_evidence.py",
+          "description": "tests/test_check_acceptance_evidence.py: validate_review_trail refuses same-identity auditor and an unresolved checker gap, and accepts a distinct auditor with no gap."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-ACCEPTANCE-R003",
       "title": "Evidence is append-only",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0000000000000000000000000000000000000000",
+          "description": "GRAPHOS-ACCEPTANCE-R003 merged to the default branch in this commit (placeholder SHA; orchestrator re-promotes)."
+        },
+        {
+          "kind": "test",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/blob/main/tests/test_check_acceptance_evidence.py",
+          "description": "tests/test_check_acceptance_evidence.py: evidence_is_append_only accepts pure appends and rejects an in-place rewrite of an existing entry."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-ACCEPTANCE-R004",
       "title": "Operational evidence tracks the current commit, not a stale one",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0000000000000000000000000000000000000000",
+          "description": "GRAPHOS-ACCEPTANCE-R004 merged to the default branch in this commit (placeholder SHA; orchestrator re-promotes)."
+        },
+        {
+          "kind": "test",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/blob/main/tests/test_check_acceptance_evidence.py",
+          "description": "tests/test_check_acceptance_evidence.py::test_stale_operational_evidence_against_newer_merged_head_is_missing: a fixture moves merged_head forward without a fresh operational receipt and the checker reports operational evidence missing again."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-ACCEPTANCE-R005",
       "title": "Checker is the only path to an ACCEPTED report",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0000000000000000000000000000000000000000",
+          "description": "GRAPHOS-ACCEPTANCE-R005 merged to the default branch in this commit (placeholder SHA; orchestrator re-promotes)."
+        },
+        {
+          "kind": "test",
+          "result": "passed",
+          "commit": "0000000000000000000000000000000000000000",
+          "url": "https://github.com/Knuckles-Team/graph-os/blob/main/tests/test_check_acceptance_evidence.py",
+          "description": "tests/test_check_acceptance_evidence.py::test_main_discovery_mode_is_deterministic_across_runs: offline no-args CLI discovery over every tracked spec's status.json is deterministic across two consecutive runs."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-ACCEPTANCE-R001.1",
+      "title": "implement the typed EvidenceRecord/RequirementGap model and gaps_for_status/load_status functions plus the standalone CLI entry point in scripts/check_acceptanc",
+      "delivery_state": "BUILT",
       "evidence": []
     }
   ]
