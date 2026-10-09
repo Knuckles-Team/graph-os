@@ -8,3 +8,15 @@ Status: SPECIFIED. Governing [spec](spec.md) and [plan](plan.md).
 - [ ] Implement stop, retry and rollback decisions with observed post-rollback checks; expose partial recovery honestly.
 - [ ] Run every T-RL positive/negative fixture in portable CI and release-only hosted qualification at the exact candidate digest.
 - [ ] Publish public receipt and operator instructions; change status only when landed and acceptance evidence independently exists.
+
+## GRAPHOS-RELEASE-R003 (split 2026-10-09: net-new, 7 readiness-obligation code roots)
+
+- [ ] `GRAPHOS-RELEASE-R003.1` — typed `ExitCriterionRow`/`ExitCriteriaMatrix` model plus `read_exit_criteria_matrix` validation, with refusal tests for a duplicate obligation ID, an empty matrix, and a malformed test-ID reference.
+- [ ] `GRAPHOS-RELEASE-R003.2` — the one entry point that loads a real matrix (committed fixture or CLI command) and the ingestion-receipt row's mapped test.
+- [ ] `GRAPHOS-RELEASE-R003.3` — SPARQL and natural-language query-proof rows.
+- [ ] `GRAPHOS-RELEASE-R003.4` — multi-agent orchestration-graph row.
+- [ ] `GRAPHOS-RELEASE-R003.5` — connector-certification row.
+- [ ] `GRAPHOS-RELEASE-R003.6` — write-back receipt row.
+- [ ] `GRAPHOS-RELEASE-R003.7` — browser-and-identity-provider login probe row.
+- [ ] `GRAPHOS-RELEASE-R003.8` — typed-abstention response row.
+- [ ] A test-suite audit confirms every exit-criteria row resolves to a passing automated test before `GRAPHOS-RELEASE-R003` itself is marked LANDED.

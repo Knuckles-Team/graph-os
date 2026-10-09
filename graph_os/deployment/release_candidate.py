@@ -77,6 +77,37 @@ class LocalGateResult(_Closed):
     green: bool
 
 
+ObligationId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_-]{2,63}$")]
+TestReference = Annotated[str, Field(pattern=r"^[A-Za-z0-9_./:-]{1,256}$")]
+class ExitCriteriaError(ValueError):
+    """A stable refusal for an invalid exit-criteria matrix; never echoes input."""
+class ExitCriterionRow(_Closed):
+    """One release-readiness obligation mapped to the test that proves it."""
+    obligation_id: ObligationId
+    description: str = Field(min_length=1, max_length=256)
+    test_reference: TestReference
+class ExitCriteriaMatrix(_Closed):
+    schema_version: Annotated[int, Field(ge=1, le=1)]
+    rows: tuple[ExitCriterionRow, ...] = Field(min_length=1, max_length=64)
+def read_exit_criteria_matrix(raw_rows: list[dict[str, Any]]) -> ExitCriteriaMatrix:
+    """Validate and index a candidate exit-criteria matrix (GRAPHOS-RELEASE-R003.1).
+    Refuses a duplicate obligation ID and an empty matrix. ``ExitCriterionRow``'s
+    own field patterns refuse a malformed test reference. This is the typed-model
+    slice only: loading a real matrix from a committed fixture or CLI entry point
+    is GRAPHOS-RELEASE-R003.2 onward (tasks.md).
+    """
+    if not raw_rows:
+        raise ExitCriteriaError("exit_criteria_empty")
+    seen: dict[str, ExitCriterionRow] = {}
+    for raw in raw_rows:
+        try:
+            row = ExitCriterionRow.model_validate(raw)
+        except ValidationError as exc:
+            raise ExitCriteriaError("exit_criteria_row_invalid") from exc
+        if row.obligation_id in seen:
+            raise ExitCriteriaError("exit_criteria_duplicate_obligation")
+        seen[row.obligation_id] = row
+    return ExitCriteriaMatrix(schema_version=1, rows=tuple(seen.values()))
 def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
