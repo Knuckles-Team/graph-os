@@ -24,7 +24,7 @@
     "GRAPHOS-HOST-R019",
     "GRAPHOS-HOST-R020"
   ],
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
   "evidence": [],
   "requirements": [
@@ -90,8 +90,16 @@
     {
       "id": "GRAPHOS-HOST-R008",
       "title": "GraphOS hosts its own boundary modules",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "eb31b775768129c7d22513265413f255c6056659",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/eb31b775768129c7d22513265413f255c6056659",
+          "description": "GRAPHOS-HOST-R008 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R009",
