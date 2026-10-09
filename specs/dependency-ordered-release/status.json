@@ -1,41 +1,36 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-RELEASE-001",
   "owner_repo": "graph-os",
+  "delivery_state": "SPECIFIED",
   "requirement_ids": [
     "GRAPHOS-RELEASE-R001",
     "GRAPHOS-RELEASE-R002",
     "GRAPHOS-RELEASE-R003"
   ],
-  "delivery_state": "BUILDING",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-RELEASE-R001",
       "title": "Dependency-ordered, digest-verified release promotion",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "eacc29a1952ed0a2a9510b34fae582c66f49bc1f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/eacc29a1952ed0a2a9510b34fae582c66f49bc1f",
-          "description": "GRAPHOS-RELEASE-R001 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "eacc29a1952e"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-RELEASE-R002",
       "title": "Local Kubernetes validation gates every push",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-RELEASE-R003",
       "title": "Exit-criteria matrix maps readiness to tests",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     }
   ]
 }

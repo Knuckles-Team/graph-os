@@ -1,7 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-MESSAGING-001",
   "owner_repo": "graph-os",
+  "delivery_state": "SPECIFIED",
   "requirement_ids": [
     "GRAPHOS-MESSAGING-R001",
     "GRAPHOS-MESSAGING-R001.1",
@@ -11,74 +12,60 @@
     "GRAPHOS-MESSAGING-R005",
     "GRAPHOS-MESSAGING-R006"
   ],
-  "delivery_state": "BUILDING",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-MESSAGING-R001",
       "title": "Typed channel supervision state machine",
-      "delivery_state": "BUILDING",
-      "evidence": [],
-      "rollup": true,
-      "children": [
+      "delivery_state": "LANDED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
         "GRAPHOS-MESSAGING-R001.1"
-      ],
-      "remaining": "The typed model and transition table land in this change (GRAPHOS-MESSAGING-R001.1). Router wiring that reports live per-backend state is not yet built."
+      ]
     },
     {
       "id": "GRAPHOS-MESSAGING-R001.1",
       "title": "Typed state model, transition table, and refusal tests",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "63a66f60915ab91346ce96e09d74b44df15ec22c",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/63a66f60915ab91346ce96e09d74b44df15ec22c",
-          "description": "GRAPHOS-MESSAGING-R001.1 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "63a66f60915a"
       ],
-      "depends_on": []
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-MESSAGING-R002",
       "title": "Health-gated start",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "63a66f60915ab91346ce96e09d74b44df15ec22c",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/63a66f60915ab91346ce96e09d74b44df15ec22c",
-          "description": "GRAPHOS-MESSAGING-R002 (InboundRouter._start_one_backend health gate) already on the default branch in this commit, covered by test_router_never_promotes_an_unconnected_backend_to_running and test_router_promotes_connected_backend_to_running_then_drains_to_stopped in tests/messaging/test_supervision.py."
-        }
-      ],
-      "depends_on": []
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-MESSAGING-R003",
       "title": "Bounded restart backoff with healthy-run reset",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-MESSAGING-R004",
       "title": "Graceful stop and drain",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-MESSAGING-R005",
       "title": "Typed degraded state for a missing adapter",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-MESSAGING-R006",
-      "title": "Supervision/adapter ownership boundary against AU-INTEGRATION-001",
+      "title": "Supervision/adapter ownership boundary",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     }
   ]
 }

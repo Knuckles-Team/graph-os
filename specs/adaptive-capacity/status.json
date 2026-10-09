@@ -1,73 +1,44 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-CAPACITY-001",
   "owner_repo": "graph-os",
+  "delivery_state": "LANDED",
   "requirement_ids": [
     "GRAPHOS-CAPACITY-R001",
     "GRAPHOS-CAPACITY-R001.1",
     "GRAPHOS-CAPACITY-R002"
-  ],
-  "delivery_state": "LANDED",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [
-    {
-      "kind": "merged_head",
-      "result": "passed",
-      "commit": "d2f29725918d04e5a6b7d3409fed5816bc4ba554",
-      "url": "https://github.com/Knuckles-Team/graph-os/commit/d2f29725918d04e5a6b7d3409fed5816bc4ba554",
-      "description": "Every requirement in this spec is merged to the default branch."
-    }
   ],
   "requirements": [
     {
       "id": "GRAPHOS-CAPACITY-R001",
       "title": "AIMD error-budget throttling that only narrows automatically (rollup)",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d2f29725918d04e5a6b7d3409fed5816bc4ba554",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d2f29725918d04e5a6b7d3409fed5816bc4ba554",
-          "description": "GRAPHOS-CAPACITY-R001 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "d2f29725918d"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-CAPACITY-R001.1"
       ]
     },
     {
       "id": "GRAPHOS-CAPACITY-R001.1",
       "title": "Pure partitioned AIMD decision rule",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "c46a1ded6a8fc2ce3dd4415845d89f513c36aca2",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c46a1ded6a8fc2ce3dd4415845d89f513c36aca2",
-          "description": "GRAPHOS-CAPACITY-R001.1 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "c46a1ded6a8f",
+        "d2f29725918d"
       ],
-      "remaining": "graph_os/fleet/error_budget.py and tests/fleet/test_error_budget.py are implemented and unit-tested, exported from graph_os/fleet/__init__.py. Not yet consumed by a limiter at a real fleet dispatch point (GRAPHOS-CAPACITY-R001.2, not yet specified) or by the GRAPHOS-CAPACITY-R002 status/mode operations."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-CAPACITY-R002",
       "title": "Capacity status and mode operations",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "c4835dbb48f3958a4d9273220fe7a6ff60a4183a",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c4835dbb48f3958a4d9273220fe7a6ff60a4183a",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "c46a1ded6a8fc2ce3dd4415845d89f513c36aca2",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c46a1ded6a8fc2ce3dd4415845d89f513c36aca2",
-          "description": "GRAPHOS-CAPACITY-R002 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "c46a1ded6a8f"
+      ],
+      "verified_by": []
     }
   ]
 }

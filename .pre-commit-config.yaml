@@ -155,6 +155,13 @@ repos:
     stages: [pre-commit, manual]
   - id: pre-commit-patch-safety
     stages: [pre-push, manual]
+  # spec-status lifecycle (plans/refactor/reconciliation-20261006/SPEC-STATUS-LIFECYCLE.md)
+  - id: spec-status
+    stages: [pre-commit, manual]
+  - id: spec-decomposition
+    stages: [pre-commit, manual]
+  - id: spec-trailers
+    stages: [pre-push, manual]
 
 - repo: local
   hooks:
