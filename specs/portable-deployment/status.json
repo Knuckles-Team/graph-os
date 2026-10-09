@@ -46,8 +46,16 @@
     {
       "id": "GRAPHOS-DEPLOY-R002",
       "title": "Executable release-qualification runbook",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "d75db1ea42e89878569c94ed3c8f2190c14a6172",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d75db1ea42e89878569c94ed3c8f2190c14a6172",
+          "description": "GRAPHOS-DEPLOY-R002 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R003",
@@ -73,7 +81,7 @@
     {
       "id": "GRAPHOS-DEPLOY-R005",
       "title": "Web UI keeps its component package name",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -81,6 +89,13 @@
           "commit": "ebb644b377cd8b0a92c5863f1d0213cf68a85095",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/ebb644b377cd8b0a92c5863f1d0213cf68a85095",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "d75db1ea42e89878569c94ed3c8f2190c14a6172",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d75db1ea42e89878569c94ed3c8f2190c14a6172",
+          "description": "GRAPHOS-DEPLOY-R005 merged to the default branch in this commit."
         }
       ],
       "remaining": "Rescoped by operator decision 2026-10-09: no rename cutover; agent-webui stays the component name and only user-visible strings read Graph OS (agent-webui PR #51)."
@@ -88,8 +103,16 @@
     {
       "id": "GRAPHOS-DEPLOY-R006",
       "title": "gateway-widgets extra pins a compatible connector floor",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "d58ee3e250284c8bbf0347174d748d0ceca2ae24",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d58ee3e250284c8bbf0347174d748d0ceca2ae24",
+          "description": "GRAPHOS-DEPLOY-R006 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R007",
@@ -100,7 +123,7 @@
     {
       "id": "GRAPHOS-DEPLOY-R007.1",
       "title": "agent-utilities-doctor console-script collision resolved",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "implementation",
@@ -115,6 +138,13 @@
           "commit": "29bf0fa1313da6c0bd1f5a591a0310e832f73652",
           "url": "https://github.com/Knuckles-Team/agent-utilities/pull/118",
           "description": "agent-utilities side: PR #118 removes the duplicate agent-utilities-doctor = agent_utilities.deployment.doctor:main registration from agent-utilities' pyproject.toml, open and not yet merged."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.1 merged to the default branch in this commit."
         }
       ]
     },
@@ -231,8 +261,16 @@
     {
       "id": "GRAPHOS-DEPLOY-R015",
       "title": "AVX2 guard test runs on any hosted runner",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "67a387e5dbeddaafc987d0a677afc1c9c6bb483c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/67a387e5dbeddaafc987d0a677afc1c9c6bb483c",
+          "description": "GRAPHOS-DEPLOY-R015 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R016",
@@ -252,7 +290,7 @@
     {
       "id": "GRAPHOS-DEPLOY-R007.2",
       "title": "setup-config console-script collision resolved",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "implementation",
@@ -267,13 +305,20 @@
           "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
           "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
           "description": "agent-utilities side: PR #120 removes the duplicate setup-config = agent_utilities.deployment.cli:main registration (one of four in this PR) from agent-utilities' pyproject.toml, open and not yet merged."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.2 merged to the default branch in this commit."
         }
       ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.3",
       "title": "graph-os-daemon console-script collision resolved",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "implementation",
@@ -288,13 +333,20 @@
           "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
           "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
           "description": "agent-utilities side: PR #120 removes the duplicate graph-os-daemon = agent_utilities.gateway.daemon:main registration (one of four in this PR) from agent-utilities' pyproject.toml, open and not yet merged."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.3 merged to the default branch in this commit."
         }
       ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.4",
       "title": "agent-utilities-venv console-script collision resolved",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "implementation",
@@ -309,13 +361,20 @@
           "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
           "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
           "description": "agent-utilities side: PR #120 removes the duplicate agent-utilities-venv = agent_utilities.deployment.venv_sync:main registration (one of four in this PR) from agent-utilities' pyproject.toml, open and not yet merged."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.4 merged to the default branch in this commit."
         }
       ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.5",
       "title": "graph-os-release-canary console-script collision resolved",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "implementation",
@@ -330,6 +389,13 @@
           "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
           "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
           "description": "agent-utilities side: PR #120 removes the duplicate graph-os-release-canary = agent_utilities.deployment.release_canary:main registration (one of four in this PR), and updates the one test that asserted this package's own pyproject.toml declares it, open and not yet merged."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.5 merged to the default branch in this commit."
         }
       ]
     }
