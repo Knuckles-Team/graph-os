@@ -125,6 +125,7 @@ agent-utilities-venv = "graph_os.deployment.venv_sync:main"
 graph-os-wiring-sweep = "graph_os.evolution.wiring_sweep:main"
 graph-os-connector-count-pins = "graph_os.fleet.connector_count_pins:main"
 graph-os-check-import-boundaries = "graph_os.architecture.boundary_census:main"
+graph-os-hosting-config = "graph_os.deployment.host_config:main"
 
 [project.entry-points."agent_utilities.skill_providers"]
 graph-os = "graph_os.skills"
