@@ -21,10 +21,10 @@ def get_registry() -> Registry:
     live authorities before exposing these declarations as usable operations.
     Provider failures propagate; there is no partial-registry fallback.
     """
-    from . import access, agents, browser, fleet
+    from . import access, agents, browser, capacity, fleet
 
     curated: list[OpSpec] = []
-    for module in (access, agents, browser, fleet):
+    for module in (access, agents, browser, capacity, fleet):
         for op in module.operations():
             if isinstance(op.binding, Composite):
                 namespace, _, name = op.binding.handler.rpartition(".")
