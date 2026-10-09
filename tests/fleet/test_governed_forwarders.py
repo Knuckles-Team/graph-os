@@ -46,7 +46,6 @@ def test_gateway_effect_returns_only_canonical_authoritative_decisions() -> None
     from types import SimpleNamespace
 
     from graph_os.api.invoke import FleetCallDecision
-
     from graph_os.api.registry import Effect, Executor
     from graph_os.fleet.gateway_ops import AdmittedTool, FleetGateway
 
