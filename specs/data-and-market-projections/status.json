@@ -59,8 +59,16 @@
     {
       "id": "GRAPHOS-DATA-MARKET-R004",
       "title": "One-at-a-time application admission with rollback",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DATA-MARKET-R004 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-DATA-MARKET-R005",
