@@ -63,6 +63,40 @@ class DashboardReport:
     summary: dict[str, int] = field(default_factory=dict)
     health_score: float = 1.0
 
+    def _category_counts(self) -> dict[str, dict[str, int]]:
+        cats: dict[str, dict[str, int]] = {}
+        for c in self.components:
+            cats.setdefault(c.category, {"ok": 0, "warning": 0, "error": 0, "stale": 0})
+            cats[c.category][c.status] = cats[c.category].get(c.status, 0) + 1
+        return cats
+
+    def _summary_table_lines(self) -> list[str]:
+        lines = ["| Category | OK | Warning | Error |", "|---|---|---|---|"]
+        for cat, counts in sorted(self._category_counts().items()):
+            lines.append(
+                f"| {cat} | {counts.get('ok', 0)} | "
+                f"{counts.get('warning', 0)} | {counts.get('error', 0)} |"
+            )
+        return lines
+
+    @staticmethod
+    def _item_line(item: ComponentStatus) -> str:
+        icon = {"ok": "✅", "warning": "⚠️", "error": "❌", "stale": "🕐"}.get(
+            item.status, "❓"
+        )
+        detail = f" — {item.detail}" if item.detail else ""
+        usage = f" (used {item.usage_count}x)" if item.usage_count else ""
+        return f"- {icon} **{item.name}**{detail}{usage}"
+
+    def _detail_section_lines(self) -> list[str]:
+        lines: list[str] = []
+        for category in sorted({c.category for c in self.components}):
+            items = [c for c in self.components if c.category == category]
+            lines.append(f"## {category.title()}\n")
+            lines.extend(self._item_line(item) for item in items)
+            lines.append("")
+        return lines
+
     def to_markdown(self) -> str:
         lines = [
             f"# Agent Manager Dashboard — {self.timestamp}",
@@ -70,36 +104,10 @@ class DashboardReport:
             f"**Health Score**: {self.health_score:.0%}",
             "",
             "## Summary\n",
-            "| Category | OK | Warning | Error |",
-            "|---|---|---|---|",
+            *self._summary_table_lines(),
+            "",
+            *self._detail_section_lines(),
         ]
-
-        cats: dict[str, dict[str, int]] = {}
-        for c in self.components:
-            cats.setdefault(c.category, {"ok": 0, "warning": 0, "error": 0, "stale": 0})
-            cats[c.category][c.status] = cats[c.category].get(c.status, 0) + 1
-
-        for cat, counts in sorted(cats.items()):
-            lines.append(
-                f"| {cat} | {counts.get('ok', 0)} | "
-                f"{counts.get('warning', 0)} | {counts.get('error', 0)} |"
-            )
-
-        lines.append("")
-
-        # Detail sections
-        for category in sorted({c.category for c in self.components}):
-            items = [c for c in self.components if c.category == category]
-            lines.append(f"## {category.title()}\n")
-            for item in items:
-                icon = {"ok": "✅", "warning": "⚠️", "error": "❌", "stale": "🕐"}.get(
-                    item.status, "❓"
-                )
-                detail = f" — {item.detail}" if item.detail else ""
-                usage = f" (used {item.usage_count}x)" if item.usage_count else ""
-                lines.append(f"- {icon} **{item.name}**{detail}{usage}")
-            lines.append("")
-
         return "\n".join(lines)
 
     def to_dict(self) -> dict[str, Any]:
@@ -237,28 +245,25 @@ class AgentManagerDashboard:
 
         return items
 
+    @staticmethod
+    def _plugin_status(plugin_dir: Path) -> ComponentStatus:
+        manifest = any(
+            (plugin_dir / n).exists()
+            for n in ("plugin.yaml", "plugin.yml", "plugin.json")
+        )
+        return ComponentStatus(
+            category="plugins",
+            name=plugin_dir.name,
+            status="ok" if manifest else "warning",
+            detail="Valid manifest" if manifest else "Missing manifest",
+        )
+
     def _check_plugins(self) -> list[ComponentStatus]:
         """Check installed plugins."""
-        items: list[ComponentStatus] = []
         plugins_dir = self.workspace / ".agents" / "plugins"
-
-        if plugins_dir.exists():
-            for pd in plugins_dir.iterdir():
-                if pd.is_dir():
-                    manifest = any(
-                        (pd / n).exists()
-                        for n in ("plugin.yaml", "plugin.yml", "plugin.json")
-                    )
-                    items.append(
-                        ComponentStatus(
-                            category="plugins",
-                            name=pd.name,
-                            status="ok" if manifest else "warning",
-                            detail="Valid manifest" if manifest else "Missing manifest",
-                        )
-                    )
-
-        return items
+        if not plugins_dir.exists():
+            return []
+        return [self._plugin_status(pd) for pd in plugins_dir.iterdir() if pd.is_dir()]
 
     def _check_permissions(self) -> list[ComponentStatus]:
         """Check permission policy."""
