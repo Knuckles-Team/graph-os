@@ -9,6 +9,8 @@ partition isolation, matching the fixtures in
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from graph_os.fleet.error_budget import (
@@ -191,8 +193,8 @@ def test_partitions_never_cross_tenant_or_child() -> None:
         {"version": ""},
     ],
 )
-def test_config_rejects_out_of_range_tuning(kwargs: dict[str, object]) -> None:
-    base = {
+def test_config_rejects_out_of_range_tuning(kwargs: dict[str, Any]) -> None:
+    base: dict[str, Any] = {
         "version": "v1",
         "alpha": 2,
         "beta": 0.5,
