@@ -97,7 +97,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R004",
       "title": "Loopback bootstrap principal with origin guarding (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "children": [
         "GRAPHOS-IDENTITY-R004.1",
         "GRAPHOS-IDENTITY-R004.2"

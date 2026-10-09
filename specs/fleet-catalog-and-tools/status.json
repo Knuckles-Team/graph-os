@@ -38,7 +38,9 @@
     "GRAPHOS-FLEET-R027",
     "GRAPHOS-FLEET-R028",
     "GRAPHOS-FLEET-R029",
-    "GRAPHOS-FLEET-R030"
+    "GRAPHOS-FLEET-R030",
+    "GRAPHOS-FLEET-R002.2",
+    "GRAPHOS-FLEET-R005.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -69,6 +71,20 @@
           "commit": "0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
           "description": "GRAPHOS-FLEET-R002 merged to the default branch in this commit."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "description": "GRAPHOS-FLEET-R002.1 merged to the default branch in this commit."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "description": "GRAPHOS-FLEET-R002.2 merged to the default branch in this commit."
         }
       ],
       "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R002.1 lands the typed fingerprint model; the fleet-wide automated re-certification check (GRAPHOS-FLEET-R002.2) is not yet specified."
@@ -127,6 +143,20 @@
           "commit": "3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
           "description": "GRAPHOS-FLEET-R005 merged to the default branch in this commit."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "description": "GRAPHOS-FLEET-R005.1 merged to the default branch in this commit."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "description": "GRAPHOS-FLEET-R005.2 merged to the default branch in this commit."
         }
       ],
       "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R005.1 lands the typed WorkItem view; GetWorkItem/ListWorkItems operations, capability-based agent search, control-lease issuance/consumption, and the multiplexer tool-subset restriction (GRAPHOS-FLEET-R005.2+) are not yet specified."
@@ -157,7 +187,7 @@
       "title": "Bridge upgraded to FastMCP 4",
       "delivery_state": "SPECIFIED",
       "evidence": [],
-      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( \u2014 no hits), so the 'single com"
+      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( — no hits), so the 'single com"
     },
     {
       "id": "GRAPHOS-FLEET-R008",
@@ -380,7 +410,7 @@
     {
       "id": "GRAPHOS-FLEET-R024",
       "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -513,6 +543,34 @@
         }
       ],
       "remaining": "Not yet merged. Live reads need an approval path and a live operation binding for each source."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R002.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "description": "GRAPHOS-FLEET-R002.2 merged to the default branch in this commit."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R005.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "description": "GRAPHOS-FLEET-R005.2 merged to the default branch in this commit."
+        }
+      ]
     }
   ]
 }

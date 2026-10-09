@@ -105,8 +105,16 @@
     {
       "id": "GRAPHOS-HOST-R006",
       "title": "graph_os.fleet is the sole multiplexer and host owner",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "97b844e615b74e3a3aaf50aee0cecac30c491a14",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/97b844e615b74e3a3aaf50aee0cecac30c491a14",
+          "description": "GRAPHOS-HOST-R006 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R007",

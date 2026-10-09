@@ -373,7 +373,7 @@
     {
       "id": "GRAPHOS-OPS-R020",
       "title": "Ingest operations through a typed SDK runner facade",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -462,7 +462,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R021.1",
-      "title": "Decide operations (service-executed) \u2014 decide slice",
+      "title": "Decide operations (service-executed) — decide slice",
       "delivery_state": "LANDED",
       "evidence": [
         {
@@ -477,7 +477,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R021.2",
-      "title": "Retrieval, context, and freshness read operations \u2014 retrieval slice",
+      "title": "Retrieval, context, and freshness read operations — retrieval slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -486,7 +486,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R021.3",
-      "title": "Policy and swarm read operations \u2014 policy slice",
+      "title": "Policy and swarm read operations — policy slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -514,14 +514,14 @@
     },
     {
       "id": "GRAPHOS-OPS-R022.1",
-      "title": "Work-item and offer operations \u2014 work slice",
+      "title": "Work-item and offer operations — work slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": []
     },
     {
       "id": "GRAPHOS-OPS-R022.2",
-      "title": "Evolution loop, schedule, and proposal operations \u2014 evolution slice",
+      "title": "Evolution loop, schedule, and proposal operations — evolution slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -573,14 +573,14 @@
     },
     {
       "id": "GRAPHOS-OPS-R024.1",
-      "title": "Telemetry operations \u2014 telemetry slice",
+      "title": "Telemetry operations — telemetry slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": []
     },
     {
       "id": "GRAPHOS-OPS-R024.2",
-      "title": "Security operations \u2014 security slice",
+      "title": "Security operations — security slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -589,7 +589,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R024.3",
-      "title": "Usage operations \u2014 usage slice",
+      "title": "Usage operations — usage slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -598,7 +598,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R024.4",
-      "title": "Memory operations \u2014 memory slice",
+      "title": "Memory operations — memory slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -607,7 +607,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R024.5",
-      "title": "Operational admin operations \u2014 admin slice",
+      "title": "Operational admin operations — admin slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -657,14 +657,14 @@
     },
     {
       "id": "GRAPHOS-OPS-R026.1",
-      "title": "API-surface drift gate \u2014 api-surface slice",
+      "title": "API-surface drift gate — api-surface slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": []
     },
     {
       "id": "GRAPHOS-OPS-R026.2",
-      "title": "Backward-compatibility drift gate \u2014 backward-compat slice",
+      "title": "Backward-compatibility drift gate — backward-compat slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [

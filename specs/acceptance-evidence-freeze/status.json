@@ -7,7 +7,8 @@
     "GRAPHOS-ACCEPTANCE-R002",
     "GRAPHOS-ACCEPTANCE-R003",
     "GRAPHOS-ACCEPTANCE-R004",
-    "GRAPHOS-ACCEPTANCE-R005"
+    "GRAPHOS-ACCEPTANCE-R005",
+    "GRAPHOS-ACCEPTANCE-R001.1"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -16,8 +17,16 @@
     {
       "id": "GRAPHOS-ACCEPTANCE-R001",
       "title": "Typed acceptance-evidence model and freeze-gap checker",
-      "delivery_state": "BUILDING",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "57cb99978975e6f25ec7de2bb0d8bcab255ecfc3",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/57cb99978975e6f25ec7de2bb0d8bcab255ecfc3",
+          "description": "GRAPHOS-ACCEPTANCE-R001.1 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-ACCEPTANCE-R002",
@@ -42,6 +51,20 @@
       "title": "Checker is the only path to an ACCEPTED report",
       "delivery_state": "SPECIFIED",
       "evidence": []
+    },
+    {
+      "id": "GRAPHOS-ACCEPTANCE-R001.1",
+      "title": "implement the typed EvidenceRecord/RequirementGap model and gaps_for_status/load_status functions plus the standalone CLI entry point in scripts/check_acceptanc",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "57cb99978975e6f25ec7de2bb0d8bcab255ecfc3",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/57cb99978975e6f25ec7de2bb0d8bcab255ecfc3",
+          "description": "GRAPHOS-ACCEPTANCE-R001.1 merged to the default branch in this commit."
+        }
+      ]
     }
   ]
 }

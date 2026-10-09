@@ -87,3 +87,8 @@ security-sensitive harvest machinery (not a small deletion); R009's capacity
 admission has no code under `graph_os/control_plane/runs/` or `graph_os/a2a/`
 beyond an unrelated audit-chain capacity check. None of these is a safe
 10-minute slice without a real design decision first; none was attempted.
+
+## Decomposition children (tracked)
+
+- [x] **GRAPHOS-FLEET-R002.2:** Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)
+- [x] **GRAPHOS-FLEET-R005.2:** Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)
