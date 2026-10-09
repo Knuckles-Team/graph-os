@@ -23,8 +23,8 @@ from graph_os.fleet.multiplexer import (
     _tool_result_from_child,
 )
 from tests.fleet.catalog_fixture import (
+    bind_governed_forwarder_fixture,
     multiplexer_from_fixture,
-    patch_call_proxied_tool,
 )
 
 
@@ -42,14 +42,26 @@ def _child_result_with_annotations_and_meta() -> mcp.types.CallToolResult:
     )
 
 
+async def _forward_annotated_result(tmp_path) -> ToolResult:
+    """Bind the shared annotated/meta-bearing child fixture and forward
+    one call through it, asserting the common dispatch/call-site shape
+    both parity tests below check before their own distinct assertion."""
+    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
+    fixture = await bind_governed_forwarder_fixture(
+        mux, _child_result_with_annotations_and_meta()
+    )
+
+    forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
+    assert fixture.dispatches == ["fleet.call"]
+    assert fixture.child_calls == [("synthetic", "tool", {})]
+    return forwarded
+
+
 @pytest.mark.asyncio
 async def test_forwarded_result_preserves_content_annotations(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    patch_call_proxied_tool(monkeypatch, mux, _child_result_with_annotations_and_meta())
-
-    forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
+    forwarded = await _forward_annotated_result(tmp_path)
 
     assert len(forwarded.content) == 1
     block = forwarded.content[0]
@@ -64,10 +76,7 @@ async def test_forwarded_result_preserves_meta(
 ) -> None:
     """The wire ``_meta`` — including a readOnlyHint-style key — must survive
     the child -> multiplexer -> host conversion, not be silently dropped."""
-    mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    patch_call_proxied_tool(monkeypatch, mux, _child_result_with_annotations_and_meta())
-
-    forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
+    forwarded = await _forward_annotated_result(tmp_path)
 
     assert forwarded.meta == {"readOnlyHint": True, "child_trace_id": "abc123"}
 
@@ -82,10 +91,12 @@ async def test_direct_vs_forwarded_parity(
     gateway."""
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
     raw_result = _child_result_with_annotations_and_meta()
-    patch_call_proxied_tool(monkeypatch, mux, raw_result)
+    fixture = await bind_governed_forwarder_fixture(mux, raw_result)
 
     direct = ToolResult.from_mcp_result(raw_result)
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
+    assert fixture.dispatches == ["fleet.call"]
+    assert fixture.child_calls == [("synthetic", "tool", {})]
 
     assert forwarded.meta == direct.meta
     assert [c.annotations for c in forwarded.content] == [
@@ -101,8 +112,7 @@ async def test_structured_content_still_forwarded(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    patch_call_proxied_tool(
-        monkeypatch,
+    fixture = await bind_governed_forwarder_fixture(
         mux,
         mcp.types.CallToolResult(
             content=[mcp.types.TextContent(type="text", text="ok")],
@@ -112,6 +122,8 @@ async def test_structured_content_still_forwarded(
     )
 
     forwarded: ToolResult = await _make_forwarder(mux, "synthetic__tool")()
+    assert fixture.dispatches == ["fleet.call"]
+    assert fixture.child_calls == [("synthetic", "tool", {})]
     assert forwarded.structured_content == {"key": "value"}
 
 

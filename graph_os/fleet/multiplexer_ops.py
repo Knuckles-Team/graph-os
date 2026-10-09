@@ -19,6 +19,11 @@ NativeName = Callable[[CatalogItem], str]
 ReadItem = Callable[[CatalogItem, Mapping[str, Any], Any], Awaitable[Any]]
 
 
+def item_binding(item: CatalogItem) -> tuple[str, ...]:
+    """Bind a loaded grant to catalog identity and the exact upstream target."""
+    return (item.id, item.kind, item.server or "", item.name)
+
+
 def _require_delegate_scope(caller: Any) -> None:
     if "mcp:delegate" not in caller.effective_scopes:
         raise PermissionError("mcp:delegate is required")
@@ -255,7 +260,11 @@ class MultiplexerOps:
         for item in resolved:
             await self._mount_item_for_load(item)
         state = self.sessions.load(
-            session_key, ids, evict=evict, auto_unload=auto_unload
+            session_key,
+            ids,
+            evict=evict,
+            auto_unload=auto_unload,
+            bindings={item.id: item_binding(item) for item in resolved},
         )
         changed = bool(state["evicted"]) or bool(ids)
         sent = await self._notify(session_key) if changed else True
@@ -277,7 +286,7 @@ class MultiplexerOps:
         all_items: bool = False,
     ) -> dict[str, Any]:
         _require_delegate_scope(caller)
-        loaded = self.sessions.loaded(session_key)
+        loaded = self.sessions.retractable(session_key)
         targets = set(items) & loaded
         server_filter, kind_filter = set(servers), set(kinds)
         if all_items:
@@ -311,9 +320,13 @@ class MultiplexerOps:
     ) -> builtins.list[str]:
         """Drop loaded items whose discovery/load policy changed."""
         removed: builtins.list[str] = []
-        for item_id in self.sessions.loaded(session_key):
+        for item_id in self.sessions.retractable(session_key):
             item = await self.catalog.get(item_id, caller)
-            if item is None or not await self._loadable(item, caller):
+            if (
+                item is None
+                or self.sessions.binding(session_key, item_id) != item_binding(item)
+                or not await self._loadable(item, caller)
+            ):
                 removed.append(item_id)
         if removed:
             self.sessions.unload(session_key, removed)
@@ -331,7 +344,7 @@ class MultiplexerOps:
         """
         removed_by_session: dict[str, builtins.list[str]] = {}
         for key in self.sessions.active_keys():
-            removed = self.sessions.unload(key, self.sessions.loaded(key))
+            removed = self.sessions.unload(key, self.sessions.retractable(key))
             if not removed:
                 continue
             removed_by_session[key] = removed
