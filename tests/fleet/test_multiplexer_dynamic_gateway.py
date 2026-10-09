@@ -32,8 +32,8 @@ from graph_os.fleet.multiplexer import (
     get_server_prefix,
 )
 from tests.fleet.catalog_fixture import (
+    bind_governed_forwarder_fixture,
     multiplexer_from_fixture,
-    patch_call_proxied_tool,
 )
 
 CNT = "container-manager-mcp"
@@ -56,8 +56,7 @@ async def test_forwarder_preserves_child_tool_error_as_outer_error(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     mux = multiplexer_from_fixture(tmp_path / "mcp_config.json")
-    patch_call_proxied_tool(
-        monkeypatch,
+    fixture = await bind_governed_forwarder_fixture(
         mux,
         mcp.types.CallToolResult(
             content=[mcp.types.TextContent(type="text", text="private child detail")],
@@ -65,8 +64,10 @@ async def test_forwarder_preserves_child_tool_error_as_outer_error(
         ),
     )
 
-    with pytest.raises(ToolError, match="delegated_child_tool_failed"):
+    with pytest.raises(ToolError, match="CHILD_REFUSED") as error:
         await _make_forwarder(mux, "synthetic__tool")()
+    assert "private child detail" not in str(error.value)
+    assert fixture.dispatches == ["fleet.call"]
 
 
 @pytest.mark.asyncio
