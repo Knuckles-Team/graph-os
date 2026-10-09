@@ -35,7 +35,7 @@
     "GRAPHOS-FLEET-R029",
     "GRAPHOS-FLEET-R030"
   ],
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
   "evidence": [],
   "requirements": [

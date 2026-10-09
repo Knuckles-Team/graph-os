@@ -80,13 +80,35 @@ class DialectSurface:
     line: int
 
 
-def _find_run_graph_query_scope_branches(tree: ast.Module) -> list[DialectSurface]:
-    """Walk the parsed module for every `if scope == "<literal>":` inside a
-    function named `_run_graph_query` (the graph_query tool's registration
-    closure, `register_query_tools`). Matches on the exact AST shape
+def _dialect_surface_from_if(node: ast.If) -> DialectSurface | None:
+    """Return the matched surface for `if scope == "<literal>":`, else None.
+
+    Matches the exact AST shape
     `Compare(left=Name(id="scope"), ops=[Eq()], comparators=[Constant(str)])`
     — not a text/regex scan — so it survives reformatting and only matches a
     genuine dialect dispatch, not an unrelated `scope == "..."` elsewhere."""
+
+    test = node.test
+    if not isinstance(test, ast.Compare):
+        return None
+    if len(test.ops) != 1 or not isinstance(test.ops[0], ast.Eq):
+        return None
+    left = test.left
+    if not (isinstance(left, ast.Name) and left.id == "scope"):
+        return None
+    comparators = test.comparators
+    if len(comparators) != 1:
+        return None
+    comparator = comparators[0]
+    if not (isinstance(comparator, ast.Constant) and isinstance(comparator.value, str)):
+        return None
+    return DialectSurface(name=comparator.value, line=node.lineno)
+
+
+def _find_run_graph_query_scope_branches(tree: ast.Module) -> list[DialectSurface]:
+    """Walk the parsed module for every `if scope == "<literal>":` inside a
+    function named `_run_graph_query` (the graph_query tool's registration
+    closure, `register_query_tools`)."""
 
     found: list[DialectSurface] = []
 
@@ -96,24 +118,10 @@ def _find_run_graph_query_scope_branches(tree: ast.Module) -> list[DialectSurfac
                 self.generic_visit(node)
                 return
             for sub in ast.walk(node):
-                if not isinstance(sub, ast.If):
-                    continue
-                test = sub.test
-                if not isinstance(test, ast.Compare):
-                    continue
-                if len(test.ops) != 1 or not isinstance(test.ops[0], ast.Eq):
-                    continue
-                left = test.left
-                if not (isinstance(left, ast.Name) and left.id == "scope"):
-                    continue
-                comparators = test.comparators
-                if len(comparators) != 1:
-                    continue
-                comparator = comparators[0]
-                if isinstance(comparator, ast.Constant) and isinstance(
-                    comparator.value, str
-                ):
-                    found.append(DialectSurface(name=comparator.value, line=sub.lineno))
+                if isinstance(sub, ast.If):
+                    surface = _dialect_surface_from_if(sub)
+                    if surface is not None:
+                        found.append(surface)
             # Do not descend further looking for a SECOND `_run_graph_query` —
             # there is exactly one; stop here rather than risk a duplicate
             # nested match.

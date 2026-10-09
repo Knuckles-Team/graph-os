@@ -302,6 +302,15 @@ def mcp_server() -> None:
                 # The session's own graph: AU graph views refuse any other.
                 return graph_compute.for_graph(str(session.graph)).async_client
 
+            from graph_os.mcp_server.decide_wiring import install_decide_consumers
+
+            installed = install_decide_consumers(
+                client_for_session,
+                bootstrap_session,
+                runtime._get_engine(),
+            )
+            logger.info("Decide consumers installed: %s", installed)
+
             from agent_utilities.mcp.graphos_surface import backing_server
 
             # An ``act`` operation on the backing server, not a listed tool.
