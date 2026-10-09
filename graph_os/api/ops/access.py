@@ -12,6 +12,16 @@ from agent_utilities.security.elevation import (
 )
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
+from graph_os.access.service import (
+    approve_elevation,
+    check_access,
+    explain_policy,
+    get_lease,
+    list_elevations,
+    list_leases,
+    request_elevation,
+    revoke_elevation,
+)
 from graph_os.api.registry import (
     AuditClass,
     Composite,
@@ -23,6 +33,23 @@ from graph_os.api.registry import (
     Surface,
     Verb,
 )
+
+#: Re-exported so ``registry_factory.get_registry()`` can resolve each
+#: ``Composite(handler="graph_os.api.ops.access.<name>")`` binding from this
+#: module's own namespace, matching the ``agents``/``browser``/``fleet``
+#: ops-module convention even though the implementations live in the
+#: service layer (``graph_os.access.service``).
+__all__ = [
+    "operations",
+    "approve_elevation",
+    "check_access",
+    "explain_policy",
+    "get_lease",
+    "list_elevations",
+    "list_leases",
+    "request_elevation",
+    "revoke_elevation",
+]
 
 
 class _Params(BaseModel):
@@ -71,16 +98,6 @@ class PolicyExplain(_Params):
     plan: list[dict[str, Any]] = Field(min_length=1, max_length=100)
 
 
-class ApprovalList(_Params):
-    status: Literal["active", "consumed", "revoked", "expired"] = "active"
-    cursor: str | None = None
-    limit: int = Field(default=100, ge=1, le=100)
-
-
-class ApprovalGet(_Params):
-    approval_id: str = Field(pattern=r"^action_approval:[A-Za-z0-9_.:-]+$")
-
-
 class JsonResult(RootModel[dict[str, Any]]):
     pass
 
@@ -112,10 +129,6 @@ def _op(
         "access.leases.get": "get_lease",
         "access.check": "check_access",
         "access.explain_policy": "explain_policy",
-        "approvals.list": "list_approvals",
-        "approvals.get": "get_approval",
-        "approvals.grant": "grant_approval",
-        "approvals.deny": "deny_approval",
     }[name]
     return OpSpec(
         id=name,
@@ -124,7 +137,7 @@ def _op(
         examples=(summary,),
         params=params,
         result=result,
-        binding=Composite(handler=f"graph_os.access.service.{handler}"),
+        binding=Composite(handler=f"graph_os.api.ops.access.{handler}"),
         scopes=frozenset(scopes),
         effect=effect,
         principals=principals,
@@ -135,8 +148,15 @@ def _op(
     )
 
 
-def specs() -> tuple[OpSpec, ...]:
-    """Supported access operations; native EG deny is tracked as a gap."""
+def operations() -> tuple[OpSpec, ...]:
+    """Supported access operations; native EG deny is tracked as a gap.
+
+    ``approvals.list``/``get``/``grant``/``deny`` are implemented in
+    :mod:`graph_os.access.service` but intentionally not registered here:
+    the installed EG contract does not yet publish the ``approvals:read``/
+    ``approvals:decide`` scopes they require (GRAPHOS-IDENTITY-R019 follow-up,
+    tracked in ``specs/identity-access/tasks.md``).
+    """
     return (
         _op(
             "access.elevation.request",
@@ -208,45 +228,5 @@ def specs() -> tuple[OpSpec, ...]:
             PolicyExplain,
             JsonResult,
             scopes=("explain:read",),
-        ),
-        _op(
-            "approvals.list",
-            Verb.ASK,
-            "List tenant action approvals",
-            ApprovalList,
-            JsonResult,
-            scopes=("approvals:read",),
-        ),
-        _op(
-            "approvals.get",
-            Verb.ASK,
-            "Get one action approval",
-            ApprovalGet,
-            JsonResult,
-            scopes=("approvals:read",),
-        ),
-        _op(
-            "approvals.grant",
-            Verb.MANAGE,
-            "Grant a pending action approval",
-            ApprovalGet,
-            JsonResult,
-            scopes=("approvals:decide",),
-            effect=Effect.ADMIN,
-            principals=PrincipalRule.HUMAN_UNDELEGATED,
-            confirm=Confirm.CONSOLE,
-            surfaces=_CONSOLE,
-        ),
-        _op(
-            "approvals.deny",
-            Verb.MANAGE,
-            "Deny a pending action approval",
-            ApprovalGet,
-            JsonResult,
-            scopes=("approvals:decide",),
-            effect=Effect.ADMIN,
-            principals=PrincipalRule.HUMAN_UNDELEGATED,
-            confirm=Confirm.CONSOLE,
-            surfaces=_CONSOLE,
         ),
     )

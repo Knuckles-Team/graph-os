@@ -69,13 +69,16 @@ async def test_lease_listing_uses_verified_tenant() -> None:
     )
 
 
-def test_specs_require_console_confirmation_for_decisions() -> None:
+def test_operations_require_console_confirmation_for_decisions() -> None:
     pytest.importorskip("graph_os.api.registry")
-    from graph_os.api.ops.access import specs
+    from graph_os.api.ops.access import operations
 
-    ops = {op.id: op for op in specs()}
+    ops = {op.id: op for op in operations()}
     assert "access.elevation.deny" not in ops
-    for op_id in ("access.elevation.approve", "approvals.grant", "approvals.deny"):
-        op = ops[op_id]
-        assert op.confirm.value == "console"
-        assert op.principals.value == "human_undelegated"
+    # approvals.* stay unregistered until EG publishes approvals:read/decide
+    # (GRAPHOS-IDENTITY-R019 follow-up); service.py still implements them.
+    assert "approvals.grant" not in ops
+    assert "approvals.deny" not in ops
+    op = ops["access.elevation.approve"]
+    assert op.confirm.value == "console"
+    assert op.principals.value == "human_undelegated"

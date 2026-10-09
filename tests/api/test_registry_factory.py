@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from graph_os.api.ops import agents, browser, fleet, get_registry
+from graph_os.api.ops import access, agents, browser, fleet, get_registry
 from graph_os.api.registry import (
     Composite,
     EgMethod,
@@ -31,7 +31,18 @@ def provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pat
     document = json.loads(scope_path.read_text())
     document["scopes"].extend(
         {"scope": scope, "class": "user"}
-        for scope in ("kg:read", "kg:write", "mcp:discover", "mcp:delegate")
+        for scope in (
+            "kg:read",
+            "kg:write",
+            "mcp:discover",
+            "mcp:delegate",
+            "rbac:elevation",
+            "rbac:elevation-read",
+            "rbac:approve-elevation",
+            "lease:read",
+            "security:check",
+            "explain:read",
+        )
     )
     scope_path.write_text(json.dumps(document))
     monkeypatch.setattr("importlib.resources.files", lambda package: contract.parent)
@@ -47,7 +58,12 @@ def test_no_argument_factory_is_deterministic_and_complete(
     assert first is not second
     assert first.canonical == second.canonical
     assert first.digest == second.digest
-    declared = (*agents.operations(), *browser.operations(), *fleet.operations())
+    declared = (
+        *access.operations(),
+        *agents.operations(),
+        *browser.operations(),
+        *fleet.operations(),
+    )
     assert {op.id for op in first} == {op.id for op in declared} | {
         "eg.query.Read",
         "eg.query.Admin",
