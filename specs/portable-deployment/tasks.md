@@ -111,6 +111,29 @@ qualification environment; this documentation phase performs none of them.
   restore and failed-startup/rollback evidence. Bind every redacted receipt to
   the exact profile/render/release and leave unsupported capability checks open.
 
+## GRAPHOS-DEPLOY-R007 split: one console-script collision per child
+
+GRAPHOS-DEPLOY-R007 is a rollup; split by code root/script per SPEC-SIZING-AND-DEPENDENCIES.md §3,
+producer (agent-utilities, which deletes its duplicate) before consumer (graph-os, which already
+owns the entry point).
+
+- [x] **GRAPHOS-DEPLOY-R007.1** — `agent-utilities-doctor` console-script collision. graph-os already
+  declares `agent-utilities-doctor = graph_os.deployment.doctor:main` on main
+  ([merge `fd761d59a171c148b7f2d7d952369c3b2b1a8628`](https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628)).
+  agent-utilities side:
+  [PR #118](https://github.com/Knuckles-Team/agent-utilities/pull/118) removes its duplicate
+  `agent-utilities-doctor = agent_utilities.deployment.doctor:main` registration (module itself
+  stays; it still has real non-test importers). Open, not yet merged.
+- [ ] Three more of the same literal collision, found while landing R007.1, each its own child:
+  `setup-config` (agent-utilities: `agent_utilities.deployment.cli:main` vs graph-os:
+  `graph_os.deployment.cli:main`), `agent-utilities-venv` (`agent_utilities.deployment.venv_sync:main`
+  vs `graph_os.deployment.venv_sync:main`), `graph-os-release-canary`
+  (`agent_utilities.deployment.release_canary:main` vs `graph_os.deployment.release_canary:main`),
+  and `graph-os-daemon` (`agent_utilities.gateway.daemon:main` vs `graph_os.gateway.daemon:main`).
+- [ ] Full module retirement of `agent_utilities.deployment.doctor` and the rest of the agent
+  runtime's deployment package remains separate, larger work (migrate its remaining non-test
+  importers first): the unresolved core of GRAPHOS-DEPLOY-R007 proper.
+
 ## GRAPHOS-DEPLOY-R016 host daemon container
 
 - [x] Add the `graph-os-daemon` container to the internal deployment manifest. The container runs `python3 -m graph_os.gateway.daemon` with `KG_DAEMON_ROLE=host` and `KG_DEV_MODE=false`.
