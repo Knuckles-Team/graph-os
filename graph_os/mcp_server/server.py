@@ -155,10 +155,9 @@ def _attach_fleet_runtime(mcp: Any, fleet_catalog_reader: Any) -> Any:
         )
     except Exception as exc:
         raise RuntimeError(
-            "graph-os fleet loader attach failed: the fleet meta-tools "
-            "(find_tools/list_catalog/load_tools/unload_tools/multiplexer_status) "
-            "and the session-visibility middleware could not be registered, so the "
-            "served tool surface would be wrong under every MCP_TOOL_MODE."
+            "graph-os fleet loader attach failed: the intent tools could not be "
+            "bound to the MCP fleet (find/act/manage fleet operations), so the "
+            "served surface would silently lose fleet access."
         ) from exc
 
 
@@ -190,23 +189,14 @@ def mcp_server() -> None:
     for middleware in middlewares:
         mcp.add_middleware(middleware)
 
-    # Fold in the MCP fleet-loader (retires the standalone mcp-multiplexer): graph-os's
-    # own tools stay always-on; this adds find_tools/load_tools/... so the SAME server
-    # reaches the rest of the MCP fleet on demand. Attached AFTER the factory middlewares
-    # so per-session tool visibility runs with identity/auth already applied. Only for a
-    # directly-served process — the embedded API-gateway build owns no serving loop.
-    # The five meta-tools this attaches (find_tools/list_catalog/load_tools/
-    # unload_tools/multiplexer_status) plus the
-    # session-visibility middleware are
-    # MODE-INDEPENDENT infrastructure — they are the only way to reach anything
-    # the active MCP_TOOL_MODE holds back, so they must be present under intent,
-    # condensed, verbose AND both. A failure here is therefore NOT survivable:
-    # the previous `except Exception: logger.error(...)` downgraded it to a log
-    # line and served a silently wrong surface (an SDK-rename ImportError in
-    # child_resilience left graph-os exposing 118 ungated tools with no
-    # load_tools at all). Fail loud, preserving __cause__.
+    # Fold in the MCP fleet (retires the standalone mcp-multiplexer): the
+    # intent tools reach it — find discovers, act calls, manage mounts — so no
+    # tool is added to the served list. Attached AFTER the factory middlewares
+    # so identity/auth is already applied. A failure here is NOT survivable: the
+    # previous `except Exception: logger.error(...)` downgraded it to a log line
+    # and served a silently wrong surface. Fail loud, preserving __cause__.
     # CONCEPT:AU-ECO.mcp.fleet-meta-tools-always-on
-    # Inject graph-os's own embedding model so find_tools ranks fleet tools by
+    # Inject graph-os's own embedding model so fleet tool search ranks by
     # query↔description MEANING (semantic), not just literal token overlap.
     fleet_mux = _attach_fleet_runtime(mcp, fleet_catalog_reader)
 
@@ -312,8 +302,20 @@ def mcp_server() -> None:
                 # The session's own graph: AU graph views refuse any other.
                 return graph_compute.for_graph(str(session.graph)).async_client
 
+            from graph_os.mcp_server.decide_wiring import install_decide_consumers
+
+            installed = install_decide_consumers(
+                client_for_session,
+                bootstrap_session,
+                runtime._get_engine(),
+            )
+            logger.info("Decide consumers installed: %s", installed)
+
+            from agent_utilities.mcp.graphos_surface import backing_server
+
+            # An ``act`` operation on the backing server, not a listed tool.
             register_graph_rlm(
-                mcp,
+                backing_server(mcp),
                 client_for_session=client_for_session,
             )
 

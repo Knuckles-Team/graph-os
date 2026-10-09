@@ -10,7 +10,7 @@
     "GRAPHOS-DATA-MARKET-R005",
     "GRAPHOS-DATA-MARKET-R006"
   ],
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
   "evidence": [],
   "requirements": [
@@ -65,8 +65,16 @@
     {
       "id": "GRAPHOS-DATA-MARKET-R005",
       "title": "schema_context query surface for tables and ontology mappings",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0a1beb2aae1319aa521488c564c0cb89a2f1c29b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0a1beb2aae1319aa521488c564c0cb89a2f1c29b",
+          "description": "GRAPHOS-DATA-MARKET-R005 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-DATA-MARKET-R006",

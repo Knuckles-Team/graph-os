@@ -47,10 +47,10 @@ Every modality tool below shares ONE shape: action-routed 1:1 over the correspon
 `epistemic_graph` client (`NodeClient`, `BlobClient`, `FinanceClient`, …), so its action
 set is discovered from the live client and never drifts in this doc — call any of them
 with an empty `action` to list what the connected engine build actually exposes.
-Common invocation: `load_tools(tools=["engine_<domain>"])` →
-`engine_<domain>(action="", params_json="{}")` to list → `engine_<domain>(action=
-"<method>", params_json="{...}", graph="")` to invoke → `unload_tools(...)`. REST
-twin: `POST /engine/<domain>` with the same body shape.
+Common invocation: `find(action="describe", params={"action": "engine_<domain>"})`
+to list → `act(action="engine_<domain>.<method>", params={...})` to invoke (reads
+also work through `ask`). REST twin: `POST /engine/<domain>` with the same body
+shape.
 
 | Domain tool(s) | Fronts | Notable actions / gotchas |
 |---|---|---|

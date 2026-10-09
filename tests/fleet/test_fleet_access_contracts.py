@@ -53,7 +53,7 @@ class _Contract:
         }
 
 
-TTL = "@prefix ac: <https://example.org/ac#> . # fake connector ontology"
+TTL = "@prefix ac: <https://example.org/ac#> . ac:c a ac:AccessContract ."
 
 
 @pytest.fixture
@@ -121,8 +121,11 @@ def test_missing_sdk_module_skips(monkeypatch) -> None:
 def test_onboarding_registers_after_import(fake_sdk, monkeypatch) -> None:
     import asyncio
 
+    from agent_utilities.api.session import use_session
+
     from graph_os.deployment import semantic_provisioning
     from graph_os.fleet.onboarding import FleetEndpoint, FleetOnboarding
+    from tests._eg_fakes import service_session
 
     async def fake_import(*args, **kwargs):
         return None
@@ -133,20 +136,89 @@ def test_onboarding_registers_after_import(fake_sdk, monkeypatch) -> None:
     monkeypatch.setattr(semantic_provisioning, "import_attested_pack", fake_import)
     catalog = VirtualCatalog()
 
+    class _StatusClient:
+        """Answers ConnectorPack.status with no head: always "changed"."""
+
+        async def _send(self, _method, _params, _graph, *, idempotency_key=None):
+            return {
+                "connector": "tickets-mcp",
+                "head": None,
+                "importer": None,
+                "last_receipt": None,
+                "members": {"published": 0, "retired": 0, "withdrawn": 0},
+                "projection": {"projection": "none"},
+                "schema_version": 1,
+                "tenant_id": "t",
+                "warnings": [],
+            }
+
     class _Engine:
         class graph_compute:
             @staticmethod
             def for_graph(name):
-                return types.SimpleNamespace(async_client=object())
+                return types.SimpleNamespace(async_client=_StatusClient())
 
+    session = service_session("t", "g")
     onboarding = FleetOnboarding(
         engine=_Engine(),
-        session=types.SimpleNamespace(graph="g"),
+        session=session,
         capture=capture,
         virtual_catalog=catalog,
     )
-    asyncio.run(
-        onboarding.onboard(FleetEndpoint("tickets-mcp", "http://x/mcp"), auth=None)
-    )
+    with use_session(session):
+        asyncio.run(
+            onboarding.onboard(FleetEndpoint("tickets-mcp", "http://x/mcp"), auth=None)
+        )
     assert len(catalog.mappings) == 2
     assert not any(m.approved for m in catalog.mappings)
+
+
+AC_NS = "https://knuckles-team.github.io/agent-connector-sdk/access#"
+DOMAIN_TTL = (
+    "@prefix ex: <https://example.org/onto#> .\n"
+    'ex:Ticket ex:comment """A ticket.\nSpans lines.""" .\n'
+)
+
+
+def _real_parser():
+    return pytest.importorskip("agent_connector_sdk.access_contract")
+
+
+def test_only_contract_bodies_reach_parser(fake_sdk) -> None:
+    pack = _Pack(
+        entries=(
+            _Entry("ontology://domain", DOMAIN_TTL.encode()),
+            _Entry("ontology://contracts", TTL.encode()),
+        )
+    )
+    catalog = VirtualCatalog()
+    assert ac.register_access_contracts(pack, connector="t", catalog=catalog) == 2
+    assert fake_sdk == [TTL]
+
+
+def test_malformed_contracts_file_is_skipped(monkeypatch, caplog) -> None:
+    def parse(text: str):
+        raise ValueError("bad turtle")
+
+    module = types.ModuleType("agent_connector_sdk.access_contract")
+    monkeypatch.setattr(module, "parse_access_contracts", parse, raising=False)
+    monkeypatch.setitem(sys.modules, "agent_connector_sdk.access_contract", module)
+    pack = _Pack(entries=(_Entry("ontology://broken", TTL.encode()),))
+    catalog = VirtualCatalog()
+    with caplog.at_level("WARNING"):
+        added = ac.register_access_contracts(pack, connector="t", catalog=catalog)
+    assert added == 0
+    assert "ontology://broken" in caplog.text
+
+
+def test_real_parser_skips_triple_quoted_domain_ontology() -> None:
+    sdk = _real_parser()
+    pack = _Pack(
+        entries=(
+            _Entry("ontology://domain", DOMAIN_TTL.encode()),
+            _Entry("ontology://contracts", b"@prefix ac: <" + AC_NS.encode() + b"> ."),
+        )
+    )
+    assert ac.parse_pack_contracts(pack) == ()
+    with pytest.raises(sdk.AccessContractError):
+        sdk.parse_access_contracts(DOMAIN_TTL)

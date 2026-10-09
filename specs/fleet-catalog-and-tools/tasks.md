@@ -16,10 +16,69 @@ Check a task only after its linked code and tests land. A checked source task is
 - [ ] T12 — Run the disposable two-replica reload and fault probe against the landed revision; attach generation, receipt, trace, timing, and policy evidence; then mark only passing slices ACCEPTED.
 - [ ] T13 — Add or verify a check script that scans every fleet connector count-pin site (compatibility matrix, bundle-catalog schema, check scripts, `ontology.lock`, federated IRI, `genesis.yaml`) and fails when any site disagrees with the live connector count. Cover GRAPHOS-FLEET-R023, not covered by T01–T12.
 - [ ] T14 (GRAPHOS-FLEET-R024): Take over fleet reconciliation, autoscaling, scaling authority and deploy watch from the agent runtime as typed GraphOS operations with parity and authorization tests.
+- [x] T19 (GRAPHOS-FLEET-R029): Serve the agent-utilities intent contract, register A2A, browser and RLM as `act` operations, and remove the fleet meta-tools and visibility middleware. Merge together with agent-utilities PR #54. (Landed via PR #51, merge commit `db8d44259c3da06c2b0a48b685ca87a01debaaca`; `graph_os/mcp_server/server.py` calls `backing_server(mcp)` from `agent_utilities.mcp.graphos_surface`; no `SessionVisibilityMiddleware` class remains; `tests/mcp_server/test_graph_tool_surface.py` passes.)
+- [ ] T20 (GRAPHOS-FLEET-R029): Remove `MCP_TOOL_MODE` from the fleet configuration: the MCP config files, deployment manifests, config generator and README environment tables.
+- [ ] T21 (GRAPHOS-FLEET-R029): Retire `MCP_ALWAYS_LOAD` and `MCP_ALWAYS_LOAD_TOOLS` and the eager-mount path in `graph_os/fleet/multiplexer.py`. A fleet call mounts what it needs.
+- [ ] T22 (GRAPHOS-FLEET-R029): Rename the internal `find_tools`/`load_tools`/`unload_tools`/`multiplexer_status` methods and comments in `graph_os/fleet/` and `graph_os/api/ops/fleet.py` to the intent operation names.
 - [x] T15 (GRAPHOS-FLEET-R026): Skip a registration without a component, log it, and report it in `multiplexer_status`.
 - [x] T16 (GRAPHOS-FLEET-R027): Add `graph_os/fleet/onboarding.py`, the `onboard-fleet` command and the background boot pass.
 - [x] T17 (GRAPHOS-FLEET-R028): Renew fleet and self-served leases each pass with windowed idempotency keys; refresh the catalog after admission.
 - [ ] T18 (GRAPHOS-FLEET-R027): Bind GraphOS as the fleet importer in the deployment, roll out, and record the live `multiplexer_status` child count.
+- [x] T24 (GRAPHOS-FLEET-R027): Skip re-attest and re-import for an already-admitted server whose captured pack digest is unchanged; renew it instead of re-onboarding. Re-attesting unchanged content reused attest's digest-derived idempotency key under a freshly randomized request body, which EG refused as `IDEMPOTENCY_CONFLICT` on every pass after the first.
 - [x] T18 (GRAPHOS-FLEET-R030): Register each connector access contract as an unapproved virtual mapping during onboarding.
 - [ ] T19 (GRAPHOS-FLEET-R030): Read ontology entries from the real pack archive accessor; confirm the duck-typed `entries` read against the SDK archive.
+- [x] T23 (GRAPHOS-FLEET-R030): Parse only ontology bodies that use the access-contract vocabulary. Log and skip a body the parser rejects.
 - [ ] T20 (GRAPHOS-FLEET-R030): Bind each source to a live operation call and add an operator approval path.
+- [x] T24 (GRAPHOS-FLEET-R031): Add `MCPMultiplexer._catalog_tool_probe_info` reading tool descriptors off the installed EG catalog snapshot, and fall back to it in `discover_tools` only for a server whose live probe errored.
+
+## MCPProjection reachability follow-up (2026-10-08, this lane)
+
+Investigated whether `graph_os/api/mcp/verbs.py`'s `MCPProjection` (R013) should
+get a real caller outside `graph_os/mcp_server/server.py`'s boot sequence, per
+R012/R013's spec text. Finding: no, not as written. `agent_utilities.mcp.graphos_surface`
+— the module PR #51 actually wired into the served bridge (`backing_server(mcp)`
+in `server.py`) — imports only `agent_utilities.mcp._graphos_action_manifest`,
+`intent_contract` and `tool_specs`. It does not import anything from
+`graph_os.api.*`. Confirmed with `grep -n "^from\|^import"` on
+`agent_utilities/mcp/graphos_surface.py`.
+
+That means the whole `graph_os/api/registry/`, `graph_os/api/invoke/` and
+`graph_os/api/mcp/` tree (R011, R012, R013, R014, R015, plus R007's
+`graph_os/api/mcp/resources.py` native `@mcp.resource(...)` registrations) has
+no production caller and no architectural reason to gain one: the six-verb
+surface it was built to serve is already shipped through a separate,
+self-contained implementation. Wiring `MCPProjection` into any serving path
+now would stand up a second, competing tool surface next to the one actually
+in production — not a fix, a new problem. Recommend the orchestrator choose
+one of:
+- delete `graph_os/api/registry/`, `graph_os/api/invoke/`, `graph_os/api/mcp/`
+  and their tests (confirm no other reachable caller first), or
+- mark R011/R012/R013/R014/R015 and R007's resource-registration clause
+  `SUPERSEDED` by R029, the same disposition already due for R018/R020.
+
+Also checked GRAPHOS-FLEET-R002's "empty placeholder" tool-schema fingerprint
+language. The one hit, `policy.fingerprint_catalog(catalog)`
+(`graph_os/fleet/multiplexer.py:2918`), calls a method that
+`_RUNTIME_CHILD_POLICY_METHODS` (same file, line 1093) requires any runtime
+child policy to implement, but this is a *catalog*-level fingerprint on the
+transport/spawn policy protocol, not the per-tool-pin schema fingerprint
+R002 describes. Did not find where a per-tool-pin schema fingerprint is
+computed or defaulted to empty; R002's concrete gap still needs locating
+before it can be fixed.
+
+## Spec-sweep audit notes (2026-10-08, this lane)
+
+- GRAPHOS-FLEET-R026/R027/R028/R029/R030 are confirmed `LANDED` on `origin/main` as of `7e3628a`: `graph_os/fleet/onboarding.py` matches their descriptions line for line, `tests/fleet/test_fleet_onboarding.py` + `tests/fleet/test_fleet_access_contracts.py` + `tests/test_fleet_catalog_reader.py` + `tests/mcp_server/test_graph_tool_surface.py` all pass (33 tests) through the shared venv against this worktree's checkout. Nothing further to do here.
+- GRAPHOS-FLEET-R029's own spec text says it "supersedes the four resident tools in GRAPHOS-FLEET-R018 and GRAPHOS-FLEET-R020." Now that R029 is landed (PR #51 deleted the `SessionVisibilityMiddleware` class and the five fleet meta-tools), R018 and R020 should be marked superseded, not left `BUILDING`/`SPECIFIED` with their old "replace the live multiplexer's own registered meta-tools" language — that replacement already happened via a different mechanism (`agent_utilities.mcp.graphos_surface`), not via R018's own `graph_os/fleet/catalog_composition.py`/`multiplexer_ops.py` module, which still has no non-test caller.
+- Flag for re-audit: `status.json` currently marks GRAPHOS-FLEET-R012/R013/R015 `LANDED`, but `MCPProjection` (`graph_os/api/mcp/verbs.py`) is constructed only in `tests/api/test_mcp_verbs.py` — grep for a non-test importer finds none. The six-verb surface that actually ships is the separate `agent_utilities.mcp.graphos_surface` path from PR #51, not this `graph_os/api/mcp/` package. Per the "landed means reachable" rule, this looks like a promotion based on merged-commit evidence alone, not reachability; the orchestrator should re-check before trusting these three as done, or confirm `graph_os/api/mcp/` is deliberately superseded like R018/R020.
+- Remaining `BUILDING` items (R003, R011, R016, R017, R022) each need either composition into the served app's boot sequence (`graph_os/mcp_server/server.py`'s bootstrap block, explicitly out of scope for this lane) or a real design reconciliation, not a cherry-pick: their recorded branch commits (`9a9b3f5c8e`, `3f5f354a36`, `fb06321fe1`, `1f3b30ff69`) all conflict against current `main`, and R022's conflict is a genuine behavioral regression — the branch commit raises `FleetCatalogIntegrityError` on an unadmitted server, while main's current (landed, R026) behavior is to skip and warn so boot never fails. Porting it as-is would reintroduce a boot-failure mode R026 just removed. None of these were touched this lane.
+
+Checked the remaining `SPECIFIED` requirements (R004, R005, R006, R008, R009)
+for existing partial code to extend instead of a fresh guess: none has one.
+R004's capability/digest/modality/cost/latency fields do not exist anywhere
+in `graph_os/fleet/catalog_items.py`; R006's skill/prompt harvest removal
+would cut deep into `graph_os/fleet/multiplexer.py`'s probe-budget and
+security-sensitive harvest machinery (not a small deletion); R009's capacity
+admission has no code under `graph_os/control_plane/runs/` or `graph_os/a2a/`
+beyond an unrelated audit-chain capacity check. None of these is a safe
+10-minute slice without a real design decision first; none was attempted.
