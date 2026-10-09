@@ -19,6 +19,7 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 ## Rapid-delivery split (2026-10-09)
 
 - [x] **GIA-RD-01:** Split `GRAPHOS-IDENTITY-R004`, `R006`, `R007` into `.1` (typed model +
+- [x] **GIA-RD-02:** Split `GRAPHOS-IDENTITY-R008`, `R009`, `R010` into `.1` (typed model +
   validation + refusal tests under `graph_os/identity/`) and `.2` (remaining behavior,
   stays `SPECIFIED`). Parents are now rollups. See `requirements.md`/`status.json`.
 
