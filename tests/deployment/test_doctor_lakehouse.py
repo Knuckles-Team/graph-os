@@ -17,6 +17,33 @@ import pytest
 from graph_os.deployment import doctor as D
 
 
+def test_cpu_has_avx2_detects_flag_from_synthetic_cpuinfo_text():
+    """GRAPHOS-DEPLOY-R015: validates the feature-detection parser against
+    synthetic fixture text only -- it never reads or asserts on the real
+    execution host's actual CPU, so it passes identically whether this
+    runner is AVX2-capable or not."""
+    from graph_os.deployment.doctor_lakehouse import _cpu_has_avx2
+
+    with_avx2 = "processor\t: 0\nflags\t\t: fpu vme avx2 sse4_2\n"
+    without_avx2 = "processor\t: 0\nflags\t\t: fpu vme sse4_2\n"
+    mac_style = "processor : 0\nFeatures : avx2 fma\n"
+
+    assert _cpu_has_avx2(with_avx2) is True
+    assert _cpu_has_avx2(without_avx2) is False
+    assert _cpu_has_avx2(mac_style) is True
+    assert _cpu_has_avx2("") is False
+
+
+def test_cpu_has_avx2_wrapper_never_raises_when_cpuinfo_is_unreadable(monkeypatch):
+    from graph_os.deployment import doctor_lakehouse as module
+
+    def _raise(self):
+        raise OSError("no /proc/cpuinfo on this platform")
+
+    monkeypatch.setattr(module.Path, "read_text", _raise)
+    assert module.cpu_has_avx2() is False
+
+
 def _cfg(**overrides):
     base = dict(
         kafka_bootstrap_servers="",

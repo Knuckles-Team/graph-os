@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "spec_id": "GRAPHOS-ACCEPTANCE-001",
+  "owner_repo": "graph-os",
+  "requirement_ids": [
+    "GRAPHOS-ACCEPTANCE-R001",
+    "GRAPHOS-ACCEPTANCE-R002",
+    "GRAPHOS-ACCEPTANCE-R003",
+    "GRAPHOS-ACCEPTANCE-R004",
+    "GRAPHOS-ACCEPTANCE-R005"
+  ],
+  "delivery_state": "BUILDING",
+  "acceptance_state": "NOT_AUDITED",
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-ACCEPTANCE-R001",
+      "title": "Typed acceptance-evidence model and freeze-gap checker",
+      "delivery_state": "BUILDING",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-ACCEPTANCE-R002",
+      "title": "Auditor distinct from delivery lane",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-ACCEPTANCE-R003",
+      "title": "Evidence is append-only",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-ACCEPTANCE-R004",
+      "title": "Operational evidence tracks the current commit, not a stale one",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-ACCEPTANCE-R005",
+      "title": "Checker is the only path to an ACCEPTED report",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    }
+  ]
+}

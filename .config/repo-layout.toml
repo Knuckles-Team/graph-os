@@ -16,6 +16,7 @@
 
 [dirs]
 ".specify" = "tracked Spec Kit constitution; generated tooling files remain ignored"
+architecture = "boundary seed manifest (component-registry-boundary-seeds.yml) published from the host-composition-boundary work, mirroring agent-utilities' own root architecture/ path so both sides of the boundary registry resolve the same relative path"
 specs = "tracked repository-owned specifications and contribution templates"
 scripts = "contributor bootstrap, pinned scanner installer shared with CI, the sibling-aware local hook runner, the orphan-module wiring gate, and the public-spec validator"
 graph_os = "the GraphOS Python package: MCP/REST composition, fleet, gateway, control plane, WebUI host, A2A, browser control, deployment, and console entry points"

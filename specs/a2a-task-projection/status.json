@@ -4,6 +4,7 @@
   "owner_repo": "graph-os",
   "requirement_ids": [
     "GRAPHOS-A2A-R001",
+    "GRAPHOS-A2A-R001.1",
     "GRAPHOS-A2A-R002",
     "GRAPHOS-A2A-R003",
     "GRAPHOS-A2A-R004",
@@ -19,8 +20,31 @@
     {
       "id": "GRAPHOS-A2A-R001",
       "title": "A2A facade over the engine and agent services",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "a8ed61b538e7a629394942375e953b51a56ad802",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/a8ed61b538e7a629394942375e953b51a56ad802",
+          "description": "GRAPHOS-A2A-R001 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "Unary agent-card discovery and task send/get/list/cancel are implemented and tested. Durable task streaming and resubscribe without a second task store are not; split into GRAPHOS-A2A-R001.1 (fail-closed tasks/resubscribe stub, delivered) plus the still-open event-cursor-backed streaming slice."
+    },
+    {
+      "id": "GRAPHOS-A2A-R001.1",
+      "title": "Fail-closed tasks/resubscribe stub on the A2A method table",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "a8ed61b538e7a629394942375e953b51a56ad802",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/a8ed61b538e7a629394942375e953b51a56ad802",
+          "description": "GRAPHOS-A2A-R001.1 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R002",
@@ -32,8 +56,16 @@
     {
       "id": "GRAPHOS-A2A-R003",
       "title": "No duplicate skill or prompt harvesting in the multiplexer",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0c897f1a373602981705d102a6d5a53eb95c0853",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0c897f1a373602981705d102a6d5a53eb95c0853",
+          "description": "GRAPHOS-A2A-R003 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R004",

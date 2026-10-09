@@ -1,0 +1,65 @@
+schema: graphos-boundary-owner-seeds/v1
+owner_repository: graph-os
+manifest_version: 1
+source_spec: specs/host-composition-boundary/requirements.md
+
+# GRAPHOS-HOST-R012 boundary seeds: this repository's own entry and the
+# connector SDK's entry in the architecture component registry (RF-021),
+# each naming its owning module paths and its public import surface. This
+# mirrors agent-utilities' own
+# architecture/component-registry-boundary-seeds.yml (which records the
+# modules moving FROM agent-utilities TO graph-os); this file is the
+# receiving side, published from graph-os, and is independent of
+# architecture/component-registry.yml's cryptographically signed, generated
+# component schema -- that registry is a digest-verified artifact for a
+# different, already-wired certification path, and hand-adding boundary
+# seeds to it would desynchronize its signatures. Boundary seeds get their
+# own small, human-read manifest, read by
+# tests/test_component_registry_boundary_seeds.py.
+seeds:
+  - owner_repository: graph-os
+    requirement_id: GRAPHOS-HOST-R012
+    description: >-
+      GraphOS's own served-runtime packages: MCP/REST/A2A composition, the
+      fleet multiplexer, the gateway, control-plane policy, optional web UI
+      hosting, governed browser control, and deployment operations.
+    owned_module_paths:
+      - graph_os/mcp_server
+      - graph_os/fleet
+      - graph_os/gateway
+      - graph_os/control_plane
+      - graph_os/webui_host
+      - graph_os/a2a
+      - graph_os/browser_control
+      - graph_os/deployment
+      - graph_os/api
+      - graph_os/messaging
+      - graph_os/skills
+      - graph_os/evolution
+      - graph_os/ontology
+    public_import_surface:
+      - graph_os.mcp_server.server
+      - graph_os.api
+      - graph_os.gateway
+      - graph_os.fleet
+  - owner_repository: agent-connector-sdk
+    requirement_id: GRAPHOS-HOST-R012
+    description: >-
+      The connector SDK's transport and content-pack boundary that GraphOS's
+      gateway and fleet modules consume directly: MCP server construction,
+      connector manifests, content-pack certification, governed HTTP and
+      credentials, and write-back -- never a connector's internal module.
+    owned_module_paths:
+      - agent_connector_sdk/mcp
+      - agent_connector_sdk/manifest
+      - agent_connector_sdk/certify
+      - agent_connector_sdk/http
+      - agent_connector_sdk/credentials
+      - agent_connector_sdk/discovery.py
+      - agent_connector_sdk/contracts.py
+      - agent_connector_sdk/config.py
+    public_import_surface:
+      - agent_connector_sdk.mcp
+      - agent_connector_sdk.manifest
+      - agent_connector_sdk.certify
+      - agent_connector_sdk.contracts

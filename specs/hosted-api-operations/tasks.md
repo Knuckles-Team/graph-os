@@ -11,7 +11,7 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] Prove contract, authorization, policy, idempotency, audit, negative and served cases in [test-spec.md](test-spec.md).
 - [ ] Run pinned CCCC, KISS, jscpd, Dupehound, Python, package and CI gates from a clean public checkout; capture exact revision evidence.
 - [ ] Review public documentation and mark only individually proven capabilities accepted.
-- [ ] **GRAPHOS-OPS-R021.1:** Decide operations (service-executed) — decide slice of `GRAPHOS-OPS-R021`.
+- [x] **GRAPHOS-OPS-R021.1:** Decide operations (service-executed) — decide slice of `GRAPHOS-OPS-R021`.
 - [ ] **GRAPHOS-OPS-R021.2:** Retrieval, context, and freshness read operations — retrieval slice of `GRAPHOS-OPS-R021`.
 - [ ] **GRAPHOS-OPS-R021.3:** Policy and swarm read operations — policy slice of `GRAPHOS-OPS-R021`.
 - [ ] **GRAPHOS-OPS-R022.1:** Work-item and offer operations — work slice of `GRAPHOS-OPS-R022`.

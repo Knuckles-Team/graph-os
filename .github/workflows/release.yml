@@ -97,7 +97,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-utilities
-          ref: b210b1ecd8e8255ea40f64c4976b5f98f7b45501
+          ref: 5d6d082ea2f06648ba612146d1df09f8cc30298e
           path: .uv-workspace-siblings/agent-utilities
           persist-credentials: false
 
@@ -113,7 +113,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: Knuckles-Team/agent-webui
-          ref: 03cc841a38cecabc0b62a541814512670ebc8774
+          ref: 916382a450a1c157c5a6734365c668ec7246e39e
           path: .uv-workspace-siblings/agent-webui
           persist-credentials: false
 

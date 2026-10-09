@@ -49,7 +49,7 @@ dependencies = [
     "fastmcp>=4.0.0b1",
     "mcp>=2.0.0",
     "opentelemetry-api>=1.39.1",
-    "pydantic-ai-slim[openai]==2.29.0",
+    "pydantic-ai-slim[openai]==2.54.0",
     # Installed so its ``agent_utilities.skill_providers`` entry point (once
     # declared in universal-skills' own package) resolves in THIS process,
     # the same way agent-utilities', epistemic-graph's, and graph-os's own
@@ -73,10 +73,34 @@ test = [
     "mypy>=2.3.0",
     "ruff==0.16.0",
     "types-PyYAML>=6.0.12.20250915",
+    # DEV/TEST-ONLY. setuptools is already a `[build-system] requires` floor
+    # (>=83.0.0) for this project's own PEP 517 backend — build requirements
+    # are installed only into an ephemeral build environment, not the runtime
+    # venv. tests/test_dependency_manifest.py reads
+    # `setuptools.config.pyprojecttoml` directly to prove the published
+    # manifest contract (host-composition-boundary spec, dependency-manifest
+    # requirement), and tests/gateway/test_gateway_widgets_extra.py does the same, so the same floor must also be reachable at test time.
+    "setuptools>=83.0.0",
 ]
 webui = [
     "agent-webui>=2.6.0,<3.0.0",
     "uvicorn>=0.51.0",
+]
+# portable-deployment spec, gateway-widgets extra requirement: graph_os/gateway/widgets/*.py
+# each call BaseWidget._fleet_client() (graph_os/fleet) for live data -- the served
+# fleet admission seam, never a direct connector-package import (see the
+# `dependencies` comment above). No widget today transitively needs a
+# fleet connector package's own distribution, but any future widget that
+# does must resolve a connector built against agent-connector-sdk's current,
+# post-split module layout, not a pre-split agent-utilities-runtime shape.
+# This extra is GraphOS's side of that floor -- the agent-utilities
+# `gateway-widgets` extra it replaces (retired there under the AU boundary /
+# host-composition-boundary spec) pinned the same SDK transitively
+# through each connector package's own dependency on it. Full requirement
+# IDs: specs/portable-deployment/requirements.md,
+# specs/host-composition-boundary/requirements.md.
+gateway-widgets = [
+    "agent-connector-sdk>=0.1.0,<1.0.0",
 ]
 # Messaging channel adapters (CONCEPT:AU-ECO.messaging.native-backend-abstraction):
 # each chat platform SDK is its own extra so importing graph_os.messaging never

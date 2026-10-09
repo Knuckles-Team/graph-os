@@ -56,6 +56,7 @@ _DISALLOWED_CHARS = frozenset("<>*${}()\"'=")
 _GENERIC_COMMANDS = frozenset(
     {
         "git",
+        "gh",
         "uv",
         "uvx",
         "python",
@@ -69,6 +70,7 @@ _GENERIC_COMMANDS = frozenset(
         "mkdir",
         "cd",
         "ln",
+        "type",
         "bash",
         "sh",
         "docker",

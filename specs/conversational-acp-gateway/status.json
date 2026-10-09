@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "spec_id": "GRAPHOS-ACP-001",
+  "owner_repo": "graph-os",
+  "requirement_ids": [
+    "GRAPHOS-ACP-R001"
+  ],
+  "delivery_state": "BUILDING",
+  "acceptance_state": "NOT_AUDITED",
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-ACP-R001",
+      "title": "Conversational ACP gateway session admission and policy",
+      "delivery_state": "BUILDING",
+      "evidence": []
+    }
+  ]
+}

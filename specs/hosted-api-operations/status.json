@@ -23,6 +23,11 @@
     "GRAPHOS-OPS-R018",
     "GRAPHOS-OPS-R019",
     "GRAPHOS-OPS-R020",
+    "GRAPHOS-OPS-R020.1",
+    "GRAPHOS-OPS-R020.2",
+    "GRAPHOS-OPS-R020.3",
+    "GRAPHOS-OPS-R020.4",
+    "GRAPHOS-OPS-R020.5",
     "GRAPHOS-OPS-R021",
     "GRAPHOS-OPS-R021.1",
     "GRAPHOS-OPS-R021.2",
@@ -169,8 +174,16 @@
     {
       "id": "GRAPHOS-OPS-R007",
       "title": "Immutable operation registry with digest and authorization",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "description": "GRAPHOS-OPS-R007 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "Implemented and unit-tested on the default branch under graph_os/api/. The reachability report shows no served entry point imports that package yet. Remaining: compose it into the served application, with a test through the served entry point."
     },
     {
@@ -360,16 +373,72 @@
     {
       "id": "GRAPHOS-OPS-R020",
       "title": "Ingest operations through a typed SDK runner facade",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "68a2364fda13b26117e06bf8c823ddaf4881deed",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/68a2364fda13b26117e06bf8c823ddaf4881deed",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+          "commit": "e990e195ab42aef66aa576e051f01b3667046267",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e990e195ab42aef66aa576e051f01b3667046267",
+          "description": "GRAPHOS-OPS-R020 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "Split into GRAPHOS-OPS-R020.1 through R020.5 (net-new, sliced by delivery layer). R020.1 (typed runner port + ingest.sources.sync) is building; R020.2-R020.5 (repository/source inventory, pack/job management, drift repair, embedding admission) remain SPECIFIED."
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.1",
+      "title": "Typed ingest runner port and the source-sync entry point",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "822f55d5835d696f850ca4fc82ce087249a69afc",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/822f55d5835d696f850ca4fc82ce087249a69afc",
+          "description": "GRAPHOS-OPS-R020.1 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "graph_os/ingest/service.py (IngestRunner port, sync_source) and graph_os/api/ops/ingest.py (ingest.sources.sync) are implemented and unit-tested; pending merge to the default branch."
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.2",
+      "title": "Repository indexing and source inventory operations",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "822f55d5835d696f850ca4fc82ce087249a69afc",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/822f55d5835d696f850ca4fc82ce087249a69afc",
+          "description": "GRAPHOS-OPS-R020.2 merged to the default branch in this commit."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3",
+      "title": "Pack and job management operations",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "822f55d5835d696f850ca4fc82ce087249a69afc",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/822f55d5835d696f850ca4fc82ce087249a69afc",
+          "description": "GRAPHOS-OPS-R020.3 merged to the default branch in this commit."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.4",
+      "title": "Drift listing and repair-with-approval operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.5",
+      "title": "Embedding admission and re-embedding operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-OPS-R021",
@@ -394,8 +463,16 @@
     {
       "id": "GRAPHOS-OPS-R021.1",
       "title": "Decide operations (service-executed) \u2014 decide slice",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "1ded59edd1a6eff7f55cceaadb427cae011a8d5f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/1ded59edd1a6eff7f55cceaadb427cae011a8d5f",
+          "description": "GRAPHOS-OPS-R021.1 merged to the default branch in this commit."
+        }
+      ],
       "depends_on": []
     },
     {
@@ -611,7 +688,7 @@
     {
       "id": "GRAPHOS-OPS-R028",
       "title": "Exported domain scope classes",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -619,6 +696,13 @@
           "commit": "9a4eb52552f814ea2ddf70597ad8c7fac2bd7a47",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/9a4eb52552f814ea2ddf70597ad8c7fac2bd7a47",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "b47b39eac0ae873f780f0d9c2a5331e265bc3846",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/b47b39eac0ae873f780f0d9c2a5331e265bc3846",
+          "description": "GRAPHOS-OPS-R028 merged to the default branch in this commit."
         }
       ]
     },

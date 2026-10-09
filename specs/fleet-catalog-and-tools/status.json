@@ -5,9 +5,11 @@
   "requirement_ids": [
     "GRAPHOS-FLEET-R001",
     "GRAPHOS-FLEET-R002",
+    "GRAPHOS-FLEET-R002.1",
     "GRAPHOS-FLEET-R003",
     "GRAPHOS-FLEET-R004",
     "GRAPHOS-FLEET-R005",
+    "GRAPHOS-FLEET-R005.1",
     "GRAPHOS-FLEET-R006",
     "GRAPHOS-FLEET-R007",
     "GRAPHOS-FLEET-R008",
@@ -28,6 +30,9 @@
     "PA-12",
     "GRAPHOS-FLEET-R023",
     "GRAPHOS-FLEET-R024",
+    "GRAPHOS-FLEET-R024.1",
+    "GRAPHOS-FLEET-R024.2",
+    "GRAPHOS-FLEET-R024.3",
     "GRAPHOS-FLEET-R025",
     "GRAPHOS-FLEET-R026",
     "GRAPHOS-FLEET-R027",
@@ -55,9 +60,33 @@
     },
     {
       "id": "GRAPHOS-FLEET-R002",
-      "title": "Tool schema fingerprints recomputed from served schemas",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "Tool schema fingerprints recomputed from served schemas (rollup)",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "description": "GRAPHOS-FLEET-R002 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R002.1 lands the typed fingerprint model; the fleet-wide automated re-certification check (GRAPHOS-FLEET-R002.2) is not yet specified."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R002.1",
+      "title": "Per-tool schema fingerprint computed from the served schema",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
+          "description": "GRAPHOS-FLEET-R002.1 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "graph_os/fleet/catalog_items.py adds compute_schema_fingerprint() and CatalogItem.schema_fingerprint, wired into _probed_item for tool rows; tests/fleet/test_schema_fingerprint.py passes (6 tests). Published on a branch/PR; not yet merged to the default branch. No fleet-wide automated re-certification check yet (GRAPHOS-FLEET-R002.2, not yet specified)."
     },
     {
       "id": "GRAPHOS-FLEET-R003",
@@ -76,14 +105,46 @@
     {
       "id": "GRAPHOS-FLEET-R004",
       "title": "Pack annotations carry capability, digest, modality, cost, latency",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "0aba0c33acd0dae26a0132797ac1cb412075b49d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/0aba0c33acd0dae26a0132797ac1cb412075b49d",
+          "description": "GRAPHOS-FLEET-R004 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R005",
-      "title": "A2A task routing with typed work-item and lease operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "A2A task routing with typed work-item and lease operations (rollup)",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "description": "GRAPHOS-FLEET-R005 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R005.1 lands the typed WorkItem view; GetWorkItem/ListWorkItems operations, capability-based agent search, control-lease issuance/consumption, and the multiplexer tool-subset restriction (GRAPHOS-FLEET-R005.2+) are not yet specified."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R005.1",
+      "title": "Typed WorkItem view, the GetWorkItem/ListWorkItems producer",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
+          "description": "GRAPHOS-FLEET-R005.1 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "graph_os/a2a/work_items.py adds WorkItemView, work_item_view, parse_work_item_view and list_work_item_views, exported from graph_os/a2a/__init__.py; tests/a2a/test_work_items.py passes (13 tests). Published on a branch/PR; not yet merged to the default branch. No GetWorkItem/ListWorkItems operation, capability search, or control lease yet (GRAPHOS-FLEET-R005.2+, not yet specified)."
     },
     {
       "id": "GRAPHOS-FLEET-R006",
@@ -127,8 +188,16 @@
     {
       "id": "GRAPHOS-FLEET-R011",
       "title": "Registry core computes a canonical digest and authorized find",
-      "delivery_state": "BUILDING",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
+          "description": "GRAPHOS-FLEET-R011 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "Implemented and unit-tested on the default branch under graph_os/api/. The reachability report shows no served entry point imports that package yet. Remaining: compose it into the served application, with a test through the served entry point."
     },
     {
@@ -228,7 +297,7 @@
     {
       "id": "GRAPHOS-FLEET-R018",
       "title": "Multiplexer exposes four resident fleet tools over one catalog",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -236,6 +305,13 @@
           "commit": "fda058b41780632881d4b281ea71504705cac602",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/fda058b41780632881d4b281ea71504705cac602",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "e1d37ca10ef7e14540629848249e9b328ada1574",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e1d37ca10ef7e14540629848249e9b328ada1574",
+          "description": "GRAPHOS-FLEET-R018 merged to the default branch in this commit."
         }
       ],
       "remaining": "The resident-tool mechanics (catalog items, bounded session loads with idle expiry, governed gateway call path) are implemented and unit-tested on the default branch (tests/fleet/test_gateway_ops.py). Remaining: replace the live multiplexer's own registered meta-tools with them."
@@ -243,8 +319,16 @@
     {
       "id": "GRAPHOS-FLEET-R019",
       "title": "Eunomia narrows authority at discover, load and call",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "269c409c5415459d900286134e4bf5d24770b5b7",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/269c409c5415459d900286134e4bf5d24770b5b7",
+          "description": "GRAPHOS-FLEET-R019 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R020",
@@ -295,7 +379,41 @@
     },
     {
       "id": "GRAPHOS-FLEET-R024",
-      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS",
+      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS (rollup)",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "c2d8c8ce46b8735494226aeb9e5af063c78dc217",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c2d8c8ce46b8735494226aeb9e5af063c78dc217",
+          "description": "GRAPHOS-FLEET-R024 merged to the default branch in this commit."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024.1",
+      "title": "Deploy-watch verdict is a typed GraphOS operation",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "c2d8c8ce46b8735494226aeb9e5af063c78dc217",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c2d8c8ce46b8735494226aeb9e5af063c78dc217",
+          "description": "GRAPHOS-FLEET-R024.1 merged to the default branch in this commit."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024.2",
+      "title": "Remaining fleet reconciler, autoscaler, scaling-authority and deploy-watch scheduling behavior is served by GraphOS",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024.3",
+      "title": "Agent runtime no longer ships the superseded fleet modules (cross-repo)",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },

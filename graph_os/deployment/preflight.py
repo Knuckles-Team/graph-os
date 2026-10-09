@@ -28,6 +28,7 @@ the same shape (and same human/JSON renderers) as a doctor report.
 
 from __future__ import annotations
 
+import importlib.util
 import platform
 import shutil
 import subprocess  # nosec B404 -- fixed-argv local prerequisite probes
@@ -38,8 +39,17 @@ from typing import Any
 
 from agent_utilities.core.config import setting
 
+from graph_os.webui_host.package_layout_expectation import (
+    AGENT_WEBUI_DISTRIBUTION,
+    EXPECTED_TOP_LEVEL_MODULES,
+    AgentWebUiLayoutError,
+    InstalledPackageFixture,
+    validate_agent_webui_layout,
+)
+
 from .doctor import _RANK, _result
 from .genesis_environments import EnvironmentProfileError, load_environment_profile
+from .webui_reference_model import StaleWebUiReferenceError, current_web_ui_references
 
 # Current deployment profiles from genesis.yaml; named environments are loaded
 # separately and never fall back to one of these profiles.
@@ -269,7 +279,54 @@ def _node_version() -> tuple[int, ...] | None:
         return ()
 
 
-def _check_webui() -> dict[str, Any]:
+def _agent_webui_module_is_installed(module: str) -> bool:
+    if module in sys.modules:
+        return True
+    try:
+        return importlib.util.find_spec(module) is not None
+    except (ImportError, ValueError, AttributeError):
+        return False
+
+
+def _check_webui_reference_model() -> dict[str, Any] | None:
+    """R003: every web UI package reference site names the renamed package."""
+    try:
+        current_web_ui_references()
+    except StaleWebUiReferenceError as exc:
+        return _result(
+            "agent-webui",
+            "fail",
+            f"web UI package reference model is stale: {exc}",
+            remediation="fix the reference to name the renamed web UI package",
+        )
+    return None
+
+
+def _check_installed_webui_layout() -> dict[str, Any] | None:
+    """R013: an installed agent-webui has every module GraphOS imports."""
+    if not _agent_webui_module_is_installed("agent_webui"):
+        return None
+    fixture = InstalledPackageFixture(
+        distribution=AGENT_WEBUI_DISTRIBUTION,
+        top_level_modules=tuple(
+            module
+            for module in EXPECTED_TOP_LEVEL_MODULES
+            if _agent_webui_module_is_installed(module)
+        ),
+    )
+    try:
+        validate_agent_webui_layout(fixture)
+    except AgentWebUiLayoutError as exc:
+        return _result(
+            "agent-webui",
+            "warn",
+            f"installed agent-webui package layout is incomplete: {exc}",
+            remediation="reinstall the agent-webui extra (`uv sync --extra webui`)",
+        )
+    return None
+
+
+def _check_webui_node_toolchain() -> dict[str, Any]:
     ver = _node_version()
     pnpm = shutil.which("pnpm")
     if ver is None:
@@ -294,6 +351,16 @@ def _check_webui() -> dict[str, Any]:
         "Node present but " + ", ".join(missing),
         remediation="install Node>=18 and pnpm 10.x (`corepack enable`)",
     )
+
+
+def _check_webui() -> dict[str, Any]:
+    reference_result = _check_webui_reference_model()
+    if reference_result is not None:
+        return reference_result
+    layout_result = _check_installed_webui_layout()
+    if layout_result is not None:
+        return layout_result
+    return _check_webui_node_toolchain()
 
 
 def _check_geniusbot() -> dict[str, Any]:

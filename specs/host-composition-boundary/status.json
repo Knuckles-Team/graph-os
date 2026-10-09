@@ -24,7 +24,10 @@
     "GRAPHOS-HOST-R019",
     "GRAPHOS-HOST-R020",
     "GRAPHOS-HOST-R021",
-    "GRAPHOS-HOST-R022"
+    "GRAPHOS-HOST-R022",
+    "GRAPHOS-HOST-R023",
+    "GRAPHOS-HOST-R024",
+    "GRAPHOS-HOST-R025"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -45,7 +48,7 @@
     {
       "id": "GRAPHOS-HOST-R003",
       "title": "Web UI rename cutover across GraphOS",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -53,13 +56,20 @@
           "commit": "ebb644b377cd8b0a92c5863f1d0213cf68a85095",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/ebb644b377cd8b0a92c5863f1d0213cf68a85095",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "description": "GRAPHOS-HOST-R003 merged to the default branch in this commit."
         }
       ]
     },
     {
       "id": "GRAPHOS-HOST-R004",
       "title": "Single gateway implementation under graph_os/gateway",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -67,6 +77,13 @@
           "commit": "fb06321fe19358019f09ba390a8498a0ec80610b",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/fb06321fe19358019f09ba390a8498a0ec80610b",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "45283d0137b99481b48d89844a14f4d25e7e3a0c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/45283d0137b99481b48d89844a14f4d25e7e3a0c",
+          "description": "GRAPHOS-HOST-R004 merged to the default branch in this commit."
         }
       ],
       "remaining": "graph-os-daemon script is still declared in pyproject.toml and asserted by tests/deployment/test_entrypoints.py (not dropped); the AU-side agent_utilities/gateway duplicate removal and registry_api.py port remain staged, uncommitted-to-main work (see origin/feat/t5-mcpi31-composed-20260925 @ fb06321"
@@ -74,8 +91,16 @@
     {
       "id": "GRAPHOS-HOST-R005",
       "title": "graph_os.mcp_server.runtime serves retired MCP actions",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "description": "GRAPHOS-HOST-R005 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R006",
@@ -86,8 +111,16 @@
     {
       "id": "GRAPHOS-HOST-R007",
       "title": "Agent runtime imported only through its public API",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "c467b28d2385fe23b7363e77e03f5293c3dd982d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c467b28d2385fe23b7363e77e03f5293c3dd982d",
+          "description": "GRAPHOS-HOST-R007 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R008",
@@ -106,7 +139,7 @@
     {
       "id": "GRAPHOS-HOST-R009",
       "title": "GraphOS hosts the agent HTTP server and A2A endpoints",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -114,6 +147,13 @@
           "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "e5efd4f0ca33db21307d307aed30a1b73a71105c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e5efd4f0ca33db21307d307aed30a1b73a71105c",
+          "description": "GRAPHOS-HOST-R009 merged to the default branch in this commit."
         }
       ],
       "remaining": "No ACP-adapter protocol module exists anywhere under graph_os/ on main (zero 'acp' matches); A2A-config/A2A-graph-skill as distinct migrated modules are not identifiable; AU-side retirement of its HTTP server and second task-store broker is not verifiable from this checkout."
@@ -149,20 +189,44 @@
     {
       "id": "GRAPHOS-HOST-R012",
       "title": "Component registry carries GraphOS and SDK boundary entries",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "d75db1ea42e89878569c94ed3c8f2190c14a6172",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/d75db1ea42e89878569c94ed3c8f2190c14a6172",
+          "description": "GRAPHOS-HOST-R012 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R013",
       "title": "Front ends import only public GraphOS/agent-runtime surfaces",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4ca77fbff9e3df2919241fdee9928277f50a2b3d",
+          "description": "GRAPHOS-HOST-R013 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R014",
       "title": "Agent runtime split into connector SDK, GraphOS and engine",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "f8d31551067c01e217fd983375cd8f8978dbfc9b",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/f8d31551067c01e217fd983375cd8f8978dbfc9b",
+          "description": "GRAPHOS-HOST-R014 merged to the default branch in this commit."
+        }
+      ],
       "remaining": "pyproject.toml dependencies pin agent-utilities/agent-connector-sdk/epistemic-graph via PEP508 floors (good), but [tool.uv.sources] still resolves agent-utilities, agent-connector-sdk and agent-webui to local editable .uv-workspace-siblings paths, and no test in this checkout asserts manifest-only ("
     },
     {
@@ -272,6 +336,51 @@
         }
       ],
       "remaining": "Merge, roll out graph-os, then confirm a live plan's reuse hits, guardrail rows and workflow match are non-degenerate against the served engine."
+    },
+    {
+      "id": "GRAPHOS-HOST-R023",
+      "title": "GraphOS serves its eight-tool MCP intent surface from its own operation registry",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "c39349d16c53039ab550bed2adb4dbb668f5a4a8",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c39349d16c53039ab550bed2adb4dbb668f5a4a8",
+          "description": "GRAPHOS-HOST-R023 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "PR open: graph_os/api/mcp serving composition, tool-list parity test, invoke-pipeline dispatch test, nl-query ask fallback test."
+    },
+    {
+      "id": "GRAPHOS-HOST-R024",
+      "title": "graph_os.mcp_server.server registers GraphOS's own intent surface, not the agent runtime's",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "c39349d16c53039ab550bed2adb4dbb668f5a4a8",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c39349d16c53039ab550bed2adb4dbb668f5a4a8",
+          "description": "GRAPHOS-HOST-R024 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "Depends on GRAPHOS-HOST-R023. Switch server.py and record the unreachable-module count before/after."
+    },
+    {
+      "id": "GRAPHOS-HOST-R025",
+      "title": "The agent runtime's MCP serving stack is removed",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "c39349d16c53039ab550bed2adb4dbb668f5a4a8",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c39349d16c53039ab550bed2adb4dbb668f5a4a8",
+          "description": "GRAPHOS-HOST-R025 merged to the default branch in this commit."
+        }
+      ],
+      "remaining": "Depends on GRAPHOS-HOST-R024 landing in GraphOS. Delete intent_tools.py, graphos_surface.py and the kg_server MCP entry point in agent-utilities."
     }
   ]
 }

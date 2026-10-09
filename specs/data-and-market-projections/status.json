@@ -10,14 +10,22 @@
     "GRAPHOS-DATA-MARKET-R005",
     "GRAPHOS-DATA-MARKET-R006"
   ],
-  "delivery_state": "BUILDING",
+  "delivery_state": "LANDED",
   "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
+  "evidence": [
+    {
+      "kind": "merged_head",
+      "result": "passed",
+      "commit": "e61c0e3df8b79a5eec337e931b25ba2e47584b3e",
+      "url": "https://github.com/Knuckles-Team/graph-os/commit/e61c0e3df8b79a5eec337e931b25ba2e47584b3e",
+      "description": "Every requirement in this spec is merged to the default branch."
+    }
+  ],
   "requirements": [
     {
       "id": "GRAPHOS-DATA-MARKET-R001",
       "title": "Durable, deduplicated flip alert delivery",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -25,13 +33,20 @@
           "commit": "ebbc7e3e38470d3027668843d61b7332079a963d",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/ebbc7e3e38470d3027668843d61b7332079a963d",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "e61c0e3df8b79a5eec337e931b25ba2e47584b3e",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e61c0e3df8b79a5eec337e931b25ba2e47584b3e",
+          "description": "GRAPHOS-DATA-MARKET-R001 merged to the default branch in this commit."
         }
       ]
     },
     {
       "id": "GRAPHOS-DATA-MARKET-R002",
       "title": "Scheduled finance backfill, scan, and explanation jobs",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -39,13 +54,20 @@
           "commit": "35bc4b06650e1cd7a5f55e518ef524321bb755e2",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/35bc4b06650e1cd7a5f55e518ef524321bb755e2",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "57391db3828f1d4314cd9a265eb012d5bc896990",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/57391db3828f1d4314cd9a265eb012d5bc896990",
+          "description": "GRAPHOS-DATA-MARKET-R002 merged to the default branch in this commit."
         }
       ]
     },
     {
       "id": "GRAPHOS-DATA-MARKET-R003",
       "title": "Server-side finance and markets reads and paper order submission",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -53,6 +75,13 @@
           "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "b1ee0584dbba1921995819b03376c915755465e2",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/b1ee0584dbba1921995819b03376c915755465e2",
+          "description": "GRAPHOS-DATA-MARKET-R003 merged to the default branch in this commit."
         }
       ]
     },
@@ -87,8 +116,16 @@
     {
       "id": "GRAPHOS-DATA-MARKET-R006",
       "title": "Recurring DCA plans with deterministic, non-duplicating proposals",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "35385208a6190208f2839f6b36a07da835b07b1c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/35385208a6190208f2839f6b36a07da835b07b1c",
+          "description": "GRAPHOS-DATA-MARKET-R006 merged to the default branch in this commit."
+        }
+      ]
     }
   ]
 }

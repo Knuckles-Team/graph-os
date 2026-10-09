@@ -7,15 +7,23 @@
     "GRAPHOS-RELEASE-R002",
     "GRAPHOS-RELEASE-R003"
   ],
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
   "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-RELEASE-R001",
       "title": "Dependency-ordered, digest-verified release promotion",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "eacc29a1952ed0a2a9510b34fae582c66f49bc1f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/eacc29a1952ed0a2a9510b34fae582c66f49bc1f",
+          "description": "GRAPHOS-RELEASE-R001 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-RELEASE-R002",

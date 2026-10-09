@@ -55,6 +55,10 @@ from typing import Any, cast
 from agent_utilities.core.config import setting
 
 from graph_os._version import __version__
+from graph_os.mcp_server.legacy_action_mapping import (
+    APPROVED_ACTION_MAPPING,
+    validate_served_actions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -337,6 +341,14 @@ async def _execute_tool(tool_name: str, **kwargs) -> Any:
         with priority_scope(PriorityClass.INTERACTIVE):
             return await _guarded()
     return await _guarded()
+
+
+def served_legacy_actions_within_approved_mapping(
+    served_actions: tuple[str, ...],
+) -> None:
+    """Refuse a served-actions set containing an action with no approved
+    legacy-host mapping (RF-ADR-009 host-composition-boundary R005)."""
+    validate_served_actions(served_actions, APPROVED_ACTION_MAPPING)
 
 
 def build_native_graphos_toolset(tool_names: list[str], *, toolset_id: str) -> Any:

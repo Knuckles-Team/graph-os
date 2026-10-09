@@ -59,8 +59,9 @@ no longer part of that pass: kiss 0.4.11 moved orphan detection to the
 coverage-linked `kiss test`, a much heavier and differently-scoped operation
 than this repository's wiring gate needs. The `check-orphan-modules`
 pre-commit hook (`scripts/check_wiring.py orphans`) enforces it instead,
-restoring the original structural semantics — see AGENTS.md "Orphan-module
-wiring gate (Python)".
+restoring the original structural semantics — see the
+`graph-os-repository-development` skill's "Orphan-module wiring gate
+(Python)" section.
 
 ### Reachability report — informational, manual stage only
 
@@ -73,8 +74,9 @@ declared roots (`pyproject.toml`'s `[project.scripts]` / `[project.entry-points]
 and the top-level package) never reaches. It runs at the `manual` stage
 only, so it never blocks `pre-commit` or `pre-push` and CI's blocking gate
 set is unchanged; it exists to make staged, not-yet-served code visible and
-trackable, not to force an immediate fix. See AGENTS.md "Reachability report
-(Python) — staged, not-yet-served code".
+trackable, not to force an immediate fix. See the
+`graph-os-repository-development` skill's "Reachability report (Python) —
+staged, not-yet-served code" section.
 
 ## Running the scanners
 
