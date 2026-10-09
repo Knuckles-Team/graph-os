@@ -78,6 +78,20 @@ webui = [
     "agent-webui>=2.6.0,<3.0.0",
     "uvicorn>=0.51.0",
 ]
+# GRAPHOS-DEPLOY-R006: graph_os/gateway/widgets/*.py each call
+# BaseWidget._fleet_client() (graph_os/fleet) for live data -- the served
+# fleet admission seam, never a direct connector-package import (see the
+# `dependencies` comment above). No widget today transitively needs a
+# fleet connector package's own distribution, but any future widget that
+# does must resolve a connector built against agent-connector-sdk's current,
+# post-split module layout, not a pre-split agent-utilities-runtime shape.
+# This extra is GraphOS's side of that floor -- the agent-utilities
+# `gateway-widgets` extra it replaces (retired there under
+# AU-BOUNDARY-R001/GRAPHOS-HOST-R004) pinned the same SDK transitively
+# through each connector package's own dependency on it.
+gateway-widgets = [
+    "agent-connector-sdk>=0.1.0,<1.0.0",
+]
 # Messaging channel adapters (CONCEPT:AU-ECO.messaging.native-backend-abstraction):
 # each chat platform SDK is its own extra so importing graph_os.messaging never
 # requires every platform's client library to be installed. Further platforms
