@@ -22,6 +22,7 @@ from .routing import A2AAssemblyUnavailable
 
 __all__ = [
     "A2AIdempotencyConflict",
+    "A2AStreamingUnavailable",
     "A2ATaskAuthority",
     "A2ATaskNotCancelable",
     "WorkItemA2AAuthority",
@@ -49,6 +50,16 @@ class A2AIdempotencyConflict(RuntimeError):
 
 class A2ATaskNotCancelable(RuntimeError):
     """A task is unknown, terminal, or held by a non-cancelable authority."""
+
+
+class A2AStreamingUnavailable(RuntimeError):
+    """Durable task streaming/resubscribe has no event-cursor backing yet.
+
+    GRAPHOS-A2A-R001 adds durable task streaming and resubscribe without a
+    second task store. That bounded, restart-safe event-cursor backing does
+    not exist yet, so ``tasks/resubscribe`` must fail closed rather than
+    silently succeed or be reported as an unrecognized method.
+    """
 
 
 @runtime_checkable
