@@ -7,7 +7,8 @@
     "GRAPHOS-ACCEPTANCE-R002",
     "GRAPHOS-ACCEPTANCE-R003",
     "GRAPHOS-ACCEPTANCE-R004",
-    "GRAPHOS-ACCEPTANCE-R005"
+    "GRAPHOS-ACCEPTANCE-R005",
+    "GRAPHOS-ACCEPTANCE-R001.1"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -41,6 +42,12 @@
       "id": "GRAPHOS-ACCEPTANCE-R005",
       "title": "Checker is the only path to an ACCEPTED report",
       "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-ACCEPTANCE-R001.1",
+      "title": "implement the typed EvidenceRecord/RequirementGap model and gaps_for_status/load_status functions plus the standalone CLI entry point in scripts/check_acceptanc",
+      "delivery_state": "BUILT",
       "evidence": []
     }
   ]

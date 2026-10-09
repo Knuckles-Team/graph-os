@@ -23,3 +23,12 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] **GRAPHOS-OPS-R024.5:** Operational admin operations — admin slice of `GRAPHOS-OPS-R024` (graph/query/search/ontology excluded; owned by `GRAPHOS-HOST-R026.x`).
 - [ ] **GRAPHOS-OPS-R026.1:** API-surface drift gate — api-surface slice of `GRAPHOS-OPS-R026`.
 - [ ] **GRAPHOS-OPS-R026.2:** Backward-compatibility drift gate — backward-compat slice of `GRAPHOS-OPS-R026`.
+
+## Decomposition children (tracked)
+
+- [x] **GRAPHOS-OPS-R020:** Ingest operations through a typed SDK runner facade
+- [x] **GRAPHOS-OPS-R020.1:** Typed ingest runner port and the source-sync entry point
+- [x] **GRAPHOS-OPS-R020.2:** Repository indexing and source inventory operations
+- [x] **GRAPHOS-OPS-R020.3:** Pack and job management operations
+- [ ] **GRAPHOS-OPS-R020.4:** Drift listing and repair-with-approval operations
+- [ ] **GRAPHOS-OPS-R020.5:** Embedding admission and re-embedding operations

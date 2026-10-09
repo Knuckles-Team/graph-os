@@ -7,13 +7,20 @@
     "GRAPHOS-FLEET-R002",
     "GRAPHOS-FLEET-R002.1",
     "GRAPHOS-FLEET-R003",
+    "GRAPHOS-FLEET-R003.1",
+    "GRAPHOS-FLEET-R003.2",
     "GRAPHOS-FLEET-R004",
     "GRAPHOS-FLEET-R005",
     "GRAPHOS-FLEET-R005.1",
     "GRAPHOS-FLEET-R006",
     "GRAPHOS-FLEET-R007",
     "GRAPHOS-FLEET-R008",
+    "GRAPHOS-FLEET-R008.1",
+    "GRAPHOS-FLEET-R008.2",
     "GRAPHOS-FLEET-R009",
+    "GRAPHOS-FLEET-R009.1",
+    "GRAPHOS-FLEET-R009.2",
+    "GRAPHOS-FLEET-R009.3",
     "GRAPHOS-FLEET-R010",
     "GRAPHOS-FLEET-R011",
     "GRAPHOS-FLEET-R012",
@@ -38,7 +45,9 @@
     "GRAPHOS-FLEET-R027",
     "GRAPHOS-FLEET-R028",
     "GRAPHOS-FLEET-R029",
-    "GRAPHOS-FLEET-R030"
+    "GRAPHOS-FLEET-R030",
+    "GRAPHOS-FLEET-R002.2",
+    "GRAPHOS-FLEET-R005.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -61,7 +70,7 @@
     {
       "id": "GRAPHOS-FLEET-R002",
       "title": "Tool schema fingerprints recomputed from served schemas (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -90,7 +99,7 @@
     },
     {
       "id": "GRAPHOS-FLEET-R003",
-      "title": "D18 write-back exposed only as a typed, previewed operation",
+      "title": "D18 write-back exposed only as a typed, previewed operation (rollup)",
       "delivery_state": "BUILDING",
       "evidence": [
         {
@@ -99,15 +108,28 @@
           "commit": "9a9b3f5c8ecb3e62f99ab79770ed06d015fb0365",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/9a9b3f5c8ecb3e62f99ab79770ed06d015fb0365",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "19d17d245957970ef98127d8830d0321ccab4f64",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/19d17d245957970ef98127d8830d0321ccab4f64",
-          "description": "graph_os/api/ops/write_back.py adds WriteBackPreviewRequest/WriteBackPreviewResult and preview_write_back(), which refuses a blank idempotency key and never applies a write; tests/api/test_write_back_preview.py passes (4 tests). No unguarded native child tool for D18 exists in this repo today. Remaining: bind this as an OpSpec (Confirm.PLAN, Idempotency.KEY_REQUIRED) in the operation registry and prove a restart/fault test."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.1",
+      "title": "Typed write-back preview model and its refusal rule",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "67b1b9ab916ee5c5d55a720a692d15264e387f6f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/67b1b9ab916ee5c5d55a720a692d15264e387f6f",
+          "description": "graph_os/api/ops/write_back.py adds WriteBackPreviewRequest/WriteBackPreviewResult and preview_write_back(), which refuses a blank idempotency key and never applies a write; tests/api/test_write_back_preview.py passes (4 tests)."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.2",
+      "title": "Write-back bound as a previewed, idempotent registry operation",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-FLEET-R004",
@@ -126,7 +148,7 @@
     {
       "id": "GRAPHOS-FLEET-R005",
       "title": "A2A task routing with typed work-item and lease operations (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -169,24 +191,53 @@
     },
     {
       "id": "GRAPHOS-FLEET-R008",
-      "title": "RUM, security-audit and CI/CD feeds join the catalog",
+      "title": "RUM, security-audit and CI/CD feeds join the catalog (rollup)",
       "delivery_state": "BUILDING",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R008.1",
+      "title": "Typed feed-event model per feed kind",
+      "delivery_state": "LANDED",
       "evidence": [
         {
-          "kind": "branch",
+          "kind": "merged_head",
           "result": "passed",
-          "commit": "19d17d245957970ef98127d8830d0321ccab4f64",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/19d17d245957970ef98127d8830d0321ccab4f64",
-          "description": "graph_os/fleet/feeds.py adds FeedEvent/FeedEventRejected and rum_event()/security_audit_event()/cicd_event(), each refusing an unsanitized payload or a missing tenant; tests/fleet/test_feeds.py passes (15 tests). Remaining: wire real connector ingestion for each feed and pass events through connector_items()/_pack_annotations() into the registry/tenant-boundary check."
+          "commit": "67b1b9ab916ee5c5d55a720a692d15264e387f6f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/67b1b9ab916ee5c5d55a720a692d15264e387f6f",
+          "description": "graph_os/fleet/feeds.py adds FeedEvent/FeedEventRejected and rum_event()/security_audit_event()/cicd_event(), each refusing an unsanitized payload or a missing tenant; tests/fleet/test_feeds.py passes (15 tests)."
         }
       ]
     },
     {
-      "id": "GRAPHOS-FLEET-R009",
-      "title": "Run admission evaluates, commits and publishes with capacity control",
+      "id": "GRAPHOS-FLEET-R008.2",
+      "title": "Live feed ingestion wired into the catalog",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "Skipped this pass: names 3 code roots (graph_os/a2a/routing.py, graph_os/a2a/composition.py, control_plane/runs/admission.py) above the 2-root split threshold; needs sizing into producer-first children before implementation, which exceeds this slice's investigation budget."
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009",
+      "title": "Run admission evaluates, commits and publishes with capacity control (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.1",
+      "title": "Run admission evaluates a candidate run",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.2",
+      "title": "Run admission commits with synthesis evidence",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.3",
+      "title": "Run admission publishes with all-or-nothing capacity control",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-FLEET-R010",
@@ -397,7 +448,7 @@
     {
       "id": "GRAPHOS-FLEET-R024",
       "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -530,6 +581,18 @@
         }
       ],
       "remaining": "Not yet merged. Live reads need an approval path and a live operation binding for each source."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R002.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R005.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     }
   ]
 }
