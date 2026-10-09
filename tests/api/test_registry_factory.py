@@ -18,13 +18,13 @@ from graph_os.api.ops import (
     get_registry,
     ingest,
     memory,
+    ops,
     policy,
     security,
     swarm,
     telemetry,
     usage,
     work,
-    ops,
 )
 from graph_os.api.registry import (
     Composite,
