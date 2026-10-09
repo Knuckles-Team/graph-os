@@ -28,3 +28,48 @@ Check a task only after its linked code and tests land. A checked source task is
 - [ ] T19 (GRAPHOS-FLEET-R030): Read ontology entries from the real pack archive accessor; confirm the duck-typed `entries` read against the SDK archive.
 - [x] T23 (GRAPHOS-FLEET-R030): Parse only ontology bodies that use the access-contract vocabulary. Log and skip a body the parser rejects.
 - [ ] T20 (GRAPHOS-FLEET-R030): Bind each source to a live operation call and add an operator approval path.
+
+## MCPProjection reachability follow-up (2026-10-08, this lane)
+
+Investigated whether `graph_os/api/mcp/verbs.py`'s `MCPProjection` (R013) should
+get a real caller outside `graph_os/mcp_server/server.py`'s boot sequence, per
+R012/R013's spec text. Finding: no, not as written. `agent_utilities.mcp.graphos_surface`
+— the module PR #51 actually wired into the served bridge (`backing_server(mcp)`
+in `server.py`) — imports only `agent_utilities.mcp._graphos_action_manifest`,
+`intent_contract` and `tool_specs`. It does not import anything from
+`graph_os.api.*`. Confirmed with `grep -n "^from\|^import"` on
+`agent_utilities/mcp/graphos_surface.py`.
+
+That means the whole `graph_os/api/registry/`, `graph_os/api/invoke/` and
+`graph_os/api/mcp/` tree (R011, R012, R013, R014, R015, plus R007's
+`graph_os/api/mcp/resources.py` native `@mcp.resource(...)` registrations) has
+no production caller and no architectural reason to gain one: the six-verb
+surface it was built to serve is already shipped through a separate,
+self-contained implementation. Wiring `MCPProjection` into any serving path
+now would stand up a second, competing tool surface next to the one actually
+in production — not a fix, a new problem. Recommend the orchestrator choose
+one of:
+- delete `graph_os/api/registry/`, `graph_os/api/invoke/`, `graph_os/api/mcp/`
+  and their tests (confirm no other reachable caller first), or
+- mark R011/R012/R013/R014/R015 and R007's resource-registration clause
+  `SUPERSEDED` by R029, the same disposition already due for R018/R020.
+
+Also checked GRAPHOS-FLEET-R002's "empty placeholder" tool-schema fingerprint
+language. The one hit, `policy.fingerprint_catalog(catalog)`
+(`graph_os/fleet/multiplexer.py:2918`), calls a method that
+`_RUNTIME_CHILD_POLICY_METHODS` (same file, line 1093) requires any runtime
+child policy to implement, but this is a *catalog*-level fingerprint on the
+transport/spawn policy protocol, not the per-tool-pin schema fingerprint
+R002 describes. Did not find where a per-tool-pin schema fingerprint is
+computed or defaulted to empty; R002's concrete gap still needs locating
+before it can be fixed.
+
+Checked the remaining `SPECIFIED` requirements (R004, R005, R006, R008, R009)
+for existing partial code to extend instead of a fresh guess: none has one.
+R004's capability/digest/modality/cost/latency fields do not exist anywhere
+in `graph_os/fleet/catalog_items.py`; R006's skill/prompt harvest removal
+would cut deep into `graph_os/fleet/multiplexer.py`'s probe-budget and
+security-sensitive harvest machinery (not a small deletion); R009's capacity
+admission has no code under `graph_os/control_plane/runs/` or `graph_os/a2a/`
+beyond an unrelated audit-chain capacity check. None of these is a safe
+10-minute slice without a real design decision first; none was attempted.
