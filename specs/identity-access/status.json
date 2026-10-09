@@ -41,7 +41,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R001",
       "title": "Elevation request, approve, and revoke surfaces",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -49,6 +49,13 @@
           "commit": "4b6f2a45d707cd01c566fffb1017c4d7f6402fc6",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/4b6f2a45d707cd01c566fffb1017c4d7f6402fc6",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "6ab67acbcdb8baf56e769413e8d4ec31ee7c90f6",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/6ab67acbcdb8baf56e769413e8d4ec31ee7c90f6",
+          "description": "GRAPHOS-IDENTITY-R001 merged to the default branch in this commit."
         }
       ]
     },
@@ -97,7 +104,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R004",
       "title": "Loopback bootstrap principal with origin guarding (rollup)",
-      "delivery_state": "BUILDING",
+      "delivery_state": "LANDED",
       "children": [
         "GRAPHOS-IDENTITY-R004.1",
         "GRAPHOS-IDENTITY-R004.2"
@@ -109,6 +116,34 @@
           "commit": "cd652df8f6c8f27b3d107df326d1b5c991c7d037",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/cd652df8f6c8f27b3d107df326d1b5c991c7d037",
           "description": "GRAPHOS-IDENTITY-R004 merged to the default branch in this commit."
+        },
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "description": "graph_os/identity/bootstrap.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "description": "GRAPHOS-IDENTITY-R004.1 merged to the default branch in this commit."
+        },
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "3e061b21057694b35e14c995a1aa1cb134d2a161",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3e061b21057694b35e14c995a1aa1cb134d2a161",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4c9d5e1be7accc7dc0db8990c40210b87277fbf8",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4c9d5e1be7accc7dc0db8990c40210b87277fbf8",
+          "description": "GRAPHOS-IDENTITY-R004.2 merged to the default branch in this commit."
         }
       ]
     },
@@ -136,8 +171,23 @@
     {
       "id": "GRAPHOS-IDENTITY-R004.2",
       "title": "Bootstrap resolution path, Host/Origin validation, unsecured-mode indicators",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "3e061b21057694b35e14c995a1aa1cb134d2a161",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3e061b21057694b35e14c995a1aa1cb134d2a161",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4c9d5e1be7accc7dc0db8990c40210b87277fbf8",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4c9d5e1be7accc7dc0db8990c40210b87277fbf8",
+          "description": "GRAPHOS-IDENTITY-R004.2 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R005",
@@ -163,12 +213,20 @@
     {
       "id": "GRAPHOS-IDENTITY-R006",
       "title": "Optional MFA with TOTP, WebAuthn, and recovery codes (rollup)",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "children": [
         "GRAPHOS-IDENTITY-R006.1",
         "GRAPHOS-IDENTITY-R006.2"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "1a8e020d9d14e0f1a023d0057bf3fd1ab0045067",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/1a8e020d9d14e0f1a023d0057bf3fd1ab0045067",
+          "description": "GRAPHOS-IDENTITY-R006 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R006.1",
@@ -194,18 +252,41 @@
     {
       "id": "GRAPHOS-IDENTITY-R006.2",
       "title": "TOTP, WebAuthn, recovery-code ceremonies and group enforcement",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "7271985620c2bd03e73c0ca51128ce5a9fe9fdfd",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/7271985620c2bd03e73c0ca51128ce5a9fe9fdfd",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "7311832874fa7249e340584d116c227f62dc0619",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/7311832874fa7249e340584d116c227f62dc0619",
+          "description": "GRAPHOS-IDENTITY-R006.2 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R007",
       "title": "Admin console tabs with mapping dry-run and mode wizard (rollup)",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "children": [
         "GRAPHOS-IDENTITY-R007.1",
         "GRAPHOS-IDENTITY-R007.2"
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "1b9d8caad56ff1d9204826fb569b11028fbfa825",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/1b9d8caad56ff1d9204826fb569b11028fbfa825",
+          "description": "GRAPHOS-IDENTITY-R007 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R007.1",
@@ -231,8 +312,23 @@
     {
       "id": "GRAPHOS-IDENTITY-R007.2",
       "title": "Mapping dry-run preview and mode-transition wizard",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "2c8ce117cd23918fb6b4f072145431b8293dfa6c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/2c8ce117cd23918fb6b4f072145431b8293dfa6c",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "8ebdf33f3244318c40589d8aa6b76455aae16ad2",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/8ebdf33f3244318c40589d8aa6b76455aae16ad2",
+          "description": "GRAPHOS-IDENTITY-R007.2 merged to the default branch in this commit."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R008",
@@ -251,7 +347,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R009",
       "title": "Multi-provider OIDC with mapping rules and JIT policy",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -259,6 +355,13 @@
           "commit": "ab4de71595f9976088026616a050b9b55d860924",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/ab4de71595f9976088026616a050b9b55d860924",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "f061cfc7eadf4a3ced9b180702ace199288e2c06",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/f061cfc7eadf4a3ced9b180702ace199288e2c06",
+          "description": "GRAPHOS-IDENTITY-R009 merged to the default branch in this commit."
         }
       ]
     },
@@ -299,7 +402,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R013",
       "title": "Identity CLI commands and doctor diagnostics",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -307,13 +410,20 @@
           "commit": "7593ae73270e379f1c5d9730bfbf664310644f4c",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/7593ae73270e379f1c5d9730bfbf664310644f4c",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "25872acd2ee322ec6d7711942392ac6c968a2d94",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/25872acd2ee322ec6d7711942392ac6c968a2d94",
+          "description": "GRAPHOS-IDENTITY-R013 merged to the default branch in this commit."
         }
       ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R014",
       "title": "Shared RBAC decision oracle across identity modes",
-      "delivery_state": "BUILT",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "branch",
@@ -321,6 +431,13 @@
           "commit": "9a51dc6f4c871f7fdc204d8cc167d4b12b5a33a6",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/9a51dc6f4c871f7fdc204d8cc167d4b12b5a33a6",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "ae27fbd107569597b3afd0cfc03633483d044225",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/ae27fbd107569597b3afd0cfc03633483d044225",
+          "description": "GRAPHOS-IDENTITY-R014 merged to the default branch in this commit."
         }
       ]
     },

@@ -124,6 +124,49 @@ def gaps_for_requirement(requirement: dict) -> RequirementGap | None:
     return RequirementGap(requirement_id, commit, missing)
 
 
+@dataclass(frozen=True)
+class ReviewDecision:
+    """GRAPHOS-ACCEPTANCE-R002: who flipped a requirement to ACCEPTED, and why it was allowed."""
+
+    requirement_id: str
+    auditor_identity: str
+    merged_head_author: str
+    checker_reported_gap: bool
+
+
+def validate_review_trail(decision: ReviewDecision) -> None:
+    """Refuse an ACCEPTED flip that is not a real, checked, independent review.
+
+    Raises AcceptanceEvidenceError if the auditor is the same identity as the
+    author of the cited merged_head commit, or if the R001 checker still
+    reports a gap for this requirement (never a silent pass).
+    """
+    if decision.auditor_identity == decision.merged_head_author:
+        raise AcceptanceEvidenceError(
+            f"{decision.requirement_id}: auditor '{decision.auditor_identity}' "
+            "is the same identity as the merged_head commit author; "
+            "ACCEPTED requires a reviewer distinct from the delivery lane."
+        )
+    if decision.checker_reported_gap:
+        raise AcceptanceEvidenceError(
+            f"{decision.requirement_id}: the acceptance-evidence checker still "
+            "reports a gap; it must report none before ACCEPTED."
+        )
+
+
+def evidence_is_append_only(old_evidence: object, new_evidence: object) -> bool:
+    """GRAPHOS-ACCEPTANCE-R003: True iff `new_evidence` only appends to `old_evidence`.
+
+    Every existing entry (by position) must be byte-for-byte unchanged; a
+    correction must be a newly appended entry, never a rewrite in place.
+    """
+    if not isinstance(old_evidence, list) or not isinstance(new_evidence, list):
+        return False
+    if len(new_evidence) < len(old_evidence):
+        return False
+    return all(old_evidence[i] == new_evidence[i] for i in range(len(old_evidence)))
+
+
 def gaps_for_status(data: dict) -> list[RequirementGap]:
     """Return one RequirementGap per LANDED/CLOSED requirement missing evidence."""
     requirements = data.get("requirements")

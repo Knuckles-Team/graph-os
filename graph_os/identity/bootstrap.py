@@ -34,3 +34,43 @@ class LoopbackBootstrapPrincipal:
             raise IdentityUnavailable(
                 "non-loopback bind requires an explicit exposure acknowledgment"
             )
+
+
+def resolve_bootstrap_access(
+    *,
+    bind_host: str,
+    exposure_acknowledged: bool = False,
+    host_header: str,
+    origin_header: str | None = None,
+    is_mutating: bool = False,
+) -> LoopbackBootstrapPrincipal:
+    """Resolve the unauthenticated-mode caller through the ordinary RBAC path.
+
+    Slice .2: wires the typed model (.1) into the Host/Origin guard for a
+    cookie-mutating request. Refuses a non-loopback bind the same way the
+    typed model does, and additionally refuses a Host/Origin mismatch
+    before any principal is handed back.
+    """
+    principal = LoopbackBootstrapPrincipal(
+        bind_host=bind_host, exposure_acknowledged=exposure_acknowledged
+    )
+    if is_mutating:
+        if host_header not in _LOOPBACK_HOSTS and not exposure_acknowledged:
+            raise IdentityUnavailable("Host header does not match an acknowledged bind")
+        if origin_header is not None:
+            origin_host = origin_header.split("://", 1)[-1].split("/", 1)[0]
+            if origin_host != host_header:
+                raise IdentityUnavailable(
+                    "same-origin Origin required for a cookie-mutating request"
+                )
+    return principal
+
+
+def unsecured_mode_banner(principal: LoopbackBootstrapPrincipal) -> dict[str, str]:
+    """The unsecured-mode indicator shown in session, status, initialize, and doctor."""
+    return {
+        "mode": "unauthenticated",
+        "principal": "usr:bootstrap",
+        "banner": "GraphOS is running in unsecured loopback mode.",
+        "doctor_check": "fail" if principal.exposure_acknowledged else "pass",
+    }

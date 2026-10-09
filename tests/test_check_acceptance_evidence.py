@@ -28,9 +28,12 @@ _SPEC.loader.exec_module(_module)
 
 AcceptanceEvidenceError = _module.AcceptanceEvidenceError
 RequirementGap = _module.RequirementGap
+ReviewDecision = _module.ReviewDecision
 gaps_for_status = _module.gaps_for_status
 load_status = _module.load_status
 main = _module.main
+validate_review_trail = _module.validate_review_trail
+evidence_is_append_only = _module.evidence_is_append_only
 
 COMMIT_A = "a" * 40
 COMMIT_B = "b" * 40
@@ -168,6 +171,65 @@ def test_main_reports_gap_and_exits_nonzero(tmp_path: Path) -> None:
     )
     exit_code = main([str(status_path)])
     assert exit_code == 1
+
+
+def test_review_trail_refuses_same_identity_auditor() -> None:
+    """GRAPHOS-ACCEPTANCE-R002: auditor must differ from the merged_head author."""
+    decision = ReviewDecision(
+        requirement_id="FIX-R002",
+        auditor_identity="alice",
+        merged_head_author="alice",
+        checker_reported_gap=False,
+    )
+    with pytest.raises(AcceptanceEvidenceError):
+        validate_review_trail(decision)
+
+
+def test_review_trail_refuses_when_checker_still_reports_gap() -> None:
+    """GRAPHOS-ACCEPTANCE-R002: the checker must report no gap before ACCEPTED."""
+    decision = ReviewDecision(
+        requirement_id="FIX-R002",
+        auditor_identity="bob",
+        merged_head_author="alice",
+        checker_reported_gap=True,
+    )
+    with pytest.raises(AcceptanceEvidenceError):
+        validate_review_trail(decision)
+
+
+def test_review_trail_accepts_distinct_auditor_with_no_gap() -> None:
+    decision = ReviewDecision(
+        requirement_id="FIX-R002",
+        auditor_identity="bob",
+        merged_head_author="alice",
+        checker_reported_gap=False,
+    )
+    validate_review_trail(decision)  # does not raise
+
+
+def test_evidence_append_only_accepts_pure_appends() -> None:
+    """GRAPHOS-ACCEPTANCE-R003: appending a correction entry is allowed."""
+    old = [_evidence("merged_head", COMMIT_A)]
+    new = [_evidence("merged_head", COMMIT_A), _evidence("test", COMMIT_A)]
+    assert evidence_is_append_only(old, new) is True
+
+
+def test_evidence_append_only_rejects_rewrite_in_place() -> None:
+    """GRAPHOS-ACCEPTANCE-R003: mutating an existing entry's fields is refused."""
+    old = [_evidence("merged_head", COMMIT_A, result="passed")]
+    new = [_evidence("merged_head", COMMIT_A, result="failed")]
+    assert evidence_is_append_only(old, new) is False
+
+
+def test_main_discovery_mode_is_deterministic_across_runs(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """GRAPHOS-ACCEPTANCE-R005: no-args discovery over every tracked spec is stable."""
+    main([])
+    first = capsys.readouterr().out
+    main([])
+    second = capsys.readouterr().out
+    assert first == second
 
 
 def test_main_is_deterministic_across_runs(

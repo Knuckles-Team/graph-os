@@ -52,8 +52,17 @@
     {
       "id": "GRAPHOS-MESSAGING-R002",
       "title": "Health-gated start",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "63a66f60915ab91346ce96e09d74b44df15ec22c",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/63a66f60915ab91346ce96e09d74b44df15ec22c",
+          "description": "GRAPHOS-MESSAGING-R002 (InboundRouter._start_one_backend health gate) already on the default branch in this commit, covered by test_router_never_promotes_an_unconnected_backend_to_running and test_router_promotes_connected_backend_to_running_then_drains_to_stopped in tests/messaging/test_supervision.py."
+        }
+      ],
+      "depends_on": []
     },
     {
       "id": "GRAPHOS-MESSAGING-R003",
