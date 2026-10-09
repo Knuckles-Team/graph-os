@@ -40,6 +40,9 @@ def test_run_canary_reports_only_aggregate_checks(monkeypatch) -> None:
     )
     monkeypatch.setattr(release_canary, "_engine_binary_ready", lambda: True)
     monkeypatch.setattr(release_canary, "_numeric_kernel_ready", lambda: True)
+    monkeypatch.setattr(
+        release_canary, "_served_fastmcp_matches_declared", lambda: True
+    )
 
     report = release_canary.run_canary()
 
@@ -49,10 +52,55 @@ def test_run_canary_reports_only_aggregate_checks(monkeypatch) -> None:
             "entry_points": True,
             "engine_binary": True,
             "numeric_kernel": True,
+            "served_fastmcp_matches_declared": True,
         },
         "privacySafe": True,
     }
     assert all(key in {"status", "checks", "privacySafe"} for key in report)
+
+
+def test_declared_fastmcp_major_reads_graph_os_requirement(monkeypatch) -> None:
+    monkeypatch.setattr(
+        release_canary.importlib.metadata,
+        "requires",
+        lambda _name: ["anyio>=4.13.0", "fastmcp>=4.0.0b1", "mcp>=2.0.0"],
+    )
+    assert release_canary._declared_fastmcp_major() == 4
+
+
+def test_declared_fastmcp_major_is_none_when_absent(monkeypatch) -> None:
+    monkeypatch.setattr(
+        release_canary.importlib.metadata,
+        "requires",
+        lambda _name: ["anyio>=4.13.0"],
+    )
+    assert release_canary._declared_fastmcp_major() is None
+
+
+def test_served_fastmcp_matches_declared_true_on_matching_major(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(release_canary, "_declared_fastmcp_major", lambda: 4)
+    monkeypatch.setattr(
+        release_canary.importlib.metadata, "version", lambda _name: "4.0.11"
+    )
+    assert release_canary._served_fastmcp_matches_declared() is True
+
+
+def test_served_fastmcp_matches_declared_false_on_major_drift(monkeypatch) -> None:
+    monkeypatch.setattr(release_canary, "_declared_fastmcp_major", lambda: 4)
+    monkeypatch.setattr(
+        release_canary.importlib.metadata, "version", lambda _name: "3.3.1"
+    )
+    assert release_canary._served_fastmcp_matches_declared() is False
+
+
+def test_served_fastmcp_matches_declared_false_when_unresolvable(monkeypatch) -> None:
+    monkeypatch.setattr(release_canary, "_declared_fastmcp_major", lambda: None)
+    monkeypatch.setattr(
+        release_canary.importlib.metadata, "version", lambda _name: "4.0.11"
+    )
+    assert release_canary._served_fastmcp_matches_declared() is False
 
 
 def test_main_requires_json_flag() -> None:

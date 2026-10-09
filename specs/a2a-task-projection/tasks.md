@@ -17,3 +17,6 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
   carry and enforce a caller-filtered tool allowlist at execution time. AU
   must add that carried, enforced tool-subset field before R002's
   caller-filtered exposure can be implemented here.
+- [x] Add a release-canary check proving the promoted environment serves the
+  FastMCP major it declares (GRAPHOS-A2A-R004). Semantic/composition proof
+  that FastMCP 4 runs end to end remains open.
