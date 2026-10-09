@@ -9,3 +9,11 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] Wire all operations and loaded fleet tools through hosted `invoke`, its exact scopes/policy and audit reservation.
 - [ ] Execute all positive, negative, replay, cross-tenant, cancellation, policy-change and restart tests in [test-spec.md](test-spec.md).
 - [ ] Run clean-checkout language, scanner, package and ephemeral served gates; record exact revision evidence and only then enable approval/mark accepted.
+- [ ] **Prerequisite for GRAPHOS-A2A-R002** (owner repo: agent-utilities):
+  `WorkItemA2AAuthority._enqueue`/`dispatch` in `graph_os/a2a/authority.py`
+  refuse every request carrying `decision.selected_tools` because AU's
+  dispatch carrier (`agent_utilities.orchestration.agent_dispatch.
+  AgentTurnEnvelope` / `enqueue_agent_turn`) has no field or mechanism to
+  carry and enforce a caller-filtered tool allowlist at execution time. AU
+  must add that carried, enforced tool-subset field before R002's
+  caller-filtered exposure can be implemented here.
