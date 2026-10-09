@@ -107,13 +107,15 @@ class Resolution:
     session_mfa_pending: bool
     request_context: Mapping[str, Any]
 
-    def __post_init__(self) -> None:
+    def _validate_identity_shape(self) -> None:
         for name in ("principal_id", "username", "kind", "status"):
             _text(getattr(self, name))
         if self.kind not in {"human", "service"}:
             raise IdentityUnavailable("unknown principal kind")
         if self.status != "active":
             raise PermissionError("principal is not active")
+
+    def _validate_mfa_flags(self) -> None:
         for name in (
             "is_bootstrap",
             "mfa_required",
@@ -124,6 +126,8 @@ class Resolution:
                 raise IdentityUnavailable("identity flag must be an explicit boolean")
         if self.session_mfa_pending or (self.mfa_required and not self.mfa_enrolled):
             raise PermissionError("required second factor is incomplete")
+
+    def _reconcile_context(self) -> None:
         for name in ("roles", "groups", "scopes"):
             object.__setattr__(
                 self, name, _strings(getattr(self, name), scopes=name == "scopes")
@@ -135,6 +139,11 @@ class Resolution:
         ):
             raise IdentityUnavailable("resolution and request context disagree")
         object.__setattr__(self, "request_context", context)
+
+    def __post_init__(self) -> None:
+        self._validate_identity_shape()
+        self._validate_mfa_flags()
+        self._reconcile_context()
 
     @classmethod
     def parse(cls, value: Any) -> "Resolution":

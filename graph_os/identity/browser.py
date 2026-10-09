@@ -141,11 +141,16 @@ def session_cookie_header(token: str, *, expires_at_ms: int, now_ms: int) -> byt
     return f"{SESSION_COOKIE}={token}; Max-Age={seconds}; {_COOKIE_FLAGS}".encode()
 
 
-def _snapshot(scope: Mapping[str, Any], key: bytes) -> tuple[Any, ...]:
-    """Copy routing fields and digest exact security headers without secrets."""
+def _require_routing_fields(scope: Mapping[str, Any]) -> tuple[Any, ...]:
+    """The required `type`/`method`/`path` triple, or refuse."""
     values = tuple(scope.get(name) for name in ("type", "method", "path"))
     if any(type(value) is not str or not value for value in values):
         raise PermissionError("request routing fields are missing")
+    return values
+
+
+def _require_routing_context(scope: Mapping[str, Any]) -> tuple[str, bytes, bytes, str | None]:
+    """The exact target/root/scheme fields, or refuse."""
     raw_path, query = scope.get("raw_path"), scope.get("query_string")
     if type(raw_path) is not bytes or type(query) is not bytes:
         raise PermissionError("exact request target is missing")
@@ -153,16 +158,26 @@ def _snapshot(scope: Mapping[str, Any], key: bytes) -> tuple[Any, ...]:
     scheme = scope.get("scheme")
     if type(root_path) is not str or (scheme is not None and type(scheme) is not str):
         raise PermissionError("request routing context is malformed")
+    return root_path, raw_path, query, scheme
+
+
+def _require_server_context(scope: Mapping[str, Any]) -> tuple[str, int] | None:
+    """The exact `(host, port)` server pair, or refuse a malformed one."""
     server = scope.get("server")
-    if server is not None:
-        if (
-            type(server) not in (tuple, list)
-            or len(server) != 2
-            or type(server[0]) is not str
-            or type(server[1]) is not int
-        ):
-            raise PermissionError("request server context is malformed")
-        server = tuple(server)
+    if server is None:
+        return None
+    if (
+        type(server) not in (tuple, list)
+        or len(server) != 2
+        or type(server[0]) is not str
+        or type(server[1]) is not int
+    ):
+        raise PermissionError("request server context is malformed")
+    return tuple(server)
+
+
+def _header_digests(scope: Mapping[str, Any], key: bytes) -> tuple[bytes, ...]:
+    """Digest exact security headers without ever retaining their secrets."""
     digests = []
     for name in (b"host", b"origin", b"cookie", b"authorization", b"x-csrf-token"):
         values_for_header = _headers(scope, name)
@@ -170,6 +185,15 @@ def _snapshot(scope: Mapping[str, Any], key: bytes) -> tuple[Any, ...]:
             len(value).to_bytes(8, "big") + value for value in values_for_header
         )
         digests.append(hmac.digest(key, name + b"\0" + material, "sha256"))
+    return tuple(digests)
+
+
+def _snapshot(scope: Mapping[str, Any], key: bytes) -> tuple[Any, ...]:
+    """Copy routing fields and digest exact security headers without secrets."""
+    values = _require_routing_fields(scope)
+    root_path, raw_path, query, scheme = _require_routing_context(scope)
+    server = _require_server_context(scope)
+    digests = _header_digests(scope, key)
     return (*values, root_path, raw_path, query, scheme, server, *digests)
 
 
