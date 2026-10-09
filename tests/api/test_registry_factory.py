@@ -23,6 +23,7 @@ from graph_os.api.ops import (
     swarm,
     telemetry,
     usage,
+    work,
 )
 from graph_os.api.registry import (
     Composite,
@@ -69,6 +70,8 @@ def provider(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Pat
             "swarm:read",
             "memory:read",
             "memory:write",
+            "work:read",
+            "work:write",
         )
     )
     scope_path.write_text(json.dumps(document))
@@ -99,6 +102,7 @@ def test_no_argument_factory_is_deterministic_and_complete(
         *policy.operations(),
         *swarm.operations(),
         *memory.operations(),
+        *work.operations(),
     )
     assert {op.id for op in first} == {op.id for op in declared} | {
         "eg.query.Read",
