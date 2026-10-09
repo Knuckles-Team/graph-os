@@ -16,12 +16,10 @@ from graph_os.deployment.cli import main
 from graph_os.deployment.genesis_environments import BUILTIN_ENVIRONMENTS_DIR
 from graph_os.deployment.release_candidate import (
     CandidateError,
-    LocalGateResult,
     ExitCriteriaError,
-    StageReadiness,
+    LocalGateResult,
     _canonical_digest,
     gate_release,
-    execute_candidate,
     plan_candidate,
     read_candidate,
     read_exit_criteria_matrix,
@@ -233,6 +231,8 @@ _EXIT_CRITERIA_OBLIGATIONS = (
     "browser-identity-login",
     "typed-abstention",
 )
+
+
 def _exit_criteria_rows():
     return [
         {
@@ -242,51 +242,34 @@ def _exit_criteria_rows():
         }
         for obligation in _EXIT_CRITERIA_OBLIGATIONS
     ]
+
+
 def test_exit_criteria_matrix_one_row_per_readiness_obligation():
     """T-RL-10 (GRAPHOS-RELEASE-R003.1): a valid matrix carries one row per
     readiness obligation named in GRAPHOS-RELEASE-R003."""
     matrix = read_exit_criteria_matrix(_exit_criteria_rows())
     assert {row.obligation_id for row in matrix.rows} == set(_EXIT_CRITERIA_OBLIGATIONS)
+
+
 def test_exit_criteria_matrix_refuses_empty():
     with pytest.raises(ExitCriteriaError, match="exit_criteria_empty"):
         read_exit_criteria_matrix([])
+
+
 def test_exit_criteria_matrix_refuses_duplicate_obligation():
     rows = _exit_criteria_rows()
     rows.append(dict(rows[0]))
     with pytest.raises(ExitCriteriaError, match="exit_criteria_duplicate_obligation"):
         read_exit_criteria_matrix(rows)
+
+
 def test_exit_criteria_matrix_refuses_malformed_test_reference():
     rows = _exit_criteria_rows()
     rows[0]["test_reference"] = "not a path; rm -rf /"
     with pytest.raises(ExitCriteriaError, match="exit_criteria_row_invalid"):
         read_exit_criteria_matrix(rows)
-def test_execute_candidate_stops_before_next_stage_on_missing_readiness(
-    tmp_path, candidate, authority
-):
-    """T-RL-05/06 (GRAPHOS-RELEASE-R001): a missing predecessor digest/CI result
-    halts the rollout before any later stage is probed or released."""
-    seen: list[str] = []
-    def probe(component_id: str) -> StageReadiness:
-        seen.append(component_id)
-        if component_id == "graph-os":
-            return StageReadiness(ready=False, reason="ci_result_missing")
-        return StageReadiness(ready=True)
-    result = execute_candidate(plan, probe=probe)
-    assert result["executed"] is False
-    assert result["status"] == "blocked"
-    assert seen == ["epistemic-graph", "graph-os"]  # agent-webui never probed
-    statuses = {r["component_id"]: r["status"] for r in result["stage_receipts"]}
-    assert statuses == {"epistemic-graph": "released", "graph-os": "blocked"}
-def test_execute_candidate_releases_every_stage_when_all_ready(
-    tmp_path, candidate, authority
-):
-    result = execute_candidate(plan, probe=lambda _: StageReadiness(ready=True))
-    assert result["executed"] is True
-    assert result["status"] == "executed"
-    assert [r["status"] for r in result["stage_receipts"]] == [
-        "released",
-        "released",
-        "released",
+
+
 @pytest.mark.parametrize("field", ["artifacts", "stages"])
 def test_duplicate_components(tmp_path, candidate, authority, field):
     candidate[field].append(copy.deepcopy(candidate[field][0]))

@@ -8,7 +8,6 @@ import json
 import os
 import re
 import stat
-from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -80,18 +79,28 @@ class LocalGateResult(_Closed):
 
 ObligationId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_-]{2,63}$")]
 TestReference = Annotated[str, Field(pattern=r"^[A-Za-z0-9_./:-]{1,256}$")]
+
+
 class ExitCriteriaError(ValueError):
     """A stable refusal for an invalid exit-criteria matrix; never echoes input."""
+
+
 class ExitCriterionRow(_Closed):
     """One release-readiness obligation mapped to the test that proves it."""
+
     obligation_id: ObligationId
     description: str = Field(min_length=1, max_length=256)
     test_reference: TestReference
+
+
 class ExitCriteriaMatrix(_Closed):
     schema_version: Annotated[int, Field(ge=1, le=1)]
     rows: tuple[ExitCriterionRow, ...] = Field(min_length=1, max_length=64)
+
+
 def read_exit_criteria_matrix(raw_rows: list[dict[str, Any]]) -> ExitCriteriaMatrix:
     """Validate and index a candidate exit-criteria matrix (GRAPHOS-RELEASE-R003.1).
+
     Refuses a duplicate obligation ID and an empty matrix. ``ExitCriterionRow``'s
     own field patterns refuse a malformed test reference. This is the typed-model
     slice only: loading a real matrix from a committed fixture or CLI entry point
@@ -109,16 +118,8 @@ def read_exit_criteria_matrix(raw_rows: list[dict[str, Any]]) -> ExitCriteriaMat
             raise ExitCriteriaError("exit_criteria_duplicate_obligation")
         seen[row.obligation_id] = row
     return ExitCriteriaMatrix(schema_version=1, rows=tuple(seen.values()))
-class StageReadiness(_Closed):
-    """A predecessor's digest/CI readiness, as reported by the caller's probe."""
-    ready: bool
-    reason: str = Field(default="", max_length=256)
-class StageReceipt(_Closed):
-    component_id: Identifier
-    digest: Digest
-    source_revision: Revision
-    status: Literal["released", "blocked"]
-    reason: str = Field(default="", max_length=256)
+
+
 def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -336,39 +337,3 @@ def gate_release(
         "failed_gates": failed,
         "redacted": True,
     }
-def execute_candidate(
-    plan: dict[str, Any], *, probe: Callable[[str], StageReadiness]
-    """Advance a planned candidate stage-by-stage, halting at the first unready one.
-    `probe` reports each stage's installed-digest/CI readiness; it is the
-    caller's injected check (RL-03), never performed here, so this function
-    stays a pure, offline-testable decision: no stage after the first
-    unready one is ever probed or released.
-    receipts: list[dict[str, Any]] = []
-    executed = True
-    for stage in plan["stages"]:
-        readiness = probe(stage["component_id"])
-        if not readiness.ready:
-            receipts.append(
-                StageReceipt(
-                    component_id=stage["component_id"],
-                    digest=stage["digest"],
-                    source_revision=stage["source_revision"],
-                    status="blocked",
-                    reason=readiness.reason,
-                ).model_dump()
-            )
-            executed = False
-            break
-        receipts.append(
-            StageReceipt(
-                component_id=stage["component_id"],
-                digest=stage["digest"],
-                source_revision=stage["source_revision"],
-                status="released",
-            ).model_dump()
-        )
-        "status": "executed" if executed else "blocked",
-        "executed": executed,
-        "profile_digest": plan["profile_digest"],
-        "created_at": datetime.now(UTC).isoformat(),
-        "stage_receipts": receipts,
