@@ -5,6 +5,7 @@
   "requirement_ids": [
     "GRAPHOS-FLEET-R001",
     "GRAPHOS-FLEET-R002",
+    "GRAPHOS-FLEET-R002.1",
     "GRAPHOS-FLEET-R003",
     "GRAPHOS-FLEET-R004",
     "GRAPHOS-FLEET-R005",
@@ -55,9 +56,17 @@
     },
     {
       "id": "GRAPHOS-FLEET-R002",
-      "title": "Tool schema fingerprints recomputed from served schemas",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "Tool schema fingerprints recomputed from served schemas (rollup)",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R002.1 lands the typed fingerprint model; the fleet-wide automated re-certification check (GRAPHOS-FLEET-R002.2) is not yet specified."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R002.1",
+      "title": "Per-tool schema fingerprint computed from the served schema",
+      "delivery_state": "BUILT",
+      "evidence": [],
+      "remaining": "graph_os/fleet/catalog_items.py adds compute_schema_fingerprint() and CatalogItem.schema_fingerprint, wired into _probed_item for tool rows; tests/fleet/test_schema_fingerprint.py passes (6 tests). Published on a branch/PR; not yet merged to the default branch. No fleet-wide automated re-certification check yet (GRAPHOS-FLEET-R002.2, not yet specified)."
     },
     {
       "id": "GRAPHOS-FLEET-R003",
