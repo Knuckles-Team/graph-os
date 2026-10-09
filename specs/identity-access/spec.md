@@ -62,3 +62,49 @@ GraphOS does not store durable identity tables, evaluate final graph RBAC, own s
 Mark LANDED only with an exact default-branch commit containing all GraphOS behavior in scope. Mark ACCEPTED only when the contract, negative security, browser/MCP/CLI, three-mode oracle, quality, and release tests in `test-spec.md` pass on that commit and the evidence is recorded. A partial implementation must retain an explicit gap and cannot advertise its operation as complete.
 
 Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.
+
+## Strict local producer contract
+
+The local producer consumes the existing EG identity operation's authoritative
+`kind=resolution` reply. Its value must include `request_context` with explicit
+`principal`, `tenant`, `audience`, `agent_id`, `roles`, `scopes`, `policy_version`
+and `delegation`. A raw principal lookup is not credential authentication.
+Missing fields, unknown kinds, coercions, duplicate entries and disagreement
+between the resolution and context refuse issuance. Roles and scopes remain
+separate exact sets. The producer accepts direct identity only while delegated
+grant authority is unavailable; explicit `agent_id == principal` and an empty
+chain must originate in the qualified credential-resolution result.
+
+Local claims use stable `sub`, `tenant_id`, `principal_kind` (`human` or
+`service`), exact `scope`, separate `roles`, and the supplied policy, agent and
+delegation fields. Grant narrowing intersects both the signed scope and the
+context scopes. Token expiry is the minimum of the configured lifetime (at most
+300 seconds) and the verified source credential/session expiry. Missing source
+expiry cannot be defaulted. The JWT remains outer `oidc_token`, never a field
+inside the strict engine request context. A parsed DTO or prepared claim mapping
+alone establishes neither authentication nor current engine authority.
+
+Browser credentials use only `__Host-graphos_session`, an opaque 256-bit secret
+with server-side hashed storage. Cookie attributes are Secure, HttpOnly,
+SameSite=Lax and Path=/, without Domain; lifetime is bounded by authoritative
+idle/absolute expiry. A malformed, ambiguous, revoked or expired presented
+cookie refuses, never falls back to bootstrap. Absent credentials may use only
+an explicitly qualified none-mode path. Cookie mutations require configured
+exact trusted Origin and session-bound CSRF on the actual request.
+
+The browser producer implements the existing WebUI
+`BrowserSessionAuthority.verify_request(scope) -> BrowserSessionEvidence` port;
+it does not define another evidence DTO. Its private binding must preserve the
+exact scope object, immutable method/path/query/origin/credential snapshot,
+forwarded JWT and exact caller-session instance. Recheck after awaits and before
+invocation; release request-local bindings on completion, refusal, cancellation
+and refresh. Request state and headers cannot install authority. A routing
+marker is a hint only. Cross-process raw-header proof is unsupported.
+
+EG must supply an opaque session binding reference (not the short SessionView
+display handle), effective expiry after authorized touch, explicit pending state
+and nullable authoritative MFA timestamp. Console mutations require direct human
+identity, exact `identity:admin`, console origin and completed MFA aged no more
+than 900 seconds. Other operations retain their own policy. The existing
+`identity:authenticate` ServiceOnly scope permits consuming an already
+provisioned verified broker, never self-minting or provisioning its grant.
