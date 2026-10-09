@@ -32,10 +32,10 @@ import asyncio
 import json
 
 import pytest
-from agent_utilities.observability import health as h
 from agent_utilities.observability import health_ingest
 
 from graph_os.observability import gateway_health as gh
+from graph_os.observability import health as h
 
 
 class _FakeStore:
