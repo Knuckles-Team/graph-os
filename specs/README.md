@@ -47,6 +47,7 @@ An obligation can be landed while acceptance remains open.
 |---|---|---|
 | [`a2a-task-projection/spec.md`](a2a-task-projection/spec.md) | `GRAPHOS-A2A-001` | `A2A-01`–`A2A-07` (defined in [requirements.md](a2a-task-projection/requirements.md) as `GRAPHOS-A2A-R001`–`R008`) |
 | [`adaptive-capacity/spec.md`](adaptive-capacity/spec.md) | `GRAPHOS-CAPACITY-001` | `GRAPHOS-CAPACITY-R001`–`R002` |
+| [`conversational-acp-gateway/spec.md`](conversational-acp-gateway/spec.md) | `GRAPHOS-ACP-001` | `GRAPHOS-ACP-R001` |
 | [`data-and-market-projections/spec.md`](data-and-market-projections/spec.md) | `GRAPHOS-DATA-MARKET-001` | `GRAPHOS-DATA-MARKET-R001`–`R006` |
 | [`dependency-ordered-release/spec.md`](dependency-ordered-release/spec.md) | `GRAPHOS-RELEASE-001` | `RL-01`–`RL-07` (defined in [requirements.md](dependency-ordered-release/requirements.md) as `GRAPHOS-RELEASE-R001`–`R003`) |
 | [`fleet-catalog-and-tools/spec.md`](fleet-catalog-and-tools/spec.md) | `GRAPHOS-FLEET-001` | `GRAPHOS-FLEET-R001`–`R028`, `PA-12` |
