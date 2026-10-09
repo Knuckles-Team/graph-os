@@ -24,7 +24,10 @@
     "GRAPHOS-HOST-R019",
     "GRAPHOS-HOST-R020",
     "GRAPHOS-HOST-R021",
-    "GRAPHOS-HOST-R022"
+    "GRAPHOS-HOST-R022",
+    "GRAPHOS-HOST-R023",
+    "GRAPHOS-HOST-R024",
+    "GRAPHOS-HOST-R025"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -248,6 +251,27 @@
       "delivery_state": "BUILDING",
       "evidence": [],
       "remaining": "Merge, roll out graph-os, then confirm a live plan's reuse hits, guardrail rows and workflow match are non-degenerate against the served engine."
+    },
+    {
+      "id": "GRAPHOS-HOST-R023",
+      "title": "GraphOS serves its eight-tool MCP intent surface from its own operation registry",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "PR open: graph_os/api/mcp serving composition, tool-list parity test, invoke-pipeline dispatch test, nl-query ask fallback test."
+    },
+    {
+      "id": "GRAPHOS-HOST-R024",
+      "title": "graph_os.mcp_server.server registers GraphOS's own intent surface, not the agent runtime's",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Depends on GRAPHOS-HOST-R023. Switch server.py and record the unreachable-module count before/after."
+    },
+    {
+      "id": "GRAPHOS-HOST-R025",
+      "title": "The agent runtime's MCP serving stack is removed",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Depends on GRAPHOS-HOST-R024 landing in GraphOS. Delete intent_tools.py, graphos_surface.py and the kg_server MCP entry point in agent-utilities."
     }
   ]
 }

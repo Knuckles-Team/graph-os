@@ -63,6 +63,29 @@ def describe_op(op: Any) -> dict[str, Any]:
     }
 
 
+#: Synthetic ``ask`` descriptor (GRAPHOS-HOST-R023) offered to the resolver so a
+#: free-text question with no matching registry operation can still resolve to
+#: the natural-language fallback instead of an outright refusal. It never wins
+#: a ranking on its own terms (empty examples/tags) -- only the resolver's own
+#: last-resort branch selects it, when every real candidate scores too low.
+NL_FALLBACK_OP_ID = "query.uql"
+
+
+def nl_fallback_descriptor() -> dict[str, Any]:
+    """The ask-verb descriptor naming the natural-language fallback target."""
+
+    return {
+        "kind": "op",
+        "op": NL_FALLBACK_OP_ID,
+        "verb": "ask",
+        "summary": "Free-text knowledge graph question (natural-language fallback)",
+        "params_schema": {},
+        "examples": (),
+        "domain": "",
+        "tags": (),
+    }
+
+
 def _fleet_descriptor(item: Mapping[str, Any]) -> dict[str, Any]:
     """Preserve a fleet result while identifying its dispatch route."""
 
