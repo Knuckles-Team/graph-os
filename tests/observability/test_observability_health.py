@@ -70,22 +70,21 @@ def test_compute_baseline_insufficient_history_is_none():
     assert h.compute_baseline(trends, value_key="avg", min_windows=3) is not None
 
 
-def test_compute_baseline_no_control_key_has_no_inertia():
-    trends = [
+def _rising_trends():
+    return [
         _trend(t, None, f"2026-07-{d:02d}T00:00:00Z")
         for d, t in enumerate([50, 52, 54, 56, 58, 60], 1)
     ]
-    b = h.compute_baseline(trends, value_key="avg")
+
+
+def test_compute_baseline_no_control_key_has_no_inertia():
+    b = h.compute_baseline(_rising_trends(), value_key="avg")
     assert b is not None
     assert b["inertia"] is None and b["avg_control"] is None
 
 
 def test_compute_baseline_falls_back_to_value_key_without_peak_key():
-    trends = [
-        _trend(t, None, f"2026-07-{d:02d}T00:00:00Z")
-        for d, t in enumerate([50, 52, 54, 56, 58, 60], 1)
-    ]
-    b = h.compute_baseline(trends, value_key="avg")  # no peak_key
+    b = h.compute_baseline(_rising_trends(), value_key="avg")  # no peak_key
     assert b is not None
     assert b["p95"] == h._percentile([50, 52, 54, 56, 58, 60], 95)
 
