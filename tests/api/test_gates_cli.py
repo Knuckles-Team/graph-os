@@ -14,44 +14,14 @@ import json
 from pathlib import Path
 
 import pytest
-from pydantic import BaseModel
 
 from graph_os.api.registry import (
-    Composite,
-    Effect,
-    HttpShape,
-    OpSpec,
     PrincipalRule,
-    Verb,
 )
+from tests.api._support import identity_read_op as _op
 
 check_api_surface = importlib.import_module("scripts.check_api_surface")
 check_api_compat = importlib.import_module("scripts.check_api_compat")
-
-
-class _Input(BaseModel):
-    user_id: str
-
-
-class _Output(BaseModel):
-    ok: bool
-
-
-def _op(op_id: str = "identity.users.read", **changes: object) -> OpSpec:
-    values: dict[str, object] = {
-        "id": op_id,
-        "verb": Verb.FIND,
-        "summary": "Read a user",
-        "examples": ("Look up this user",),
-        "params": _Input,
-        "result": _Output,
-        "binding": Composite(handler="graph_os.identity.admin_service.read_user"),
-        "principals": PrincipalRule.ANY,
-        "effect": Effect.READ,
-        "http": HttpShape(method="GET", path="/v1/identity/users/{user_id}"),
-    }
-    values.update(changes)
-    return OpSpec(**values)  # type: ignore[arg-type]
 
 
 @pytest.mark.spec("GRAPHOS-FLEET-R016")

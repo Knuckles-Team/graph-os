@@ -441,22 +441,20 @@
         "ba0aa6a11b4a"
       ],
       "verified_by": [
-        "tests/api/test_gates_cli.py:106",
-        "tests/api/test_gates_cli.py:57",
-        "tests/api/test_gates_cli.py:69",
-        "tests/api/test_gates_cli.py:91"
+        "tests/api/test_gates_cli.py:27",
+        "tests/api/test_gates_cli.py:39",
+        "tests/api/test_gates_cli.py:61",
+        "tests/api/test_gates_cli.py:76"
       ]
     },
     {
       "id": "GRAPHOS-FLEET-R017",
       "title": "Authority-parity oracle validates principal, operation and surface",
-      "delivery_state": "VERIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
         "ba0aa6a11b4a"
       ],
-      "verified_by": [
-        "tests/api/test_authority_parity.py:78"
-      ]
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R018",

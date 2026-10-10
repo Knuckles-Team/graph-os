@@ -2,13 +2,16 @@
   "schema_version": 2,
   "spec_id": "GRAPHOS-A2A-003",
   "owner_repo": "graph-os",
-  "delivery_state": "LANDED",
+  "delivery_state": "SPECIFIED",
   "requirement_ids": [
     "GRAPHOS-A2A-R001",
     "GRAPHOS-A2A-R001.1",
     "GRAPHOS-A2A-R002",
     "GRAPHOS-A2A-R003",
     "GRAPHOS-A2A-R004",
+    "GRAPHOS-A2A-R004.1",
+    "GRAPHOS-A2A-R004.2",
+    "GRAPHOS-A2A-R004.3",
     "GRAPHOS-A2A-R005",
     "GRAPHOS-A2A-R006",
     "GRAPHOS-A2A-R007"
@@ -60,7 +63,7 @@
     {
       "id": "GRAPHOS-A2A-R004",
       "title": "Typed refusal when the durable history authority is absent",
-      "delivery_state": "VERIFIED",
+      "delivery_state": "SPECIFIED",
       "landed_in": [
         "d5bff77ba836",
         "d60b46fc6984"
@@ -70,7 +73,33 @@
         "tests/deployment/test_release_canary.py:63",
         "tests/deployment/test_release_canary.py:82",
         "tests/deployment/test_release_canary.py:93"
+      ],
+      "rollup_of": [
+        "GRAPHOS-A2A-R004.1",
+        "GRAPHOS-A2A-R004.2",
+        "GRAPHOS-A2A-R004.3"
       ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R004.1",
+      "title": "Landed: the protocol exists, the error does not",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R004.2",
+      "title": "Add the `A2ATransitionHistoryUnavailable` error type",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R004.3",
+      "title": "Blocked: wire `tasks/get`'s typed refusal",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R005",
