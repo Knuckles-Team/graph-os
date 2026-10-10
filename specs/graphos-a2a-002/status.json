@@ -28,7 +28,9 @@
       "title": "Fail-closed admission function proven against today's unavailable upstreams",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/a2a/test_admission.py:15"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-002-R002",
@@ -53,7 +55,9 @@
       "title": "Typed refusal reason and provenance on every decision",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/a2a/test_admission.py:33"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-002-R005",

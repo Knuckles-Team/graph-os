@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from graph_os.a2a.admission import (
     ToolSubsetAdmissionDecision,
     ToolSubsetAdmissionRequest,
@@ -10,6 +12,7 @@ from graph_os.a2a.admission import (
 from graph_os.a2a.models import A2AContextBudget
 
 
+@pytest.mark.spec("GRAPHOS-A2A-002-R001.1")
 def test_admission_fails_closed_while_eg_assemble_is_unavailable() -> None:
     """GRAPHOS-A2A-002-R001.1: the exact refusal shape while upstream is down."""
 
@@ -27,6 +30,7 @@ def test_admission_fails_closed_while_eg_assemble_is_unavailable() -> None:
     assert decision.provenance == "eg.AgentAssemble:unavailable"
 
 
+@pytest.mark.spec("GRAPHOS-A2A-002-R004")
 def test_admission_decision_always_carries_provenance_and_typed_reason() -> None:
     """GRAPHOS-A2A-002-R004: every decision is auditable, never bare."""
 
