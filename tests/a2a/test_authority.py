@@ -154,7 +154,7 @@ async def test_context_budget_fails_closed_while_agent_assemble_is_unavailable()
 def test_transition_history_unavailable_has_distinct_privacy_safe_error() -> None:
     response = _application_error("rid", A2ATransitionHistoryUnavailable())
     assert response.status_code == 501
-    assert json.loads(response.body) == {
+    assert json.loads(bytes(response.body)) == {
         "jsonrpc": "2.0",
         "id": "rid",
         "error": {
@@ -162,4 +162,4 @@ def test_transition_history_unavailable_has_distinct_privacy_safe_error() -> Non
             "message": "durable task transition history is not available",
         },
     }
-    assert "result" not in json.loads(response.body)
+    assert "result" not in json.loads(bytes(response.body))
