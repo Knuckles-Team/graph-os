@@ -275,7 +275,7 @@
     {
       "id": "GRAPHOS-FLEET-R010",
       "title": "Assembly result parsing reads the full agents list",
-      "delivery_state": "REJECTED",
+      "delivery_state": "BUILT",
       "evidence": [
         {
           "kind": "branch",
@@ -284,8 +284,7 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/bcad17a6bba4d50f3c832b42d7f2348a6483b6e9",
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
-      ],
-      "retired_note": "Superseded by the current registry architecture; graph_os/assembly.py was removed."
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R011",
@@ -435,9 +434,8 @@
     {
       "id": "GRAPHOS-FLEET-R020",
       "title": "Multiplexer meta-tools register as the four resident tools",
-      "delivery_state": "REJECTED",
-      "evidence": [],
-      "retired_note": "Superseded by GRAPHOS-FLEET-R029."
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-FLEET-R021",

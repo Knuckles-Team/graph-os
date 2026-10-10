@@ -26,7 +26,6 @@
     "GRAPHOS-OPS-R020.1",
     "GRAPHOS-OPS-R020.2",
     "GRAPHOS-OPS-R020.3",
-    "GRAPHOS-OPS-R020.3.1",
     "GRAPHOS-OPS-R020.4",
     "GRAPHOS-OPS-R020.5",
     "GRAPHOS-OPS-R021",
@@ -418,7 +417,7 @@
     {
       "id": "GRAPHOS-OPS-R020.3",
       "title": "Pack and job management operations",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "evidence": [
         {
           "kind": "merged_head",
@@ -427,17 +426,7 @@
           "url": "https://github.com/Knuckles-Team/graph-os/commit/822f55d5835d696f850ca4fc82ce087249a69afc",
           "description": "GRAPHOS-OPS-R020.3 merged to the default branch in this commit."
         }
-      ],
-      "remaining": "Rolls up to child GRAPHOS-OPS-R020.3.1 (missing ingest.packs/jobs ops); this parent is SPECIFIED until the child lands.",
-      "rollup_of": [
-        "GRAPHOS-OPS-R020.3.1"
       ]
-    },
-    {
-      "id": "GRAPHOS-OPS-R020.3.1",
-      "title": "Missing ingest.packs/jobs ops",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
     },
     {
       "id": "GRAPHOS-OPS-R020.4",
