@@ -13,6 +13,7 @@ from .authority import (
     A2AIdempotencyConflict,
     A2AStreamingUnavailable,
     A2ATaskNotCancelable,
+    A2ATransitionHistoryUnavailable,
 )
 from .models import A2AMessage, A2AOperationInvokeParams, A2APlanConfirmParams
 from .routing import A2AAssemblyUnavailable, A2AOperationBridgeUnavailable
@@ -186,6 +187,7 @@ _ERROR_CODES: dict[type[Exception], tuple[int, int]] = {
     A2ATaskNotCancelable: (-32002, 409),
     A2AStreamingUnavailable: (-32010, 501),
     A2AOperationBridgeUnavailable: (-32011, 501),
+    A2ATransitionHistoryUnavailable: (-32012, 501),
 }
 
 
@@ -232,6 +234,7 @@ def create_a2a_handlers(
             A2AAssemblyUnavailable,
             A2AOperationBridgeUnavailable,
             A2AStreamingUnavailable,
+            A2ATransitionHistoryUnavailable,
             A2ATaskNotCancelable,
             ValidationError,
             TypeError,

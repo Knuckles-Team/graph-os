@@ -84,6 +84,7 @@ def test_from_wired_authorities_refuses_non_conforming_object(
         A2AAgentCapabilities.from_wired_authorities(**kwargs)  # type: ignore[arg-type]
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R004.1")
 def test_protocols_are_runtime_checkable_against_conforming_objects() -> None:
     assert isinstance(_StreamingAuthority(), A2AStreamingAuthority)
     assert isinstance(_PushAuthority(), A2APushNotificationAuthority)

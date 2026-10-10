@@ -23,6 +23,7 @@ from .routing import A2AAssemblyUnavailable
 __all__ = [
     "A2AIdempotencyConflict",
     "A2AStreamingUnavailable",
+    "A2ATransitionHistoryUnavailable",
     "A2ATaskAuthority",
     "A2ATaskNotCancelable",
     "WorkItemA2AAuthority",
@@ -60,6 +61,20 @@ class A2AStreamingUnavailable(RuntimeError):
     not exist yet, so ``tasks/resubscribe`` must fail closed rather than
     silently succeed or be reported as an unrecognized method.
     """
+
+
+class A2ATransitionHistoryUnavailable(RuntimeError):
+    """No reachable durable transition-history authority backs ``tasks/get`` history.
+
+    GRAPHOS-A2A-R004.2: when no ``A2ATransitionHistoryAuthority`` is wired or
+    the wired one is unreachable, history requests fail closed with this
+    distinct error rather than an empty or partially reconstructed history.
+    """
+
+    def __init__(
+        self, message: str = "durable task transition history is not available"
+    ) -> None:
+        super().__init__(message)
 
 
 @runtime_checkable
