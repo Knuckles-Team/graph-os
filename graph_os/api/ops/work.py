@@ -23,12 +23,7 @@ from typing import Any
 
 from pydantic import Field
 
-from graph_os.api.ops._common import (
-    Params,
-    bound_service,
-    build_read_op,
-    build_write_op,
-)
+from graph_os.api.ops._common import Params, build_read_op, build_write_op
 from graph_os.api.registry import OpSpec, Verb
 
 
@@ -86,23 +81,6 @@ async def handle_work(
     return {"value": dict(result)}
 
 
-class EvolutionLoopStatusParams(Params):
-    loop_id: str = Field(min_length=1, max_length=80)
-
-
-async def handle_evolution_loop_status(
-    context: Any, params: Mapping[str, Any], op: OpSpec
-) -> dict[str, Any]:
-    """Report one loop's state from the composed evolution runner (GRAPHOS-OPS-R022.2.1)."""
-    runner = bound_service(
-        context, "evolution_runner", reason="evolution runner is not composed"
-    )
-    result = await runner.get_loop_status(
-        tenant=context.caller.tenant, loop_id=params["loop_id"]
-    )
-    return {"value": dict(result)}
-
-
 def operations() -> tuple[OpSpec, ...]:
     handler = "graph_os.api.ops.work.handle_work"
     return (
@@ -134,27 +112,16 @@ def operations() -> tuple[OpSpec, ...]:
             handler=handler,
             scope="work:write",
         ),
-        build_read_op(
-            op_id="evolution.loops.status",
-            summary="Show one evolution loop's current status",
-            examples=("show the status of this evolution loop",),
-            params=EvolutionLoopStatusParams,
-            result=WorkResult,
-            handler="graph_os.api.ops.work.handle_evolution_loop_status",
-            scope="work:read",
-        ),
     )
 
 
 specs = operations
 
 __all__ = [
-    "EvolutionLoopStatusParams",
     "WorkItemRefParams",
     "WorkItemsListParams",
     "WorkOfferCreateParams",
     "WorkResult",
-    "handle_evolution_loop_status",
     "handle_work",
     "operations",
     "specs",

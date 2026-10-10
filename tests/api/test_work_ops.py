@@ -11,7 +11,6 @@ from typing import Any
 
 import pytest
 
-from graph_os.api.invoke.pipeline import OperationRefused
 from graph_os.api.ops import work
 from graph_os.api.registry import Effect, Registry, Surface
 from tests.api._ops_support import service_context
@@ -52,7 +51,7 @@ def _context(**services: object):
 
 def test_work_ops_declare_exact_scopes_and_effects() -> None:
     registry = Registry(work.operations())
-    assert len(registry) == 4
+    assert len(registry) == 3
     list_op = registry["work.items.list"]
     get_op = registry["work.items.get"]
     offer_op = registry["work.offers.create"]
@@ -136,32 +135,3 @@ async def test_offers_create_handler_records_a_bound_offer() -> None:
         }
     }
     assert runner.offers == [result["value"]]
-
-
-class _FakeEvolutionRunner:
-    async def get_loop_status(self, *, tenant: str, loop_id: str) -> dict[str, Any]:
-        return {"tenant": tenant, "loop_id": loop_id, "state": "running"}
-
-
-@pytest.mark.spec("GRAPHOS-OPS-R022.2.1")
-@pytest.mark.asyncio
-async def test_evolution_loop_status_reads_runner_with_caller_tenant() -> None:
-    registry = Registry(work.operations())
-    op = registry["evolution.loops.status"]
-    assert op.effect is Effect.READ
-    assert op.scopes == frozenset({"work:read"})
-    result = await work.handle_evolution_loop_status(
-        _context(evolution_runner=_FakeEvolutionRunner()), {"loop_id": "loop-1"}, op
-    )
-    assert result == {
-        "value": {"tenant": "tenant:one", "loop_id": "loop-1", "state": "running"}
-    }
-
-
-@pytest.mark.spec("GRAPHOS-OPS-R022.2.1")
-@pytest.mark.asyncio
-async def test_evolution_loop_status_fails_closed_without_runner() -> None:
-    op = Registry(work.operations())["evolution.loops.status"]
-    with pytest.raises(OperationRefused) as refused:
-        await work.handle_evolution_loop_status(_context(), {"loop_id": "loop-1"}, op)
-    assert refused.value.code == "UNAVAILABLE"

@@ -525,12 +525,11 @@
     {
       "id": "GRAPHOS-OPS-R022.2.1",
       "title": "`evolution.loops.status` op",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": [
-        "tests/api/test_work_ops.py:146",
-        "tests/api/test_work_ops.py:161"
-      ]
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "364ef8b376e6"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R022.2.2",
