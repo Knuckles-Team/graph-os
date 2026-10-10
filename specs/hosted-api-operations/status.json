@@ -34,6 +34,8 @@
     "GRAPHOS-OPS-R020.2",
     "GRAPHOS-OPS-R020.3",
     "GRAPHOS-OPS-R020.3.1",
+    "GRAPHOS-OPS-R020.3.1.1",
+    "GRAPHOS-OPS-R020.3.1.2",
     "GRAPHOS-OPS-R020.4",
     "GRAPHOS-OPS-R020.5",
     "GRAPHOS-OPS-R021",
@@ -352,8 +354,8 @@
         "cc90ee37583f"
       ],
       "verified_by": [
-        "tests/api/test_ingest_ops.py:80",
-        "tests/api/test_ingest_ops.py:99"
+        "tests/api/test_ingest_ops.py:109",
+        "tests/api/test_ingest_ops.py:90"
       ]
     },
     {
@@ -368,11 +370,11 @@
         "cc90ee37583f"
       ],
       "verified_by": [
-        "tests/api/test_ingest_ops.py:121",
-        "tests/api/test_ingest_ops.py:137",
-        "tests/api/test_ingest_ops.py:151",
-        "tests/api/test_ingest_ops.py:164",
-        "tests/api/test_ingest_ops.py:174"
+        "tests/api/test_ingest_ops.py:131",
+        "tests/api/test_ingest_ops.py:147",
+        "tests/api/test_ingest_ops.py:161",
+        "tests/api/test_ingest_ops.py:174",
+        "tests/api/test_ingest_ops.py:184"
       ]
     },
     {
@@ -390,6 +392,28 @@
     {
       "id": "GRAPHOS-OPS-R020.3.1",
       "title": "Missing `ingest.packs.*` and `ingest.jobs.*` ops",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R020.3.1.1",
+        "GRAPHOS-OPS-R020.3.1.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3.1.1",
+      "title": "`ingest.packs.list` op",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/api/test_ingest_ops.py:221",
+        "tests/api/test_ingest_ops.py:233",
+        "tests/api/test_ingest_ops.py:242"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3.1.2",
+      "title": "`ingest.jobs.status` op",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
