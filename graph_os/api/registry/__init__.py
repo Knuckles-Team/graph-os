@@ -9,13 +9,6 @@ from .scopes import (
     LoopsScope,
     OpsScope,
 )
-from .surface_gate import (
-    CompatBreak,
-    SurfaceDrift,
-    diff_backward_compat,
-    diff_public_surface,
-    public_surface,
-)
 from .spec import (
     AuditClass,
     Composite,
@@ -33,6 +26,13 @@ from .spec import (
     SubjectSource,
     Surface,
     Verb,
+)
+from .surface_gate import (
+    CompatBreak,
+    SurfaceDrift,
+    diff_backward_compat,
+    diff_public_surface,
+    public_surface,
 )
 
 __all__ = [

@@ -9,14 +9,11 @@ import pytest
 from pydantic import BaseModel
 
 from graph_os.api.registry import (
-    AuditClass,
-    Composite,
-    Effect,
     OpSpec,
     PrincipalRule,
-    Verb,
     diff_backward_compat,
 )
+from tests.api._support import identity_disable_op_values
 
 
 class _Input(BaseModel):
@@ -28,19 +25,12 @@ class _Output(BaseModel):
 
 
 def _op(op_id: str = "identity.users.disable", **changes: Any) -> OpSpec:
-    values: dict[str, Any] = {
-        "id": op_id,
-        "verb": Verb.MANAGE,
-        "summary": "Disable a user",
-        "examples": ("Disable this user account",),
-        "params": _Input,
-        "result": _Output,
-        "binding": Composite(handler="graph_os.identity.admin_service.disable_user"),
-        "scopes": frozenset({"identity:admin"}),
-        "effect": Effect.ADMIN,
-        "principals": PrincipalRule.HUMAN,
-        "audit": AuditClass.IDENTITY_CHAIN,
-    }
+    values = identity_disable_op_values(
+        op_id,
+        params=_Input,
+        result=_Output,
+        principals=PrincipalRule.HUMAN,
+    )
     values.update(changes)
     return OpSpec(**values)
 
@@ -70,9 +60,7 @@ def test_gate_fails_when_a_published_operation_is_removed() -> None:
 @pytest.mark.spec("GRAPHOS-OPS-R026.2")
 def test_gate_fails_when_a_new_required_scope_is_added() -> None:
     baseline = _by_id([_op(scopes=frozenset({"identity:admin"}))])
-    current = _by_id(
-        [_op(scopes=frozenset({"identity:admin", "identity:superuser"}))]
-    )
+    current = _by_id([_op(scopes=frozenset({"identity:admin", "identity:superuser"}))])
     result = diff_backward_compat(baseline, current)
     assert result
     assert result.narrowed_scopes == ("identity.users.disable",)
@@ -82,9 +70,7 @@ def test_gate_fails_when_a_new_required_scope_is_added() -> None:
 @pytest.mark.spec("GRAPHOS-OPS-R026.2")
 def test_widening_required_scopes_is_not_a_break() -> None:
     # Dropping a required scope only widens who may call -- compatible.
-    baseline = _by_id(
-        [_op(scopes=frozenset({"identity:admin", "identity:superuser"}))]
-    )
+    baseline = _by_id([_op(scopes=frozenset({"identity:admin", "identity:superuser"}))])
     current = _by_id([_op(scopes=frozenset({"identity:admin"}))])
     result = diff_backward_compat(baseline, current)
     assert not result.narrowed_scopes
