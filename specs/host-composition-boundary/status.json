@@ -863,11 +863,14 @@
     {
       "id": "GRAPHOS-HOST-R010",
       "title": "GraphOS owns hosting/deployment configuration settings",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "afc93c497524"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_host_config.py:32",
+        "tests/deployment/test_host_config.py:43"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R011",
