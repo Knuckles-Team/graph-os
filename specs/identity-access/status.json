@@ -62,11 +62,13 @@
     {
       "id": "GRAPHOS-IDENTITY-R002",
       "title": "Domain scopes consume the generated scope registry",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "a2212420d6c6"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_domain_scopes.py:50"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R003",
@@ -94,11 +96,14 @@
     {
       "id": "GRAPHOS-IDENTITY-R004.1",
       "title": "Typed bootstrap-principal model",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "cd652df8f6c8"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/identity/test_bootstrap_mfa_admin_console_models.py:15",
+        "tests/identity/test_bootstrap_mfa_admin_console_models.py:28"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R004.2",
