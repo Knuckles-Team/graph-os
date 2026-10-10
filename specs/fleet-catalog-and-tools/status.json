@@ -29,6 +29,10 @@
     "GRAPHOS-FLEET-R006.1",
     "GRAPHOS-FLEET-R006.2",
     "GRAPHOS-FLEET-R006.3",
+    "GRAPHOS-FLEET-R006.3.1",
+    "GRAPHOS-FLEET-R006.3.2",
+    "GRAPHOS-FLEET-R006.3.3",
+    "GRAPHOS-FLEET-R006.3.4",
     "GRAPHOS-FLEET-R006.4",
     "GRAPHOS-FLEET-R006.5",
     "GRAPHOS-FLEET-R007.1",
@@ -342,7 +346,41 @@
     },
     {
       "id": "GRAPHOS-FLEET-R006.3",
-      "title": "Dead harvest helpers removed",
+      "title": "Dead harvest helpers removed (rollup over `GRAPHOS-FLEET-R006.3.1`-`.4`)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R006.3.1",
+        "GRAPHOS-FLEET-R006.3.2",
+        "GRAPHOS-FLEET-R006.3.3",
+        "GRAPHOS-FLEET-R006.3.4"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.3.1",
+      "title": "`_probe_protocol_families` harvest calls routed through the cutover helper",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.3.2",
+      "title": "Non-admitted fallback and `_harvest_resource_bodies` deleted",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.3.3",
+      "title": "Deadline and error-reason helpers deleted",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.3.4",
+      "title": "Harvest specs deleted",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
