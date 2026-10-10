@@ -40,22 +40,32 @@
     {
       "id": "GRAPHOS-DEPLOY-R002",
       "title": "Executable release-qualification runbook",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "d75db1ea42e8",
         "eaabc7449a93"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_release_qualification_runbook.py:32",
+        "tests/deployment/test_release_qualification_runbook.py:47",
+        "tests/deployment/test_release_qualification_runbook.py:58",
+        "tests/deployment/test_release_qualification_runbook.py:72"
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R003",
       "title": "Pre-push hooks always run the full gate suite",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "4a2d2cd9ac55",
         "c3c6be59a12a"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_doctor_prepush_hook.py:22",
+        "tests/deployment/test_doctor_prepush_hook.py:42",
+        "tests/deployment/test_pre_push_hook_shim.py:77",
+        "tests/deployment/test_pre_push_hook_shim.py:91"
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R004",
