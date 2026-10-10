@@ -305,9 +305,15 @@
     {
       "id": "GRAPHOS-IDENTITY-R012.1",
       "title": "Typed SAML service-provider model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "66b447b6f3f3"
+      ],
+      "verified_by": [
+        "tests/identity/test_saml_models.py:11",
+        "tests/identity/test_saml_models.py:21",
+        "tests/identity/test_saml_models.py:29"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R012.2",
