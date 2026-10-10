@@ -354,8 +354,8 @@
         "cc90ee37583f"
       ],
       "verified_by": [
-        "tests/api/test_ingest_ops.py:109",
-        "tests/api/test_ingest_ops.py:90"
+        "tests/api/test_ingest_ops.py:116",
+        "tests/api/test_ingest_ops.py:97"
       ]
     },
     {
@@ -370,11 +370,11 @@
         "cc90ee37583f"
       ],
       "verified_by": [
-        "tests/api/test_ingest_ops.py:131",
-        "tests/api/test_ingest_ops.py:147",
-        "tests/api/test_ingest_ops.py:161",
-        "tests/api/test_ingest_ops.py:174",
-        "tests/api/test_ingest_ops.py:184"
+        "tests/api/test_ingest_ops.py:138",
+        "tests/api/test_ingest_ops.py:154",
+        "tests/api/test_ingest_ops.py:168",
+        "tests/api/test_ingest_ops.py:181",
+        "tests/api/test_ingest_ops.py:191"
       ]
     },
     {
@@ -410,9 +410,9 @@
         "16c9b2bddda3"
       ],
       "verified_by": [
-        "tests/api/test_ingest_ops.py:221",
-        "tests/api/test_ingest_ops.py:233",
-        "tests/api/test_ingest_ops.py:242"
+        "tests/api/test_ingest_ops.py:228",
+        "tests/api/test_ingest_ops.py:240",
+        "tests/api/test_ingest_ops.py:249"
       ]
     },
     {
@@ -420,7 +420,11 @@
       "title": "`ingest.jobs.status` op",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_ingest_ops.py:256",
+        "tests/api/test_ingest_ops.py:266",
+        "tests/api/test_ingest_ops.py:275"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R020.4",

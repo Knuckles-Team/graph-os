@@ -12,6 +12,7 @@ import pytest
 
 from graph_os.api.invoke.pipeline import OperationRefused
 from graph_os.api.ops.ingest import (
+    get_job_status,
     get_source_status,
     index_repository,
     list_packs,
@@ -21,6 +22,7 @@ from graph_os.api.ops.ingest import (
 )
 from graph_os.ingest.service import (
     IngestIndexReceipt,
+    IngestJobRecord,
     IngestPackInventory,
     IngestPackRecord,
     IngestSourceInventory,
@@ -37,6 +39,7 @@ class _FakeRunner:
         self.list_calls: list[str] = []
         self.status_calls: list[tuple[str, str]] = []
         self.pack_calls: list[str] = []
+        self.job_calls: list[tuple[str, str]] = []
 
     async def sync_source(
         self, *, tenant: str, source_id: str, mode: IngestSyncMode, idempotency_key: str
@@ -77,6 +80,10 @@ class _FakeRunner:
         return IngestPackInventory(
             packs=(IngestPackRecord(pack_id="pack-1", tenant=tenant, state="active"),)
         )
+
+    async def get_job_status(self, *, tenant: str, job_id: str) -> IngestJobRecord:
+        self.job_calls.append((tenant, job_id))
+        return IngestJobRecord(job_id=job_id, tenant=tenant, status="running")
 
 
 def _context(*, runner: object | None, idempotency_key: str | None = "idem-1"):
@@ -242,5 +249,31 @@ async def test_list_packs_fails_closed_with_unavailable_when_runner_not_composed
 @pytest.mark.spec("GRAPHOS-OPS-R020.3.1.1")
 def test_packs_list_operation_declares_the_read_scope() -> None:
     op = {op.id: op for op in operations()}["ingest.packs.list"]
+    assert op.scopes == frozenset({"ingest:read"})
+    assert op.effect.value == "read"
+
+
+@pytest.mark.spec("GRAPHOS-OPS-R020.3.1.2")
+async def test_job_status_reports_durable_job_state() -> None:
+    runner = _FakeRunner()
+    result = await get_job_status(_context(runner=runner), {"job_id": "job-9"}, None)
+    assert result == {
+        "value": {"job_id": "job-9", "tenant": "tenant-a", "status": "running"}
+    }
+    assert runner.job_calls == [("tenant-a", "job-9")]
+
+
+@pytest.mark.spec("GRAPHOS-OPS-R020.3.1.2")
+async def test_job_status_fails_closed_with_unavailable_when_runner_not_composed() -> (
+    None
+):
+    with pytest.raises(OperationRefused) as excinfo:
+        await get_job_status(_context(runner=None), {"job_id": "job-9"}, None)
+    assert excinfo.value.code == "UNAVAILABLE"
+
+
+@pytest.mark.spec("GRAPHOS-OPS-R020.3.1.2")
+def test_jobs_status_operation_declares_the_read_scope() -> None:
+    op = {op.id: op for op in operations()}["ingest.jobs.status"]
     assert op.scopes == frozenset({"ingest:read"})
     assert op.effect.value == "read"
