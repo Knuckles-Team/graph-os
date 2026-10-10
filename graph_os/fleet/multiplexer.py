@@ -4935,6 +4935,61 @@ class MCPMultiplexer:
         )
         return resources, templates, native_prompts, skills, prompt_resources, errors
 
+    async def _probe_resource_family(
+        self,
+        server_name: str,
+        session: _typing.Any,
+        *,
+        catalog_builder: _typing.Callable[[_typing.Any], list[dict]],
+        spec: _ResourceHarvestSpec,
+        reader: _typing.Any,
+        probe_deadline: float | None = None,
+    ) -> list[dict]:
+        """Best-effort ``resources/list``-backed enumeration for one probed
+        session, shared by ``_probe_skills`` and ``_probe_prompts``: both
+        resource families degrade to an empty list — never a failed probe —
+        when the session doesn't support resource discovery at all, or when
+        this server's catalog for the family is malformed; otherwise each
+        entry's body is resolved via the resident local catalog or harvested
+        over the wire (``_resolve_via_local_catalog_or_harvest``).
+        """
+        try:
+            result = await session.list_resources()
+        except Exception as exc:  # noqa: BLE001 - resources/list is an OPTIONAL
+            # MCP method; a server that doesn't implement it must still
+            # contribute the tools/skills its probe already returned. The
+            # cause IS logged so a real transport failure stays diagnosable.
+            logger.debug(
+                "Server %s does not support %s resource discovery: %s: %s",
+                server_name,
+                spec.kind,
+                type(exc).__name__,
+                redact_for_log(exc),
+            )
+            return []
+        try:
+            entries = catalog_builder(result.resources)
+        except Exception as exc:  # noqa: BLE001 - a malformed catalog from one
+            # server must not fail the tool probe that already succeeded.
+            # The cause IS logged.
+            logger.warning(
+                "Server %s returned an invalid %s resource catalog: %s: %s",
+                server_name,
+                spec.kind,
+                type(exc).__name__,
+                redact_for_log(exc),
+            )
+            return []
+        await self._resolve_via_local_catalog_or_harvest(
+            server_name,
+            session,
+            entries,
+            spec,
+            reader,
+            probe_deadline=probe_deadline,
+        )
+        return entries
+
     async def _probe_skills(
         self,
         server_name: str,
@@ -4951,40 +5006,14 @@ class MCPMultiplexer:
         all. Either case degrades to an empty list rather than failing the
         tool probe that already succeeded above.
         """
-        try:
-            result = await session.list_resources()
-        except Exception as exc:  # noqa: BLE001 - resources/list is an OPTIONAL
-            # MCP method; a server that doesn't implement it must still
-            # contribute the tools its probe already returned. The cause IS
-            # logged so a real transport failure stays diagnosable.
-            logger.debug(
-                "Server %s does not support skill resource discovery: %s: %s",
-                server_name,
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return []
-        try:
-            skills = _bounded_skill_catalog(result.resources)
-        except Exception as exc:  # noqa: BLE001 - a malformed skill catalog from
-            # one server must not fail the tool probe that already succeeded.
-            # The cause IS logged.
-            logger.warning(
-                "Server %s returned an invalid skill resource catalog: %s: %s",
-                server_name,
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return []
-        await self._resolve_via_local_catalog_or_harvest(
+        return await self._probe_resource_family(
             server_name,
             session,
-            skills,
-            _SKILL_HARVEST_SPEC,
-            self._read_skill_body,
+            catalog_builder=_bounded_skill_catalog,
+            spec=_SKILL_HARVEST_SPEC,
+            reader=self._read_skill_body,
             probe_deadline=probe_deadline,
         )
-        return skills
 
     async def _resolve_via_local_catalog_or_harvest(
         self,
@@ -5147,40 +5176,14 @@ class MCPMultiplexer:
         already succeeded. A server that also doesn't implement
         ``resources/list`` at all degrades the same way.
         """
-        try:
-            result = await session.list_resources()
-        except Exception as exc:  # noqa: BLE001 - resources/list is an OPTIONAL
-            # MCP method; a server that doesn't implement it must still
-            # contribute the tools/skills its probe already returned. The
-            # cause IS logged so a real transport failure stays diagnosable.
-            logger.debug(
-                "Server %s does not support prompt resource discovery: %s: %s",
-                server_name,
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return []
-        try:
-            prompts = _bounded_prompt_catalog(result.resources)
-        except Exception as exc:  # noqa: BLE001 - a malformed prompt catalog
-            # from one server must not fail the tool probe that already
-            # succeeded. The cause IS logged.
-            logger.warning(
-                "Server %s returned an invalid prompt resource catalog: %s: %s",
-                server_name,
-                type(exc).__name__,
-                redact_for_log(exc),
-            )
-            return []
-        await self._resolve_via_local_catalog_or_harvest(
+        return await self._probe_resource_family(
             server_name,
             session,
-            prompts,
-            _PROMPT_HARVEST_SPEC,
-            self._read_prompt_body,
+            catalog_builder=_bounded_prompt_catalog,
+            spec=_PROMPT_HARVEST_SPEC,
+            reader=self._read_prompt_body,
             probe_deadline=probe_deadline,
         )
-        return prompts
 
     @staticmethod
     async def _read_prompt_body(session: _typing.Any, uri: str, deadline: float) -> str:

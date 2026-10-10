@@ -15,7 +15,11 @@ from __future__ import annotations
 import pytest
 
 import graph_os.fleet.multiplexer as multiplexer_module
-from tests.fleet.test_multiplexer_dynamic_gateway import CNT, CNT_TOOL, _mux_with_children
+from tests.fleet.test_multiplexer_dynamic_gateway import (
+    CNT,
+    CNT_TOOL,
+    _mux_with_children,
+)
 from tests.fleet.test_multiplexer_skills_over_mcp import (
     _fake_session_with_resources,
     _fake_skill_resource,
