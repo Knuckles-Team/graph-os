@@ -32,7 +32,15 @@
     "GRAPHOS-HOST-R022",
     "GRAPHOS-HOST-R023",
     "GRAPHOS-HOST-R024",
-    "GRAPHOS-HOST-R025"
+    "GRAPHOS-HOST-R025",
+    "GRAPHOS-HOST-R005.2.1",
+    "GRAPHOS-HOST-R005.2.2",
+    "GRAPHOS-HOST-R005.2.3",
+    "GRAPHOS-HOST-R005.2.4",
+    "GRAPHOS-HOST-R005.2.5",
+    "GRAPHOS-HOST-R005.2.6",
+    "GRAPHOS-HOST-R005.2.7",
+    "GRAPHOS-HOST-R005.2.8"
   ],
   "requirements": [
     {
@@ -109,15 +117,11 @@
     {
       "id": "GRAPHOS-HOST-R007",
       "title": "Agent runtime imported only through its public API",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
         "c467b28d2385"
       ],
-      "verified_by": [],
-      "rollup_of": [
-        "GRAPHOS-HOST-R007.1",
-        "GRAPHOS-HOST-R007.2"
-      ]
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-HOST-R007.1",
@@ -312,6 +316,62 @@
       "landed_in": [
         "c39349d16c53"
       ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.1",
+      "title": "Approved mapping for the analyze action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.2",
+      "title": "Approved mapping for the configure action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3",
+      "title": "Approved mapping for the ingest action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.4",
+      "title": "Approved mapping for the query-memory action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.5",
+      "title": "Approved mapping for the orchestrate action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.6",
+      "title": "Approved mapping for the mine-learn action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.7",
+      "title": "Approved mapping for the governance-ops action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.8",
+      "title": "Parity test over the full legacy action surface",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     }
   ]
