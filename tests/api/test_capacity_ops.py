@@ -13,7 +13,7 @@ from types import SimpleNamespace
 import pytest
 
 from graph_os.api.ops import capacity
-from graph_os.api.registry import Effect, Registry, Surface
+from graph_os.api.registry import Registry
 from graph_os.fleet.error_budget import (
     AimdConfig,
     BudgetWindow,
@@ -24,6 +24,7 @@ from graph_os.fleet.error_budget import (
     decide,
 )
 from graph_os.fleet.throttle_service import ThrottleRegistry
+from tests.api._support import assert_capacity_throttle_scope_split
 
 pytestmark = pytest.mark.spec("GRAPHOS-CAPACITY-R002")
 
@@ -47,13 +48,7 @@ def _context(**services: object) -> SimpleNamespace:
 def test_capacity_ops_declare_exact_scopes_and_admin_effect() -> None:
     registry = Registry(capacity.operations())
     assert len(registry) == 2
-    status_op = registry["capacity.throttle.status"]
-    mode_op = registry["capacity.throttle.set_mode"]
-    assert status_op.scopes == frozenset({"capacity:read"})
-    assert status_op.effect is Effect.READ
-    assert mode_op.scopes == frozenset({"capacity:admin"})
-    assert mode_op.effect is Effect.ADMIN
-    assert Surface.MCP in status_op.surfaces
+    assert_capacity_throttle_scope_split(registry)
     assert all(op.examples for op in registry)
 
 

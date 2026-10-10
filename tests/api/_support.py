@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from graph_os.api.invoke.steps import VerifiedCaller
+from graph_os.api.registry import Effect, Registry, Surface
 
 
 def make_verified_caller(default_scope: str) -> Callable[..., VerifiedCaller]:
@@ -44,3 +45,26 @@ def make_verified_caller(default_scope: str) -> Callable[..., VerifiedCaller]:
         return VerifiedCaller(**facts)
 
     return _caller
+
+
+def assert_capacity_throttle_scope_split(
+    registry: Registry,
+) -> tuple[object, object]:
+    """Shared GRAPHOS-OPS-R016 contract, asserted identically by
+    ``test_capacity_ops.py`` (the full GRAPHOS-CAPACITY-R002 contract) and
+    ``test_capacity_ops_r016.py`` (the R016.1 read/admin scope-split slice):
+    throttle status is read-scoped, set_mode is admin-scoped, and status is
+    MCP-exposed. Returns the ``(status_op, mode_op)`` pair so each caller can
+    layer its own further assertions on top.
+    """
+    status_op = registry["capacity.throttle.status"]
+    mode_op = registry["capacity.throttle.set_mode"]
+    assert status_op.scopes == frozenset({"capacity:read"})
+    assert status_op.effect is Effect.READ
+    assert mode_op.scopes == frozenset({"capacity:admin"})
+    assert mode_op.effect is Effect.ADMIN
+    assert Surface.MCP in status_op.surfaces
+    return status_op, mode_op
+
+
+__all__ = ["make_verified_caller", "assert_capacity_throttle_scope_split"]

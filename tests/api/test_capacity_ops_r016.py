@@ -17,21 +17,16 @@ import pytest
 from pydantic import ValidationError
 
 from graph_os.api.ops import capacity
-from graph_os.api.registry import Effect, Registry, Surface
+from graph_os.api.registry import Registry, Surface
 from graph_os.fleet.error_budget import ThrottleMode
+from tests.api._support import assert_capacity_throttle_scope_split
 
 pytestmark = pytest.mark.spec("GRAPHOS-OPS-R016.1")
 
 
 def test_throttle_ops_registered_with_read_vs_admin_scope_split() -> None:
     registry = Registry(capacity.operations())
-    status_op = registry["capacity.throttle.status"]
-    mode_op = registry["capacity.throttle.set_mode"]
-    assert status_op.scopes == frozenset({"capacity:read"})
-    assert status_op.effect is Effect.READ
-    assert mode_op.scopes == frozenset({"capacity:admin"})
-    assert mode_op.effect is Effect.ADMIN
-    assert Surface.MCP in status_op.surfaces
+    _status_op, mode_op = assert_capacity_throttle_scope_split(registry)
     assert Surface.MCP in mode_op.surfaces
 
 
