@@ -80,6 +80,8 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GRAPHOS-IDENTITY-R012.2.1:** Typed parsed-assertion model and audience/recipient/time-window checks
 - [ ] **GRAPHOS-IDENTITY-R012.2.2:** Signature verification through an injected verifier port
 - [ ] **GRAPHOS-IDENTITY-R012.2.3:** Replay check and sign-in handler wiring
+- [ ] **GRAPHOS-IDENTITY-R012.2.3.1:** Replay check through a seen-assertion-id store port
+- [ ] **GRAPHOS-IDENTITY-R012.2.3.2:** Sign-in handler wiring into the browser authority
 - [ ] **GRAPHOS-IDENTITY-R012.2.4:** Live IdP sign-in probe
 - [ ] **GRAPHOS-IDENTITY-R016:** Optional SMTP adapter for identity email
 - [ ] **GRAPHOS-IDENTITY-R016.1:** Remaining scope of GRAPHOS-IDENTITY-R016 (slice .1): Optional SMTP adapter for identity email

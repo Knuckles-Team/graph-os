@@ -51,6 +51,7 @@ class SamlRefusalReason(StrEnum):
     EXPIRED = "expired"
     SIGNATURE_VERIFIER_ABSENT = "signature_verifier_absent"
     INVALID_SIGNATURE = "invalid_signature"
+    REPLAYED = "replayed"
 
 
 class SamlAssertionRefused(IdentityUnavailable):
@@ -150,3 +151,23 @@ def verify_assertion(
             SamlRefusalReason.INVALID_SIGNATURE, "assertion signature is invalid"
         )
     check_assertion_conditions(provider, assertion, now, clock_skew)
+
+
+class SamlReplayStore(Protocol):
+    """Injected port remembering which assertion IDs were already accepted."""
+
+    def register(self, assertion_id: str, expires_at: datetime) -> bool:
+        """Record the ID; return True if it was new, False if already seen."""
+        ...
+
+
+def check_assertion_replay(
+    assertion: ParsedSamlAssertion, store: SamlReplayStore | None
+) -> None:
+    """Refuse an assertion whose ID was already accepted (call after verification)."""
+    if store is None:
+        raise IdentityUnavailable("no SAML replay store is configured")
+    if store.register(assertion.assertion_id, assertion.not_on_or_after) is not True:
+        raise SamlAssertionRefused(
+            SamlRefusalReason.REPLAYED, "assertion ID was already used"
+        )

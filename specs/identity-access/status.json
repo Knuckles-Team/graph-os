@@ -49,6 +49,8 @@
     "GRAPHOS-IDENTITY-R012.2.1",
     "GRAPHOS-IDENTITY-R012.2.2",
     "GRAPHOS-IDENTITY-R012.2.3",
+    "GRAPHOS-IDENTITY-R012.2.3.1",
+    "GRAPHOS-IDENTITY-R012.2.3.2",
     "GRAPHOS-IDENTITY-R012.2.4",
     "GRAPHOS-IDENTITY-R013",
     "GRAPHOS-IDENTITY-R014",
@@ -565,7 +567,25 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R012.2.3",
-      "title": "Replay check and sign-in handler wiring",
+      "title": "Replay check and sign-in handler wiring (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R012.2.3.1",
+        "GRAPHOS-IDENTITY-R012.2.3.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.2.3.1",
+      "title": "Replay check through a seen-assertion-id store port",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.2.3.2",
+      "title": "Sign-in handler wiring into the browser authority",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
