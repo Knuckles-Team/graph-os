@@ -43,7 +43,7 @@
         "c46a1ded6a8f"
       ],
       "verified_by": [
-        "tests/api/test_capacity_ops.py:28"
+        "tests/api/test_capacity_ops.py:26"
       ]
     }
   ]

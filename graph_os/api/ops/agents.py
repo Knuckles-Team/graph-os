@@ -5,8 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
+from graph_os.api.ops._common import Params
 from graph_os.api.registry import (
     AuditClass,
     Composite,
@@ -17,29 +18,25 @@ from graph_os.api.registry import (
 )
 
 
-class _Params(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class AgentRunParams(_Params):
+class AgentRunParams(Params):
     message: dict[str, Any]
     context_budget_tokens: int | None = Field(default=None, ge=256, le=1_000_000)
 
 
-class TaskRefParams(_Params):
+class TaskRefParams(Params):
     task_id: str = Field(min_length=1, max_length=80)
 
 
-class TaskListParams(_Params):
+class TaskListParams(Params):
     cursor: str | None = Field(default=None, max_length=1024)
     limit: int = Field(default=50, ge=1, le=100)
 
 
-class RlmParams(_Params):
+class RlmParams(Params):
     request: dict[str, Any]
 
 
-class AgentResult(_Params):
+class AgentResult(Params):
     value: dict[str, Any]
 
 

@@ -47,10 +47,11 @@
     "GRAPHOS-FLEET-R021",
     "GRAPHOS-FLEET-R022",
     "PA-12",
+    "GRAPHOS-FLEET-R023",
+    "GRAPHOS-FLEET-R023.1",
+    "GRAPHOS-FLEET-R024",
     "PA-12.1",
     "PA-12.2",
-    "GRAPHOS-FLEET-R023",
-    "GRAPHOS-FLEET-R024",
     "GRAPHOS-FLEET-R024.1",
     "GRAPHOS-FLEET-R024.2",
     "GRAPHOS-FLEET-R024.3",
@@ -320,11 +321,16 @@
     {
       "id": "GRAPHOS-FLEET-R006.2",
       "title": "Skill/prompt body-harvest cutover for an already-admitted child",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "a94c87aa090e"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_fleet_r006_2_local_catalog_cutover.py:125",
+        "tests/fleet/test_fleet_r006_2_local_catalog_cutover.py:33",
+        "tests/fleet/test_fleet_r006_2_local_catalog_cutover.py:68",
+        "tests/fleet/test_fleet_r006_2_local_catalog_cutover.py:91"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R006.3",
@@ -496,7 +502,7 @@
     },
     {
       "id": "PA-12",
-      "title": "Catalog reload rejects invalid candidates, proves replica convergence (rollup)",
+      "title": "Catalog reload rejects invalid candidates, proves replica convergence",
       "delivery_state": "LANDED",
       "landed_in": [
         "1a8d280ab981"
@@ -505,6 +511,37 @@
       "rollup_of": [
         "PA-12.1",
         "PA-12.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R023",
+      "title": "Connector count pins stay consistent across the fleet",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R023.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R023.1",
+      "title": "Pure connector count-pin comparison (producer)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R024",
+      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "c2d8c8ce46b8"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R024.1",
+        "GRAPHOS-FLEET-R024.2",
+        "GRAPHOS-FLEET-R024.3"
       ]
     },
     {
@@ -530,27 +567,6 @@
         "1a8d280ab981"
       ],
       "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R023",
-      "title": "Connector count pins stay consistent across the fleet",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R024",
-      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS (rollup)",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [
-        "c2d8c8ce46b8"
-      ],
-      "verified_by": [],
-      "rollup_of": [
-        "GRAPHOS-FLEET-R024.1",
-        "GRAPHOS-FLEET-R024.2",
-        "GRAPHOS-FLEET-R024.3"
-      ]
     },
     {
       "id": "GRAPHOS-FLEET-R024.1",
@@ -651,8 +667,10 @@
     {
       "id": "GRAPHOS-FLEET-R032",
       "title": "Gateway widget fetches run under a bound service actor",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "f4812c0aa389"
+      ],
       "verified_by": [
         "tests/gateway/test_aggregator.py:159"
       ]

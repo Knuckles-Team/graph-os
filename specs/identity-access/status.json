@@ -20,8 +20,18 @@
     "GRAPHOS-IDENTITY-R008",
     "GRAPHOS-IDENTITY-R009",
     "GRAPHOS-IDENTITY-R010",
+    "GRAPHOS-IDENTITY-R008.1",
+    "GRAPHOS-IDENTITY-R008.2",
+    "GRAPHOS-IDENTITY-R009.1",
+    "GRAPHOS-IDENTITY-R009.2",
+    "GRAPHOS-IDENTITY-R010.1",
+    "GRAPHOS-IDENTITY-R010.2",
     "GRAPHOS-IDENTITY-R011",
     "GRAPHOS-IDENTITY-R012",
+    "GRAPHOS-IDENTITY-R011.1",
+    "GRAPHOS-IDENTITY-R011.2",
+    "GRAPHOS-IDENTITY-R012.1",
+    "GRAPHOS-IDENTITY-R012.2",
     "GRAPHOS-IDENTITY-R013",
     "GRAPHOS-IDENTITY-R014",
     "GRAPHOS-IDENTITY-R015",
@@ -110,7 +120,7 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R006",
-      "title": "Rollup",
+      "title": "Optional MFA with TOTP, WebAuthn, and recovery codes",
       "delivery_state": "LANDED",
       "landed_in": [
         "cd652df8f6c8"
@@ -141,7 +151,7 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R007",
-      "title": "Rollup",
+      "title": "Admin console tabs with mapping dry-run and mode wizard",
       "delivery_state": "LANDED",
       "landed_in": [
         "cd652df8f6c8"
@@ -175,20 +185,74 @@
       "title": "API keys and service accounts replace static MCP tokens",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R008.1",
+        "GRAPHOS-IDENTITY-R008.2"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R009",
       "title": "Multi-provider OIDC with mapping rules and JIT policy",
-      "delivery_state": "LANDED",
+      "delivery_state": "SPECIFIED",
       "landed_in": [
         "4a3410afa6de"
       ],
-      "verified_by": []
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R009.1",
+        "GRAPHOS-IDENTITY-R009.2"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R010",
       "title": "LDAPS bind with nested group sync",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R010.1",
+        "GRAPHOS-IDENTITY-R010.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R008.1",
+      "title": "Typed API-key grant model",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R008.2",
+      "title": "Scope intersection and revocation",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R009.1",
+      "title": "Typed OIDC mapping-rule model",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R009.2",
+      "title": "OIDC authentication flow",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.1",
+      "title": "Typed LDAPS bind-config model",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.2",
+      "title": "Directory bind and group sync",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -198,11 +262,47 @@
       "title": "SCIM 2.0 provisioning server",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R011.1",
+        "GRAPHOS-IDENTITY-R011.2"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R012",
       "title": "Native SAML service provider",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R012.1",
+        "GRAPHOS-IDENTITY-R012.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R011.1",
+      "title": "Typed SCIM service-credential model",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R011.2",
+      "title": "SCIM server surface",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.1",
+      "title": "Typed SAML service-provider model",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.2",
+      "title": "Assertion verification and sign-in",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -238,7 +338,9 @@
       "id": "GRAPHOS-IDENTITY-R016",
       "title": "Optional SMTP adapter for identity email",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "adf48206cdff"
+      ],
       "verified_by": [
         "tests/identity/test_mail_capability.py:15",
         "tests/identity/test_mail_capability.py:30",
@@ -252,8 +354,10 @@
     {
       "id": "GRAPHOS-IDENTITY-R016.1",
       "title": "Graph-os-side mail capability model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "adf48206cdff"
+      ],
       "verified_by": []
     },
     {
@@ -267,7 +371,9 @@
       "id": "GRAPHOS-IDENTITY-R017",
       "title": "Remove the unauthenticated opt-out once clients migrate",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "adf48206cdff"
+      ],
       "verified_by": [
         "tests/identity/test_client_entry_points.py:14",
         "tests/identity/test_client_entry_points.py:21"
@@ -280,8 +386,10 @@
     {
       "id": "GRAPHOS-IDENTITY-R017.1",
       "title": "Client entry-point token audit registry",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "adf48206cdff"
+      ],
       "verified_by": []
     },
     {

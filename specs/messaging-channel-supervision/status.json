@@ -46,8 +46,10 @@
     {
       "id": "GRAPHOS-MESSAGING-R003",
       "title": "Bounded restart backoff with healthy-run reset",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "29a592980f26"
+      ],
       "verified_by": [
         "tests/messaging/test_supervision.py:152",
         "tests/messaging/test_supervision.py:186"
@@ -56,8 +58,10 @@
     {
       "id": "GRAPHOS-MESSAGING-R004",
       "title": "Graceful stop and drain",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "29a592980f26"
+      ],
       "verified_by": [
         "tests/messaging/test_supervision.py:221"
       ]
@@ -67,6 +71,7 @@
       "title": "Typed degraded state for a missing adapter",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "29a592980f26",
         "785693fbf7a3"
       ],
       "verified_by": [

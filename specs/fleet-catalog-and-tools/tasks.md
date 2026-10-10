@@ -18,6 +18,12 @@ Check a task only after its linked code and tests land. A checked source task is
 - [x] T05 — Build one filtered catalog for all six item kinds, native per-session mounts, cap/expiry/eviction, queued notifications, fallback calls, and credential delegation. Cover GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R004.
 - [x] T06 — Install embedded/remote Eunomia policy in graph-os; prove exact scopes and principal rules at discover/load/call and fail-closed outage behavior. Cover GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R021.
 - [ ] T07 — Add atomic generation refresh, durable ordered delta receipts, last-known-good fallback, in-flight drain, replay, and replica convergence. Cover GRAPHOS-FLEET-R022 and PA-12.
+- [x] T08 — Certify actual connector schemas and annotations; expose typed write-back and sanitized telemetry/security/CI feed metadata through registry ops. Cover GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R008.
+- [ ] T08 — Certify actual connector schemas and annotations; expose typed write-back and sanitized telemetry/security/CI feed metadata through registry ops. Cover GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R008.
+- [ ] T09 — Correct generated assembly agent parsing. Cover GRAPHOS-FLEET-R010. (GRAPHOS-FLEET-R009 split into T09.1-T09.3 below.)
+- [x] T09.1 (GRAPHOS-FLEET-R009.1): Build the typed capacity-acquisition primitive (ledger): all-or-nothing acquire, exactly one re-decision on denial, release on stop.
+- [ ] T09.2 (GRAPHOS-FLEET-R009.2): Wire the capacity ledger into `control_plane/runs/admission.py`'s `admit_once`.
+- [ ] T09.3 (GRAPHOS-FLEET-R009.3): Wire the capacity ledger into `graph_os/a2a/routing.py` and `composition.py`'s publish step.
 - [x] T08 — Certify actual connector schemas and annotations; expose typed write-back and sanitized telemetry/security/CI feed metadata through registry ops. Cover GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R008. GRAPHOS-FLEET-R003 is now a rollup over GRAPHOS-FLEET-R003.1-.3.
   - [x] GRAPHOS-FLEET-R002.1 (child, producer): `graph_os/fleet/catalog_items.py` (`compute_schema_fingerprint`, `CatalogItem.schema_fingerprint`, wired into `_probed_item`) + `tests/fleet/test_schema_fingerprint.py`.
   - [x] GRAPHOS-FLEET-R003.1 (child, producer): `graph_os/api/ops/write_back.py` (`WriteBackPreviewRequest`, `WriteBackPreviewResult`, `preview_write_back`) + `tests/api/test_write_back_preview.py`.
@@ -39,6 +45,9 @@ Check a task only after its linked code and tests land. A checked source task is
 - [ ] T12 — Run the disposable two-replica reload and fault probe against the landed revision; attach generation, receipt, trace, timing, and policy evidence; then mark only passing slices ACCEPTED.
 - [ ] T13 — Add or verify a check script that scans every fleet connector count-pin site (compatibility matrix, bundle-catalog schema, check scripts, `ontology.lock`, federated IRI, `genesis.yaml`) and fails when any site disagrees with the live connector count. Cover GRAPHOS-FLEET-R023, not covered by T01–T12.
 - [x] T14 (GRAPHOS-FLEET-R024): Take over fleet reconciliation, autoscaling, scaling authority and deploy watch from the agent runtime as typed GraphOS operations with parity and authorization tests. Split into T14.1–T14.3 below; GRAPHOS-FLEET-R024 is now a rollup over GRAPHOS-FLEET-R024.1–R024.3.
+  - [x] GRAPHOS-FLEET-R023.1 (child, producer): `graph_os/fleet/connector_count_pins.py` + `scripts/check_connector_count_pins.py` + `tests/test_check_connector_count_pins.py`. Real sites (compatibility matrix, bundle-catalog schema, `ontology.lock`, federated IRI) remain cross-repo/AU-owned follow-up.
+- [ ] T14 (GRAPHOS-FLEET-R024): Take over fleet reconciliation, autoscaling, scaling authority and deploy watch from the agent runtime as typed GraphOS operations with parity and authorization tests.
+- [ ] T14 (GRAPHOS-FLEET-R024): Take over fleet reconciliation, autoscaling, scaling authority and deploy watch from the agent runtime as typed GraphOS operations with parity and authorization tests. Split into T14.1–T14.3 below; GRAPHOS-FLEET-R024 is now a rollup over GRAPHOS-FLEET-R024.1–R024.3.
 - [x] T14.1 (GRAPHOS-FLEET-R024.1): Port the deploy-watch verdict decision (`agent_utilities.orchestration.deploy_watch.run_deploy_watch`'s probe-reduction rule) as a typed `fleet.deploy_watch.evaluate` GraphOS operation behind the shared registry caller/scope/policy chokepoint, with parity tests against the original success/failed/unobserved rule and a negative test refusing a caller without the `mcp:delegate` scope.
 - [ ] T14.2 (GRAPHOS-FLEET-R024.2): Port the remaining fleet reconciler, autoscaler, scaling-authority and deploy-watch scheduling/rollback-dispatch behavior as typed GraphOS operations, wired into the served operation registry, with parity and authorization tests matching T14.1's pattern.
 - [ ] T14.3 (GRAPHOS-FLEET-R024.3): Cross-repo — remove the superseded reconciler/autoscaler/scaling-authority/deploy-watch modules from agent-utilities' `orchestration/` package and redirect its agent runner and planning code to call the GraphOS operations from T14.1–T14.2. Blocked on T14.2 landing; out of scope for this (graph-os-only) lane.
@@ -119,5 +128,7 @@ beyond an unrelated audit-chain capacity check. None of these is a safe
 ## Decomposition children (tracked)
 
 - [ ] **PA-12:** Catalog reload rejects invalid candidates, proves replica convergence
+- [ ] **PA-12.1:** Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence
+- [ ] **PA-12.2:** Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence
 - [ ] **PA-12.1:** Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence (rollup)
 - [ ] **PA-12.2:** Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence (rollup)

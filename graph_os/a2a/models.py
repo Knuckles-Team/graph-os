@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
@@ -13,14 +13,17 @@ __all__ = [
     "A2AContextBudget",
     "A2AListResult",
     "A2AMessage",
+    "A2APushNotificationAuthority",
     "A2AOperationInvokeParams",
     "A2APlanConfirmParams",
     "A2ARouteDecision",
     "A2ASkill",
+    "A2AStreamingAuthority",
     "A2ATask",
     "A2ATaskState",
     "A2ATaskStatus",
     "A2ATextPart",
+    "A2ATransitionHistoryAuthority",
 ]
 
 
@@ -134,10 +137,82 @@ class A2AListResult(_WireModel):
     next_cursor: str | None = None
 
 
+@runtime_checkable
+class A2AStreamingAuthority(Protocol):
+    """Durable, restart-safe event-cursor-backed task-streaming authority.
+
+    GRAPHOS-A2A-R001's open streaming slice; no implementation is wired yet.
+    """
+
+    def resume_from_cursor(self, task_id: str, cursor: str | None) -> Any: ...
+
+
+@runtime_checkable
+class A2APushNotificationAuthority(Protocol):
+    """Durable push-notification delivery authority for task state changes."""
+
+    def register_push_target(self, task_id: str, target_url: str) -> Any: ...
+
+
+@runtime_checkable
+class A2ATransitionHistoryAuthority(Protocol):
+    """Durable, append-only WorkItem transition-history authority.
+
+    Owned by epistemic-graph, not GraphOS; see GRAPHOS-A2A-003.
+    """
+
+    def transition_history(self, task_id: str) -> Any: ...
+
+
 class A2AAgentCapabilities(_WireModel):
-    streaming: Literal[False] = False
-    push_notifications: Literal[False] = False
-    state_transition_history: Literal[False] = False
+    """Capabilities advertised on the Agent Card.
+
+    Each field defaults to ``False`` and can only become ``True`` through
+    :meth:`from_wired_authorities`, which requires an actual durable
+    authority object implementing the matching protocol. A bare boolean
+    can never force a capability true, so the card cannot advertise more
+    than GraphOS can actually serve.
+    """
+
+    streaming: bool = False
+    push_notifications: bool = False
+    state_transition_history: bool = False
+
+    @classmethod
+    def from_wired_authorities(
+        cls,
+        *,
+        streaming_authority: A2AStreamingAuthority | None = None,
+        push_notification_authority: A2APushNotificationAuthority | None = None,
+        transition_history_authority: A2ATransitionHistoryAuthority | None = None,
+    ) -> A2AAgentCapabilities:
+        """Derive capabilities truthfully from the authorities actually wired.
+
+        Raises ``TypeError`` (a refusal, not a silent downgrade) if a
+        supplied authority does not implement its required protocol.
+        """
+        for label, authority, protocol in (
+            ("streaming_authority", streaming_authority, A2AStreamingAuthority),
+            (
+                "push_notification_authority",
+                push_notification_authority,
+                A2APushNotificationAuthority,
+            ),
+            (
+                "transition_history_authority",
+                transition_history_authority,
+                A2ATransitionHistoryAuthority,
+            ),
+        ):
+            if authority is not None and not isinstance(authority, protocol):
+                raise TypeError(
+                    f"{label} must implement {protocol.__name__} or be None"
+                )
+        return cls(
+            streaming=streaming_authority is not None,
+            push_notifications=push_notification_authority is not None,
+            state_transition_history=transition_history_authority is not None,
+        )
 
 
 class A2ASkill(_WireModel):
