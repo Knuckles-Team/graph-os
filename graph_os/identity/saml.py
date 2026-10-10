@@ -1,12 +1,16 @@
 """Typed model for the native SAML service provider (GRAPHOS-IDENTITY-R012).
 
 Slice .1: the typed model, construction validation, and refusal tests only.
-Signature/audience/replay verification of an assertion is a later slice.
+Slice .2.1: the typed parsed-assertion model and the pure audience, recipient
+and validity-window checks, each refused with a typed reason. Signature
+verification, sign-in wiring and the live IdP probe are later slices.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 
 from .engine import IdentityUnavailable
 
@@ -35,3 +39,77 @@ class SamlServiceProvider:
             raise IdentityUnavailable(
                 "SAML service provider requires a configured IdP certificate"
             )
+
+
+class SamlRefusalReason(StrEnum):
+    """Why a parsed assertion was refused."""
+
+    WRONG_AUDIENCE = "wrong_audience"
+    WRONG_RECIPIENT = "wrong_recipient"
+    NOT_YET_VALID = "not_yet_valid"
+    EXPIRED = "expired"
+
+
+class SamlAssertionRefused(IdentityUnavailable):
+    """A parsed SAML assertion failed a validity check; carries the typed reason."""
+
+    def __init__(self, reason: SamlRefusalReason, message: str) -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedSamlAssertion:
+    """The already-parsed claims of one assertion (no XML handled here)."""
+
+    assertion_id: str
+    issuer: str
+    subject: str
+    audiences: tuple[str, ...]
+    recipient: str
+    not_before: datetime
+    not_on_or_after: datetime
+
+    def __post_init__(self) -> None:
+        for name in ("assertion_id", "issuer", "subject", "recipient"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value:
+                raise IdentityUnavailable(f"SAML assertion requires a {name}")
+        if not self.audiences or not all(
+            isinstance(a, str) and a for a in self.audiences
+        ):
+            raise IdentityUnavailable("SAML assertion requires an audience")
+        for name in ("not_before", "not_on_or_after"):
+            value = getattr(self, name)
+            if not isinstance(value, datetime) or value.tzinfo is None:
+                raise IdentityUnavailable(
+                    f"SAML assertion {name} must be a timezone-aware datetime"
+                )
+        if self.not_on_or_after <= self.not_before:
+            raise IdentityUnavailable("SAML assertion validity window is empty")
+
+
+def check_assertion_conditions(
+    provider: SamlServiceProvider,
+    assertion: ParsedSamlAssertion,
+    now: datetime,
+    clock_skew: timedelta = timedelta(0),
+) -> None:
+    """Refuse unless audience, recipient and validity window all match."""
+    if now.tzinfo is None:
+        raise IdentityUnavailable("SAML check time must be timezone-aware")
+    if provider.entity_id not in assertion.audiences:
+        raise SamlAssertionRefused(
+            SamlRefusalReason.WRONG_AUDIENCE, "assertion audience is not this provider"
+        )
+    if assertion.recipient != provider.acs_url:
+        raise SamlAssertionRefused(
+            SamlRefusalReason.WRONG_RECIPIENT, "assertion recipient is not the ACS URL"
+        )
+    now_utc = now.astimezone(UTC)
+    if now_utc + clock_skew < assertion.not_before:
+        raise SamlAssertionRefused(
+            SamlRefusalReason.NOT_YET_VALID, "assertion is not yet valid"
+        )
+    if now_utc - clock_skew >= assertion.not_on_or_after:
+        raise SamlAssertionRefused(SamlRefusalReason.EXPIRED, "assertion has expired")

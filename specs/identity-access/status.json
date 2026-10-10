@@ -44,6 +44,10 @@
     "GRAPHOS-IDENTITY-R011.2.4",
     "GRAPHOS-IDENTITY-R012.1",
     "GRAPHOS-IDENTITY-R012.2",
+    "GRAPHOS-IDENTITY-R012.2.1",
+    "GRAPHOS-IDENTITY-R012.2.2",
+    "GRAPHOS-IDENTITY-R012.2.3",
+    "GRAPHOS-IDENTITY-R012.2.4",
     "GRAPHOS-IDENTITY-R013",
     "GRAPHOS-IDENTITY-R014",
     "GRAPHOS-IDENTITY-R015",
@@ -464,7 +468,41 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R012.2",
-      "title": "Assertion verification and sign-in",
+      "title": "Assertion verification and sign-in (rollup of .2.1-.2.4)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R012.2.1",
+        "GRAPHOS-IDENTITY-R012.2.2",
+        "GRAPHOS-IDENTITY-R012.2.3",
+        "GRAPHOS-IDENTITY-R012.2.4"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.2.1",
+      "title": "Typed parsed-assertion model and condition checks",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.2.2",
+      "title": "Signature verification through an injected verifier port",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.2.3",
+      "title": "Replay check and sign-in handler wiring",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.2.4",
+      "title": "Live IdP sign-in probe",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
