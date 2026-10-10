@@ -271,6 +271,7 @@ def test_json_rpc_refuses_op_invoke_until_registry_bridge_exists() -> None:
     assert invalid.json()["error"]["code"] == -32602
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R005.1")
 @pytest.mark.spec("GRAPHOS-A2A-R006.1")
 def test_json_rpc_refuses_plan_confirm_until_approval_exchange_exists() -> None:
     """GRAPHOS-A2A-R005.1/R006.1: the human approval response method is
