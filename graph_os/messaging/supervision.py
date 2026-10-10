@@ -45,6 +45,28 @@ class IllegalSupervisionTransition(Exception):
         )
 
 
+class AdapterMissing(ValueError):
+    """Typed DEGRADED reason: the configured channel's adapter entry-point was
+    never discovered (not installed).
+
+    CONCEPT:GRAPHOS-MESSAGING-R005 — subclasses ``ValueError`` and adds no
+    ``__init__`` of its own, so ``MessagingRegistry.create_backend`` keeps
+    raising a message callers already match with ``except ValueError``, while
+    ``MessagingRegistry.create_all_enabled`` can additionally recognize this
+    specific type to record the channel ``DEGRADED`` with a typed reason
+    instead of only logging and omitting it.
+    """
+
+
+class AdapterImportFailed(ImportError):
+    """Typed DEGRADED reason: the configured channel's adapter entry-point was
+    discovered but its dependencies failed to import.
+
+    CONCEPT:GRAPHOS-MESSAGING-R005 — subclasses ``ImportError`` and adds no
+    ``__init__`` of its own, for the same reason as :class:`AdapterMissing`.
+    """
+
+
 # The fixed legal-transition table. A pair not present here is refused.
 _TRANSITIONS: dict[ChannelSupervisionState, frozenset[ChannelSupervisionState]] = {
     ChannelSupervisionState.STOPPED: frozenset({ChannelSupervisionState.STARTING}),
