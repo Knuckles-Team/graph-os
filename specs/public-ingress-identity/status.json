@@ -1,50 +1,33 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-INGRESS-001",
   "owner_repo": "graph-os",
+  "delivery_state": "LANDED",
   "requirement_ids": [
     "GRAPHOS-INGRESS-R001",
     "GRAPHOS-INGRESS-R001.1"
-  ],
-  "delivery_state": "LANDED",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [
-    {
-      "kind": "merged_head",
-      "result": "passed",
-      "commit": "d35d445334f2826f7bdd217465d5b4915484a541",
-      "url": "https://github.com/Knuckles-Team/graph-os/commit/d35d445334f2826f7bdd217465d5b4915484a541",
-      "description": "Every requirement in this spec is merged to the default branch."
-    }
   ],
   "requirements": [
     {
       "id": "GRAPHOS-INGRESS-R001",
       "title": "Public ingress rename with Keycloak and OpenBao cutover",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d35d445334f2826f7bdd217465d5b4915484a541",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d35d445334f2826f7bdd217465d5b4915484a541",
-          "description": "GRAPHOS-INGRESS-R001 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "d35d445334f2"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-INGRESS-R001.1"
       ]
     },
     {
       "id": "GRAPHOS-INGRESS-R001.1",
-      "title": "Typed public-ingress profile model: validation and refusal tests",
+      "title": "Typed public-ingress profile model",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d35d445334f2826f7bdd217465d5b4915484a541",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d35d445334f2826f7bdd217465d5b4915484a541",
-          "description": "GRAPHOS-INGRESS-R001.1 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "d35d445334f2"
+      ],
+      "verified_by": []
     }
   ]
 }

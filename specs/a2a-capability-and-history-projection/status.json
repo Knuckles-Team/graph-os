@@ -1,7 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-A2A-003",
   "owner_repo": "graph-os",
+  "delivery_state": "LANDED",
   "requirement_ids": [
     "GRAPHOS-A2A-R001",
     "GRAPHOS-A2A-R001.1",
@@ -12,61 +13,95 @@
     "GRAPHOS-A2A-R006",
     "GRAPHOS-A2A-R007"
   ],
-  "delivery_state": "BUILDING",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-A2A-R001",
       "title": "Advertise only what is wired",
-      "delivery_state": "BUILDING",
-      "evidence": [],
-      "remaining": "Typed model (R001.1) landed in this PR; actual authority wiring for streaming/push/history is open and depends on GRAPHOS-A2A-002."
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "a8ed61b538e7"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-A2A-R001.1"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R001.1",
       "title": "Typed Agent Card capability-advertisement model",
-      "delivery_state": "BUILDING",
-      "evidence": [],
-      "remaining": "tests/a2a/test_models.py passes locally on this branch (default-false, selective-true, all-true, non-conforming-object refusal); awaiting merged-head evidence."
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "a8ed61b538e7",
+        "d5bff77ba836"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R002",
       "title": "WorkItem stream projection, not a shadow log",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "Depends on GRAPHOS-A2A-002 landing."
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "9a79acee8b6c"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R003",
       "title": "Transition history is read-through to epistemic-graph",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "Depends on GRAPHOS-A2A-002 landing."
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "2cbed24252ec",
+        "deb2b45bf83d"
+      ],
+      "verified_by": [
+        "tests/fleet/test_no_duplicate_skill_prompt_harvest.py:58"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R004",
       "title": "Typed refusal when the durable history authority is absent",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "d5bff77ba836",
+        "d60b46fc6984"
+      ],
+      "verified_by": [
+        "tests/deployment/test_release_canary.py:31",
+        "tests/deployment/test_release_canary.py:63",
+        "tests/deployment/test_release_canary.py:82",
+        "tests/deployment/test_release_canary.py:93"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R005",
       "title": "Push notifications are best-effort over a durable outbox",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "9a79acee8b6c"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R006",
       "title": "No capability advertised before GRAPHOS-A2A-002 lands",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "9a79acee8b6c"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R007",
       "title": "Caller-visible card matches served behavior",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "9a79acee8b6c",
+        "c2a6ab839fd3"
+      ],
+      "verified_by": [
+        "tests/api/test_invoke_contract.py:434",
+        "tests/api/test_invoke_governance.py:440"
+      ]
     }
   ]
 }

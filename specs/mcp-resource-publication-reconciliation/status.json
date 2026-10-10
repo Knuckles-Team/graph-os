@@ -1,7 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-MCP-RESOURCES-001",
   "owner_repo": "graph-os",
+  "delivery_state": "SPECIFIED",
   "requirement_ids": [
     "GRAPHOS-MCP-RESOURCES-R001",
     "GRAPHOS-MCP-RESOURCES-R001.1",
@@ -9,44 +10,44 @@
     "GRAPHOS-MCP-RESOURCES-R003",
     "GRAPHOS-MCP-RESOURCES-R004"
   ],
-  "delivery_state": "BUILDING",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-MCP-RESOURCES-R001",
       "title": "Publication gate refuses without a valid receipt (rollup)",
-      "delivery_state": "BUILDING",
-      "evidence": [],
-      "remaining": "Delivered through its child requirement, producer first. GRAPHOS-MCP-RESOURCES-R001.1 lands the typed model and gate; GRAPHOS-MCP-RESOURCES-R003 (not yet specified) wires it into the publish path."
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-MCP-RESOURCES-R001.1"
+      ]
     },
     {
       "id": "GRAPHOS-MCP-RESOURCES-R001.1",
-      "title": "Typed ReconciliationReceipt model and publication gate",
-      "delivery_state": "BUILT",
-      "evidence": [],
-      "remaining": "graph_os/fleet/mcp_resource_reconciliation.py (ReconciliationReceipt, PublicationGateResult, gate_mcp_resource_publication) + tests/fleet/test_mcp_resource_reconciliation.py (7 tests). Published on a branch/PR; not yet merged to the default branch."
+      "title": "Typed `ReconciliationReceipt` model and publication gate",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-MCP-RESOURCES-R002",
       "title": "epistemic-graph is the sole admissible receipt source",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "Cross-repository link to EG-REPO-INGEST-001 recorded in spec.md/requirements.md this PR; no graph-os code change required beyond the link."
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-MCP-RESOURCES-R003",
       "title": "Gate wired at the one catalog-publish entry point",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "Not built in this slice; depends on the GRAPHOS-FLEET-001 R022/PA-12 generation-publish step."
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-MCP-RESOURCES-R004",
       "title": "Status docs are the gate's result, not hand-maintained prose",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "Not built in this slice; docs/status.md and docs/fleet.md already describe the typed reingestion-unreconciled result this gate now implements."
+      "landed_in": [],
+      "verified_by": []
     }
   ]
 }

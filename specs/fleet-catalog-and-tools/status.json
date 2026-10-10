@@ -1,34 +1,39 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-FLEET-001",
   "owner_repo": "graph-os",
+  "delivery_state": "SPECIFIED",
   "requirement_ids": [
     "GRAPHOS-FLEET-R001",
     "GRAPHOS-FLEET-R002",
     "GRAPHOS-FLEET-R002.1",
+    "GRAPHOS-FLEET-R002.2",
     "GRAPHOS-FLEET-R003",
     "GRAPHOS-FLEET-R003.1",
     "GRAPHOS-FLEET-R003.2",
-    "GRAPHOS-FLEET-R003.3",
     "GRAPHOS-FLEET-R004",
     "GRAPHOS-FLEET-R005",
     "GRAPHOS-FLEET-R005.1",
+    "GRAPHOS-FLEET-R005.2",
     "GRAPHOS-FLEET-R006",
-    "GRAPHOS-FLEET-R006.1",
-    "GRAPHOS-FLEET-R006.2",
-    "GRAPHOS-FLEET-R006.3",
-    "GRAPHOS-FLEET-R006.4",
-    "GRAPHOS-FLEET-R006.5",
     "GRAPHOS-FLEET-R007",
-    "GRAPHOS-FLEET-R007.1",
-    "GRAPHOS-FLEET-R007.2",
-    "GRAPHOS-FLEET-R007.3",
     "GRAPHOS-FLEET-R008",
+    "GRAPHOS-FLEET-R008.1",
+    "GRAPHOS-FLEET-R008.2",
     "GRAPHOS-FLEET-R009",
     "GRAPHOS-FLEET-R009.1",
     "GRAPHOS-FLEET-R009.2",
     "GRAPHOS-FLEET-R009.3",
     "GRAPHOS-FLEET-R010",
+    "GRAPHOS-FLEET-R003.3",
+    "GRAPHOS-FLEET-R006.1",
+    "GRAPHOS-FLEET-R006.2",
+    "GRAPHOS-FLEET-R006.3",
+    "GRAPHOS-FLEET-R006.4",
+    "GRAPHOS-FLEET-R006.5",
+    "GRAPHOS-FLEET-R007.1",
+    "GRAPHOS-FLEET-R007.2",
+    "GRAPHOS-FLEET-R007.3",
     "GRAPHOS-FLEET-R011",
     "GRAPHOS-FLEET-R012",
     "GRAPHOS-FLEET-R013",
@@ -45,648 +50,642 @@
     "GRAPHOS-FLEET-R023",
     "GRAPHOS-FLEET-R023.1",
     "GRAPHOS-FLEET-R024",
+    "PA-12.1",
+    "PA-12.2",
     "GRAPHOS-FLEET-R024.1",
     "GRAPHOS-FLEET-R024.2",
     "GRAPHOS-FLEET-R024.3",
     "GRAPHOS-FLEET-R025",
+    "GRAPHOS-FLEET-R029",
     "GRAPHOS-FLEET-R026",
     "GRAPHOS-FLEET-R027",
     "GRAPHOS-FLEET-R028",
-    "GRAPHOS-FLEET-R029",
     "GRAPHOS-FLEET-R030",
-    "GRAPHOS-FLEET-R002.2",
-    "GRAPHOS-FLEET-R005.2",
-    "PA-12.1",
-    "PA-12.2",
-    "GRAPHOS-FLEET-R008.1",
-    "GRAPHOS-FLEET-R008.2"
+    "GRAPHOS-FLEET-R031",
+    "GRAPHOS-FLEET-R032"
   ],
-  "delivery_state": "BUILDING",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-FLEET-R001",
       "title": "Typed pack publisher replaces placeholder ContentPack",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "18038a22a8752fcab060b82f18a15a4ebbf0da10",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/18038a22a8752fcab060b82f18a15a4ebbf0da10",
-          "description": "Implemented on the default branch; exercised by tests/test_connector_pack_typed_publisher.py"
-        }
-      ]
+      "landed_in": [
+        "18038a22a875",
+        "8df218e2f742"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R002",
       "title": "Tool schema fingerprints recomputed from served schemas (rollup)",
-      "delivery_state": "BUILDING",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
-          "description": "GRAPHOS-FLEET-R002 merged to the default branch in this commit."
-        }
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "0f346a4d0e4a"
       ],
-      "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R002.1 lands the typed fingerprint model; the fleet-wide automated re-certification check (GRAPHOS-FLEET-R002.2) is not yet specified."
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R002.1",
+        "GRAPHOS-FLEET-R002.2"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R002.1",
       "title": "Per-tool schema fingerprint computed from the served schema",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/0f346a4d0e4a04c9674ee2b6e797ef9fb446806a",
-          "description": "GRAPHOS-FLEET-R002.1 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "0f346a4d0e4a"
       ],
-      "remaining": "graph_os/fleet/catalog_items.py adds compute_schema_fingerprint() and CatalogItem.schema_fingerprint, wired into _probed_item for tool rows; tests/fleet/test_schema_fingerprint.py passes (6 tests). Published on a branch/PR; not yet merged to the default branch. No fleet-wide automated re-certification check yet (GRAPHOS-FLEET-R002.2, not yet specified)."
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R002.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "0f346a4d0e4a"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R003",
-      "title": "D18 write-back exposed only as a typed, previewed operation",
-      "delivery_state": "BUILDING",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "9a9b3f5c8ecb3e62f99ab79770ed06d015fb0365",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/9a9b3f5c8ecb3e62f99ab79770ed06d015fb0365",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "title": "D18 write-back exposed only as a typed, previewed operation (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R003.1",
+        "GRAPHOS-FLEET-R003.2",
+        "GRAPHOS-FLEET-R003.3"
       ]
     },
     {
       "id": "GRAPHOS-FLEET-R003.1",
       "title": "Typed write-back preview model and its refusal rule",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "67b1b9ab916ee5c5d55a720a692d15264e387f6f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/67b1b9ab916ee5c5d55a720a692d15264e387f6f",
-          "description": "graph_os/api/ops/write_back.py adds WriteBackPreviewRequest/WriteBackPreviewResult and preview_write_back(), which refuses a blank idempotency key and never applies a write; tests/api/test_write_back_preview.py passes (4 tests)."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "67b1b9ab916e",
+        "e80df3dcad62",
+        "f2d7ec520ab7"
+      ],
+      "verified_by": [
+        "tests/api/test_write_back_models.py:120",
+        "tests/api/test_write_back_models.py:19",
+        "tests/api/test_write_back_models.py:31",
+        "tests/api/test_write_back_models.py:46",
+        "tests/api/test_write_back_models.py:60"
       ]
     },
     {
       "id": "GRAPHOS-FLEET-R003.2",
       "title": "Write-back registered as a typed, gated registry operation, not a native child tool",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R003.3",
-      "title": "Write-back idempotency and preview gating survive a service restart",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "f2d7ec520ab7"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R004",
       "title": "Pack annotations carry capability, digest, modality, cost, latency",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "0aba0c33acd0dae26a0132797ac1cb412075b49d",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/0aba0c33acd0dae26a0132797ac1cb412075b49d",
-          "description": "GRAPHOS-FLEET-R004 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "0aba0c33acd0"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R005",
       "title": "A2A task routing with typed work-item and lease operations (rollup)",
-      "delivery_state": "BUILDING",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
-          "description": "GRAPHOS-FLEET-R005 merged to the default branch in this commit."
-        }
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "3b404ee3ecf8"
       ],
-      "remaining": "Delivered through child requirements, producer first. GRAPHOS-FLEET-R005.1 lands the typed WorkItem view; GetWorkItem/ListWorkItems operations, capability-based agent search, control-lease issuance/consumption, and the multiplexer tool-subset restriction (GRAPHOS-FLEET-R005.2+) are not yet specified."
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R005.1",
+        "GRAPHOS-FLEET-R005.2"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R005.1",
       "title": "Typed WorkItem view, the GetWorkItem/ListWorkItems producer",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/3b404ee3ecf8fb611b6b948c45e6bffaaa364821",
-          "description": "GRAPHOS-FLEET-R005.1 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "3b404ee3ecf8"
       ],
-      "remaining": "graph_os/a2a/work_items.py adds WorkItemView, work_item_view, parse_work_item_view and list_work_item_views, exported from graph_os/a2a/__init__.py; tests/a2a/test_work_items.py passes (13 tests). Published on a branch/PR; not yet merged to the default branch. No GetWorkItem/ListWorkItems operation, capability search, or control lease yet (GRAPHOS-FLEET-R005.2+, not yet specified)."
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R005.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "3b404ee3ecf8"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R006",
       "title": "Multiplexer skill and prompt harvest path removed",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R006.1",
+        "GRAPHOS-FLEET-R006.2",
+        "GRAPHOS-FLEET-R006.3",
+        "GRAPHOS-FLEET-R006.4",
+        "GRAPHOS-FLEET-R006.5"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R007",
+      "title": "Bridge upgraded to FastMCP 4 (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R007.1",
+        "GRAPHOS-FLEET-R007.2",
+        "GRAPHOS-FLEET-R007.3"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R008",
+      "title": "RUM, security-audit and CI/CD feeds join the catalog (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R008.1",
+        "GRAPHOS-FLEET-R008.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R008.1",
+      "title": "Typed feed-event model per feed kind",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R008.2",
+      "title": "Live feed ingestion wired into the catalog",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009",
+      "title": "Run admission evaluates, commits and publishes with capacity control",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "58ee1a06a392",
+        "67b1b9ab916e",
+        "c77ede8726fa"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R009.1",
+        "GRAPHOS-FLEET-R009.2",
+        "GRAPHOS-FLEET-R009.3"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.1",
+      "title": "Capacity acquisition is all-or-nothing with one re-decision",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "58ee1a06a392",
+        "c77ede8726fa"
+      ],
+      "verified_by": [
+        "tests/control_plane/admission/test_capacity_acquisition.py:13",
+        "tests/control_plane/admission/test_capacity_acquisition.py:23",
+        "tests/control_plane/admission/test_capacity_acquisition.py:35",
+        "tests/control_plane/admission/test_capacity_acquisition.py:47",
+        "tests/control_plane/admission/test_capacity_acquisition.py:60"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.2",
+      "title": "Routing and composition publish only through acquired capacity",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "58ee1a06a392",
+        "c77ede8726fa"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.3",
+      "title": "Run admission publishes with all-or-nothing capacity control",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "58ee1a06a392"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R010",
+      "title": "RETIRED: superseded by the current registry architecture; graph_os/assembly.py was removed",
+      "delivery_state": "RETIRED",
+      "landed_in": [],
+      "verified_by": [],
+      "retired_reason": "superseded by the current registry architecture; graph_os/assembly.py was removed"
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.3",
+      "title": "Write-back idempotency and preview gating survive a service restart",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R006.1",
       "title": "Harvest call-site inventory, the removal baseline",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "031958c74eb8",
+        "a94c87aa090e"
+      ],
+      "verified_by": [
+        "tests/fleet/test_harvest_inventory.py:106",
+        "tests/fleet/test_harvest_inventory.py:117"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R006.2",
       "title": "Skill/prompt body-harvest cutover for an already-admitted child",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "031958c74eb8",
+        "1db599dcf40c",
+        "a94c87aa090e"
+      ],
+      "verified_by": [
+        "tests/fleet/test_fleet_r006_2_local_catalog_cutover.py:125",
+        "tests/fleet/test_fleet_r006_2_local_catalog_cutover.py:33",
+        "tests/fleet/test_fleet_r006_2_local_catalog_cutover.py:68",
+        "tests/fleet/test_fleet_r006_2_local_catalog_cutover.py:91"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R006.3",
       "title": "Dead harvest helpers removed",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R006.4",
-      "title": "Residual _harvest-named symbol renamed off the removed path",
+      "title": "Residual `_harvest`-named symbol renamed off the removed path",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R006.5",
       "title": "Closing audit: no harvest or hydration code remains",
       "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R007",
-      "title": "Bridge upgraded to FastMCP 4",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( — no hits), so the 'single com"
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R007.1",
       "title": "agent-connector-sdk's FastMCP instance gains native prompt/resource/template registration (cross-repo, owner: agent-connector-sdk)",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R007.2",
       "title": "agent-utilities' graph-os bridge surface gains native prompt/resource/template registration (cross-repo, owner: agent-utilities)",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R007.3",
       "title": "graph-os's served bridge exercises native prompts, resources and templates end to end",
       "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R008",
-      "title": "RUM, security-audit and CI/CD feeds join the catalog (rollup)",
-      "delivery_state": "BUILDING",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R009",
-      "title": "Run admission evaluates, commits and publishes with capacity control (rollup)",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "Split into GRAPHOS-FLEET-R009.1/.2/.3; this row is satisfied once all three children land."
-    },
-    {
-      "id": "GRAPHOS-FLEET-R009.1",
-      "title": "Capacity acquisition is all-or-nothing with one re-decision",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "c77ede8726fa448b5d9d0fcafd36de9ab1aeee40",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c77ede8726fa448b5d9d0fcafd36de9ab1aeee40",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ],
-      "remaining": "graph_os/control_plane/runs/admission.py adds CapacityAcquisition/CapacityDeniedError (acquire/release/held); tests/control_plane/admission/test_capacity_acquisition.py passes. Not yet merged. GRAPHOS-FLEET-R009.2 wiring is not started."
-    },
-    {
-      "id": "GRAPHOS-FLEET-R009.2",
-      "title": "Run admission acquires capacity before publish",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R009.3",
-      "title": "A2A routing and composition publish only after capacity grant",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R010",
-      "title": "Assembly result parsing reads the full agents list",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "bcad17a6bba4d50f3c832b42d7f2348a6483b6e9",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/bcad17a6bba4d50f3c832b42d7f2348a6483b6e9",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ]
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R011",
       "title": "Registry core computes a canonical digest and authorized find",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "GRAPHOS-FLEET-R011 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "4b83c69e2b41"
       ],
-      "remaining": "Implemented and unit-tested on the default branch under graph_os/api/. The reachability report shows no served entry point imports that package yet. Remaining: compose it into the served application, with a test through the served entry point."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R012",
       "title": "EG-direct binding generator with reviewed exclusions",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "68e31b75248a9a547c2e9937b285db01d70dacd0",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/68e31b75248a9a547c2e9937b285db01d70dacd0",
-          "description": "GRAPHOS-FLEET-R012 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "4b83c69e2b41",
+        "68e31b75248a"
       ],
-      "remaining": "The engine-binding generator and its exclusions file are on the default branch with tests (tests/api/test_eg_binding.py). The reachability report shows no served entry point imports graph_os/api/registry yet. Remaining: compose the registry into the served application."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R013",
       "title": "MCP projection exposes the six verbs with typed schemas",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "6b63aeb7ba0310277885d69a4a2da516000aa23f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/6b63aeb7ba0310277885d69a4a2da516000aa23f",
-          "description": "GRAPHOS-FLEET-R013 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "6b63aeb7ba03",
+        "ea736715b7fb"
       ],
-      "remaining": "Implemented and unit-tested on the default branch (tests/api/test_mcp_verbs.py), but the MCP projection is not mounted into the served application yet. Remaining: mount it, with a test through the served entry point."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R014",
       "title": "Resolver ranks catalog items with partitioned feedback",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "4af96764619d2d9b6859ee51d6ec5859a7276b65",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4af96764619d2d9b6859ee51d6ec5859a7276b65",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "43db6b7ac49b"
+      ],
+      "verified_by": [
+        "tests/api/test_resolve.py:112",
+        "tests/api/test_resolve.py:159"
       ]
     },
     {
       "id": "GRAPHOS-FLEET-R015",
       "title": "Typed operations cover agents, browser and fleet calls",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "e632abb7eab0398f2890a5441b8588d6b467a9b9",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/e632abb7eab0398f2890a5441b8588d6b467a9b9",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "68e31b75248a9a547c2e9937b285db01d70dacd0",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/68e31b75248a9a547c2e9937b285db01d70dacd0",
-          "description": "GRAPHOS-FLEET-R015 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "68e31b75248a",
+        "e1d37ca10ef7"
       ],
-      "remaining": "Typed agents, browser and fleet operations are implemented and unit-tested on the default branch (tests/api/test_agent_browser_ops.py, tests/api/test_fleet_effect.py). Nothing serves them yet: the operations package is not composed into a registry that a mounted projection exposes. Remaining: compose and mount them, with a test through the served entry point."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R016",
       "title": "Automated gates catch API surface and compatibility drift",
-      "delivery_state": "BUILDING",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "1f3b30ff69312556daa87e636d543d1f1ad9f391",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/1f3b30ff69312556daa87e636d543d1f1ad9f391",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "ba0aa6a11b4a"
+      ],
+      "verified_by": [
+        "tests/api/test_gates_cli.py:106",
+        "tests/api/test_gates_cli.py:57",
+        "tests/api/test_gates_cli.py:69",
+        "tests/api/test_gates_cli.py:91"
       ]
     },
     {
       "id": "GRAPHOS-FLEET-R017",
       "title": "Authority-parity oracle validates principal, operation and surface",
-      "delivery_state": "BUILDING",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "fb06321fe19358019f09ba390a8498a0ec80610b",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fb06321fe19358019f09ba390a8498a0ec80610b",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "ba0aa6a11b4a"
+      ],
+      "verified_by": [
+        "tests/api/test_authority_parity.py:78"
       ]
     },
     {
       "id": "GRAPHOS-FLEET-R018",
       "title": "Multiplexer exposes four resident fleet tools over one catalog",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "fda058b41780632881d4b281ea71504705cac602",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fda058b41780632881d4b281ea71504705cac602",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "e1d37ca10ef7e14540629848249e9b328ada1574",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/e1d37ca10ef7e14540629848249e9b328ada1574",
-          "description": "GRAPHOS-FLEET-R018 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "e1d37ca10ef7"
       ],
-      "remaining": "The resident-tool mechanics (catalog items, bounded session loads with idle expiry, governed gateway call path) are implemented and unit-tested on the default branch (tests/fleet/test_gateway_ops.py). Remaining: replace the live multiplexer's own registered meta-tools with them."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R019",
       "title": "Eunomia narrows authority at discover, load and call",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "269c409c5415459d900286134e4bf5d24770b5b7",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/269c409c5415459d900286134e4bf5d24770b5b7",
-          "description": "GRAPHOS-FLEET-R019 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "269c409c5415"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R020",
-      "title": "Multiplexer meta-tools register as the four resident tools",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "RETIRED: superseded by GRAPHOS-FLEET-R029",
+      "delivery_state": "RETIRED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
+      "verified_by": [],
+      "retired_reason": "superseded by GRAPHOS-FLEET-R029"
     },
     {
       "id": "GRAPHOS-FLEET-R021",
       "title": "Fleet capability checks require exact scopes, deny unknown tools",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "18038a22a8752fcab060b82f18a15a4ebbf0da10",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/18038a22a8752fcab060b82f18a15a4ebbf0da10",
-          "description": "Implemented on the default branch; exercised by tests/fleet/test_multiplexer_dynamic_gateway.py"
-        }
-      ]
+      "landed_in": [
+        "18038a22a875",
+        "2c70abad2b68",
+        "336f9faf3f21",
+        "444cedaf2b6d",
+        "e7a32f572005"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R022",
       "title": "Catalog reconciliation re-ingests via durable replay",
-      "delivery_state": "BUILDING",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "3f5f354a36dc57548d4b1521828f78ae825dd7d0",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/3f5f354a36dc57548d4b1521828f78ae825dd7d0",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ]
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
+      "verified_by": []
     },
     {
       "id": "PA-12",
       "title": "Catalog reload rejects invalid candidates, proves replica convergence",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "FleetCatalogReader/FleetCatalogIntegrityError reject duplicate/malformed registrations and stale/digest-mismatched content (tested: cross-tenant, no-longer-current, unresolved provenance, content-revision mismatch, cyclic cursor), but there is no multi-replica convergence reporting by generation+dig"
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "PA-12.1",
+        "PA-12.2"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R023",
       "title": "Connector count pins stay consistent across the fleet",
-      "delivery_state": "BUILDING",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "667a206c800e"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R023.1"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R023.1",
       "title": "Pure connector count-pin comparison (producer)",
-      "delivery_state": "BUILDING",
-      "evidence": [],
-      "remaining": "graph_os/fleet/connector_count_pins.py and scripts/check_connector_count_pins.py are implemented and unit-tested (tests/test_check_connector_count_pins.py), but no real count-pin site is wired in: the compatibility matrix and its check script are AU-owned, and the bundle-catalog schema/ontology.lock/federated IRI do not exist anywhere in the fleet yet. Real site wiring is cross-repo follow-up."
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "667a206c800e"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R024",
-      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS (rollup)",
-      "delivery_state": "BUILDING",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "c2d8c8ce46b8735494226aeb9e5af063c78dc217",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c2d8c8ce46b8735494226aeb9e5af063c78dc217",
-          "description": "GRAPHOS-FLEET-R024 merged to the default branch in this commit."
-        }
+      "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "c2d8c8ce46b8"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R024.1",
+        "GRAPHOS-FLEET-R024.2",
+        "GRAPHOS-FLEET-R024.3"
       ]
+    },
+    {
+      "id": "PA-12.1",
+      "title": "Catalog reload rejects invalid candidates",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
+      "verified_by": [
+        "tests/test_fleet_catalog_reader.py:211",
+        "tests/test_fleet_catalog_reader.py:223",
+        "tests/test_fleet_catalog_reader.py:234",
+        "tests/test_fleet_catalog_reader.py:251",
+        "tests/test_fleet_catalog_reader.py:262"
+      ]
+    },
+    {
+      "id": "PA-12.2",
+      "title": "Multi-replica convergence is observed by generation and digest",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R024.1",
       "title": "Deploy-watch verdict is a typed GraphOS operation",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "c2d8c8ce46b8735494226aeb9e5af063c78dc217",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c2d8c8ce46b8735494226aeb9e5af063c78dc217",
-          "description": "GRAPHOS-FLEET-R024.1 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "c2d8c8ce46b8"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R024.2",
       "title": "Remaining fleet reconciler, autoscaler, scaling-authority and deploy-watch scheduling behavior is served by GraphOS",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R024.3",
       "title": "Agent runtime no longer ships the superseded fleet modules (cross-repo)",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R025",
       "title": "Skills from every installed package, and an always-offered core pack, join the find/load path",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "d16472d4df1dee6b2800fd1437842d579dde3eea",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d16472d4df1dee6b2800fd1437842d579dde3eea",
-          "description": "graph_os/fleet/local_skill_catalog.py resolves every agent_utilities.skill_providers-registered package installed in this process into the same catalog shape the fleet skill harvest produces; graph_os/fleet/multiplexer.py folds it into discover_tools/_catalog_fleet_probe with local-over-harvested precedence; graph_os/skills/core-pack.txt names the always-offered set. Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d16472d4df1dee6b2800fd1437842d579dde3eea",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d16472d4df1dee6b2800fd1437842d579dde3eea",
-          "description": "GRAPHOS-FLEET-R025 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "d16472d4df1d"
       ],
-      "remaining": "universal-skills does not yet declare the agent_utilities.skill_providers entry point itself (tracked as a separate small PR in that repository); agent-connector-sdk and pipelines/repository-manager are not graph-os runtime dependencies, so their skills still reach graph-os only through the existing fleet harvest once they are mounted as fleet children, not through this local source."
-    },
-    {
-      "id": "GRAPHOS-FLEET-R026",
-      "title": "The catalog admits each server on its own",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
-          "description": "GRAPHOS-FLEET-R026 merged to the default branch in this commit."
-        }
-      ],
-      "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch."
-    },
-    {
-      "id": "GRAPHOS-FLEET-R027",
-      "title": "GraphOS onboards every configured fleet server",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
-          "description": "GRAPHOS-FLEET-R027 merged to the default branch in this commit."
-        }
-      ],
-      "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch. Live acceptance needs GraphOS bound as importer of each fleet connector (EPISTEMIC_GRAPH_CONNECTOR_PACK_IMPORTERS wildcard or ConnectorPack.bind)."
-    },
-    {
-      "id": "GRAPHOS-FLEET-R028",
-      "title": "GraphOS renews every registration before its lease lapses",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d9015e6d6cda64d39ad4fd324b0e89ac19e59c74",
-          "description": "GRAPHOS-FLEET-R028 merged to the default branch in this commit."
-        }
-      ],
-      "remaining": "Implemented on branch feat/fleet-onboarding; not yet merged to the default branch."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R029",
       "title": "The intent tools are the only MCP surface",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "db8d44259c3da06c2b0a48b685ca87a01debaaca",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/db8d44259c3da06c2b0a48b685ca87a01debaaca",
-          "description": "GRAPHOS-FLEET-R029 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "1a8d280ab981",
+        "d2b070392ec9",
+        "db8d44259c3d"
       ],
-      "remaining": "T19 merges with agent-utilities PR #54; T20-T22 remove MCP_TOOL_MODE, MCP_ALWAYS_LOAD* and the retired internal names."
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R026",
+      "title": "The catalog admits each server on its own",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "619d25ac8e69",
+        "d9015e6d6cda"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R027",
+      "title": "GraphOS onboards every configured fleet server",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "5edd6cc9a3d7",
+        "619d25ac8e69",
+        "bbc73cd1532d",
+        "be2026dd4ebf",
+        "d9015e6d6cda"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R028",
+      "title": "GraphOS renews every registration before its lease lapses",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "619d25ac8e69",
+        "d9015e6d6cda"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-FLEET-R030",
       "title": "Fleet onboarding registers connector access contracts unapproved",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "9095a5cefabe772b8cbe06d1dcd16061c11ad1ea",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/9095a5cefabe772b8cbe06d1dcd16061c11ad1ea",
-          "description": "GRAPHOS-FLEET-R030 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "7e0cc536c81a",
+        "9095a5cefabe",
+        "f2284b64b6b3"
       ],
-      "remaining": "Not yet merged. Live reads need an approval path and a live operation binding for each source."
+      "verified_by": []
     },
     {
-      "id": "GRAPHOS-FLEET-R002.2",
-      "title": "Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R005.2",
-      "title": "Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "PA-12.1",
-      "title": "Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "PA-12.2",
-      "title": "Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R008.1",
-      "title": "Typed feed-event model per feed kind",
+      "id": "GRAPHOS-FLEET-R031",
+      "title": "`find` ranks catalog-admitted tools when a live probe cannot answer",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "67b1b9ab916ee5c5d55a720a692d15264e387f6f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/67b1b9ab916ee5c5d55a720a692d15264e387f6f",
-          "description": "graph_os/fleet/feeds.py adds FeedEvent/FeedEventRejected and rum_event()/security_audit_event()/cicd_event(), each refusing an unsanitized payload or a missing tenant; tests/fleet/test_feeds.py passes (15 tests)."
-        }
-      ]
+      "landed_in": [
+        "d43ff2da921f"
+      ],
+      "verified_by": []
     },
     {
-      "id": "GRAPHOS-FLEET-R008.2",
-      "title": "Live feed ingestion wired into the catalog",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "id": "GRAPHOS-FLEET-R032",
+      "title": "Gateway widget fetches run under a bound service actor",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "f4812c0aa389"
+      ],
+      "verified_by": [
+        "tests/gateway/test_aggregator.py:159"
+      ]
     }
   ]
 }
