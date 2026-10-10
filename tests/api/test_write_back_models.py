@@ -47,11 +47,13 @@ def test_idempotency_key_is_sensitive_to_a_changed_input() -> None:
 def test_preview_params_reject_unknown_fields() -> None:
     WriteBackPreviewParams(connector_id="jira", operation="update_issue", payload={})
     with pytest.raises(ValidationError):
-        WriteBackPreviewParams(
-            connector_id="jira",
-            operation="update_issue",
-            payload={},
-            extra_field="nope",  # type: ignore[call-arg]
+        WriteBackPreviewParams.model_validate(
+            {
+                "connector_id": "jira",
+                "operation": "update_issue",
+                "payload": {},
+                "extra_field": "nope",
+            }
         )
 
 
