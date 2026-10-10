@@ -25,6 +25,8 @@ from graph_os.fleet.error_budget import (
 from tests.fleet._support import CAPACITY_CONFIG as _CONFIG
 from tests.fleet._support import CAPACITY_PARTITION as _PARTITION
 
+pytestmark = pytest.mark.spec("GRAPHOS-CAPACITY-R001.1")
+
 
 def _window(window_id: str, outcomes: list[OutcomeClass]) -> BudgetWindow:
     return BudgetWindow(

@@ -8,11 +8,31 @@ from typing import Any, Protocol, runtime_checkable
 
 from .models import A2AMessage, A2ARouteDecision
 
-__all__ = ["A2AAssemblyUnavailable", "A2ARouter", "OrchestratorA2ARouter"]
+__all__ = [
+    "A2AAssemblyUnavailable",
+    "A2AOperationBridgeUnavailable",
+    "A2ARouter",
+    "OrchestratorA2ARouter",
+]
 
 
 class A2AAssemblyUnavailable(RuntimeError):
     """The required governed agent/tool assembly path is not executable."""
+
+
+class A2AOperationBridgeUnavailable(RuntimeError):
+    """``graphos.op/invoke``/``graphos.plan/confirm`` are not wired yet.
+
+    GRAPHOS-A2A-R006 reuses the shared hosted-operation registry's
+    ``invoke`` path (``Surface.A2A``) so a representative operation has
+    identical authorization and error semantics through A2A, MCP and HTTP.
+    That bridge does not exist yet, so both methods are registered on the
+    A2A method table with validated params but fail closed rather than
+    silently succeeding or being reported as unrecognized methods. This
+    also keeps GRAPHOS-A2A-R005's human approval response
+    (``graphos.plan/confirm``) disabled until the full signed exchange is
+    implemented end to end.
+    """
 
 
 @runtime_checkable
