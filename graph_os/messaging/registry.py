@@ -30,6 +30,12 @@ from typing import Any
 from agent_utilities.core.config import setting
 from agent_utilities.messaging.models import MessagingConfig
 
+from graph_os.messaging.supervision import (
+    AdapterImportFailed,
+    AdapterMissing,
+    ChannelSupervisionState,
+)
+
 logger = logging.getLogger(__name__)
 
 # Entry-point group name for messaging backend discovery.
@@ -77,6 +83,11 @@ class MessagingRegistry:
     def __init__(self) -> None:
         self._entry_points: dict[str, Any] = {}
         self._instances: dict[str, Any] = {}
+        # CONCEPT:GRAPHOS-MESSAGING-R005 — typed DEGRADED reason per backend id
+        # that create_all_enabled() could not instantiate; reuses the existing
+        # ChannelSupervisionState.DEGRADED value (graph_os.messaging.supervision)
+        # rather than a new record type, see degraded_backends()/degraded_reason().
+        self._degraded: dict[str, AdapterMissing | AdapterImportFailed] = {}
         self._discover()
 
     @classmethod
@@ -177,7 +188,7 @@ class MessagingRegistry:
         """
         if backend_id not in self._entry_points:
             available = ", ".join(self.list_backends()) or "none"
-            raise ValueError(
+            raise AdapterMissing(
                 f"Messaging backend '{backend_id}' is not installed. "
                 f"Available: {available}. "
                 f"Install with: pip install graph-os[messaging-{backend_id}]"
@@ -188,7 +199,7 @@ class MessagingRegistry:
         try:
             backend_cls = ep.load()
         except ImportError as e:
-            raise ImportError(
+            raise AdapterImportFailed(
                 f"Failed to load messaging backend '{backend_id}': {e}. "
                 f"Install dependencies with: pip install graph-os[messaging-{backend_id}]"
             ) from e
@@ -266,7 +277,13 @@ class MessagingRegistry:
         CONCEPT:AU-ECO.messaging.native-backend-abstraction
 
         Scans environment variables to find configured platforms and
-        auto-creates backend instances for each.
+        auto-creates backend instances for each. Every OTHER configured
+        channel is still created even when one fails.
+
+        CONCEPT:GRAPHOS-MESSAGING-R005 — a channel whose adapter is missing
+        or fails to import is no longer only logged and omitted: it is also
+        recorded DEGRADED with a typed reason, readable via
+        :meth:`degraded_backends` / :meth:`degraded_reason`.
 
         Returns:
             Dict mapping backend_id → backend instance.
@@ -278,13 +295,42 @@ class MessagingRegistry:
                 try:
                     instance = self.create_backend(backend_id, config=config)
                     created[backend_id] = instance
-                except (ImportError, ValueError) as e:
+                    self._degraded.pop(backend_id, None)
+                except (AdapterMissing, AdapterImportFailed) as e:
+                    self._degraded[backend_id] = e
                     logger.warning(
-                        "[CONCEPT:AU-ECO.messaging.native-backend-abstraction] Skipping %s: %s",
+                        "[CONCEPT:GRAPHOS-MESSAGING-R005] Channel '%s' DEGRADED (%s): %s",
                         backend_id,
+                        type(e).__name__,
                         e,
                     )
         return created
+
+    def degraded_backends(self) -> dict[str, ChannelSupervisionState]:
+        """Configured channels :meth:`create_all_enabled` could not create.
+
+        CONCEPT:GRAPHOS-MESSAGING-R005 — reuses the existing
+        ``ChannelSupervisionState.DEGRADED`` value for every entry rather than
+        a new record type; pair with :meth:`degraded_reason` for the typed
+        reason (:class:`~graph_os.messaging.supervision.AdapterMissing` or
+        :class:`~graph_os.messaging.supervision.AdapterImportFailed`).
+
+        Returns:
+            Dict mapping backend_id → ``ChannelSupervisionState.DEGRADED``.
+        """
+        return {
+            backend_id: ChannelSupervisionState.DEGRADED
+            for backend_id in self._degraded
+        }
+
+    def degraded_reason(
+        self, backend_id: str
+    ) -> AdapterMissing | AdapterImportFailed | None:
+        """The typed reason ``backend_id`` is DEGRADED, or ``None``.
+
+        CONCEPT:GRAPHOS-MESSAGING-R005
+        """
+        return self._degraded.get(backend_id)
 
     def _auto_config(self, backend_id: str) -> MessagingConfig:
         """Build a MessagingConfig from environment variables.
