@@ -31,5 +31,6 @@ def test_scim_credential_authorizes_only_its_own_provider() -> None:
 @pytest.mark.spec("GRAPHOS-IDENTITY-R011.1")
 def test_scim_credential_is_immutable() -> None:
     credential = ScimServiceCredential(provider_id="okta", token_id="t1")
+    field = "provider_id"
     with pytest.raises(dataclasses.FrozenInstanceError):
-        credential.provider_id = "azuread"
+        setattr(credential, field, "azuread")

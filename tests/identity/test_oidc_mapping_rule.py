@@ -42,5 +42,6 @@ def test_rule_refuses_negative_or_non_integer_order(order: Any) -> None:
 
 @pytest.mark.spec("GRAPHOS-IDENTITY-R009.1")
 def test_rule_is_immutable() -> None:
+    field = "order"
     with pytest.raises(dataclasses.FrozenInstanceError):
-        _rule().order = 9
+        setattr(_rule(), field, 9)
