@@ -2,47 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
-from pydantic import BaseModel
 
 from graph_os.api.registry import (
-    Composite,
-    Effect,
     HttpShape,
     OpSpec,
-    PrincipalRule,
     Surface,
     Verb,
     diff_public_surface,
     public_surface,
 )
-
-
-class _Input(BaseModel):
-    user_id: str
-
-
-class _Output(BaseModel):
-    ok: bool
-
-
-def _op(op_id: str = "identity.users.read", **changes: Any) -> OpSpec:
-    values: dict[str, Any] = {
-        "id": op_id,
-        "verb": Verb.FIND,
-        "summary": "Read a user",
-        "examples": ("Look up this user",),
-        "params": _Input,
-        "result": _Output,
-        "binding": Composite(handler="graph_os.identity.admin_service.read_user"),
-        "principals": PrincipalRule.ANY,
-        "effect": Effect.READ,
-        "http": HttpShape(method="GET", path="/v1/identity/users/{user_id}"),
-    }
-    values.update(changes)
-    return OpSpec(**values)
+from tests.api._support import identity_read_op as _op
 
 
 def _baseline() -> list[OpSpec]:
