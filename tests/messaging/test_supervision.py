@@ -177,7 +177,7 @@ async def test_backoff_delay_sequence_is_monotonically_bounded_by_cap(
 
     assert len(delays) == 5
     assert delays[0] == pytest.approx(0.01)
-    for prev, nxt in zip(delays, delays[1:]):
+    for prev, nxt in zip(delays, delays[1:], strict=False):
         assert nxt >= prev - 1e-9, delays
     assert max(delays) == pytest.approx(0.04)
     assert delays[-1] == pytest.approx(0.04)
