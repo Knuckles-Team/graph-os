@@ -82,5 +82,6 @@ APPROVED_ACTION_MAPPING = build_approved_action_mapping(
         ActionOperationMapping("vault_sync", "secret_vault.vault_sync"),
         ActionOperationMapping("install_hooks", "graph_loops.install_hooks"),
         ActionOperationMapping("uninstall_hooks", "graph_loops.uninstall_hooks"),
+        ActionOperationMapping("sync", "ingest.sources.sync"),
     )
 )
