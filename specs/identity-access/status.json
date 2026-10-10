@@ -30,6 +30,10 @@
     "GRAPHOS-IDENTITY-R012",
     "GRAPHOS-IDENTITY-R011.1",
     "GRAPHOS-IDENTITY-R011.2",
+    "GRAPHOS-IDENTITY-R011.2.1",
+    "GRAPHOS-IDENTITY-R011.2.2",
+    "GRAPHOS-IDENTITY-R011.2.3",
+    "GRAPHOS-IDENTITY-R011.2.4",
     "GRAPHOS-IDENTITY-R012.1",
     "GRAPHOS-IDENTITY-R012.2",
     "GRAPHOS-IDENTITY-R013",
@@ -330,7 +334,41 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R011.2",
-      "title": "SCIM server surface",
+      "title": "SCIM server surface (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R011.2.1",
+        "GRAPHOS-IDENTITY-R011.2.2",
+        "GRAPHOS-IDENTITY-R011.2.3",
+        "GRAPHOS-IDENTITY-R011.2.4"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R011.2.1",
+      "title": "Typed SCIM User resource model",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R011.2.2",
+      "title": "SCIM credential check",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R011.2.3",
+      "title": "SCIM create/patch/deactivate handlers",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R011.2.4",
+      "title": "SCIM route registration",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
