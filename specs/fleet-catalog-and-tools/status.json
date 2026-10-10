@@ -7,13 +7,20 @@
     "GRAPHOS-FLEET-R002",
     "GRAPHOS-FLEET-R002.1",
     "GRAPHOS-FLEET-R003",
+    "GRAPHOS-FLEET-R003.1",
+    "GRAPHOS-FLEET-R003.2",
     "GRAPHOS-FLEET-R004",
     "GRAPHOS-FLEET-R005",
     "GRAPHOS-FLEET-R005.1",
     "GRAPHOS-FLEET-R006",
     "GRAPHOS-FLEET-R007",
     "GRAPHOS-FLEET-R008",
+    "GRAPHOS-FLEET-R008.1",
+    "GRAPHOS-FLEET-R008.2",
     "GRAPHOS-FLEET-R009",
+    "GRAPHOS-FLEET-R009.1",
+    "GRAPHOS-FLEET-R009.2",
+    "GRAPHOS-FLEET-R009.3",
     "GRAPHOS-FLEET-R010",
     "GRAPHOS-FLEET-R011",
     "GRAPHOS-FLEET-R012",
@@ -38,7 +45,20 @@
     "GRAPHOS-FLEET-R027",
     "GRAPHOS-FLEET-R028",
     "GRAPHOS-FLEET-R029",
-    "GRAPHOS-FLEET-R030"
+    "GRAPHOS-FLEET-R030",
+    "GRAPHOS-FLEET-R002.2",
+    "GRAPHOS-FLEET-R005.2",
+    "GRAPHOS-FLEET-R003.3",
+    "GRAPHOS-FLEET-R006.1",
+    "GRAPHOS-FLEET-R006.2",
+    "GRAPHOS-FLEET-R006.3",
+    "GRAPHOS-FLEET-R006.4",
+    "GRAPHOS-FLEET-R006.5",
+    "GRAPHOS-FLEET-R007.1",
+    "GRAPHOS-FLEET-R007.2",
+    "GRAPHOS-FLEET-R007.3",
+    "PA-12.1",
+    "PA-12.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -61,7 +81,7 @@
     {
       "id": "GRAPHOS-FLEET-R002",
       "title": "Tool schema fingerprints recomputed from served schemas (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -90,7 +110,7 @@
     },
     {
       "id": "GRAPHOS-FLEET-R003",
-      "title": "D18 write-back exposed only as a typed, previewed operation",
+      "title": "D18 write-back exposed only as a typed, previewed operation (rollup)",
       "delivery_state": "BUILDING",
       "evidence": [
         {
@@ -101,6 +121,26 @@
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.1",
+      "title": "Typed write-back preview model and its refusal rule",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "67b1b9ab916ee5c5d55a720a692d15264e387f6f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/67b1b9ab916ee5c5d55a720a692d15264e387f6f",
+          "description": "graph_os/api/ops/write_back.py adds WriteBackPreviewRequest/WriteBackPreviewResult and preview_write_back(), which refuses a blank idempotency key and never applies a write; tests/api/test_write_back_preview.py passes (4 tests)."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.2",
+      "title": "Write-back bound as a previewed, idempotent registry operation",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-FLEET-R004",
@@ -119,7 +159,7 @@
     {
       "id": "GRAPHOS-FLEET-R005",
       "title": "A2A task routing with typed work-item and lease operations (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -150,24 +190,72 @@
       "id": "GRAPHOS-FLEET-R006",
       "title": "Multiplexer skill and prompt harvest path removed",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "evidence": [],
+      "remaining": "Skipped this pass: graph_os/fleet/multiplexer.py and local_skill_catalog.py still rely on the harvest path as a fallback behind GRAPHOS-FLEET-R025's local-over-harvested precedence; removing it safely needs the resident-tool catalog (R018/R020) landed first, which exceeds this slice's investigation budget."
     },
     {
       "id": "GRAPHOS-FLEET-R007",
       "title": "Bridge upgraded to FastMCP 4",
       "delivery_state": "SPECIFIED",
       "evidence": [],
-      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( \u2014 no hits), so the 'single com"
+      "remaining": "Skipped this pass: fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no served bridge module (.prompt()/.resource()/.resource_template() registration, one composed server loop) was found in this repo to extend within budget."
     },
     {
       "id": "GRAPHOS-FLEET-R008",
-      "title": "RUM, security-audit and CI/CD feeds join the catalog",
+      "title": "RUM, security-audit and CI/CD feeds join the catalog (rollup)",
+      "delivery_state": "BUILDING",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R008.1",
+      "title": "Typed feed-event model per feed kind",
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "67b1b9ab916ee5c5d55a720a692d15264e387f6f",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/67b1b9ab916ee5c5d55a720a692d15264e387f6f",
+          "description": "graph_os/fleet/feeds.py adds FeedEvent/FeedEventRejected and rum_event()/security_audit_event()/cicd_event(), each refusing an unsanitized payload or a missing tenant; tests/fleet/test_feeds.py passes (15 tests)."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R008.2",
+      "title": "Live feed ingestion wired into the catalog",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-FLEET-R009",
-      "title": "Run admission evaluates, commits and publishes with capacity control",
+      "title": "Run admission evaluates, commits and publishes with capacity control (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.1",
+      "title": "Capacity acquisition is all-or-nothing with one re-decision",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "c77ede8726fa448b5d9d0fcafd36de9ab1aeee40",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c77ede8726fa448b5d9d0fcafd36de9ab1aeee40",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ],
+      "remaining": "graph_os/control_plane/runs/admission.py adds CapacityAcquisition/CapacityDeniedError (acquire/release/held); tests/control_plane/admission/test_capacity_acquisition.py passes. Not yet merged. GRAPHOS-FLEET-R009.2 wiring is not started."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.2",
+      "title": "Run admission commits with synthesis evidence",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.3",
+      "title": "Run admission publishes with all-or-nothing capacity control",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
@@ -380,7 +468,7 @@
     {
       "id": "GRAPHOS-FLEET-R024",
       "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -513,6 +601,84 @@
         }
       ],
       "remaining": "Not yet merged. Live reads need an approval path and a live operation binding for each source."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R002.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R005.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.3",
+      "title": "Write-back idempotency and preview gating survive a service restart",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.1",
+      "title": "Harvest call-site inventory, the removal baseline",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.2",
+      "title": "Skill/prompt body-harvest cutover for an already-admitted child",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.3",
+      "title": "Dead harvest helpers removed",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.4",
+      "title": "Residual _harvest-named symbol renamed off the removed path",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.5",
+      "title": "Closing audit: no harvest or hydration code remains",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R007.1",
+      "title": "agent-connector-sdk's FastMCP instance gains native prompt/resource/template registration (cross-repo, owner: agent-connector-sdk)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R007.2",
+      "title": "agent-utilities' graph-os bridge surface gains native prompt/resource/template registration (cross-repo, owner: agent-utilities)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R007.3",
+      "title": "graph-os's served bridge exercises native prompts, resources and templates end to end",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "PA-12.1",
+      "title": "Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "PA-12.2",
+      "title": "Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     }
   ]
 }
