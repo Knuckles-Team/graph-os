@@ -6,13 +6,22 @@ import pytest
 
 from graph_os.api.invoke.pipeline import OperationRefused
 from graph_os.api.ops import retrieval
-from graph_os.api.ops.retrieval import RetrievalHit, RetrievalSearchOutcome
+from graph_os.api.ops.retrieval import (
+    RetrievalFreshnessOutcome,
+    RetrievalHit,
+    RetrievalSearchOutcome,
+)
 from tests.api._ops_support import tenant_store_context
 
 
 class _FakeRetriever:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str, int]] = []
+        self.freshness_calls: list[str] = []
+
+    async def freshness(self, *, tenant: str) -> RetrievalFreshnessOutcome:
+        self.freshness_calls.append(tenant)
+        return RetrievalFreshnessOutcome(tenant=tenant, sources={"docs": "fresh"})
 
     async def search(
         self, *, tenant: str, query: str, context_budget: int
@@ -53,4 +62,25 @@ async def test_search_fails_closed_when_retriever_not_composed(op_by_id) -> None
         await retrieval.handle_retrieval_search(
             _context(None), {"query": "q", "context_budget": 100}, op
         )
+    assert excinfo.value.code == "UNAVAILABLE"
+
+
+@pytest.mark.spec("GRAPHOS-OPS-R021.2.2")
+async def test_freshness_reaches_engine_under_callers_tenant_read_only(
+    op_by_id,
+) -> None:
+    fake = _FakeRetriever()
+    op = op_by_id(retrieval.operations(), "retrieval.freshness")
+    result = await retrieval.handle_retrieval_freshness(_context(fake), {}, op)
+    assert fake.freshness_calls == ["tenant-a"]
+    assert result["value"] == {"tenant": "tenant-a", "sources": {"docs": "fresh"}}
+    assert op.scopes == frozenset({"memory:read"})
+    assert op.verb.value == "find"
+
+
+@pytest.mark.spec("GRAPHOS-OPS-R021.2.2")
+async def test_freshness_fails_closed_when_retriever_not_composed(op_by_id) -> None:
+    op = op_by_id(retrieval.operations(), "retrieval.freshness")
+    with pytest.raises(OperationRefused) as excinfo:
+        await retrieval.handle_retrieval_freshness(_context(None), {}, op)
     assert excinfo.value.code == "UNAVAILABLE"
