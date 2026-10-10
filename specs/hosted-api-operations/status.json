@@ -66,6 +66,8 @@
     "GRAPHOS-OPS-R032.2.1",
     "GRAPHOS-OPS-R032.2.2",
     "GRAPHOS-OPS-R032.2.3",
+    "GRAPHOS-OPS-R032.2.3.1",
+    "GRAPHOS-OPS-R032.2.3.2",
     "GRAPHOS-OPS-R032.2.4",
     "GRAPHOS-OPS-R033",
     "GRAPHOS-OPS-R034",
@@ -723,7 +725,25 @@
     },
     {
       "id": "GRAPHOS-OPS-R032.2.3",
-      "title": "Inject identity ports into webui_host and webui_co_service",
+      "title": "Inject identity ports into webui_host and webui_co_service (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R032.2.3.1",
+        "GRAPHOS-OPS-R032.2.3.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.1",
+      "title": "compose_web_application requires injected identity ports",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.2",
+      "title": "Thread identity ports through run_web_ui and the webui_host package",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
