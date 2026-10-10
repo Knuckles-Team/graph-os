@@ -569,11 +569,11 @@
         "4b9d181069e4"
       ],
       "verified_by": [
-        "tests/api/test_surface_drift_gate.py:107",
-        "tests/api/test_surface_drift_gate.py:52",
-        "tests/api/test_surface_drift_gate.py:61",
-        "tests/api/test_surface_drift_gate.py:71",
-        "tests/api/test_surface_drift_gate.py:80"
+        "tests/api/test_surface_drift_gate.py:22",
+        "tests/api/test_surface_drift_gate.py:31",
+        "tests/api/test_surface_drift_gate.py:41",
+        "tests/api/test_surface_drift_gate.py:50",
+        "tests/api/test_surface_drift_gate.py:67"
       ]
     },
     {
