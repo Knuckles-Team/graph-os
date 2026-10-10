@@ -9,7 +9,7 @@
 #                                     hooks/kernel/scanners. For a fresh `git worktree
 #                                     add` lane that has no ../<repo> checkouts next to
 #                                     it: symlinks each sibling from the canonical
-#                                     checkout under /home/apps/workspace/agent-packages
+#                                     checkout at $GRAPH_OS_CANONICAL_SIBLINGS
 #                                     (never writes into it) and falls back to cloning
 #                                     origin/main when no local or canonical copy
 #                                     exists. Fresh worktree: `scripts/bootstrap.sh
@@ -70,9 +70,9 @@ uv python install "$python_version"
 
 # Link every [tool.uv.sources] path (here and, transitively, in each linked
 # sibling) to a ../<repo> checkout when present, else to the canonical
-# checkout under /home/apps/workspace/agent-packages (symlink only; that
-# checkout is a live mount and is never written to), else clone origin/main.
-# Never replaces an existing link or directory.
+# checkout at $GRAPH_OS_CANONICAL_SIBLINGS (symlink only; that checkout is a
+# live mount and is never written to), else clone origin/main. Never replaces
+# an existing link or directory.
 echo "bootstrap: sibling sources"
 export GRAPH_OS_CANONICAL_SIBLINGS="${GRAPH_OS_CANONICAL_SIBLINGS:-/home/apps/workspace/agent-packages}"
 python3 - <<'PY'
