@@ -58,7 +58,8 @@
     "GRAPHOS-FLEET-R009.2",
     "GRAPHOS-FLEET-R008.1",
     "GRAPHOS-FLEET-R008.2",
-    "GRAPHOS-FLEET-R009.3"
+    "GRAPHOS-FLEET-R009.3",
+    "GRAPHOS-FLEET-R023.1"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -468,7 +469,7 @@
     {
       "id": "GRAPHOS-FLEET-R023",
       "title": "Connector count pins stay consistent across the fleet",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "BUILDING",
       "evidence": []
     },
     {
@@ -678,6 +679,13 @@
       "title": "Run admission publishes with all-or-nothing capacity control",
       "delivery_state": "SPECIFIED",
       "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R023.1",
+      "title": "Pure connector count-pin comparison (producer)",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "graph_os/fleet/connector_count_pins.py and scripts/check_connector_count_pins.py are implemented and unit-tested (tests/test_check_connector_count_pins.py), but no real count-pin site is wired in: the compatibility matrix and its check script are AU-owned, and the bundle-catalog schema/ontology.lock/federated IRI do not exist anywhere in the fleet yet. Real site wiring is cross-repo follow-up."
     }
   ]
 }

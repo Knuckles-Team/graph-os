@@ -8,7 +8,6 @@ import json
 import os
 import re
 import stat
-from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -71,19 +70,54 @@ class Candidate(_Closed):
     stages: tuple[Stage, ...] = Field(min_length=1, max_length=256)
 
 
-class StageReadiness(_Closed):
-    """A predecessor's digest/CI readiness, as reported by the caller's probe."""
+class LocalGateResult(_Closed):
+    """One local-Kubernetes-validation gate's reported outcome for this candidate."""
 
-    ready: bool
-    reason: str = Field(default="", max_length=256)
+    name: Identifier
+    green: bool
 
 
-class StageReceipt(_Closed):
-    component_id: Identifier
-    digest: Digest
-    source_revision: Revision
-    status: Literal["released", "blocked"]
-    reason: str = Field(default="", max_length=256)
+ObligationId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_-]{2,63}$")]
+TestReference = Annotated[str, Field(pattern=r"^[A-Za-z0-9_./:-]{1,256}$")]
+
+
+class ExitCriteriaError(ValueError):
+    """A stable refusal for an invalid exit-criteria matrix; never echoes input."""
+
+
+class ExitCriterionRow(_Closed):
+    """One release-readiness obligation mapped to the test that proves it."""
+
+    obligation_id: ObligationId
+    description: str = Field(min_length=1, max_length=256)
+    test_reference: TestReference
+
+
+class ExitCriteriaMatrix(_Closed):
+    schema_version: Annotated[int, Field(ge=1, le=1)]
+    rows: tuple[ExitCriterionRow, ...] = Field(min_length=1, max_length=64)
+
+
+def read_exit_criteria_matrix(raw_rows: list[dict[str, Any]]) -> ExitCriteriaMatrix:
+    """Validate and index a candidate exit-criteria matrix (GRAPHOS-RELEASE-R003.1).
+
+    Refuses a duplicate obligation ID and an empty matrix. ``ExitCriterionRow``'s
+    own field patterns refuse a malformed test reference. This is the typed-model
+    slice only: loading a real matrix from a committed fixture or CLI entry point
+    is GRAPHOS-RELEASE-R003.2 onward (tasks.md).
+    """
+    if not raw_rows:
+        raise ExitCriteriaError("exit_criteria_empty")
+    seen: dict[str, ExitCriterionRow] = {}
+    for raw in raw_rows:
+        try:
+            row = ExitCriterionRow.model_validate(raw)
+        except ValidationError as exc:
+            raise ExitCriteriaError("exit_criteria_row_invalid") from exc
+        if row.obligation_id in seen:
+            raise ExitCriteriaError("exit_criteria_duplicate_obligation")
+        seen[row.obligation_id] = row
+    return ExitCriteriaMatrix(schema_version=1, rows=tuple(seen.values()))
 
 
 def _unique_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -283,46 +317,23 @@ def plan_candidate(
     }
 
 
-def execute_candidate(
-    plan: dict[str, Any], *, probe: Callable[[str], StageReadiness]
+def gate_release(
+    plan: dict[str, Any], *, local_gates: tuple[LocalGateResult, ...]
 ) -> dict[str, Any]:
-    """Advance a planned candidate stage-by-stage, halting at the first unready one.
+    """Refuse push/deploy until every local Kubernetes validation gate is green.
 
-    `probe` reports each stage's installed-digest/CI readiness; it is the
-    caller's injected check (RL-03), never performed here, so this function
-    stays a pure, offline-testable decision: no stage after the first
-    unready one is ever probed or released.
+    GRAPHOS-RELEASE-R002: local Kubernetes validation runs in a dedicated test
+    namespace as part of release qualification (that runner is a separate
+    adapter, see tasks.md); this is the pure, offline-testable aggregation
+    decision it must feed: any one red gate blocks the push deterministically,
+    and the block names every failing gate rather than only the first.
     """
-    receipts: list[dict[str, Any]] = []
-    executed = True
-    for stage in plan["stages"]:
-        readiness = probe(stage["component_id"])
-        if not readiness.ready:
-            receipts.append(
-                StageReceipt(
-                    component_id=stage["component_id"],
-                    digest=stage["digest"],
-                    source_revision=stage["source_revision"],
-                    status="blocked",
-                    reason=readiness.reason,
-                ).model_dump()
-            )
-            executed = False
-            break
-        receipts.append(
-            StageReceipt(
-                component_id=stage["component_id"],
-                digest=stage["digest"],
-                source_revision=stage["source_revision"],
-                status="released",
-            ).model_dump()
-        )
+    failed = tuple(gate.name for gate in local_gates if not gate.green)
+    allowed = not failed
     return {
-        "status": "executed" if executed else "blocked",
-        "executed": executed,
+        "status": "allowed" if allowed else "blocked",
+        "allowed": allowed,
         "manifest_digest": plan["manifest_digest"],
-        "profile_digest": plan["profile_digest"],
-        "created_at": datetime.now(UTC).isoformat(),
-        "stage_receipts": receipts,
+        "failed_gates": failed,
         "redacted": True,
     }

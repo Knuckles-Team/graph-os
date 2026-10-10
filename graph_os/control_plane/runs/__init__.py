@@ -8,6 +8,12 @@ from .admission import (
     ResolvedAuthorizationVerifier,
 )
 from .audit import AuditChain, AuditDiscontinuityError, AuditEvent
+from .capacity import (
+    CapacityDecision,
+    CapacityError,
+    CapacityLedger,
+    CapacityReDecisionExhaustedError,
+)
 from .models import (
     AdmissionReceipt,
     ArtifactRef,
@@ -37,6 +43,10 @@ __all__ = [
     "AuditChain",
     "AuditDiscontinuityError",
     "AuditEvent",
+    "CapacityDecision",
+    "CapacityError",
+    "CapacityLedger",
+    "CapacityReDecisionExhaustedError",
     "InMemoryNativeAdmission",
     "InMemoryObservationLedger",
     "InvocationRef",

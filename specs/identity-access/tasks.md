@@ -19,6 +19,8 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 ## Rapid-delivery split (2026-10-09)
 
 - [x] **GIA-RD-01:** Split `GRAPHOS-IDENTITY-R004`, `R006`, `R007` into `.1` (typed model +
+- [x] **GIA-RD-02:** Split `GRAPHOS-IDENTITY-R008`, `R009`, `R010` into `.1` (typed model +
+- [x] **GIA-RD-03:** Split `GRAPHOS-IDENTITY-R011`, `R012` into `.1` (typed model +
   validation + refusal tests under `graph_os/identity/`) and `.2` (remaining behavior,
   stays `SPECIFIED`). Parents are now rollups. See `requirements.md`/`status.json`.
 
@@ -48,6 +50,19 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [x] **GRAPHOS-IDENTITY-R007:** Admin console tabs with mapping dry-run and mode wizard (rollup)
 - [x] **GRAPHOS-IDENTITY-R007.1:** Typed admin-console tab model with refusal tests
 - [x] **GRAPHOS-IDENTITY-R007.2:** Mapping dry-run preview and mode-transition wizard
+- [ ] **GRAPHOS-IDENTITY-R008.1:** Typed API-key grant model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R008.2:** Scope intersection at use time and immediate revocation
+- [x] **GRAPHOS-IDENTITY-R009:** Multi-provider OIDC with mapping rules and JIT policy
+- [ ] **GRAPHOS-IDENTITY-R009.1:** Typed OIDC mapping-rule model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R009.2:** PKCE/state/nonce flow, presets, link migration, hinted logout
+- [ ] **GRAPHOS-IDENTITY-R010:** LDAPS bind with nested group sync
+- [ ] **GRAPHOS-IDENTITY-R010.1:** Typed LDAPS bind-config model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R010.2:** Directory bind, filter escaping, nested-group sync, deprovisioning
+- [ ] **GRAPHOS-IDENTITY-R011.1:** Typed SCIM service-credential model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R011.2:** SCIM create/update/patch/deactivate server surface
+- [ ] **GRAPHOS-IDENTITY-R012:** Native SAML service provider (rollup)
+- [ ] **GRAPHOS-IDENTITY-R012.1:** Typed SAML service-provider model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R012.2:** Assertion verification and SAML sign-in
 - [ ] **GRAPHOS-IDENTITY-R016:** Optional SMTP adapter for identity email
 - [ ] **GRAPHOS-IDENTITY-R016.1:** Remaining scope of GRAPHOS-IDENTITY-R016 (slice .1): Optional SMTP adapter for identity email
 - [ ] **GRAPHOS-IDENTITY-R016.2:** Remaining scope of GRAPHOS-IDENTITY-R016 (slice .2): Optional SMTP adapter for identity email

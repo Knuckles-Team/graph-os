@@ -46,6 +46,8 @@ An obligation can be landed while acceptance remains open.
 | Directory | Spec ID | Owned requirement IDs |
 |---|---|---|
 | [`a2a-task-projection/spec.md`](a2a-task-projection/spec.md) | `GRAPHOS-A2A-001` | `A2A-01`–`A2A-07` (defined in [requirements.md](a2a-task-projection/requirements.md) as `GRAPHOS-A2A-R001`–`R008`) |
+| [`a2a-capability-and-history-projection/spec.md`](a2a-capability-and-history-projection/spec.md) | `GRAPHOS-A2A-003` | `A2A-H01`–`A2A-H07` (defined in [requirements.md](a2a-capability-and-history-projection/requirements.md) as `GRAPHOS-A2A-R001`, `R001.1`–`R007`); depends on `GRAPHOS-A2A-002` |
+| [`graphos-a2a-002/spec.md`](graphos-a2a-002/spec.md) | `GRAPHOS-A2A-002` | `GRAPHOS-A2A-002-R001`–`R006` (incl. `GRAPHOS-A2A-002-R001.1`) |
 | [`adaptive-capacity/spec.md`](adaptive-capacity/spec.md) | `GRAPHOS-CAPACITY-001` | `GRAPHOS-CAPACITY-R001`–`R002` |
 | [`conversational-acp-gateway/spec.md`](conversational-acp-gateway/spec.md) | `GRAPHOS-ACP-001` | `GRAPHOS-ACP-R001` |
 | [`data-and-market-projections/spec.md`](data-and-market-projections/spec.md) | `GRAPHOS-DATA-MARKET-001` | `GRAPHOS-DATA-MARKET-R001`–`R006` |
@@ -53,6 +55,7 @@ An obligation can be landed while acceptance remains open.
 | [`fleet-catalog-and-tools/spec.md`](fleet-catalog-and-tools/spec.md) | `GRAPHOS-FLEET-001` | `GRAPHOS-FLEET-R001`–`R028`, `PA-12` |
 | [`host-composition-boundary/spec.md`](host-composition-boundary/spec.md) | `GRAPHOS-HOST-001` | `GRAPHOS-HOST-R001`–`R019` |
 | [`hosted-api-operations/spec.md`](hosted-api-operations/spec.md) | `GRAPHOS-OPS-001` | `HO-01`–`HO-11` (defined in [requirements.md](hosted-api-operations/requirements.md) as `GRAPHOS-OPS-R001`–`R038`) |
+| [`mcp-resource-publication-reconciliation/spec.md`](mcp-resource-publication-reconciliation/spec.md) | `GRAPHOS-MCP-RESOURCES-001` | `GRAPHOS-MCP-RESOURCES-R001`–`R004` |
 | [`identity-access/spec.md`](identity-access/spec.md) | `GRAPHOS-IDENTITY-001` | `IA-01`–`IA-16` (defined in [requirements.md](identity-access/requirements.md) as `GRAPHOS-IDENTITY-R001`–`R024`) |
 | [`messaging-channel-supervision/spec.md`](messaging-channel-supervision/spec.md) | `GRAPHOS-MESSAGING-001` | `MSG-01`–`MSG-06` (defined in [requirements.md](messaging-channel-supervision/requirements.md) as `GRAPHOS-MESSAGING-R001`–`R006`) |
 | [`portable-deployment/spec.md`](portable-deployment/spec.md) | `GRAPHOS-DEPLOY-001` | `GRAPHOS-DEPLOY-R001`–`R015` |
