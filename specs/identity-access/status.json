@@ -408,9 +408,14 @@
     {
       "id": "GRAPHOS-IDENTITY-R010.2.3.1",
       "title": "Pure sync plan",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "937d3788413d"
+      ],
+      "verified_by": [
+        "tests/identity/test_ldap_sync_plan.py:12",
+        "tests/identity/test_ldap_sync_plan.py:27"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R010.2.3.2",
@@ -491,18 +496,31 @@
     {
       "id": "GRAPHOS-IDENTITY-R011.2.2",
       "title": "SCIM credential check",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "966dc25b5493"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/identity/test_scim_credential_check.py:17",
+        "tests/identity/test_scim_credential_check.py:22",
+        "tests/identity/test_scim_credential_check.py:29",
+        "tests/identity/test_scim_credential_check.py:35"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R011.2.3",
       "title": "SCIM create/patch/deactivate handlers",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "e848425636e4"
+      ],
+      "verified_by": [
+        "tests/identity/test_scim_handlers.py:33",
+        "tests/identity/test_scim_handlers.py:40",
+        "tests/identity/test_scim_handlers.py:47",
+        "tests/identity/test_scim_handlers.py:54",
+        "tests/identity/test_scim_handlers.py:64"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R011.2.4",
@@ -579,9 +597,16 @@
     {
       "id": "GRAPHOS-IDENTITY-R012.2.3.1",
       "title": "Replay check through a seen-assertion-id store port",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "7f5cd8d1fe7d"
+      ],
+      "verified_by": [
+        "tests/identity/test_saml_replay.py:41",
+        "tests/identity/test_saml_replay.py:48",
+        "tests/identity/test_saml_replay.py:57",
+        "tests/identity/test_saml_replay.py:64"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R012.2.3.2",

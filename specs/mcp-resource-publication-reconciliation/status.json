@@ -37,9 +37,13 @@
     {
       "id": "GRAPHOS-MCP-RESOURCES-R002",
       "title": "epistemic-graph is the sole admissible receipt source",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "028338c38838"
+      ],
+      "verified_by": [
+        "tests/fleet/test_mcp_resource_receipt_source.py:32"
+      ]
     },
     {
       "id": "GRAPHOS-MCP-RESOURCES-R003",
