@@ -25,6 +25,8 @@
     "GRAPHOS-FLEET-R007.3",
     "GRAPHOS-FLEET-R008",
     "GRAPHOS-FLEET-R009",
+    "GRAPHOS-FLEET-R009.1",
+    "GRAPHOS-FLEET-R009.2",
     "GRAPHOS-FLEET-R010",
     "GRAPHOS-FLEET-R011",
     "GRAPHOS-FLEET-R012",
@@ -49,7 +51,11 @@
     "GRAPHOS-FLEET-R027",
     "GRAPHOS-FLEET-R028",
     "GRAPHOS-FLEET-R029",
-    "GRAPHOS-FLEET-R030"
+    "GRAPHOS-FLEET-R030",
+    "GRAPHOS-FLEET-R002.2",
+    "GRAPHOS-FLEET-R005.2",
+    "PA-12.1",
+    "PA-12.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -72,7 +78,7 @@
     {
       "id": "GRAPHOS-FLEET-R002",
       "title": "Tool schema fingerprints recomputed from served schemas (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -148,7 +154,7 @@
     {
       "id": "GRAPHOS-FLEET-R005",
       "title": "A2A task routing with typed work-item and lease operations (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -216,7 +222,7 @@
       "title": "Bridge upgraded to FastMCP 4",
       "delivery_state": "SPECIFIED",
       "evidence": [],
-      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( \u2014 no hits), so the 'single com"
+      "remaining": "fastmcp>=4.0.0b1 is declared and locked at 4.0.5, and native .tool()/Skills-over-MCP are used and tested, but no native FastMCP4 prompt/resource/resource-template registration by graph-os's own served bridge was found (grepped for .prompt(/.resource(/resource_template( — no hits), so the 'single com"
     },
     {
       "id": "GRAPHOS-FLEET-R007.1",
@@ -244,7 +250,29 @@
     },
     {
       "id": "GRAPHOS-FLEET-R009",
-      "title": "Run admission evaluates, commits and publishes with capacity control",
+      "title": "Run admission evaluates, commits and publishes with capacity control (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Split across its 3 code roots (exceeds the 2-code-root threshold). GRAPHOS-FLEET-R009.1 (the all-or-nothing capacity primitive) is published on a branch, not yet merged. GRAPHOS-FLEET-R009.2 (wiring routing.py/composition.py through it) is specified but not started."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.1",
+      "title": "Capacity acquisition is all-or-nothing with one re-decision",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "c77ede8726fa448b5d9d0fcafd36de9ab1aeee40",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c77ede8726fa448b5d9d0fcafd36de9ab1aeee40",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ],
+      "remaining": "graph_os/control_plane/runs/admission.py adds CapacityAcquisition/CapacityDeniedError (acquire/release/held); tests/control_plane/admission/test_capacity_acquisition.py passes. Not yet merged. GRAPHOS-FLEET-R009.2 wiring is not started."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.2",
+      "title": "Routing and composition publish only through acquired capacity",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
@@ -457,7 +485,7 @@
     {
       "id": "GRAPHOS-FLEET-R024",
       "title": "Fleet reconciliation, scaling and deploy watch are served by GraphOS (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -590,6 +618,30 @@
         }
       ],
       "remaining": "Not yet merged. Live reads need an approval path and a live operation binding for each source."
+    },
+    {
+      "id": "GRAPHOS-FLEET-R002.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R005.2",
+      "title": "Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "PA-12.1",
+      "title": "Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "PA-12.2",
+      "title": "Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     }
   ]
 }

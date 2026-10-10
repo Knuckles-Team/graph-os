@@ -77,6 +77,7 @@ def _context(*, runner: object | None, idempotency_key: str | None = "idem-1"):
     )
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R020.1")
 async def test_sync_returns_a_durable_job_receipt() -> None:
     runner = _FakeRunner()
     context = _context(runner=runner)
@@ -95,6 +96,7 @@ async def test_sync_returns_a_durable_job_receipt() -> None:
     assert runner.calls == [("tenant-a", "src-1", "incremental", "idem-1")]
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R020.1")
 async def test_sync_fails_closed_with_unavailable_when_runner_not_composed() -> None:
     context = _context(runner=None)
     with pytest.raises(OperationRefused) as excinfo:
@@ -116,6 +118,7 @@ def test_operation_declares_the_write_scope_and_audit_class() -> None:
     assert op.idempotency.value == "key_required"
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R020.2")
 async def test_index_returns_a_durable_job_receipt() -> None:
     runner = _FakeRunner()
     context = _context(runner=runner)
@@ -131,6 +134,7 @@ async def test_index_returns_a_durable_job_receipt() -> None:
     assert runner.index_calls == [("tenant-a", "repo-1", "idem-1")]
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R020.2")
 async def test_index_fails_closed_with_unavailable_when_runner_not_composed() -> None:
     context = _context(runner=None)
     with pytest.raises(OperationRefused) as excinfo:
@@ -144,6 +148,7 @@ async def test_index_requires_an_idempotency_key() -> None:
         await index_repository(context, {"repo_id": "repo-1"}, None)
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R020.2")
 async def test_list_sources_returns_the_tenant_inventory() -> None:
     runner = _FakeRunner()
     context = _context(runner=runner)
@@ -156,6 +161,7 @@ async def test_list_sources_returns_the_tenant_inventory() -> None:
     assert runner.list_calls == ["tenant-a"]
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R020.2")
 async def test_list_sources_fails_closed_with_unavailable_when_runner_not_composed() -> (
     None
 ):
@@ -165,6 +171,7 @@ async def test_list_sources_fails_closed_with_unavailable_when_runner_not_compos
     assert excinfo.value.code == "UNAVAILABLE"
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R020.2")
 async def test_source_status_returns_the_current_record() -> None:
     runner = _FakeRunner()
     context = _context(runner=runner)
@@ -175,6 +182,7 @@ async def test_source_status_returns_the_current_record() -> None:
     assert runner.status_calls == [("tenant-a", "src-1")]
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R020.2")
 async def test_source_status_fails_closed_with_unavailable_when_runner_not_composed() -> (
     None
 ):

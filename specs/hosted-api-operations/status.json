@@ -57,7 +57,25 @@
     "GRAPHOS-OPS-R035",
     "GRAPHOS-OPS-R036",
     "GRAPHOS-OPS-R037",
-    "GRAPHOS-OPS-R038"
+    "GRAPHOS-OPS-R038",
+    "GRAPHOS-OPS-R014.1",
+    "GRAPHOS-OPS-R014.2",
+    "GRAPHOS-OPS-R015.1",
+    "GRAPHOS-OPS-R015.2",
+    "GRAPHOS-OPS-R016.1",
+    "GRAPHOS-OPS-R016.2",
+    "GRAPHOS-OPS-R017.1",
+    "GRAPHOS-OPS-R017.2",
+    "GRAPHOS-OPS-R018.1",
+    "GRAPHOS-OPS-R018.2",
+    "GRAPHOS-OPS-R019.1",
+    "GRAPHOS-OPS-R019.2",
+    "GRAPHOS-OPS-R020.3.1",
+    "GRAPHOS-OPS-R031.1",
+    "GRAPHOS-OPS-R032.1",
+    "GRAPHOS-OPS-R032.2",
+    "GRAPHOS-OPS-R035.1",
+    "GRAPHOS-OPS-R035.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -373,7 +391,7 @@
     {
       "id": "GRAPHOS-OPS-R020",
       "title": "Ingest operations through a typed SDK runner facade",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -417,7 +435,7 @@
     {
       "id": "GRAPHOS-OPS-R020.3",
       "title": "Pack and job management operations",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -462,7 +480,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R021.1",
-      "title": "Decide operations (service-executed) \u2014 decide slice",
+      "title": "Decide operations (service-executed) — decide slice",
       "delivery_state": "LANDED",
       "evidence": [
         {
@@ -477,7 +495,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R021.2",
-      "title": "Retrieval, context, and freshness read operations \u2014 retrieval slice",
+      "title": "Retrieval, context, and freshness read operations — retrieval slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -486,7 +504,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R021.3",
-      "title": "Policy and swarm read operations \u2014 policy slice",
+      "title": "Policy and swarm read operations — policy slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -514,14 +532,14 @@
     },
     {
       "id": "GRAPHOS-OPS-R022.1",
-      "title": "Work-item and offer operations \u2014 work slice",
+      "title": "Work-item and offer operations — work slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": []
     },
     {
       "id": "GRAPHOS-OPS-R022.2",
-      "title": "Evolution loop, schedule, and proposal operations \u2014 evolution slice",
+      "title": "Evolution loop, schedule, and proposal operations — evolution slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -573,14 +591,14 @@
     },
     {
       "id": "GRAPHOS-OPS-R024.1",
-      "title": "Telemetry operations \u2014 telemetry slice",
+      "title": "Telemetry operations — telemetry slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": []
     },
     {
       "id": "GRAPHOS-OPS-R024.2",
-      "title": "Security operations \u2014 security slice",
+      "title": "Security operations — security slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -589,7 +607,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R024.3",
-      "title": "Usage operations \u2014 usage slice",
+      "title": "Usage operations — usage slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -598,7 +616,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R024.4",
-      "title": "Memory operations \u2014 memory slice",
+      "title": "Memory operations — memory slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -607,7 +625,7 @@
     },
     {
       "id": "GRAPHOS-OPS-R024.5",
-      "title": "Operational admin operations \u2014 admin slice",
+      "title": "Operational admin operations — admin slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -657,14 +675,14 @@
     },
     {
       "id": "GRAPHOS-OPS-R026.1",
-      "title": "API-surface drift gate \u2014 api-surface slice",
+      "title": "API-surface drift gate — api-surface slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": []
     },
     {
       "id": "GRAPHOS-OPS-R026.2",
-      "title": "Backward-compatibility drift gate \u2014 backward-compat slice",
+      "title": "Backward-compatibility drift gate — backward-compat slice",
       "delivery_state": "SPECIFIED",
       "evidence": [],
       "depends_on": [
@@ -837,6 +855,114 @@
           "description": "GRAPHOS-OPS-R038 merged to the default branch in this commit."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R014.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R014 (slice .1): Identity self-service and admin operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R014.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R014 (slice .2): Identity self-service and admin operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R015.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R015 (slice .1): Access elevation, approval, and lease operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R015.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R015 (slice .2): Access elevation, approval, and lease operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R016.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R016 (slice .1): Capacity status and throttle mode operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R016.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R016 (slice .2): Capacity status and throttle mode operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R017.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R017 (slice .1): Finance and markets operations with tenant isolation",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R017.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R017 (slice .2): Finance and markets operations with tenant isolation",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R018.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R018 (slice .1): Query, search, ontology, and analytics operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R018.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R018 (slice .2): Query, search, ontology, and analytics operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R019.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R019 (slice .1): Federation source registration and sharing operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R019.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R019 (slice .2): Federation source registration and sharing operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R031.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R031 (slice .1): Published tool-to-operation parity inventory",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R032 (slice .1): Identity dependency inversion via ports",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R032 (slice .2): Identity dependency inversion via ports",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R035.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R035 (slice .1): Multiplexer registration reduced to four resident tools",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R035.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R035 (slice .2): Multiplexer registration reduced to four resident tools",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     }
   ]
 }

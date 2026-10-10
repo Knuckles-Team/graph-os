@@ -17,7 +17,10 @@
     "GRAPHOS-A2A-R006.1",
     "GRAPHOS-A2A-R006.2",
     "GRAPHOS-A2A-R007",
-    "GRAPHOS-A2A-R008"
+    "GRAPHOS-A2A-R008",
+    "GRAPHOS-A2A-R002.2.1",
+    "GRAPHOS-A2A-R005.2.1",
+    "GRAPHOS-A2A-R006.2.1"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -192,6 +195,24 @@
           "description": "Implemented on the default branch; exercised by tests/a2a/test_application.py::test_json_rpc_unary_methods_use_typed_shared_contract"
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R002.2.1",
+      "title": "Remaining scope of GRAPHOS-A2A-R002.2 (slice .1): Caller-filtered tool-subset enforcement at dispatch",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R005.2.1",
+      "title": "Remaining scope of GRAPHOS-A2A-R005.2 (slice .1): Full signed human approval chain and input-required task emission",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R006.2.1",
+      "title": "Remaining scope of GRAPHOS-A2A-R006.2 (slice .1): Bridge graphos.op/invoke to the shared hosted-operation registry",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     }
   ]
 }

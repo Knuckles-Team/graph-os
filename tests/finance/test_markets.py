@@ -31,6 +31,7 @@ def test_missing_binding_refuses_with_zero_provider_calls() -> None:
     assert provider.mock_calls == []
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R017.1")
 def test_mismatched_tenant_refuses_with_zero_provider_calls() -> None:
     """FI-02: tenant B's binding cannot read tenant A's market data."""
 
@@ -64,6 +65,7 @@ def test_missing_provider_capability_refuses_before_dispatch() -> None:
     assert excinfo.value.code == GraphOSErrorCode.UNAVAILABLE
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R017.1")
 def test_matched_binding_dispatches_through_the_provider() -> None:
     request = _request()
     binding = AccountBinding(tenant_id="tenant-a", account_id="acct-1")
