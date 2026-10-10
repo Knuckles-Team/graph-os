@@ -218,6 +218,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - *release-uv
+
       - name: Spec status and decomposition are consistent
         run: |
           set -euo pipefail

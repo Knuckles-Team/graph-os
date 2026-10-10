@@ -64,8 +64,10 @@
     {
       "id": "GRAPHOS-OPS-R001",
       "title": "Native MCP/REST facade with A2A unary operations then streaming",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "deb2b45bf83d"
+      ],
       "verified_by": []
     },
     {
@@ -80,8 +82,10 @@
     {
       "id": "GRAPHOS-OPS-R003",
       "title": "Remove multiplexer skill/prompt harvest path",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "deb2b45bf83d"
+      ],
       "verified_by": [
         "tests/fleet/test_no_duplicate_skill_prompt_harvest.py:59"
       ]
@@ -134,8 +138,10 @@
     {
       "id": "GRAPHOS-OPS-R009",
       "title": "Single invoke pipeline for authority, effect, and audit",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "deb2b45bf83d"
+      ],
       "verified_by": []
     },
     {
@@ -160,8 +166,11 @@
     {
       "id": "GRAPHOS-OPS-R012",
       "title": "Bounded resolver for natural-language operation lookup",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "43db6b7ac49b",
+        "deb2b45bf83d"
+      ],
       "verified_by": [
         "tests/api/test_resolve.py:101",
         "tests/api/test_resolve.py:40",

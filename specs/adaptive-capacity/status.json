@@ -26,6 +26,7 @@
       "title": "Pure partitioned AIMD decision rule",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "69d6f6eef5ea",
         "c46a1ded6a8f",
         "d2f29725918d"
       ],
@@ -38,6 +39,7 @@
       "title": "Capacity status and mode operations",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "69d6f6eef5ea",
         "c46a1ded6a8f"
       ],
       "verified_by": [

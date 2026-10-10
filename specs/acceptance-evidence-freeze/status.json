@@ -17,7 +17,8 @@
       "title": "Typed acceptance-evidence model and freeze-gap checker",
       "delivery_state": "LANDED",
       "landed_in": [
-        "a5951682d6da"
+        "a5951682d6da",
+        "f62a4e2e39ed"
       ],
       "verified_by": [
         "tests/test_check_acceptance_evidence.py:137",
@@ -41,7 +42,8 @@
       "title": "Auditor distinct from delivery lane",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "a5951682d6da"
+        "a5951682d6da",
+        "f62a4e2e39ed"
       ],
       "verified_by": [
         "tests/test_check_acceptance_evidence.py:179",
@@ -54,7 +56,8 @@
       "title": "Evidence is append-only",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "a5951682d6da"
+        "a5951682d6da",
+        "f62a4e2e39ed"
       ],
       "verified_by": [
         "tests/test_check_acceptance_evidence.py:216",
@@ -66,7 +69,8 @@
       "title": "Operational evidence tracks the current commit, not a stale one",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "a5951682d6da"
+        "a5951682d6da",
+        "f62a4e2e39ed"
       ],
       "verified_by": [
         "tests/test_check_acceptance_evidence.py:99"
@@ -77,7 +81,8 @@
       "title": "Checker is the only path to an `ACCEPTED` report",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "a5951682d6da"
+        "a5951682d6da",
+        "f62a4e2e39ed"
       ],
       "verified_by": [
         "tests/test_check_acceptance_evidence.py:232"

@@ -41,7 +41,8 @@
       "title": "Fail-closed `tasks/resubscribe` stub on the A2A method table",
       "delivery_state": "LANDED",
       "landed_in": [
-        "a8ed61b538e7"
+        "a8ed61b538e7",
+        "d5bff77ba836"
       ],
       "verified_by": []
     },
@@ -88,7 +89,8 @@
       "delivery_state": "VERIFIED",
       "landed_in": [
         "0c897f1a3736",
-        "2cbed24252ec"
+        "2cbed24252ec",
+        "deb2b45bf83d"
       ],
       "verified_by": [
         "tests/fleet/test_no_duplicate_skill_prompt_harvest.py:58"
@@ -100,6 +102,7 @@
       "delivery_state": "VERIFIED",
       "landed_in": [
         "17fcab3404c0",
+        "d5bff77ba836",
         "d60b46fc6984"
       ],
       "verified_by": [
@@ -132,8 +135,10 @@
     {
       "id": "GRAPHOS-A2A-R005.2",
       "title": "Full signed human approval chain and input-required task emission",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "cdde0200a54a"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-A2A-R005.2.1"
@@ -142,14 +147,16 @@
     {
       "id": "GRAPHOS-A2A-R005.2.1",
       "title": "Durable, revocable human-grant store with atomic compare-and-set consumption",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "cdde0200a54a"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R006",
       "title": "Operation invoke and plan-confirm methods for A2A",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
         "9a79acee8b6c"
       ],
@@ -162,8 +169,10 @@
     {
       "id": "GRAPHOS-A2A-R006.1",
       "title": "Register `graphos.op/invoke` and `graphos.plan/confirm`, fail-closed",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "cdde0200a54a"
+      ],
       "verified_by": [
         "tests/a2a/test_application.py:234",
         "tests/a2a/test_application.py:272"
@@ -172,8 +181,10 @@
     {
       "id": "GRAPHOS-A2A-R006.2",
       "title": "Bridge `graphos.op/invoke` to the shared hosted-operation registry",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "cdde0200a54a"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-A2A-R006.2.1"
@@ -182,8 +193,10 @@
     {
       "id": "GRAPHOS-A2A-R006.2.1",
       "title": "A2A authenticator must yield a `VerifiedCaller`-compatible session (owner: agent-utilities)",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "cdde0200a54a"
+      ],
       "verified_by": []
     },
     {
@@ -191,7 +204,8 @@
       "title": "Pre-effect audit reservation for every governed write",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "9a79acee8b6c"
+        "9a79acee8b6c",
+        "c2a6ab839fd3"
       ],
       "verified_by": [
         "tests/api/test_invoke_contract.py:434",
@@ -203,7 +217,8 @@
       "title": "First-party A2A facade, not a vendored wrapper",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "20f773df9ddd"
+        "20f773df9ddd",
+        "d5bff77ba836"
       ],
       "verified_by": [
         "tests/a2a/test_first_party_facade.py:53",

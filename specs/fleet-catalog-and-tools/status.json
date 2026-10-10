@@ -307,8 +307,10 @@
     {
       "id": "GRAPHOS-FLEET-R014",
       "title": "Resolver ranks catalog items with partitioned feedback",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "43db6b7ac49b"
+      ],
       "verified_by": [
         "tests/api/test_resolve.py:112",
         "tests/api/test_resolve.py:159"
@@ -359,8 +361,10 @@
     {
       "id": "GRAPHOS-FLEET-R020",
       "title": "Multiplexer meta-tools register as the four resident tools",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
       "verified_by": []
     },
     {
@@ -377,15 +381,19 @@
     {
       "id": "GRAPHOS-FLEET-R022",
       "title": "Catalog reconciliation re-ingests via durable replay",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
       "verified_by": []
     },
     {
       "id": "PA-12",
       "title": "Catalog reload rejects invalid candidates, proves replica convergence (rollup)",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
       "verified_by": [],
       "rollup_of": [
         "PA-12.1",
@@ -395,8 +403,10 @@
     {
       "id": "PA-12.1",
       "title": "Catalog reload rejects invalid candidates",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
       "verified_by": [
         "tests/test_fleet_catalog_reader.py:211",
         "tests/test_fleet_catalog_reader.py:223",
@@ -408,8 +418,10 @@
     {
       "id": "PA-12.2",
       "title": "Multi-replica convergence is observed by generation and digest",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "1a8d280ab981"
+      ],
       "verified_by": []
     },
     {
@@ -470,6 +482,7 @@
       "title": "The intent tools are the only MCP surface",
       "delivery_state": "LANDED",
       "landed_in": [
+        "1a8d280ab981",
         "d2b070392ec9",
         "db8d44259c3d"
       ],
