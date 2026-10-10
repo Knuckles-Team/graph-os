@@ -174,8 +174,8 @@
         "cdde0200a54a"
       ],
       "verified_by": [
-        "tests/a2a/test_application.py:234",
-        "tests/a2a/test_application.py:272"
+        "tests/a2a/test_application.py:236",
+        "tests/a2a/test_application.py:274"
       ]
     },
     {
