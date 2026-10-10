@@ -49,3 +49,13 @@ right_name = "get_source_status"
 right_digest = "sha256:d240b2d27dc03511398a398e38e19826538141e278f020df59a03a99bd1bb11b"
 reason = "Both are independent typed read handlers in unrelated domains (tenant memory record read vs ingestion source status) that share the one mandated bind-await-return read-handler shape; consolidating would couple the memory store and ingest runner ports. The ledger's name-only lookup now resolves right_name to the IngestRunner.get_source_status Protocol stub (3-line abstract signature, body `...`) that a sibling change added earlier in service.py ahead of the concrete handler of the same name; re-reviewed and still not a real duplicate of handle_memory_read."
 reviewed_on = "2026-10-09"
+
+[[pair]]
+left_file = "graph_os/api/ops/memory.py"
+left_name = "handle_memory_read"
+left_digest = "sha256:ba4b92341ba10f9124bb7da1001702bb95c9ce81ad641d7528833ba5e175e48d"
+right_file = "graph_os/ingest/service.py"
+right_name = "get_job_status"
+right_digest = "sha256:c3c6ab1bc385804289ec051c4279ca6a72fecaab21a68aae479dab9caef5f049"
+reason = "Both are independent typed read handlers in unrelated domains (tenant memory record read vs ingestion job status) that share the one mandated bind-await-return read-handler shape, exactly like the already-reviewed handle_memory_read / get_source_status pair; consolidating would couple the memory store and ingest runner ports."
+reviewed_on = "2026-10-10"
