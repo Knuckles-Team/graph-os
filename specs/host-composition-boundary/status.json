@@ -9,8 +9,12 @@
     "GRAPHOS-HOST-R003",
     "GRAPHOS-HOST-R004",
     "GRAPHOS-HOST-R005",
+    "GRAPHOS-HOST-R005.1",
+    "GRAPHOS-HOST-R005.2",
     "GRAPHOS-HOST-R006",
     "GRAPHOS-HOST-R007",
+    "GRAPHOS-HOST-R007.1",
+    "GRAPHOS-HOST-R007.2",
     "GRAPHOS-HOST-R008",
     "GRAPHOS-HOST-R009",
     "GRAPHOS-HOST-R010",
@@ -69,10 +73,28 @@
     {
       "id": "GRAPHOS-HOST-R005",
       "title": "graph_os.mcp_server.runtime serves retired MCP actions",
-      "delivery_state": "LANDED",
+      "delivery_state": "SPECIFIED",
       "landed_in": [
         "4ca77fbff9e3"
       ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R005.1",
+        "GRAPHOS-HOST-R005.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.1",
+      "title": "Landed: the typed approved-mapping model",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2",
+      "title": "Parity test proves no served action is dropped",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
@@ -87,10 +109,28 @@
     {
       "id": "GRAPHOS-HOST-R007",
       "title": "Agent runtime imported only through its public API",
-      "delivery_state": "LANDED",
+      "delivery_state": "SPECIFIED",
       "landed_in": [
         "c467b28d2385"
       ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R007.1",
+        "GRAPHOS-HOST-R007.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.1",
+      "title": "Landed: none of the fence exists yet",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2",
+      "title": "Add the import-fence test",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
