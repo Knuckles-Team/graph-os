@@ -84,6 +84,7 @@ def test_concurrent_reservation_has_one_effect_and_pending_second_attempt():
     asyncio.run(scenario())
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R009")
 @pytest.mark.parametrize("failure", ["dispatch", "audit", "completion", "timeout"])
 def test_uncertain_outcome_stays_pending_without_redispatch(failure):
     services, runtime, audit, journal, _ = setup_services()
@@ -189,6 +190,7 @@ def test_missing_durable_coverage_fails_closed_but_native_owner_is_supported():
     assert len(runtime.calls) == 1
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R009")
 def test_destructive_plan_single_consumption_and_replay():
     services, runtime, audit, _, leases = setup_services(
         operation(effect=Effect.DESTRUCTIVE)
@@ -245,6 +247,7 @@ def test_fuzzy_write_only_previews():
     assert not runtime.calls and not audit.events
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R009")
 def test_console_admin_requires_same_human_fresh_mfa_and_session():
     op = operation(effect=Effect.ADMIN, principals=PrincipalRule.HUMAN_UNDELEGATED)
     services, runtime, _, _, _ = setup_services(op)

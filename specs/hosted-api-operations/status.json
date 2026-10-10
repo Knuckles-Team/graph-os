@@ -147,38 +147,51 @@
     {
       "id": "GRAPHOS-OPS-R006",
       "title": "Consume the engine's packaged wire-callable contract",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "100d015ca012"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_eg_binding.py:190"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R007",
       "title": "Immutable operation registry with digest and authorization",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "4b83c69e2b41"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_api_registry.py:110",
+        "tests/api/test_api_registry.py:63"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R008",
       "title": "Generated engine-bound operations with exclusions",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "4b83c69e2b41"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_eg_binding.py:133",
+        "tests/api/test_eg_binding.py:88"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R009",
       "title": "Single invoke pipeline for authority, effect, and audit",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "deb2b45bf83d"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_invoke_contract.py:238",
+        "tests/api/test_invoke_governance.py:193",
+        "tests/api/test_invoke_governance.py:250",
+        "tests/api/test_invoke_governance.py:87"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R010",
