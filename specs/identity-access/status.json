@@ -24,6 +24,10 @@
     "GRAPHOS-IDENTITY-R008.2",
     "GRAPHOS-IDENTITY-R009.1",
     "GRAPHOS-IDENTITY-R009.2",
+    "GRAPHOS-IDENTITY-R009.2.1",
+    "GRAPHOS-IDENTITY-R009.2.2",
+    "GRAPHOS-IDENTITY-R009.2.3",
+    "GRAPHOS-IDENTITY-R009.2.4",
     "GRAPHOS-IDENTITY-R010.1",
     "GRAPHOS-IDENTITY-R010.2",
     "GRAPHOS-IDENTITY-R011",
@@ -263,7 +267,41 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R009.2",
-      "title": "OIDC authentication flow",
+      "title": "OIDC authentication flow (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R009.2.1",
+        "GRAPHOS-IDENTITY-R009.2.2",
+        "GRAPHOS-IDENTITY-R009.2.3",
+        "GRAPHOS-IDENTITY-R009.2.4"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R009.2.1",
+      "title": "Ordered claim-to-rule evaluation",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R009.2.2",
+      "title": "ID-token validation inputs and typed refusal",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R009.2.3",
+      "title": "Callback handler wiring",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R009.2.4",
+      "title": "Live IdP probe",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
