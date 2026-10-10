@@ -27,6 +27,7 @@ from graph_os.api.registry import (
 from graph_os.ingest.service import (
     get_source_status,
     index_repository,
+    list_packs,
     list_sources,
     sync_source,
 )
@@ -40,6 +41,7 @@ __all__ = [
     "operations",
     "get_source_status",
     "index_repository",
+    "list_packs",
     "list_sources",
     "sync_source",
 ]
@@ -80,6 +82,14 @@ class IngestSourceStatusParams(_Params):
 
 class IngestSourceStatusResult(_Params):
     value: dict[str, str]
+
+
+class IngestPacksListParams(_Params):
+    pass
+
+
+class IngestPackListResult(_Params):
+    value: dict[str, object]
 
 
 def operations() -> tuple[OpSpec, ...]:
@@ -129,6 +139,17 @@ def operations() -> tuple[OpSpec, ...]:
             params=IngestSourceStatusParams,
             result=IngestSourceStatusResult,
             binding=Composite(handler="graph_os.api.ops.ingest.get_source_status"),
+            scopes=frozenset({"ingest:read"}),
+            effect=Effect.READ,
+        ),
+        OpSpec(
+            id="ingest.packs.list",
+            verb=Verb.FIND,
+            summary="List this tenant's ingestion packs",
+            examples=("list my ingestion packs",),
+            params=IngestPacksListParams,
+            result=IngestPackListResult,
+            binding=Composite(handler="graph_os.api.ops.ingest.list_packs"),
             scopes=frozenset({"ingest:read"}),
             effect=Effect.READ,
         ),

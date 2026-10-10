@@ -49,6 +49,8 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [x] **GRAPHOS-OPS-R020.2:** Repository indexing and source inventory operations
 - [x] **GRAPHOS-OPS-R020.3:** Pack and job management operations
 - [ ] **GRAPHOS-OPS-R020.3.1:** Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations
+- [ ] **GRAPHOS-OPS-R020.3.1.1:** `ingest.packs.list` op
+- [ ] **GRAPHOS-OPS-R020.3.1.2:** `ingest.jobs.status` op
 - [ ] **GRAPHOS-OPS-R020.4:** Drift listing and repair-with-approval operations
 - [ ] **GRAPHOS-OPS-R020.5:** Embedding admission and re-embedding operations
 - [ ] **GRAPHOS-OPS-R020.3.1:** Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations
