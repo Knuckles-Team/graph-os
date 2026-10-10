@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
-from graph_os.a2a.authority import A2AIdempotencyConflict, WorkItemA2AAuthority
+from graph_os.a2a.application import _application_error
+from graph_os.a2a.authority import (
+    A2AIdempotencyConflict,
+    A2ATransitionHistoryUnavailable,
+    WorkItemA2AAuthority,
+)
 from graph_os.a2a.models import A2AMessage, A2ARouteDecision, A2ATextPart
 from graph_os.a2a.routing import A2AAssemblyUnavailable, OrchestratorA2ARouter
 
@@ -120,6 +126,7 @@ async def test_work_item_authority_reuses_one_store_for_lifecycle(
     assert final_cursor is None
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R002.1")
 @pytest.mark.asyncio
 async def test_selected_tool_subset_is_refused_before_durable_admission() -> None:
     authority = WorkItemA2AAuthority(lambda: pytest.fail("engine was accessed"))
@@ -142,3 +149,18 @@ async def test_context_budget_fails_closed_while_agent_assemble_is_unavailable()
     router = OrchestratorA2ARouter(lambda: pytest.fail("engine was accessed"))
     with pytest.raises(A2AAssemblyUnavailable, match="AgentAssemble"):
         await router.route(_message(), context_budget_tokens=4096)
+
+
+@pytest.mark.spec("GRAPHOS-A2A-R004.2")
+def test_transition_history_unavailable_has_distinct_privacy_safe_error() -> None:
+    response = _application_error("rid", A2ATransitionHistoryUnavailable())
+    assert response.status_code == 501
+    assert json.loads(bytes(response.body)) == {
+        "jsonrpc": "2.0",
+        "id": "rid",
+        "error": {
+            "code": -32012,
+            "message": "durable task transition history is not available",
+        },
+    }
+    assert "result" not in json.loads(bytes(response.body))

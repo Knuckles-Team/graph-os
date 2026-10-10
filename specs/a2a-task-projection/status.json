@@ -62,9 +62,13 @@
     {
       "id": "GRAPHOS-A2A-R002.1",
       "title": "Fail-closed refusal when assembly selects a tool subset",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "dfe297e0466d"
+      ],
+      "verified_by": [
+        "tests/a2a/test_authority.py:129"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R002.2",
@@ -115,7 +119,7 @@
     {
       "id": "GRAPHOS-A2A-R005",
       "title": "Durable, fail-closed A2A approval exchange for tool calls",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
         "9a79acee8b6c"
       ],
@@ -128,9 +132,13 @@
     {
       "id": "GRAPHOS-A2A-R005.1",
       "title": "Fail-closed `graphos.plan/confirm` stub on the A2A method table",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "a226c8fdf397"
+      ],
+      "verified_by": [
+        "tests/a2a/test_application.py:274"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R005.2",
@@ -175,7 +183,7 @@
       ],
       "verified_by": [
         "tests/a2a/test_application.py:236",
-        "tests/a2a/test_application.py:274"
+        "tests/a2a/test_application.py:275"
       ]
     },
     {

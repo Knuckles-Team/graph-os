@@ -223,9 +223,15 @@
     {
       "id": "GRAPHOS-IDENTITY-R008.1",
       "title": "Typed API-key grant model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "8b0005ee65dd"
+      ],
+      "verified_by": [
+        "tests/identity/test_api_key_grant.py:20",
+        "tests/identity/test_api_key_grant.py:26",
+        "tests/identity/test_api_key_grant.py:9"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R008.2",
@@ -237,9 +243,16 @@
     {
       "id": "GRAPHOS-IDENTITY-R009.1",
       "title": "Typed OIDC mapping-rule model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "6c3a92eb849a"
+      ],
+      "verified_by": [
+        "tests/identity/test_oidc_mapping_rule.py:23",
+        "tests/identity/test_oidc_mapping_rule.py:29",
+        "tests/identity/test_oidc_mapping_rule.py:36",
+        "tests/identity/test_oidc_mapping_rule.py:43"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R009.2",
@@ -251,9 +264,15 @@
     {
       "id": "GRAPHOS-IDENTITY-R010.1",
       "title": "Typed LDAPS bind-config model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "02d2a6e84ec7"
+      ],
+      "verified_by": [
+        "tests/identity/test_ldap_bind_config.py:11",
+        "tests/identity/test_ldap_bind_config.py:18",
+        "tests/identity/test_ldap_bind_config.py:25"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R010.2",
@@ -291,9 +310,16 @@
     {
       "id": "GRAPHOS-IDENTITY-R011.1",
       "title": "Typed SCIM service-credential model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "95e2a2ed3519"
+      ],
+      "verified_by": [
+        "tests/identity/test_scim_credential.py:11",
+        "tests/identity/test_scim_credential.py:17",
+        "tests/identity/test_scim_credential.py:23",
+        "tests/identity/test_scim_credential.py:31"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R011.2",
@@ -305,9 +331,15 @@
     {
       "id": "GRAPHOS-IDENTITY-R012.1",
       "title": "Typed SAML service-provider model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "66b447b6f3f3"
+      ],
+      "verified_by": [
+        "tests/identity/test_saml_models.py:11",
+        "tests/identity/test_saml_models.py:21",
+        "tests/identity/test_saml_models.py:29"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R012.2",

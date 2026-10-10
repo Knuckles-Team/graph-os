@@ -3,6 +3,7 @@
 Status vocabulary is defined in [spec.md](spec.md). Check a task only after its listed proof exists; source presence alone is not a check mark.
 
 - [x] Extract and publish the GraphOS serving, gateway, fleet, A2A and deployment package boundary. Evidence: package modules under `graph_os/`, public `graph-os` console script in `pyproject.toml`. **State: Implemented; release/served acceptance for this whole spec still pending.**
+- [ ] `GRAPHOS-HOST-R007.2`: rollup; deliver `GRAPHOS-HOST-R007.2.1` to `GRAPHOS-HOST-R007.2.68` (one rewiring per violating module, 68 modules at split time) and then the fence test `GRAPHOS-HOST-R007.2.69`.
 - [ ] Inventory all dependency-internal imports and duplicate host scripts; attach a machine-readable owner/port map and the initial forbidden-import count.
 - [ ] Add missing public engine, SDK and AU ports in their owner packages and release/install them.
 - [ ] Replace private imports throughout GraphOS with public ports and enforce a zero-import architecture test.
@@ -33,3 +34,13 @@ Status vocabulary is defined in [spec.md](spec.md). Check a task only after its 
 - [x] **GRAPHOS-HOST-R007:** Agent runtime imported only through its public API
 - [ ] **GRAPHOS-HOST-R007.1:** Remaining scope of GRAPHOS-HOST-R007 (slice .1): Agent runtime imported only through its public API
 - [ ] **GRAPHOS-HOST-R007.2:** Remaining scope of GRAPHOS-HOST-R007 (slice .2): Agent runtime imported only through its public API
+- [x] **GRAPHOS-HOST-R005.1:** Landed typed approved action-to-operation mapping model. Evidence: `tests/mcp_server/test_legacy_action_mapping.py`.
+- [ ] **GRAPHOS-HOST-R005.2:** Parity test proves no served action is dropped (rollup of .2.1-.2.8)
+- [ ] **GRAPHOS-HOST-R005.2.1:** Approved mapping for the analyze action family
+- [ ] **GRAPHOS-HOST-R005.2.2:** Approved mapping for the configure action family
+- [ ] **GRAPHOS-HOST-R005.2.3:** Approved mapping for the ingest action family
+- [ ] **GRAPHOS-HOST-R005.2.4:** Approved mapping for the query-memory action family
+- [ ] **GRAPHOS-HOST-R005.2.5:** Approved mapping for the orchestrate action family
+- [ ] **GRAPHOS-HOST-R005.2.6:** Approved mapping for the mine-learn action family
+- [ ] **GRAPHOS-HOST-R005.2.7:** Approved mapping for the governance-ops action family
+- [ ] **GRAPHOS-HOST-R005.2.8:** Parity test over the full legacy action surface

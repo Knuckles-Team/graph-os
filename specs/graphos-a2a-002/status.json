@@ -16,7 +16,7 @@
     {
       "id": "GRAPHOS-A2A-002-R001",
       "title": "Typed admission request/decision model",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "VERIFIED",
       "landed_in": [],
       "verified_by": [],
       "rollup_of": [
@@ -26,9 +26,13 @@
     {
       "id": "GRAPHOS-A2A-002-R001.1",
       "title": "Fail-closed admission function proven against today's unavailable upstreams",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "40698cfd6196"
+      ],
+      "verified_by": [
+        "tests/a2a/test_admission.py:15"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-002-R002",
@@ -53,7 +57,9 @@
       "title": "Typed refusal reason and provenance on every decision",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/a2a/test_admission.py:33"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-002-R005",
