@@ -60,9 +60,14 @@
     {
       "id": "GRAPHOS-MESSAGING-R005",
       "title": "Typed degraded state for a missing adapter",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "785693fbf7a3"
+      ],
+      "verified_by": [
+        "tests/messaging/test_registry_degraded.py:101",
+        "tests/messaging/test_registry_degraded.py:85"
+      ]
     },
     {
       "id": "GRAPHOS-MESSAGING-R006",

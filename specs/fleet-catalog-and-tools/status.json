@@ -121,15 +121,26 @@
     {
       "id": "GRAPHOS-FLEET-R003.1",
       "title": "Typed write-back preview model and its refusal rule",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "e80df3dcad62",
+        "f2d7ec520ab7"
+      ],
+      "verified_by": [
+        "tests/api/test_write_back_models.py:120",
+        "tests/api/test_write_back_models.py:19",
+        "tests/api/test_write_back_models.py:31",
+        "tests/api/test_write_back_models.py:46",
+        "tests/api/test_write_back_models.py:60"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R003.2",
       "title": "Write-back registered as a typed, gated registry operation, not a native child tool",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "f2d7ec520ab7"
+      ],
       "verified_by": []
     },
     {
