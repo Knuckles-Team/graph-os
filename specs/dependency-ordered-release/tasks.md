@@ -20,3 +20,8 @@ Status: SPECIFIED. Governing [spec](spec.md) and [plan](plan.md).
 - [ ] `GRAPHOS-RELEASE-R003.7` — browser-and-identity-provider login probe row.
 - [ ] `GRAPHOS-RELEASE-R003.8` — typed-abstention response row.
 - [ ] A test-suite audit confirms every exit-criteria row resolves to a passing automated test before `GRAPHOS-RELEASE-R003` itself is marked LANDED.
+## Decomposition children (tracked)
+
+- [ ] **GRAPHOS-RELEASE-R003:** Exit-criteria matrix maps readiness to tests
+- [ ] **GRAPHOS-RELEASE-R003.1:** Remaining scope of GRAPHOS-RELEASE-R003 (slice .1): Exit-criteria matrix maps readiness to tests
+- [ ] **GRAPHOS-RELEASE-R003.2:** Remaining scope of GRAPHOS-RELEASE-R003 (slice .2): Exit-criteria matrix maps readiness to tests

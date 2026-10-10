@@ -63,3 +63,10 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GRAPHOS-IDENTITY-R012:** Native SAML service provider (rollup)
 - [ ] **GRAPHOS-IDENTITY-R012.1:** Typed SAML service-provider model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R012.2:** Assertion verification and SAML sign-in
+- [ ] **GRAPHOS-IDENTITY-R004.2:** Bootstrap resolution path, Host/Origin validation, unsecured-mode indicators
+- [ ] **GRAPHOS-IDENTITY-R006:** Optional MFA with TOTP, WebAuthn, and recovery codes (rollup)
+- [x] **GRAPHOS-IDENTITY-R006.1:** Typed MFA enrollment model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R006.2:** TOTP, WebAuthn, recovery-code ceremonies and group enforcement
+- [ ] **GRAPHOS-IDENTITY-R007:** Admin console tabs with mapping dry-run and mode wizard (rollup)
+- [x] **GRAPHOS-IDENTITY-R007.1:** Typed admin-console tab model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R007.2:** Mapping dry-run preview and mode-transition wizard

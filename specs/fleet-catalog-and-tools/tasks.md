@@ -26,6 +26,14 @@ Check a task only after its linked code and tests land. A checked source task is
 - [ ] T09.3 (GRAPHOS-FLEET-R009.3): Wire the capacity ledger into `graph_os/a2a/routing.py` and `composition.py`'s publish step.
 - [x] T08 — Certify actual connector schemas and annotations; expose typed write-back and sanitized telemetry/security/CI feed metadata through registry ops. Cover GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R008. GRAPHOS-FLEET-R003 is now a rollup over GRAPHOS-FLEET-R003.1-.3.
   - [x] GRAPHOS-FLEET-R002.1 (child, producer): `graph_os/fleet/catalog_items.py` (`compute_schema_fingerprint`, `CatalogItem.schema_fingerprint`, wired into `_probed_item`) + `tests/fleet/test_schema_fingerprint.py`.
+  - [x] GRAPHOS-FLEET-R003.1 (child, producer): `graph_os/api/ops/write_back.py` (`WriteBackPreviewRequest`, `WriteBackPreviewResult`, `preview_write_back`) + `tests/api/test_write_back_preview.py`.
+  - [ ] GRAPHOS-FLEET-R003.2 (child): bind the GRAPHOS-FLEET-R003.1 preview model into the operation registry as an `OpSpec` (`Confirm.PLAN`, `Idempotency.KEY_REQUIRED`), plus a restart/fault test.
+  - [x] GRAPHOS-FLEET-R008.1 (child, producer): `graph_os/fleet/feeds.py` (`FeedEvent`, `FeedEventRejected`, `rum_event`, `security_audit_event`, `cicd_event`) + `tests/fleet/test_feeds.py`.
+  - [ ] GRAPHOS-FLEET-R008.2 (child): wire real connector ingestion for each feed and pass events through `connector_items()`/`_pack_annotations()` into the registry/tenant-boundary check.
+- [ ] T09 — Correct generated assembly agent parsing and all-or-nothing capacity admission, one re-decision, and release on stop. Cover GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010.
+  - [ ] GRAPHOS-FLEET-R009.1 (child): `graph_os/a2a/routing.py` evaluates a candidate run against the current admission state.
+  - [ ] GRAPHOS-FLEET-R009.2 (child): `graph_os/a2a/composition.py` commits an evaluated run together with its synthesis evidence.
+  - [ ] GRAPHOS-FLEET-R009.3 (child): `control_plane/runs/admission.py` publishes a committed run only after an all-or-nothing capacity acquisition, with one re-decision on denial and release on stop.
   - [ ] GRAPHOS-FLEET-R003.1 (child, producer): `graph_os/api/ops/write_back.py` (`WriteBackPreviewParams`, `WriteBackCommitParams`, `WriteBackPreview`, `WriteBackReceipt`, `derive_write_back_idempotency_key`) + `tests/api/test_write_back_models.py`.
   - [ ] GRAPHOS-FLEET-R003.2 (child, consumer of .1): register `fleet.write_back.preview`/`fleet.write_back.commit` as typed `OpSpec` entries in `graph_os/api/ops/write_back.py`, wired into `graph_os/api/ops/registry_factory.py` + `tests/api/test_write_back_ops.py`.
   - [ ] GRAPHOS-FLEET-R003.3 (child, consumer of .2): restart/fault test `tests/fleet/test_write_back_restart.py` proving idempotent replay and preview gating survive a service restart.
@@ -114,9 +122,12 @@ beyond an unrelated audit-chain capacity check. None of these is a safe
 
 - [ ] **GRAPHOS-FLEET-R002.2:** Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)
 - [ ] **GRAPHOS-FLEET-R005.2:** Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)
+- [ ] **GRAPHOS-FLEET-R008:** RUM, security-audit and CI/CD feeds join the catalog (rollup)
 
 ## Decomposition children (tracked)
 
 - [ ] **PA-12:** Catalog reload rejects invalid candidates, proves replica convergence
 - [ ] **PA-12.1:** Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence
 - [ ] **PA-12.2:** Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence
+- [ ] **PA-12.1:** Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence (rollup)
+- [ ] **PA-12.2:** Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence (rollup)

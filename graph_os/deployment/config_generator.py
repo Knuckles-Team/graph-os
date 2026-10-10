@@ -28,7 +28,10 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from graph_os.core.config_admin import HostingDeploymentSettings
 
 # Recognized deployment profiles (rungs of docs/guides/deployment-configurations.md).
 PROFILES = ("tiny", "single-node-prod", "enterprise")
@@ -1205,3 +1208,15 @@ def _unresolved_secret_refs(cfg: Any, *, resolve: bool = True) -> list[str]:
         if not resolved:
             unresolved.append("unresolved")
     return unresolved
+
+
+def hosting_deployment_settings() -> HostingDeploymentSettings:
+    """GraphOS's own hosting/deployment settings (GRAPHOS-DEPLOY-R009.1).
+
+    Thin wiring point: deployment tooling resolves hosting/deployment
+    settings from ``graph_os.core.config_admin`` rather than any agent
+    runtime configuration internals.
+    """
+    from graph_os.core.config_admin import load_hosting_deployment_settings
+
+    return load_hosting_deployment_settings()
