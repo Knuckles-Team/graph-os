@@ -9,7 +9,11 @@ Check a task only after its linked code and tests land. A checked source task is
   - [x] GRAPHOS-FLEET-R005.1 (child, producer): `graph_os/a2a/work_items.py` (`WorkItemView`, `work_item_view`, `parse_work_item_view`, `list_work_item_views`) + `tests/a2a/test_work_items.py`.
   - [ ] GRAPHOS-FLEET-R006.1 (child, producer): `tests/fleet/test_harvest_inventory.py` pins the current harvest call-site baseline in `graph_os/fleet/multiplexer.py`.
   - [ ] GRAPHOS-FLEET-R006.2 (child, consumer of .1): cut `_probe_skills`/`_probe_prompts` over to the resident `build_local_skill_catalog` path for an already-admitted child, keeping fallback for a non-admitted one.
-  - [ ] GRAPHOS-FLEET-R006.3 (child, consumer of .2): delete the now-dead `_harvest_resource_bodies`, `_harvest_deadline`, `_harvest_error_reason`, `_SKILL_HARVEST_SPEC`, `_PROMPT_HARVEST_SPEC` from `graph_os/fleet/multiplexer.py`.
+  - [ ] GRAPHOS-FLEET-R006.3 (rollup over .3.1-.3.4, consumer of .2): remove the harvest helpers in `graph_os/fleet/multiplexer.py` once no caller remains.
+    - [ ] GRAPHOS-FLEET-R006.3.1 (child): route `_probe_protocol_families`'s two harvest calls through `_resolve_via_local_catalog_or_harvest`.
+    - [ ] GRAPHOS-FLEET-R006.3.2 (child, consumer of .3.1): delete the non-admitted fallback and `_harvest_resource_bodies` once every mounted child is catalog-admitted.
+    - [ ] GRAPHOS-FLEET-R006.3.3 (child, consumer of .3.2): delete `_harvest_deadline`, `_HARVEST_DEADLINE_SHARE`, `_harvest_error_reason`.
+    - [ ] GRAPHOS-FLEET-R006.3.4 (child, consumer of .3.3): delete `_SKILL_HARVEST_SPEC`, `_PROMPT_HARVEST_SPEC`.
   - [ ] GRAPHOS-FLEET-R006.4 (child, consumer of .3): rename `_harvest_probe_results` to `_settled_probe_results` in `graph_os/fleet/multiplexer.py`.
   - [ ] GRAPHOS-FLEET-R006.5 (child, closing audit, consumer of .1-.4): `tests/fleet/test_no_harvest_remains.py` asserts the R006.1 baseline is now zero.
   - [ ] GRAPHOS-FLEET-R007.1 (child, producer, cross-repo: agent-connector-sdk): `agent_connector_sdk/mcp/server.py`'s `create_mcp_server()` registers a native `.prompt()`/`.resource()`/`.resource_template()`.
