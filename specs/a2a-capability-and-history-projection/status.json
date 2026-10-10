@@ -83,16 +83,24 @@
     {
       "id": "GRAPHOS-A2A-R004.1",
       "title": "Landed: the protocol exists, the error does not",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "37c6aed7cae2"
+      ],
+      "verified_by": [
+        "tests/a2a/test_models.py:87"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R004.2",
       "title": "Add the `A2ATransitionHistoryUnavailable` error type",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "37c6aed7cae2"
+      ],
+      "verified_by": [
+        "tests/a2a/test_authority.py:153"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R004.3",

@@ -11,10 +11,87 @@
     "GRAPHOS-HOST-R005",
     "GRAPHOS-HOST-R005.1",
     "GRAPHOS-HOST-R005.2",
+    "GRAPHOS-HOST-R005.2.1",
+    "GRAPHOS-HOST-R005.2.2",
+    "GRAPHOS-HOST-R005.2.3",
+    "GRAPHOS-HOST-R005.2.4",
+    "GRAPHOS-HOST-R005.2.5",
+    "GRAPHOS-HOST-R005.2.6",
+    "GRAPHOS-HOST-R005.2.7",
+    "GRAPHOS-HOST-R005.2.8",
     "GRAPHOS-HOST-R006",
     "GRAPHOS-HOST-R007",
     "GRAPHOS-HOST-R007.1",
     "GRAPHOS-HOST-R007.2",
+    "GRAPHOS-HOST-R007.2.1",
+    "GRAPHOS-HOST-R007.2.2",
+    "GRAPHOS-HOST-R007.2.3",
+    "GRAPHOS-HOST-R007.2.4",
+    "GRAPHOS-HOST-R007.2.5",
+    "GRAPHOS-HOST-R007.2.6",
+    "GRAPHOS-HOST-R007.2.7",
+    "GRAPHOS-HOST-R007.2.8",
+    "GRAPHOS-HOST-R007.2.9",
+    "GRAPHOS-HOST-R007.2.10",
+    "GRAPHOS-HOST-R007.2.11",
+    "GRAPHOS-HOST-R007.2.12",
+    "GRAPHOS-HOST-R007.2.13",
+    "GRAPHOS-HOST-R007.2.14",
+    "GRAPHOS-HOST-R007.2.15",
+    "GRAPHOS-HOST-R007.2.16",
+    "GRAPHOS-HOST-R007.2.17",
+    "GRAPHOS-HOST-R007.2.18",
+    "GRAPHOS-HOST-R007.2.19",
+    "GRAPHOS-HOST-R007.2.20",
+    "GRAPHOS-HOST-R007.2.21",
+    "GRAPHOS-HOST-R007.2.22",
+    "GRAPHOS-HOST-R007.2.23",
+    "GRAPHOS-HOST-R007.2.24",
+    "GRAPHOS-HOST-R007.2.25",
+    "GRAPHOS-HOST-R007.2.26",
+    "GRAPHOS-HOST-R007.2.27",
+    "GRAPHOS-HOST-R007.2.28",
+    "GRAPHOS-HOST-R007.2.29",
+    "GRAPHOS-HOST-R007.2.30",
+    "GRAPHOS-HOST-R007.2.31",
+    "GRAPHOS-HOST-R007.2.32",
+    "GRAPHOS-HOST-R007.2.33",
+    "GRAPHOS-HOST-R007.2.34",
+    "GRAPHOS-HOST-R007.2.35",
+    "GRAPHOS-HOST-R007.2.36",
+    "GRAPHOS-HOST-R007.2.37",
+    "GRAPHOS-HOST-R007.2.38",
+    "GRAPHOS-HOST-R007.2.39",
+    "GRAPHOS-HOST-R007.2.40",
+    "GRAPHOS-HOST-R007.2.41",
+    "GRAPHOS-HOST-R007.2.42",
+    "GRAPHOS-HOST-R007.2.43",
+    "GRAPHOS-HOST-R007.2.44",
+    "GRAPHOS-HOST-R007.2.45",
+    "GRAPHOS-HOST-R007.2.46",
+    "GRAPHOS-HOST-R007.2.47",
+    "GRAPHOS-HOST-R007.2.48",
+    "GRAPHOS-HOST-R007.2.49",
+    "GRAPHOS-HOST-R007.2.50",
+    "GRAPHOS-HOST-R007.2.51",
+    "GRAPHOS-HOST-R007.2.52",
+    "GRAPHOS-HOST-R007.2.53",
+    "GRAPHOS-HOST-R007.2.54",
+    "GRAPHOS-HOST-R007.2.55",
+    "GRAPHOS-HOST-R007.2.56",
+    "GRAPHOS-HOST-R007.2.57",
+    "GRAPHOS-HOST-R007.2.58",
+    "GRAPHOS-HOST-R007.2.59",
+    "GRAPHOS-HOST-R007.2.60",
+    "GRAPHOS-HOST-R007.2.61",
+    "GRAPHOS-HOST-R007.2.62",
+    "GRAPHOS-HOST-R007.2.63",
+    "GRAPHOS-HOST-R007.2.64",
+    "GRAPHOS-HOST-R007.2.65",
+    "GRAPHOS-HOST-R007.2.66",
+    "GRAPHOS-HOST-R007.2.67",
+    "GRAPHOS-HOST-R007.2.68",
+    "GRAPHOS-HOST-R007.2.69",
     "GRAPHOS-HOST-R008",
     "GRAPHOS-HOST-R009",
     "GRAPHOS-HOST-R010",
@@ -32,82 +109,7 @@
     "GRAPHOS-HOST-R022",
     "GRAPHOS-HOST-R023",
     "GRAPHOS-HOST-R024",
-    "GRAPHOS-HOST-R025",
-    "GRAPHOS-HOST-R005.2.1",
-    "GRAPHOS-HOST-R005.2.2",
-    "GRAPHOS-HOST-R005.2.3",
-    "GRAPHOS-HOST-R005.2.4",
-    "GRAPHOS-HOST-R005.2.5",
-    "GRAPHOS-HOST-R005.2.6",
-    "GRAPHOS-HOST-R005.2.7",
-    "GRAPHOS-HOST-R005.2.8",
-    "GRAPHOS-HOST-R007.3",
-    "GRAPHOS-HOST-R007.4",
-    "GRAPHOS-HOST-R007.5",
-    "GRAPHOS-HOST-R007.6",
-    "GRAPHOS-HOST-R007.7",
-    "GRAPHOS-HOST-R007.8",
-    "GRAPHOS-HOST-R007.9",
-    "GRAPHOS-HOST-R007.10",
-    "GRAPHOS-HOST-R007.11",
-    "GRAPHOS-HOST-R007.12",
-    "GRAPHOS-HOST-R007.13",
-    "GRAPHOS-HOST-R007.14",
-    "GRAPHOS-HOST-R007.15",
-    "GRAPHOS-HOST-R007.16",
-    "GRAPHOS-HOST-R007.17",
-    "GRAPHOS-HOST-R007.18",
-    "GRAPHOS-HOST-R007.19",
-    "GRAPHOS-HOST-R007.20",
-    "GRAPHOS-HOST-R007.21",
-    "GRAPHOS-HOST-R007.22",
-    "GRAPHOS-HOST-R007.23",
-    "GRAPHOS-HOST-R007.24",
-    "GRAPHOS-HOST-R007.25",
-    "GRAPHOS-HOST-R007.26",
-    "GRAPHOS-HOST-R007.27",
-    "GRAPHOS-HOST-R007.28",
-    "GRAPHOS-HOST-R007.29",
-    "GRAPHOS-HOST-R007.30",
-    "GRAPHOS-HOST-R007.31",
-    "GRAPHOS-HOST-R007.32",
-    "GRAPHOS-HOST-R007.33",
-    "GRAPHOS-HOST-R007.34",
-    "GRAPHOS-HOST-R007.35",
-    "GRAPHOS-HOST-R007.36",
-    "GRAPHOS-HOST-R007.37",
-    "GRAPHOS-HOST-R007.38",
-    "GRAPHOS-HOST-R007.39",
-    "GRAPHOS-HOST-R007.40",
-    "GRAPHOS-HOST-R007.41",
-    "GRAPHOS-HOST-R007.42",
-    "GRAPHOS-HOST-R007.43",
-    "GRAPHOS-HOST-R007.44",
-    "GRAPHOS-HOST-R007.45",
-    "GRAPHOS-HOST-R007.46",
-    "GRAPHOS-HOST-R007.47",
-    "GRAPHOS-HOST-R007.48",
-    "GRAPHOS-HOST-R007.49",
-    "GRAPHOS-HOST-R007.50",
-    "GRAPHOS-HOST-R007.51",
-    "GRAPHOS-HOST-R007.52",
-    "GRAPHOS-HOST-R007.53",
-    "GRAPHOS-HOST-R007.54",
-    "GRAPHOS-HOST-R007.55",
-    "GRAPHOS-HOST-R007.56",
-    "GRAPHOS-HOST-R007.57",
-    "GRAPHOS-HOST-R007.58",
-    "GRAPHOS-HOST-R007.59",
-    "GRAPHOS-HOST-R007.60",
-    "GRAPHOS-HOST-R007.61",
-    "GRAPHOS-HOST-R007.62",
-    "GRAPHOS-HOST-R007.63",
-    "GRAPHOS-HOST-R007.64",
-    "GRAPHOS-HOST-R007.65",
-    "GRAPHOS-HOST-R007.66",
-    "GRAPHOS-HOST-R007.67",
-    "GRAPHOS-HOST-R007.68",
-    "GRAPHOS-HOST-R007.69"
+    "GRAPHOS-HOST-R025"
   ],
   "requirements": [
     {
@@ -148,22 +150,100 @@
     {
       "id": "GRAPHOS-HOST-R005",
       "title": "graph_os.mcp_server.runtime serves retired MCP actions",
-      "delivery_state": "LANDED",
+      "delivery_state": "SPECIFIED",
       "landed_in": [
         "4ca77fbff9e3"
       ],
-      "verified_by": []
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R005.1",
+        "GRAPHOS-HOST-R005.2"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R005.1",
       "title": "Landed: the typed approved-mapping model",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "c7eda638d959"
+      ],
+      "verified_by": [
+        "tests/mcp_server/test_legacy_action_mapping.py:17",
+        "tests/mcp_server/test_legacy_action_mapping.py:28",
+        "tests/mcp_server/test_legacy_action_mapping.py:35"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2",
+      "title": "Parity test proves no served action is dropped",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "c7eda638d959"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R005.2.1",
+        "GRAPHOS-HOST-R005.2.2",
+        "GRAPHOS-HOST-R005.2.3",
+        "GRAPHOS-HOST-R005.2.4",
+        "GRAPHOS-HOST-R005.2.5",
+        "GRAPHOS-HOST-R005.2.6",
+        "GRAPHOS-HOST-R005.2.7",
+        "GRAPHOS-HOST-R005.2.8"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.1",
+      "title": "Approved mapping for the analyze action family",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
-      "id": "GRAPHOS-HOST-R005.2",
-      "title": "Parity test proves no served action is dropped",
+      "id": "GRAPHOS-HOST-R005.2.2",
+      "title": "Approved mapping for the configure action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3",
+      "title": "Approved mapping for the ingest action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.4",
+      "title": "Approved mapping for the query-memory action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.5",
+      "title": "Approved mapping for the orchestrate action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.6",
+      "title": "Approved mapping for the mine-learn action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.7",
+      "title": "Approved mapping for the governance-ops action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.8",
+      "title": "Parity test over the full legacy action surface",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -180,11 +260,15 @@
     {
       "id": "GRAPHOS-HOST-R007",
       "title": "Agent runtime imported only through its public API",
-      "delivery_state": "LANDED",
+      "delivery_state": "SPECIFIED",
       "landed_in": [
         "c467b28d2385"
       ],
-      "verified_by": []
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R007.1",
+        "GRAPHOS-HOST-R007.2"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R007.1",
@@ -195,7 +279,561 @@
     },
     {
       "id": "GRAPHOS-HOST-R007.2",
-      "title": "Add the import-fence test",
+      "title": "Add the import-fence test (rollup of `GRAPHOS-HOST-R007.2.1` to `GRAPHOS-HOST-R007.2.69`)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R007.2.1",
+        "GRAPHOS-HOST-R007.2.2",
+        "GRAPHOS-HOST-R007.2.3",
+        "GRAPHOS-HOST-R007.2.4",
+        "GRAPHOS-HOST-R007.2.5",
+        "GRAPHOS-HOST-R007.2.6",
+        "GRAPHOS-HOST-R007.2.7",
+        "GRAPHOS-HOST-R007.2.8",
+        "GRAPHOS-HOST-R007.2.9",
+        "GRAPHOS-HOST-R007.2.10",
+        "GRAPHOS-HOST-R007.2.11",
+        "GRAPHOS-HOST-R007.2.12",
+        "GRAPHOS-HOST-R007.2.13",
+        "GRAPHOS-HOST-R007.2.14",
+        "GRAPHOS-HOST-R007.2.15",
+        "GRAPHOS-HOST-R007.2.16",
+        "GRAPHOS-HOST-R007.2.17",
+        "GRAPHOS-HOST-R007.2.18",
+        "GRAPHOS-HOST-R007.2.19",
+        "GRAPHOS-HOST-R007.2.20",
+        "GRAPHOS-HOST-R007.2.21",
+        "GRAPHOS-HOST-R007.2.22",
+        "GRAPHOS-HOST-R007.2.23",
+        "GRAPHOS-HOST-R007.2.24",
+        "GRAPHOS-HOST-R007.2.25",
+        "GRAPHOS-HOST-R007.2.26",
+        "GRAPHOS-HOST-R007.2.27",
+        "GRAPHOS-HOST-R007.2.28",
+        "GRAPHOS-HOST-R007.2.29",
+        "GRAPHOS-HOST-R007.2.30",
+        "GRAPHOS-HOST-R007.2.31",
+        "GRAPHOS-HOST-R007.2.32",
+        "GRAPHOS-HOST-R007.2.33",
+        "GRAPHOS-HOST-R007.2.34",
+        "GRAPHOS-HOST-R007.2.35",
+        "GRAPHOS-HOST-R007.2.36",
+        "GRAPHOS-HOST-R007.2.37",
+        "GRAPHOS-HOST-R007.2.38",
+        "GRAPHOS-HOST-R007.2.39",
+        "GRAPHOS-HOST-R007.2.40",
+        "GRAPHOS-HOST-R007.2.41",
+        "GRAPHOS-HOST-R007.2.42",
+        "GRAPHOS-HOST-R007.2.43",
+        "GRAPHOS-HOST-R007.2.44",
+        "GRAPHOS-HOST-R007.2.45",
+        "GRAPHOS-HOST-R007.2.46",
+        "GRAPHOS-HOST-R007.2.47",
+        "GRAPHOS-HOST-R007.2.48",
+        "GRAPHOS-HOST-R007.2.49",
+        "GRAPHOS-HOST-R007.2.50",
+        "GRAPHOS-HOST-R007.2.51",
+        "GRAPHOS-HOST-R007.2.52",
+        "GRAPHOS-HOST-R007.2.53",
+        "GRAPHOS-HOST-R007.2.54",
+        "GRAPHOS-HOST-R007.2.55",
+        "GRAPHOS-HOST-R007.2.56",
+        "GRAPHOS-HOST-R007.2.57",
+        "GRAPHOS-HOST-R007.2.58",
+        "GRAPHOS-HOST-R007.2.59",
+        "GRAPHOS-HOST-R007.2.60",
+        "GRAPHOS-HOST-R007.2.61",
+        "GRAPHOS-HOST-R007.2.62",
+        "GRAPHOS-HOST-R007.2.63",
+        "GRAPHOS-HOST-R007.2.64",
+        "GRAPHOS-HOST-R007.2.65",
+        "GRAPHOS-HOST-R007.2.66",
+        "GRAPHOS-HOST-R007.2.67",
+        "GRAPHOS-HOST-R007.2.68",
+        "GRAPHOS-HOST-R007.2.69"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.1",
+      "title": "Rewire `graph_os/a2a/authority.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.2",
+      "title": "Rewire `graph_os/a2a/routing.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.3",
+      "title": "Rewire `graph_os/access/service.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.4",
+      "title": "Rewire `graph_os/agent_host/__init__.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.5",
+      "title": "Rewire `graph_os/api/http/auth.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.6",
+      "title": "Rewire `graph_os/api/mcp/serving.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.7",
+      "title": "Rewire `graph_os/api/ops/access.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.8",
+      "title": "Rewire `graph_os/api/policy/pdp_remote.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.9",
+      "title": "Rewire `graph_os/browser_control/browser_control_binding.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.10",
+      "title": "Rewire `graph_os/browser_control/browser_control_dispatch.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.11",
+      "title": "Rewire `graph_os/browser_control/browser_control_durability.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.12",
+      "title": "Rewire `graph_os/browser_control/browser_control_outcome.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.13",
+      "title": "Rewire `graph_os/browser_control/browser_control_policy.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.14",
+      "title": "Rewire `graph_os/browser_control/browser_control_provenance.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.15",
+      "title": "Rewire `graph_os/browser_control/browser_control_service.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.16",
+      "title": "Rewire `graph_os/browser_control/browser_control_state.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.17",
+      "title": "Rewire `graph_os/browser_control/trace_bundle.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.18",
+      "title": "Rewire `graph_os/deployment/cli.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.19",
+      "title": "Rewire `graph_os/deployment/config_generator.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.20",
+      "title": "Rewire `graph_os/deployment/doctor_certification.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.21",
+      "title": "Rewire `graph_os/deployment/doctor_coverage.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.22",
+      "title": "Rewire `graph_os/deployment/doctor_lakehouse.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.23",
+      "title": "Rewire `graph_os/deployment/doctor_observability.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.24",
+      "title": "Rewire `graph_os/deployment/doctor.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.25",
+      "title": "Rewire `graph_os/deployment/genesis_environments.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.26",
+      "title": "Rewire `graph_os/deployment/preflight.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.27",
+      "title": "Rewire `graph_os/deployment/production_ops.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.28",
+      "title": "Rewire `graph_os/deployment/release_canary.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.29",
+      "title": "Rewire `graph_os/deployment/release_candidate.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.30",
+      "title": "Rewire `graph_os/deployment/self_deploy.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.31",
+      "title": "Rewire `graph_os/fleet/access_contracts.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.32",
+      "title": "Rewire `graph_os/fleet/child_resilience.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.33",
+      "title": "Rewire `graph_os/fleet/gateway_ops.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.34",
+      "title": "Rewire `graph_os/fleet/local_skill_catalog.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.35",
+      "title": "Rewire `graph_os/fleet/multiplexer.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.36",
+      "title": "Rewire `graph_os/fleet/onboarding.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.37",
+      "title": "Rewire `graph_os/gateway/aggregator.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.38",
+      "title": "Rewire `graph_os/gateway/config.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.39",
+      "title": "Rewire `graph_os/gateway/daemon.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.40",
+      "title": "Rewire `graph_os/gateway/dashboard_api.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.41",
+      "title": "Rewire `graph_os/gateway/fleet_events.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.42",
+      "title": "Rewire `graph_os/gateway/fleet.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.43",
+      "title": "Rewire `graph_os/gateway/graph_api.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.44",
+      "title": "Rewire `graph_os/gateway/rate_limit.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.45",
+      "title": "Rewire `graph_os/gateway/remote_oauth_api.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.46",
+      "title": "Rewire `graph_os/gateway/schemas/graph_core.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.47",
+      "title": "Rewire `graph_os/gateway/usage_api.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.48",
+      "title": "Rewire `graph_os/gateway/widgets/base.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.49",
+      "title": "Rewire `graph_os/gateway/widgets/ollama.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.50",
+      "title": "Rewire `graph_os/gateway/widgets/vector_db.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.51",
+      "title": "Rewire `graph_os/mcp_server/bootstrap.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.52",
+      "title": "Rewire `graph_os/mcp_server/composition.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.53",
+      "title": "Rewire `graph_os/mcp_server/decide_wiring.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.54",
+      "title": "Rewire `graph_os/mcp_server/runtime.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.55",
+      "title": "Rewire `graph_os/mcp_server/server.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.56",
+      "title": "Rewire `graph_os/messaging/alert_intake.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.57",
+      "title": "Rewire `graph_os/messaging/backends/mattermost.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.58",
+      "title": "Rewire `graph_os/messaging/backends/telegram.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.59",
+      "title": "Rewire `graph_os/messaging/governed_send.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.60",
+      "title": "Rewire `graph_os/messaging/lease.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.61",
+      "title": "Rewire `graph_os/messaging/polling.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.62",
+      "title": "Rewire `graph_os/messaging/reach.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.63",
+      "title": "Rewire `graph_os/messaging/registry.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.64",
+      "title": "Rewire `graph_os/messaging/router.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.65",
+      "title": "Rewire `graph_os/messaging/service.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.66",
+      "title": "Rewire `graph_os/observability/gateway_health.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.67",
+      "title": "Rewire `graph_os/semantic_content.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.68",
+      "title": "Rewire `graph_os/webui_host/webui_co_service.py` off agent-runtime internals",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R007.2.69",
+      "title": "Add the `agent_utilities.api`-only import-fence test",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -379,531 +1017,6 @@
       "landed_in": [
         "c39349d16c53"
       ],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R005.2.1",
-      "title": "Approved mapping for the analyze action family",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R005.2.2",
-      "title": "Approved mapping for the configure action family",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R005.2.3",
-      "title": "Approved mapping for the ingest action family",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R005.2.4",
-      "title": "Approved mapping for the query-memory action family",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R005.2.5",
-      "title": "Approved mapping for the orchestrate action family",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R005.2.6",
-      "title": "Approved mapping for the mine-learn action family",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R005.2.7",
-      "title": "Approved mapping for the governance-ops action family",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R005.2.8",
-      "title": "Parity test over the full legacy action surface",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.3",
-      "title": "Rewire `graph_os/access/service.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.4",
-      "title": "Rewire `graph_os/agent_host/__init__.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.5",
-      "title": "Rewire `graph_os/api/http/auth.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.6",
-      "title": "Rewire `graph_os/api/mcp/serving.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.7",
-      "title": "Rewire `graph_os/api/ops/access.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.8",
-      "title": "Rewire `graph_os/api/policy/pdp_remote.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.9",
-      "title": "Rewire `graph_os/browser_control/browser_control_binding.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.10",
-      "title": "Rewire `graph_os/browser_control/browser_control_dispatch.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.11",
-      "title": "Rewire `graph_os/browser_control/browser_control_durability.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.12",
-      "title": "Rewire `graph_os/browser_control/browser_control_outcome.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.13",
-      "title": "Rewire `graph_os/browser_control/browser_control_policy.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.14",
-      "title": "Rewire `graph_os/browser_control/browser_control_provenance.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.15",
-      "title": "Rewire `graph_os/browser_control/browser_control_service.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.16",
-      "title": "Rewire `graph_os/browser_control/browser_control_state.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.17",
-      "title": "Rewire `graph_os/browser_control/trace_bundle.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.18",
-      "title": "Rewire `graph_os/deployment/cli.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.19",
-      "title": "Rewire `graph_os/deployment/config_generator.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.20",
-      "title": "Rewire `graph_os/deployment/doctor_certification.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.21",
-      "title": "Rewire `graph_os/deployment/doctor_coverage.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.22",
-      "title": "Rewire `graph_os/deployment/doctor_lakehouse.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.23",
-      "title": "Rewire `graph_os/deployment/doctor_observability.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.24",
-      "title": "Rewire `graph_os/deployment/doctor.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.25",
-      "title": "Rewire `graph_os/deployment/genesis_environments.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.26",
-      "title": "Rewire `graph_os/deployment/preflight.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.27",
-      "title": "Rewire `graph_os/deployment/production_ops.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.28",
-      "title": "Rewire `graph_os/deployment/release_canary.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.29",
-      "title": "Rewire `graph_os/deployment/release_candidate.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.30",
-      "title": "Rewire `graph_os/deployment/self_deploy.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.31",
-      "title": "Rewire `graph_os/fleet/access_contracts.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.32",
-      "title": "Rewire `graph_os/fleet/child_resilience.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.33",
-      "title": "Rewire `graph_os/fleet/gateway_ops.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.34",
-      "title": "Rewire `graph_os/fleet/local_skill_catalog.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.35",
-      "title": "Rewire `graph_os/fleet/multiplexer.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.36",
-      "title": "Rewire `graph_os/fleet/onboarding.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.37",
-      "title": "Rewire `graph_os/gateway/aggregator.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.38",
-      "title": "Rewire `graph_os/gateway/config.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.39",
-      "title": "Rewire `graph_os/gateway/daemon.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.40",
-      "title": "Rewire `graph_os/gateway/dashboard_api.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.41",
-      "title": "Rewire `graph_os/gateway/fleet_events.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.42",
-      "title": "Rewire `graph_os/gateway/fleet.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.43",
-      "title": "Rewire `graph_os/gateway/graph_api.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.44",
-      "title": "Rewire `graph_os/gateway/rate_limit.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.45",
-      "title": "Rewire `graph_os/gateway/remote_oauth_api.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.46",
-      "title": "Rewire `graph_os/gateway/schemas/graph_core.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.47",
-      "title": "Rewire `graph_os/gateway/usage_api.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.48",
-      "title": "Rewire `graph_os/gateway/widgets/base.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.49",
-      "title": "Rewire `graph_os/gateway/widgets/ollama.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.50",
-      "title": "Rewire `graph_os/gateway/widgets/vector_db.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.51",
-      "title": "Rewire `graph_os/mcp_server/bootstrap.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.52",
-      "title": "Rewire `graph_os/mcp_server/composition.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.53",
-      "title": "Rewire `graph_os/mcp_server/decide_wiring.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.54",
-      "title": "Rewire `graph_os/mcp_server/runtime.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.55",
-      "title": "Rewire `graph_os/mcp_server/server.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.56",
-      "title": "Rewire `graph_os/messaging/alert_intake.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.57",
-      "title": "Rewire `graph_os/messaging/backends/mattermost.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.58",
-      "title": "Rewire `graph_os/messaging/backends/telegram.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.59",
-      "title": "Rewire `graph_os/messaging/governed_send.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.60",
-      "title": "Rewire `graph_os/messaging/lease.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.61",
-      "title": "Rewire `graph_os/messaging/polling.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.62",
-      "title": "Rewire `graph_os/messaging/reach.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.63",
-      "title": "Rewire `graph_os/messaging/registry.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.64",
-      "title": "Rewire `graph_os/messaging/router.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.65",
-      "title": "Rewire `graph_os/messaging/service.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.66",
-      "title": "Rewire `graph_os/observability/gateway_health.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.67",
-      "title": "Rewire `graph_os/semantic_content.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.68",
-      "title": "Rewire `graph_os/webui_host/webui_co_service.py` off agent-runtime internals",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-HOST-R007.69",
-      "title": "Add the `agent_utilities.api`-only import-fence test",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
       "verified_by": []
     }
   ]

@@ -3,7 +3,7 @@
 Status vocabulary is defined in [spec.md](spec.md). Check a task only after its listed proof exists; source presence alone is not a check mark.
 
 - [x] Extract and publish the GraphOS serving, gateway, fleet, A2A and deployment package boundary. Evidence: package modules under `graph_os/`, public `graph-os` console script in `pyproject.toml`. **State: Implemented; release/served acceptance for this whole spec still pending.**
-- [ ] `GRAPHOS-HOST-R007`: rollup; deliver `GRAPHOS-HOST-R007.1` to `GRAPHOS-HOST-R007.69` (one rewiring per violating module, 68 modules at split time) and then the fence test `GRAPHOS-HOST-R007.69`.
+- [ ] `GRAPHOS-HOST-R007.2`: rollup; deliver `GRAPHOS-HOST-R007.2.1` to `GRAPHOS-HOST-R007.2.68` (one rewiring per violating module, 68 modules at split time) and then the fence test `GRAPHOS-HOST-R007.2.69`.
 - [ ] Inventory all dependency-internal imports and duplicate host scripts; attach a machine-readable owner/port map and the initial forbidden-import count.
 - [ ] Add missing public engine, SDK and AU ports in their owner packages and release/install them.
 - [ ] Replace private imports throughout GraphOS with public ports and enforce a zero-import architecture test.
