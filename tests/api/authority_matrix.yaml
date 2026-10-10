@@ -1,0 +1,228 @@
+# GRAPHOS-OPS-R027 / GRAPHOS-FLEET-R017: the authority-parity oracle fixture.
+#
+# Each row is one (principal rule, operation surfaces, serving surface,
+# caller) combination and the single correct allow/deny outcome. A probe
+# operation is served on `op_surfaces`, requires `op_scopes`, and restricts
+# callers per `principal_rule`. `test_authority_parity.py` asserts the
+# registry's real authorization chokepoint (surface membership +
+# `graph_os.api.registry.authorized`) reaches exactly `expected` for every
+# row, so authorization cannot silently diverge for one principal kind,
+# operation or surface while looking correct for another.
+#
+# `specs` lists the spec IDs this row binds to (a case can serve more than
+# one spec when both lineages independently covered the same combination).
+- name: any-human-on-mcp-with-scope-allows
+  specs: [GRAPHOS-FLEET-R017, GRAPHOS-OPS-R027]
+  principal_rule: any
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp, http]
+  caller_kind: human
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: true
+
+- name: any-rule-allows-delegated-human
+  specs: [GRAPHOS-OPS-R027]
+  principal_rule: any
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp, http, a2a]
+  caller_kind: human
+  caller_delegated: true
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: true
+
+- name: any-rule-allows-service-caller
+  specs: [GRAPHOS-OPS-R027]
+  principal_rule: any
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp, http, a2a]
+  caller_kind: service
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: true
+
+- name: any-agent-kind-is-not-a-recognized-principal
+  specs: [GRAPHOS-FLEET-R017, GRAPHOS-OPS-R027]
+  principal_rule: any
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp, http]
+  caller_kind: agent
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: false
+
+- name: human-rule-allows-human-caller
+  specs: [GRAPHOS-OPS-R027]
+  principal_rule: human
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp, http, a2a]
+  caller_kind: human
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: true
+
+- name: human-rule-allows-delegated-human
+  specs: [GRAPHOS-OPS-R027]
+  principal_rule: human
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp, http, a2a]
+  caller_kind: human
+  caller_delegated: true
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: true
+
+- name: human-rule-denies-service-caller
+  specs: [GRAPHOS-FLEET-R017, GRAPHOS-OPS-R027]
+  principal_rule: human
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp]
+  caller_kind: service
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: false
+
+- name: human-undelegated-rule-allows-undelegated-human
+  specs: [GRAPHOS-OPS-R027]
+  principal_rule: human_undelegated
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp, http, a2a]
+  caller_kind: human
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: true
+
+- name: human-undelegated-rule-denies-delegated-human
+  specs: [GRAPHOS-FLEET-R017, GRAPHOS-OPS-R027]
+  principal_rule: human_undelegated
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp]
+  caller_kind: human
+  caller_delegated: true
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: false
+
+- name: human-undelegated-rule-denies-service-caller
+  specs: [GRAPHOS-OPS-R027]
+  principal_rule: human_undelegated
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp, http, a2a]
+  caller_kind: service
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: false
+
+- name: service-only-rule-denies-human-caller
+  specs: [GRAPHOS-FLEET-R017, GRAPHOS-OPS-R027]
+  principal_rule: service_only
+  op_scopes: [ops:probe]
+  op_surfaces: [http]
+  caller_kind: human
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: http
+  policy: allow
+  expected: false
+
+- name: service-only-rule-allows-qualifying-service
+  specs: [GRAPHOS-FLEET-R017, GRAPHOS-OPS-R027]
+  principal_rule: service_only
+  op_scopes: [ops:probe]
+  op_surfaces: [http]
+  caller_kind: service
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: http
+  policy: allow
+  expected: true
+
+- name: missing-scope-denies-regardless-of-principal
+  specs: [GRAPHOS-FLEET-R017, GRAPHOS-OPS-R027]
+  principal_rule: any
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp]
+  caller_kind: human
+  caller_delegated: false
+  caller_scopes: []
+  caller_surface: mcp
+  policy: allow
+  expected: false
+
+- name: service-only-rule-denies-service-caller-missing-scope
+  specs: [GRAPHOS-OPS-R027]
+  principal_rule: service_only
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp, http, a2a]
+  caller_kind: service
+  caller_delegated: false
+  caller_scopes: []
+  caller_surface: mcp
+  policy: allow
+  expected: false
+
+- name: policy-deny-overrides-an-otherwise-qualifying-caller
+  specs: [GRAPHOS-FLEET-R017, GRAPHOS-OPS-R027]
+  principal_rule: any
+  op_scopes: [ops:probe]
+  op_surfaces: [mcp]
+  caller_kind: human
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: deny
+  expected: false
+
+- name: human-rule-policy-deny-with-no-scopes-required
+  specs: [GRAPHOS-OPS-R027]
+  principal_rule: human
+  op_scopes: []
+  op_surfaces: [mcp, http, a2a]
+  caller_kind: human
+  caller_delegated: false
+  caller_scopes: []
+  caller_surface: mcp
+  policy: deny
+  expected: false
+
+- name: surface-not-served-denies-an-otherwise-qualifying-caller
+  specs: [GRAPHOS-FLEET-R017]
+  principal_rule: any
+  op_scopes: [ops:probe]
+  op_surfaces: [http]
+  caller_kind: human
+  caller_delegated: false
+  caller_scopes: [ops:probe]
+  caller_surface: mcp
+  policy: allow
+  expected: false
+
+- name: a2a-surface-served-and-authorized-allows
+  specs: [GRAPHOS-FLEET-R017]
+  principal_rule: any
+  op_scopes: []
+  op_surfaces: [a2a]
+  caller_kind: service
+  caller_delegated: false
+  caller_scopes: []
+  caller_surface: a2a
+  policy: allow
+  expected: true

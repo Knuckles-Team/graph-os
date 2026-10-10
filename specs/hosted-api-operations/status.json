@@ -57,7 +57,19 @@
     "GRAPHOS-OPS-R035",
     "GRAPHOS-OPS-R036",
     "GRAPHOS-OPS-R037",
-    "GRAPHOS-OPS-R038"
+    "GRAPHOS-OPS-R038",
+    "GRAPHOS-OPS-R017.1",
+    "GRAPHOS-OPS-R017.2",
+    "GRAPHOS-OPS-R018.1",
+    "GRAPHOS-OPS-R018.2",
+    "GRAPHOS-OPS-R019.1",
+    "GRAPHOS-OPS-R019.2",
+    "GRAPHOS-OPS-R020.3.1",
+    "GRAPHOS-OPS-R031.1",
+    "GRAPHOS-OPS-R032.1",
+    "GRAPHOS-OPS-R032.2",
+    "GRAPHOS-OPS-R035.1",
+    "GRAPHOS-OPS-R035.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -417,7 +429,7 @@
     {
       "id": "GRAPHOS-OPS-R020.3",
       "title": "Pack and job management operations",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "merged_head",
@@ -837,6 +849,78 @@
           "description": "GRAPHOS-OPS-R038 merged to the default branch in this commit."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R017.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R017 (slice .1): Finance and markets operations with tenant isolation",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R017.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R017 (slice .2): Finance and markets operations with tenant isolation",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R018.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R018 (slice .1): Query, search, ontology, and analytics operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R018.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R018 (slice .2): Query, search, ontology, and analytics operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R019.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R019 (slice .1): Federation source registration and sharing operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R019.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R019 (slice .2): Federation source registration and sharing operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R031.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R031 (slice .1): Published tool-to-operation parity inventory",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R032 (slice .1): Identity dependency inversion via ports",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R032 (slice .2): Identity dependency inversion via ports",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R035.1",
+      "title": "Remaining scope of GRAPHOS-OPS-R035 (slice .1): Multiplexer registration reduced to four resident tools",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R035.2",
+      "title": "Remaining scope of GRAPHOS-OPS-R035 (slice .2): Multiplexer registration reduced to four resident tools",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     }
   ]
 }

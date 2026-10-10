@@ -1,19 +1,31 @@
-"""GRAPHOS-OPS-R027: authority-parity across every principal kind and op.
+"""GRAPHOS-OPS-R027 / GRAPHOS-FLEET-R017: the authority-parity oracle across
+principal, operation and serving surface.
 
-An authority matrix fixture enumerates every `PrincipalRule` x caller
-(principal kind, delegated) x scope-possession combination and asserts
-`graph_os.api.registry.authorized` produces the one correct allow/deny
-outcome for each -- so a change to the authorization chokepoint cannot
-silently diverge for one principal kind while looking correct for
-another.
+``tests/api/authority_matrix.yaml`` enumerates every (principal rule, op
+surfaces/scopes, caller) combination this fixture covers and the single
+correct allow/deny outcome. This test asserts the registry's real
+authorization chokepoint -- surface membership plus
+``graph_os.api.registry.authorized`` -- reaches exactly that outcome for
+every row, so a change to either check cannot silently diverge for one
+principal kind, operation or surface while looking correct for another.
+
+This module consolidates two independently-authored matrices (one inline
+synthetic probe of the ``authorized()`` chokepoint alone from
+``GRAPHOS-OPS-R027``, one additionally asserting serving-surface membership
+from a checked-in YAML fixture from ``GRAPHOS-FLEET-R017``) into a single
+fixture and test function. Every case from both lineages is kept; cases
+that were semantically identical across the two are deduped to one row
+carrying both specs' ``@pytest.mark.spec`` bindings.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from pydantic import BaseModel
 
 from graph_os.api.registry import (
@@ -22,9 +34,12 @@ from graph_os.api.registry import (
     Effect,
     OpSpec,
     PrincipalRule,
+    Surface,
     Verb,
     authorized,
 )
+
+MATRIX_PATH = Path(__file__).resolve().parent / "authority_matrix.yaml"
 
 
 class _Input(BaseModel):
@@ -42,22 +57,6 @@ class _FakeCaller:
     delegated: bool = False
 
 
-def _op(principals: PrincipalRule, scopes: frozenset[str] = frozenset()) -> OpSpec:
-    return OpSpec(
-        id="authority.matrix.probe",
-        verb=Verb.ACT,
-        summary="Authority matrix probe operation",
-        examples=("Probe the authority chokepoint",),
-        params=_Input,
-        result=_Output,
-        binding=Composite(handler="graph_os.identity.admin_service.probe"),
-        principals=principals,
-        scopes=scopes,
-        effect=Effect.WRITE,
-        audit=AuditClass.EVENT,
-    )
-
-
 def _allow(_op: OpSpec, _caller: Any) -> bool:
     return True
 
@@ -66,103 +65,59 @@ def _deny(_op: OpSpec, _caller: Any) -> bool:
     return False
 
 
-# (op principal rule, op scopes, caller kind, caller delegated, caller scopes,
-#  policy decision, expected) -- the authority matrix fixture.
-_REQUIRED = frozenset({"ops:probe"})
-_MATRIX: tuple[tuple[Any, ...], ...] = (
-    # ANY: any principal kind qualifies once scoped and policy-allowed.
-    (PrincipalRule.ANY, _REQUIRED, "human", False, _REQUIRED, _allow, True),
-    (PrincipalRule.ANY, _REQUIRED, "human", True, _REQUIRED, _allow, True),
-    (PrincipalRule.ANY, _REQUIRED, "service", False, _REQUIRED, _allow, True),
-    (PrincipalRule.ANY, _REQUIRED, "agent", False, _REQUIRED, _allow, False),
-    # HUMAN: service principals are denied outright, regardless of scope.
-    (PrincipalRule.HUMAN, _REQUIRED, "human", False, _REQUIRED, _allow, True),
-    (PrincipalRule.HUMAN, _REQUIRED, "human", True, _REQUIRED, _allow, True),
-    (PrincipalRule.HUMAN, _REQUIRED, "service", False, _REQUIRED, _allow, False),
-    # HUMAN_UNDELEGATED: a delegated human caller is denied even with scope.
-    (
-        PrincipalRule.HUMAN_UNDELEGATED,
-        _REQUIRED,
-        "human",
-        False,
-        _REQUIRED,
-        _allow,
-        True,
-    ),
-    (
-        PrincipalRule.HUMAN_UNDELEGATED,
-        _REQUIRED,
-        "human",
-        True,
-        _REQUIRED,
-        _allow,
-        False,
-    ),
-    (
-        PrincipalRule.HUMAN_UNDELEGATED,
-        _REQUIRED,
-        "service",
-        False,
-        _REQUIRED,
-        _allow,
-        False,
-    ),
-    # SERVICE_ONLY: a human caller is denied even with scope.
-    (PrincipalRule.SERVICE_ONLY, _REQUIRED, "service", False, _REQUIRED, _allow, True),
-    (PrincipalRule.SERVICE_ONLY, _REQUIRED, "human", False, _REQUIRED, _allow, False),
-    # Missing scope denies regardless of principal kind.
-    (PrincipalRule.ANY, _REQUIRED, "human", False, frozenset(), _allow, False),
-    (
-        PrincipalRule.SERVICE_ONLY,
-        _REQUIRED,
-        "service",
-        False,
-        frozenset(),
-        _allow,
-        False,
-    ),
-    # A denying policy always loses, even with full scope and principal match.
-    (PrincipalRule.ANY, _REQUIRED, "human", False, _REQUIRED, _deny, False),
-    (PrincipalRule.HUMAN, frozenset(), "human", False, frozenset(), _deny, False),
-)
+_POLICIES = {"allow": _allow, "deny": _deny}
 
 
-@pytest.mark.spec("GRAPHOS-OPS-R027")
-@pytest.mark.parametrize(
-    (
-        "principals",
-        "op_scopes",
-        "caller_kind",
-        "delegated",
-        "caller_scopes",
-        "policy",
-        "expected",
-    ),
-    _MATRIX,
-)
-def test_authority_matrix_parity(
-    principals: PrincipalRule,
-    op_scopes: frozenset[str],
-    caller_kind: str,
-    delegated: bool,
-    caller_scopes: frozenset[str],
-    policy: Any,
-    expected: bool,
-) -> None:
-    op = _op(principals, op_scopes)
-    caller = _FakeCaller(
-        effective_scopes=caller_scopes, principal_kind=caller_kind, delegated=delegated
+def _load_matrix() -> list[dict[str, Any]]:
+    return yaml.safe_load(MATRIX_PATH.read_text(encoding="utf-8"))
+
+
+def _case_id(case: dict[str, Any]) -> str:
+    return case["name"]
+
+
+def _case_param(case: dict[str, Any]) -> Any:
+    marks = [pytest.mark.spec(spec_id) for spec_id in case.get("specs", ())]
+    return pytest.param(case, id=_case_id(case), marks=marks)
+
+
+@pytest.mark.parametrize("case", [_case_param(case) for case in _load_matrix()])
+def test_authority_matrix_row_matches_expected_outcome(case: dict[str, Any]) -> None:
+    op = OpSpec(
+        id=f"authority.matrix.{case['name'].replace('-', '_')}",
+        verb=Verb.ACT,
+        summary="Authority matrix probe operation",
+        examples=("Probe the authority chokepoint",),
+        params=_Input,
+        result=_Output,
+        binding=Composite(handler="graph_os.identity.admin_service.probe"),
+        principals=PrincipalRule(case["principal_rule"]),
+        scopes=frozenset(case["op_scopes"]),
+        surfaces=frozenset(Surface(s) for s in case["op_surfaces"]),
+        effect=Effect.WRITE,
+        audit=AuditClass.EVENT,
     )
-    assert authorized(op, caller, policy=policy) is expected
+    caller = _FakeCaller(
+        effective_scopes=frozenset(case["caller_scopes"]),
+        principal_kind=case["caller_kind"],
+        delegated=case["caller_delegated"],
+    )
+    surface = Surface(case["caller_surface"])
+    policy = _POLICIES[case["policy"]]
+
+    served = surface in op.surfaces
+    actual = served and authorized(op, caller, policy=policy)
+
+    assert actual is case["expected"], case["name"]
 
 
 @pytest.mark.spec("GRAPHOS-OPS-R027")
 def test_authority_matrix_fixture_covers_every_principal_rule() -> None:
-    covered = {row[0] for row in _MATRIX}
-    assert covered == set(PrincipalRule)
+    covered = {case["principal_rule"] for case in _load_matrix()}
+    assert covered == {rule.value for rule in PrincipalRule}
 
 
 @pytest.mark.spec("GRAPHOS-OPS-R027")
 def test_authority_matrix_fixture_covers_every_caller_kind() -> None:
-    covered = {row[2] for row in _MATRIX}
+    covered = {case["caller_kind"] for case in _load_matrix()}
     assert {"human", "service"} <= covered

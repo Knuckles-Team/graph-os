@@ -32,7 +32,11 @@
     "GRAPHOS-IDENTITY-R021",
     "GRAPHOS-IDENTITY-R022",
     "GRAPHOS-IDENTITY-R023",
-    "GRAPHOS-IDENTITY-R024"
+    "GRAPHOS-IDENTITY-R024",
+    "GRAPHOS-IDENTITY-R016.1",
+    "GRAPHOS-IDENTITY-R016.2",
+    "GRAPHOS-IDENTITY-R017.1",
+    "GRAPHOS-IDENTITY-R017.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -116,6 +120,34 @@
           "commit": "cd652df8f6c8f27b3d107df326d1b5c991c7d037",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/cd652df8f6c8f27b3d107df326d1b5c991c7d037",
           "description": "GRAPHOS-IDENTITY-R004 merged to the default branch in this commit."
+        },
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "description": "graph_os/identity/bootstrap.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/cd652df8f6c8f27b3d107df326d1b5c991c7d037",
+          "description": "GRAPHOS-IDENTITY-R004.1 merged to the default branch in this commit."
+        },
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "3e061b21057694b35e14c995a1aa1cb134d2a161",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/3e061b21057694b35e14c995a1aa1cb134d2a161",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "4c9d5e1be7accc7dc0db8990c40210b87277fbf8",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/4c9d5e1be7accc7dc0db8990c40210b87277fbf8",
+          "description": "GRAPHOS-IDENTITY-R004.2 merged to the default branch in this commit."
         }
       ]
     },
@@ -554,6 +586,30 @@
     {
       "id": "GRAPHOS-IDENTITY-R024",
       "title": "Committed browser and Keycloak SSO probe",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R016.1",
+      "title": "Remaining scope of GRAPHOS-IDENTITY-R016 (slice .1): Optional SMTP adapter for identity email",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R016.2",
+      "title": "Remaining scope of GRAPHOS-IDENTITY-R016 (slice .2): Optional SMTP adapter for identity email",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R017.1",
+      "title": "Remaining scope of GRAPHOS-IDENTITY-R017 (slice .1): Remove the unauthenticated opt-out once clients migrate",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R017.2",
+      "title": "Remaining scope of GRAPHOS-IDENTITY-R017 (slice .2): Remove the unauthenticated opt-out once clients migrate",
       "delivery_state": "SPECIFIED",
       "evidence": []
     }

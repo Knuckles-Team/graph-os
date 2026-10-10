@@ -23,7 +23,8 @@
     "GRAPHOS-DEPLOY-R007.2",
     "GRAPHOS-DEPLOY-R007.3",
     "GRAPHOS-DEPLOY-R007.4",
-    "GRAPHOS-DEPLOY-R007.5"
+    "GRAPHOS-DEPLOY-R007.5",
+    "GRAPHOS-DEPLOY-R009.1"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -223,6 +224,41 @@
           "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
           "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
           "description": "GRAPHOS-DEPLOY-R007.5 merged to the default branch in this commit."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.1 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.2 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.3 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.4 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.5 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
         }
       ]
     },
@@ -504,6 +540,12 @@
           "description": "GRAPHOS-DEPLOY-R007.5 merged to the default branch in this commit."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R009.1",
+      "title": "Remaining scope of GRAPHOS-DEPLOY-R009 (slice .1): GraphOS owns hosting/deployment configuration settings",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     }
   ]
 }

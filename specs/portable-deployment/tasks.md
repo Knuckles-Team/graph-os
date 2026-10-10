@@ -165,3 +165,8 @@ non-test importer (or, for `agent_utilities.deployment.cli`, a direct test impor
 - [ ] Record the chat index sparse coverage before and after baseline ingestion.
 - [ ] Watch the serving container memory. The engine child counts against the serving container limit. Daemon-driven hydration raises that load.
 - [x] Add the daemon container to the Helm production profile under `deploy/`.
+
+## Decomposition children (tracked)
+
+- [ ] **GRAPHOS-DEPLOY-R009:** GraphOS owns hosting/deployment configuration settings
+- [ ] **GRAPHOS-DEPLOY-R009.1:** Remaining scope of GRAPHOS-DEPLOY-R009 (slice .1): GraphOS owns hosting/deployment configuration settings

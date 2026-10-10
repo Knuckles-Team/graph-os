@@ -21,3 +21,23 @@ The fleet loader uses GraphOS's native multiplexer. Its EG-backed catalog read
 is capability-gated on the generated kind-only `AgentComponent.Search` client
 contract. When that authority is unavailable, catalog refresh fails closed; it
 does not substitute a static reader. See [Capability status](status.md).
+
+## Resident tool surface
+
+The server registers exactly ten resident tools: the six MCP verbs
+`find`, `ask`, `why`, `write`, `act`, `manage`, plus the four fleet
+meta-tools `find_tools`, `load_tools`, `unload_tools`, `multiplexer_status`.
+No other MCP tool is registered; every other capability is reached through
+`act`/`manage` or the generated `/api/v1` HTTP surface mounted alongside the
+explicit protocol-route table (`graph_os.api.http.protocol_routes`).
+
+The four fleet meta-tools map to internal fleet operations as follows — this
+is the published parity inventory for the resident-fleet slice of the
+tool-to-operation parity requirement:
+
+| Fleet meta-tool | Destination operation |
+|---|---|
+| `find_tools` | `fleet.catalog.search` |
+| `load_tools` | `fleet.tools.load` |
+| `unload_tools` | `fleet.tools.unload` |
+| `multiplexer_status` | `fleet.status` |
