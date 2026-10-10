@@ -48,14 +48,19 @@
       "title": "Bounded restart backoff with healthy-run reset",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/messaging/test_supervision.py:152",
+        "tests/messaging/test_supervision.py:186"
+      ]
     },
     {
       "id": "GRAPHOS-MESSAGING-R004",
       "title": "Graceful stop and drain",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/messaging/test_supervision.py:221"
+      ]
     },
     {
       "id": "GRAPHOS-MESSAGING-R005",

@@ -113,6 +113,7 @@ beyond an unrelated audit-chain capacity check. None of these is a safe
 
 - [ ] **GRAPHOS-FLEET-R002.2:** Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)
 - [ ] **GRAPHOS-FLEET-R005.2:** Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)
+- [ ] **GRAPHOS-FLEET-R009.2:** Routing and composition publish only through acquired capacity
 - [ ] **GRAPHOS-FLEET-R008:** RUM, security-audit and CI/CD feeds join the catalog (rollup)
 
 ## Decomposition children (tracked)

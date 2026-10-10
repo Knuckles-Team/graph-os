@@ -117,6 +117,37 @@ def test_messaging_co_service_reaches_graphos_owned_intake(
     assert calls == [(engine, session, ("telegram",))]
 
 
+def test_messaging_intake_requires_gateway_daemon_role(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Single Telegram/messaging owner.
+
+    The main server (``KG_DAEMON_ROLE=client``, the default for every
+    entry point other than ``graph_os.gateway.daemon``) must never start
+    inbound polling — even with ``MESSAGING_INTAKE_ENABLED=true`` and a
+    configured ``TELEGRAM_BOT_TOKEN`` — because a present token alone must
+    not decide pollership (the ``getUpdates`` 409 conflict-loop root
+    cause). Only the gateway daemon process (``KG_DAEMON_ROLE=host``) may
+    own intake.
+
+    Spec: none (fix-forward)
+    """
+    from graph_os.mcp_server import composition
+
+    monkeypatch.setattr(
+        composition, "configured_platforms", lambda engine: ("telegram",)
+    )
+
+    monkeypatch.setenv("KG_DAEMON_ROLE", "client")
+    client_plan = composition.detect_composition(None, messaging_intake_enabled=True)
+    assert client_plan.messaging_configured is True
+    assert client_plan.messaging_intake_configured is False
+
+    monkeypatch.setenv("KG_DAEMON_ROLE", "host")
+    daemon_plan = composition.detect_composition(None, messaging_intake_enabled=True)
+    assert daemon_plan.messaging_intake_configured is True
+
+
 def test_gateway_adapter_satisfies_runtime_protocol() -> None:
     from graph_os.gateway.ports import GatewayApplicationPort
 

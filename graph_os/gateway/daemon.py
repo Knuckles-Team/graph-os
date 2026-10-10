@@ -488,6 +488,25 @@ def main() -> None:
             logger.error("KG host is already running: %s", exc)
             raise SystemExit(2) from None
 
+        # Single Telegram/messaging owner: this standalone host daemon
+        # (KG_DAEMON_ROLE=host) is the ONLY process allowed to start inbound
+        # polling (graph_os.mcp_server.composition.detect_composition gates
+        # on this same role). The main graph-os server never starts a poller
+        # of its own. Best-effort: a messaging composition failure must never
+        # take the host daemon down.
+        try:
+            from agent_utilities.core.config import config
+
+            from graph_os.mcp_server.composition import start_composed_services
+
+            start_composed_services(
+                session,
+                _engine,
+                messaging_intake_enabled=config.messaging_intake_enabled,
+            )
+        except Exception as exc:
+            logger.warning("host daemon: messaging composition skipped: %s", exc)
+
         # D-OG-4: the standalone daemon has no HTTP server of its own — start
         # one, best-effort, purely to expose the metrics this process already
         # records (see start_daemon_metrics_listener's docstring for the

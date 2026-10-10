@@ -26,7 +26,11 @@
     "GRAPHOS-IDENTITY-R014",
     "GRAPHOS-IDENTITY-R015",
     "GRAPHOS-IDENTITY-R016",
+    "GRAPHOS-IDENTITY-R016.1",
+    "GRAPHOS-IDENTITY-R016.2",
     "GRAPHOS-IDENTITY-R017",
+    "GRAPHOS-IDENTITY-R017.1",
+    "GRAPHOS-IDENTITY-R017.2",
     "GRAPHOS-IDENTITY-R018",
     "GRAPHOS-IDENTITY-R019",
     "GRAPHOS-IDENTITY-R020",
@@ -235,11 +239,54 @@
       "title": "Optional SMTP adapter for identity email",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
+      "verified_by": [
+        "tests/identity/test_mail_capability.py:15",
+        "tests/identity/test_mail_capability.py:30",
+        "tests/identity/test_mail_capability.py:45"
+      ],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R016.1",
+        "GRAPHOS-IDENTITY-R016.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R016.1",
+      "title": "Graph-os-side mail capability model",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R016.2",
+      "title": "SMTP/listmonk send integration",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-IDENTITY-R017",
       "title": "Remove the unauthenticated opt-out once clients migrate",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/identity/test_client_entry_points.py:14",
+        "tests/identity/test_client_entry_points.py:21"
+      ],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R017.1",
+        "GRAPHOS-IDENTITY-R017.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R017.1",
+      "title": "Client entry-point token audit registry",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R017.2",
+      "title": "Engine opt-out removal",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []

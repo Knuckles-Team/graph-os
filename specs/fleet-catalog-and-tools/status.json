@@ -60,7 +60,8 @@
     "GRAPHOS-FLEET-R027",
     "GRAPHOS-FLEET-R028",
     "GRAPHOS-FLEET-R030",
-    "GRAPHOS-FLEET-R031"
+    "GRAPHOS-FLEET-R031",
+    "GRAPHOS-FLEET-R032"
   ],
   "requirements": [
     {
@@ -123,6 +124,7 @@
       "title": "Typed write-back preview model and its refusal rule",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "67b1b9ab916e",
         "e80df3dcad62",
         "f2d7ec520ab7"
       ],
@@ -229,8 +231,10 @@
     {
       "id": "GRAPHOS-FLEET-R008.1",
       "title": "Typed feed-event model per feed kind",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
       "verified_by": []
     },
     {
@@ -643,6 +647,15 @@
         "d43ff2da921f"
       ],
       "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R032",
+      "title": "Gateway widget fetches run under a bound service actor",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/gateway/test_aggregator.py:159"
+      ]
     }
   ]
 }
