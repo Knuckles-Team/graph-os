@@ -64,7 +64,9 @@
       "title": "Fail-closed refusal when assembly selects a tool subset",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/a2a/test_authority.py:123"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R002.2",

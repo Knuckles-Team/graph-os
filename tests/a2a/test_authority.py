@@ -126,6 +126,7 @@ async def test_work_item_authority_reuses_one_store_for_lifecycle(
     assert final_cursor is None
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R002.1")
 @pytest.mark.asyncio
 async def test_selected_tool_subset_is_refused_before_durable_admission() -> None:
     authority = WorkItemA2AAuthority(lambda: pytest.fail("engine was accessed"))
