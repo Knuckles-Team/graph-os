@@ -9,14 +9,22 @@
     "GRAPHOS-FLEET-R002.1",
     "GRAPHOS-FLEET-R002.2",
     "GRAPHOS-FLEET-R003",
+    "GRAPHOS-FLEET-R003.1",
+    "GRAPHOS-FLEET-R003.2",
     "GRAPHOS-FLEET-R004",
     "GRAPHOS-FLEET-R005",
     "GRAPHOS-FLEET-R005.1",
     "GRAPHOS-FLEET-R005.2",
     "GRAPHOS-FLEET-R006",
     "GRAPHOS-FLEET-R007",
-    "GRAPHOS-FLEET-R003.1",
-    "GRAPHOS-FLEET-R003.2",
+    "GRAPHOS-FLEET-R008",
+    "GRAPHOS-FLEET-R008.1",
+    "GRAPHOS-FLEET-R008.2",
+    "GRAPHOS-FLEET-R009",
+    "GRAPHOS-FLEET-R009.1",
+    "GRAPHOS-FLEET-R009.2",
+    "GRAPHOS-FLEET-R009.3",
+    "GRAPHOS-FLEET-R010",
     "GRAPHOS-FLEET-R003.3",
     "GRAPHOS-FLEET-R006.1",
     "GRAPHOS-FLEET-R006.2",
@@ -26,9 +34,6 @@
     "GRAPHOS-FLEET-R007.1",
     "GRAPHOS-FLEET-R007.2",
     "GRAPHOS-FLEET-R007.3",
-    "GRAPHOS-FLEET-R008",
-    "GRAPHOS-FLEET-R009",
-    "GRAPHOS-FLEET-R010",
     "GRAPHOS-FLEET-R011",
     "GRAPHOS-FLEET-R012",
     "GRAPHOS-FLEET-R013",
@@ -112,6 +117,20 @@
       ]
     },
     {
+      "id": "GRAPHOS-FLEET-R003.1",
+      "title": "Typed write-back preview model and its refusal rule",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.2",
+      "title": "Write-back registered as a typed, gated registry operation, not a native child tool",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
       "id": "GRAPHOS-FLEET-R004",
       "title": "Pack annotations carry capability, digest, modality, cost, latency",
       "delivery_state": "LANDED",
@@ -178,18 +197,76 @@
       ]
     },
     {
-      "id": "GRAPHOS-FLEET-R003.1",
-      "title": "Typed write-back request/preview/receipt models, the write-back producer",
+      "id": "GRAPHOS-FLEET-R008",
+      "title": "RUM, security-audit and CI/CD feeds join the catalog (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R008.1",
+        "GRAPHOS-FLEET-R008.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R008.1",
+      "title": "Typed feed-event model per feed kind",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
-      "id": "GRAPHOS-FLEET-R003.2",
-      "title": "Write-back registered as a typed, gated registry operation, not a native child tool",
+      "id": "GRAPHOS-FLEET-R008.2",
+      "title": "Live feed ingestion wired into the catalog",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009",
+      "title": "Run admission evaluates, commits and publishes with capacity control",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R009.1",
+        "GRAPHOS-FLEET-R009.2",
+        "GRAPHOS-FLEET-R009.3"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.1",
+      "title": "Capacity acquisition is all-or-nothing with one re-decision",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/control_plane/admission/test_capacity_acquisition.py:13",
+        "tests/control_plane/admission/test_capacity_acquisition.py:23",
+        "tests/control_plane/admission/test_capacity_acquisition.py:35",
+        "tests/control_plane/admission/test_capacity_acquisition.py:47",
+        "tests/control_plane/admission/test_capacity_acquisition.py:60"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.2",
+      "title": "Routing and composition publish only through acquired capacity",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.3",
+      "title": "Run admission publishes with all-or-nothing capacity control",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R010",
+      "title": "RETIRED: superseded by the current registry architecture; graph_os/assembly.py was removed",
+      "delivery_state": "RETIRED",
+      "landed_in": [],
+      "verified_by": [],
+      "retired_reason": "superseded by the current registry architecture; graph_os/assembly.py was removed"
     },
     {
       "id": "GRAPHOS-FLEET-R003.3",
@@ -203,7 +280,10 @@
       "title": "Harvest call-site inventory, the removal baseline",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_harvest_inventory.py:106",
+        "tests/fleet/test_harvest_inventory.py:117"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R006.2",
@@ -250,27 +330,6 @@
     {
       "id": "GRAPHOS-FLEET-R007.3",
       "title": "graph-os's served bridge exercises native prompts, resources and templates end to end",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R008",
-      "title": "RUM, security-audit and CI/CD feeds join the catalog",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R009",
-      "title": "Run admission evaluates, commits and publishes with capacity control",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R010",
-      "title": "Assembly result parsing reads the full agents list",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -331,14 +390,21 @@
       "title": "Automated gates catch API surface and compatibility drift",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_gates_cli.py:106",
+        "tests/api/test_gates_cli.py:57",
+        "tests/api/test_gates_cli.py:69",
+        "tests/api/test_gates_cli.py:91"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R017",
       "title": "Authority-parity oracle validates principal, operation and surface",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_authority_parity.py:78"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R018",
@@ -360,12 +426,13 @@
     },
     {
       "id": "GRAPHOS-FLEET-R020",
-      "title": "Multiplexer meta-tools register as the four resident tools",
-      "delivery_state": "LANDED",
+      "title": "RETIRED: superseded by GRAPHOS-FLEET-R029",
+      "delivery_state": "RETIRED",
       "landed_in": [
         "1a8d280ab981"
       ],
-      "verified_by": []
+      "verified_by": [],
+      "retired_reason": "superseded by GRAPHOS-FLEET-R029"
     },
     {
       "id": "GRAPHOS-FLEET-R021",

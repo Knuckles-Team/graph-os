@@ -21,12 +21,19 @@
     "GRAPHOS-OPS-R015",
     "GRAPHOS-OPS-R016",
     "GRAPHOS-OPS-R017",
+    "GRAPHOS-OPS-R017.1",
+    "GRAPHOS-OPS-R017.2",
     "GRAPHOS-OPS-R018",
+    "GRAPHOS-OPS-R018.1",
+    "GRAPHOS-OPS-R018.2",
     "GRAPHOS-OPS-R019",
+    "GRAPHOS-OPS-R019.1",
+    "GRAPHOS-OPS-R019.2",
     "GRAPHOS-OPS-R020",
     "GRAPHOS-OPS-R020.1",
     "GRAPHOS-OPS-R020.2",
     "GRAPHOS-OPS-R020.3",
+    "GRAPHOS-OPS-R020.3.1",
     "GRAPHOS-OPS-R020.4",
     "GRAPHOS-OPS-R020.5",
     "GRAPHOS-OPS-R021",
@@ -52,10 +59,15 @@
     "GRAPHOS-OPS-R029",
     "GRAPHOS-OPS-R030",
     "GRAPHOS-OPS-R031",
+    "GRAPHOS-OPS-R031.1",
     "GRAPHOS-OPS-R032",
+    "GRAPHOS-OPS-R032.1",
+    "GRAPHOS-OPS-R032.2",
     "GRAPHOS-OPS-R033",
     "GRAPHOS-OPS-R034",
     "GRAPHOS-OPS-R035",
+    "GRAPHOS-OPS-R035.1",
+    "GRAPHOS-OPS-R035.2",
     "GRAPHOS-OPS-R036",
     "GRAPHOS-OPS-R037",
     "GRAPHOS-OPS-R038"
@@ -182,12 +194,17 @@
     {
       "id": "GRAPHOS-OPS-R013",
       "title": "Generated HTTP API for every registry operation",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "1fb96633563e",
         "ea736715b7fb"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_http_projection.py:188",
+        "tests/api/test_http_projection.py:288",
+        "tests/api/test_http_projection.py:326",
+        "tests/api/test_http_projection.py:91"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R014",
@@ -215,11 +232,50 @@
       "title": "Finance and markets operations with tenant isolation",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R017.1",
+        "GRAPHOS-OPS-R017.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R017.1",
+      "title": "Tenant-scoped market reads under finance:read",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/finance/test_markets.py:34",
+        "tests/finance/test_markets.py:68"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R017.2",
+      "title": "Position and paper-trading actions with subject ownership checks",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R018",
       "title": "Query, search, ontology, and analytics operations",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R018.1",
+        "GRAPHOS-OPS-R018.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R018.1",
+      "title": "Sparql, sql_schema, and ontology operations",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R018.2",
+      "title": "Uql, sql, search, indexes, and analytics.series operations",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -229,12 +285,30 @@
       "title": "Federation source registration and sharing operations",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R019.1",
+        "GRAPHOS-OPS-R019.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R019.1",
+      "title": "Federation source register, list, get, and probe",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R019.2",
+      "title": "Federation source share and unshare",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R020",
       "title": "Ingest operations through a typed SDK runner facade",
-      "delivery_state": "LANDED",
+      "delivery_state": "SPECIFIED",
       "landed_in": [
         "e990e195ab42"
       ],
@@ -250,29 +324,48 @@
     {
       "id": "GRAPHOS-OPS-R020.1",
       "title": "Typed ingest runner port and the source-sync entry point",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "822f55d5835d",
         "e990e195ab42"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_ingest_ops.py:80",
+        "tests/api/test_ingest_ops.py:99"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R020.2",
       "title": "Repository indexing and source inventory operations",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "822f55d5835d"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_ingest_ops.py:121",
+        "tests/api/test_ingest_ops.py:137",
+        "tests/api/test_ingest_ops.py:151",
+        "tests/api/test_ingest_ops.py:164",
+        "tests/api/test_ingest_ops.py:174"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R020.3",
       "title": "Pack and job management operations",
-      "delivery_state": "LANDED",
+      "delivery_state": "SPECIFIED",
       "landed_in": [
         "822f55d5835d"
       ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R020.3.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3.1",
+      "title": "Missing `ingest.packs.*` and `ingest.jobs.*` ops",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
@@ -467,25 +560,65 @@
       "title": "Single resident-tool server cutover",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_resident_tool_surface.py:33",
+        "tests/api/test_resident_tool_surface.py:43",
+        "tests/api/test_resident_tool_surface.py:56"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R030",
       "title": "Accurate MCP server and API documentation",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/docs/test_mcp_server_doc_accuracy.py:24",
+        "tests/docs/test_mcp_server_doc_accuracy.py:38"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R031",
       "title": "Published tool-to-operation parity inventory",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R031.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R031.1",
+      "title": "Fleet meta-tool parity mapping — resident fleet slice",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/api/test_fleet_tool_parity_inventory.py:33",
+        "tests/api/test_fleet_tool_parity_inventory.py:42"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R032",
       "title": "Identity dependency inversion via ports",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R032.1",
+        "GRAPHOS-OPS-R032.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.1",
+      "title": "Static identity-ports import boundary",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/architecture/test_identity_ports_boundary.py:51"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2",
+      "title": "Injected composition root for identity ports",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -511,6 +644,27 @@
     {
       "id": "GRAPHOS-OPS-R035",
       "title": "Multiplexer registration reduced to four resident tools",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R035.1",
+        "GRAPHOS-OPS-R035.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R035.1",
+      "title": "Four-tool meta-registration and routing-only visibility, unit-bound",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/api/mcp/test_registration_governed_visibility.py:27",
+        "tests/api/mcp/test_registration_governed_visibility.py:58"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R035.2",
+      "title": "Registration wired into the live server",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []

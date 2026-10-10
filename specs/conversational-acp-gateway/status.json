@@ -2,7 +2,7 @@
   "schema_version": 2,
   "spec_id": "GRAPHOS-ACP-001",
   "owner_repo": "graph-os",
-  "delivery_state": "LANDED",
+  "delivery_state": "VERIFIED",
   "requirement_ids": [
     "GRAPHOS-ACP-R001",
     "GRAPHOS-ACP-R001.1",
@@ -12,7 +12,7 @@
     {
       "id": "GRAPHOS-ACP-R001",
       "title": "Conversational ACP gateway session admission and policy",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "9a79acee8b6c",
         "c2a6ab839fd3"
@@ -38,12 +38,13 @@
     },
     {
       "id": "GRAPHOS-ACP-R001.2",
-      "title": "Owner dependency: agent-utilities chat adapter",
-      "delivery_state": "LANDED",
+      "title": "RETIRED: tracked by agent-utilities AU-CONTROL-001",
+      "delivery_state": "RETIRED",
       "landed_in": [
         "c2a6ab839fd3"
       ],
-      "verified_by": []
+      "verified_by": [],
+      "retired_reason": "tracked by agent-utilities AU-CONTROL-001"
     }
   ]
 }

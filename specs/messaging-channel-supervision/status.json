@@ -17,7 +17,9 @@
       "id": "GRAPHOS-MESSAGING-R001",
       "title": "Typed channel supervision state machine",
       "delivery_state": "LANDED",
-      "landed_in": [],
+      "landed_in": [
+        "63a66f60915a"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-MESSAGING-R001.1"

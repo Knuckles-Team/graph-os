@@ -18,6 +18,7 @@
     "GRAPHOS-DEPLOY-R007.5",
     "GRAPHOS-DEPLOY-R008",
     "GRAPHOS-DEPLOY-R009",
+    "GRAPHOS-DEPLOY-R009.1",
     "GRAPHOS-DEPLOY-R010",
     "GRAPHOS-DEPLOY-R011",
     "GRAPHOS-DEPLOY-R012",
@@ -89,7 +90,9 @@
       "id": "GRAPHOS-DEPLOY-R007",
       "title": "GraphOS hosts deployment doctor and skill certification",
       "delivery_state": "LANDED",
-      "landed_in": [],
+      "landed_in": [
+        "fd761d59a171"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-DEPLOY-R007.1",
@@ -156,7 +159,22 @@
       "title": "GraphOS owns hosting/deployment configuration settings",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-DEPLOY-R009.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R009.1",
+      "title": "GraphOS hosts a typed `graph_os.core.config_admin` hosting/deployment settings module",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/core/test_config_admin.py:17",
+        "tests/core/test_config_admin.py:30",
+        "tests/core/test_config_admin.py:41",
+        "tests/core/test_config_admin.py:57"
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R010",

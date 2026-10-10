@@ -276,14 +276,22 @@
       "title": "Identity wiring depends only on identity ports",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/identity/test_identity_ports_boundary.py:105",
+        "tests/identity/test_identity_ports_boundary.py:77"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R022",
       "title": "Fleet authorization fails closed on exact scopes",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_multiplexer_dynamic_gateway.py:1510",
+        "tests/fleet/test_multiplexer_dynamic_gateway.py:1721",
+        "tests/fleet/test_multiplexer_dynamic_gateway.py:1766",
+        "tests/fleet/test_multiplexer_dynamic_gateway.py:1784"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R023",
