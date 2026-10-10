@@ -8,12 +8,16 @@ acknowledging all four families is reconciled.
 
 from __future__ import annotations
 
+import pytest
+
 from graph_os.fleet.mcp_resource_reconciliation import (
     MCP_RESOURCE_FAMILIES,
     PublicationGateResult,
     ReconciliationReceipt,
     gate_mcp_resource_publication,
 )
+
+pytestmark = pytest.mark.spec("GRAPHOS-MCP-RESOURCES-R001.1")
 
 TENANT = "tenant-a"
 GENERATION = 7
