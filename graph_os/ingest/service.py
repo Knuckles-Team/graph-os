@@ -84,6 +84,16 @@ class IngestPackInventory(BaseModel):
     packs: tuple[IngestPackRecord, ...]
 
 
+class IngestJobRecord(BaseModel):
+    """One durable ingestion job's identity and current state."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    job_id: str
+    tenant: str
+    status: IngestJobStatus
+
+
 @runtime_checkable
 class IngestRunner(Protocol):
     """The one typed port GraphOS calls the ingestion SDK through.
@@ -109,6 +119,8 @@ class IngestRunner(Protocol):
     ) -> IngestSourceRecord: ...
 
     async def list_packs(self, *, tenant: str) -> IngestPackInventory: ...
+
+    async def get_job_status(self, *, tenant: str, job_id: str) -> IngestJobRecord: ...
 
 
 def _bound_runner(context: Any) -> IngestRunner:
@@ -169,3 +181,12 @@ async def list_packs(context: Any, params: Mapping[str, Any], op: Any) -> Any:
     runner = _bound_runner(context)
     inventory = await runner.list_packs(tenant=context.caller.tenant)
     return {"value": inventory.model_dump(mode="json")}
+
+
+async def get_job_status(context: Any, params: Mapping[str, Any], op: Any) -> Any:
+    """Report one durable ingestion job's state through the composed runner."""
+    runner = _bound_runner(context)
+    record = await runner.get_job_status(
+        tenant=context.caller.tenant, job_id=params["job_id"]
+    )
+    return {"value": record.model_dump(mode="json")}
