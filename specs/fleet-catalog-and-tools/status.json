@@ -259,9 +259,18 @@
     },
     {
       "id": "GRAPHOS-FLEET-R009.1",
-      "title": "Capacity-acquisition primitive: all-or-nothing grant, one re-decision, release on stop",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "Capacity acquisition is all-or-nothing with one re-decision",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "c77ede8726fa448b5d9d0fcafd36de9ab1aeee40",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/c77ede8726fa448b5d9d0fcafd36de9ab1aeee40",
+          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
+        }
+      ],
+      "remaining": "graph_os/control_plane/runs/admission.py adds CapacityAcquisition/CapacityDeniedError (acquire/release/held); tests/control_plane/admission/test_capacity_acquisition.py passes. Not yet merged. GRAPHOS-FLEET-R009.2 wiring is not started."
     },
     {
       "id": "GRAPHOS-FLEET-R009.2",
