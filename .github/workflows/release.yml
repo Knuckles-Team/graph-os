@@ -42,7 +42,14 @@ permissions:
 
 jobs:
   gates:
-    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}
+    # 20, not 10, for pull_request: the epistemic-graph numeric-kernel build
+    # (Swatinem/rust-cache below) has never completed once yet, so there is
+    # no warm cache to restore -- a cold Cargo compile of that workspace
+    # measured >10 real minutes and was killed mid-build by the timeout
+    # before it could ever save a cache entry, so every PR run stayed cold
+    # forever. 20 minutes buys the one build that seeds the cache; every
+    # run after that restores it and finishes in the original fast window.
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 20 || 60 }}
     name: gates
     # Homelab self-hosted runner for same-repo push/PR traffic (the org
     # runner group is scoped to the 6 core repos already); a fork PR's head
