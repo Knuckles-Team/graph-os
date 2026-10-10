@@ -35,12 +35,6 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] **GRAPHOS-OPS-R016:** Capacity status and throttle mode operations
 - [ ] **GRAPHOS-OPS-R016.1:** Remaining scope of GRAPHOS-OPS-R016 (slice .1): Capacity status and throttle mode operations
 - [ ] **GRAPHOS-OPS-R016.2:** Remaining scope of GRAPHOS-OPS-R016 (slice .2): Capacity status and throttle mode operations
-- [x] **GRAPHOS-OPS-R020:** Ingest operations through a typed SDK runner facade
-- [x] **GRAPHOS-OPS-R020.1:** Typed ingest runner port and the source-sync entry point
-- [x] **GRAPHOS-OPS-R020.2:** Repository indexing and source inventory operations
-- [x] **GRAPHOS-OPS-R020.3:** Pack and job management operations
-- [ ] **GRAPHOS-OPS-R020.4:** Drift listing and repair-with-approval operations
-- [ ] **GRAPHOS-OPS-R020.5:** Embedding admission and re-embedding operations
 
 ## Decomposition children (tracked)
 
@@ -57,7 +51,6 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [x] **GRAPHOS-OPS-R020.1:** Typed ingest runner port and the source-sync entry point
 - [x] **GRAPHOS-OPS-R020.2:** Repository indexing and source inventory operations
 - [x] **GRAPHOS-OPS-R020.3:** Pack and job management operations
-- [ ] **GRAPHOS-OPS-R020.3.1:** Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations
 - [ ] **GRAPHOS-OPS-R020.4:** Drift listing and repair-with-approval operations
 - [ ] **GRAPHOS-OPS-R020.5:** Embedding admission and re-embedding operations
 - [ ] **GRAPHOS-OPS-R020.3.1:** Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations
