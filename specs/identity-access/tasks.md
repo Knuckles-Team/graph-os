@@ -67,7 +67,11 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GRAPHOS-IDENTITY-R010.2.3:** Scheduled nested-group sync and deprovisioning
 - [ ] **GRAPHOS-IDENTITY-R010.2.4:** Live directory probe
 - [ ] **GRAPHOS-IDENTITY-R011.1:** Typed SCIM service-credential model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R011.2:** SCIM create/update/patch/deactivate server surface
+- [ ] **GRAPHOS-IDENTITY-R011.2:** SCIM create/update/patch/deactivate server surface (rollup)
+- [x] **GRAPHOS-IDENTITY-R011.2.1:** Typed SCIM User resource model with refusal tests
+- [ ] **GRAPHOS-IDENTITY-R011.2.2:** SCIM credential check via `ScimServiceCredential.authorizes`
+- [ ] **GRAPHOS-IDENTITY-R011.2.3:** SCIM create/patch/deactivate handlers through an injected identity port
+- [ ] **GRAPHOS-IDENTITY-R011.2.4:** SCIM route registration
 - [ ] **GRAPHOS-IDENTITY-R012:** Native SAML service provider (rollup)
 - [ ] **GRAPHOS-IDENTITY-R012.1:** Typed SAML service-provider model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R012.2:** Assertion verification and SAML sign-in
