@@ -26,7 +26,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from graph_os.api.ops._simple_op import simple_op
+from graph_os.api.ops._simple_op import OpSpecArgs, build_operations
 from graph_os.api.registry import (
     AuditClass,
     Effect,
@@ -100,33 +100,32 @@ async def handle_capacity_set_mode(
 
 
 def operations() -> tuple[OpSpec, ...]:
-    return (
-        simple_op(
+    return build_operations(
+        OpSpecArgs(
             "capacity.throttle.status",
             Verb.ASK,
             "Show this partition's current throttle mode and limit",
             ("show capacity throttle status for this child",),
             CapacityPartitionParams,
             CapacityStatusResult,
-            handler="graph_os.api.ops.capacity.handle_capacity_status",
-            scopes=frozenset({"capacity:read"}),
-            effect=Effect.READ,
-            surfaces=frozenset(
-                {Surface.MCP, Surface.HTTP, Surface.A2A, Surface.CONSOLE}
-            ),
+            "graph_os.api.ops.capacity.handle_capacity_status",
+            frozenset({"capacity:read"}),
+            Effect.READ,
+            AuditClass.NONE,
+            frozenset({Surface.MCP, Surface.HTTP, Surface.A2A, Surface.CONSOLE}),
         ),
-        simple_op(
+        OpSpecArgs(
             "capacity.throttle.set_mode",
             Verb.MANAGE,
             "Select observe or enforce throttle mode for this partition",
             ("switch this child to enforce mode",),
             CapacitySetModeParams,
             CapacityModeResult,
-            handler="graph_os.api.ops.capacity.handle_capacity_set_mode",
-            scopes=frozenset({"capacity:admin"}),
-            effect=Effect.ADMIN,
-            audit=AuditClass.EVENT,
-            surfaces=frozenset({Surface.MCP, Surface.HTTP, Surface.CONSOLE}),
+            "graph_os.api.ops.capacity.handle_capacity_set_mode",
+            frozenset({"capacity:admin"}),
+            Effect.ADMIN,
+            AuditClass.EVENT,
+            frozenset({Surface.MCP, Surface.HTTP, Surface.CONSOLE}),
         ),
     )
 
