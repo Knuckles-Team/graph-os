@@ -2,7 +2,7 @@
 
 ## Status legend
 
-`READY FOR IMPLEMENTATION` describes this build contract, not working code. `BUILDING` means source is in progress. `SOURCE LANDED` means it is on the default branch. `ACCEPTED` requires exact default-branch contract, security, and served-path evidence from [test-spec.md](test-spec.md). Do not infer acceptance from a focused test or an A2A card alone.
+Status terms (`READY FOR IMPLEMENTATION`/`BUILDING`/`SOURCE LANDED`/`ACCEPTED`) and acceptance evidence rules are defined once by [GRAPHOS-A2A-001](../a2a-task-projection/spec.md#status-legend); this spec's `ACCEPTED` additionally requires the streaming/push/history served-path evidence in [test-spec.md](test-spec.md).
 
 ## User stories and scope
 

@@ -1,8 +1,9 @@
 # Verification contract
 
-Every assertion is run against an exact commit and reports a pass/fail result. Fixture tests are
-required for a clean checkout and cloud PR; served release probes are separately recorded before
-ACCEPTED. Do not turn an unavailable external environment into a blocking source hook.
+Verification terms (exact-commit pass/fail, fixture vs. served-release-probe evidence, no
+blocking on an unavailable external environment) follow
+[GRAPHOS-FLEET-001](../fleet-catalog-and-tools/test-spec.md). This spec's cases cover only the
+reconciliation receipt model below.
 
 ## Positive and negative cases
 
