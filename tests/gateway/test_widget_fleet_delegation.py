@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
+from agent_utilities.security.brain_context import ActorContext
 
+import graph_os.gateway.aggregator as aggregator_module
 from graph_os.fleet.multiplexer import MCPMultiplexer
 from graph_os.fleet.shared_multiplexer import (
     _reset_served_multiplexer_for_tests,
@@ -17,6 +20,17 @@ from graph_os.gateway.aggregator import Aggregator
 from graph_os.gateway.models import ServiceConfig
 from graph_os.gateway.registry import Registry
 from graph_os.gateway.widgets.github import Widget as GitHubWidget
+
+# GRAPHOS-FLEET-R032: `_fetch_one` now binds the gateway's own service actor
+# (`_run_as_service_actor` -> `_service_authority`) around every widget
+# fetch; stand in an already-verified fake so these tests exercise fleet
+# delegation without minting a real process-identity token.
+_TEST_SERVICE_ACTOR = ActorContext(
+    actor_id="test-gateway-service",
+    roles=("service",),
+    tenant_id="test-tenant",
+    authenticated=True,
+)
 
 
 class _FakeFleet:
@@ -58,6 +72,16 @@ def _reset_served_fleet() -> Iterator[None]:
     _reset_served_multiplexer_for_tests()
     yield
     _reset_served_multiplexer_for_tests()
+
+
+@pytest.fixture(autouse=True)
+def _fake_service_authority(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = SimpleNamespace(
+        actor=_TEST_SERVICE_ACTOR,
+        ensure_authority_current=lambda **_kw: None,
+        __post_init__=lambda: None,
+    )
+    monkeypatch.setattr(aggregator_module, "_service_authority", lambda: session)
 
 
 def _service() -> ServiceConfig:

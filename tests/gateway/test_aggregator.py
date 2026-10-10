@@ -33,8 +33,14 @@ _TEST_SERVICE_ACTOR = ActorContext(
 
 @pytest.fixture(autouse=True)
 def _fake_service_authority(monkeypatch: pytest.MonkeyPatch) -> None:
+    # `use_session` revalidates at the ambient boundary via
+    # `session.__post_init__()` even for a caller-constructed stand-in, so
+    # this fake must offer a (no-op) one too, exactly like a real
+    # ``GraphSession``'s.
     session = SimpleNamespace(
-        actor=_TEST_SERVICE_ACTOR, ensure_authority_current=lambda **_kw: None
+        actor=_TEST_SERVICE_ACTOR,
+        ensure_authority_current=lambda **_kw: None,
+        __post_init__=lambda: None,
     )
     monkeypatch.setattr(aggregator_module, "_service_authority", lambda: session)
 
