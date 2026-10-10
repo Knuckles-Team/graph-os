@@ -51,7 +51,7 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [x] **GRAPHOS-IDENTITY-R007.1:** Typed admin-console tab model with refusal tests
 - [x] **GRAPHOS-IDENTITY-R007.2:** Mapping dry-run preview and mode-transition wizard
 - [ ] **GRAPHOS-IDENTITY-R008.1:** Typed API-key grant model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R008.2:** Scope intersection at use time and immediate revocation
+- [x] **GRAPHOS-IDENTITY-R008.2:** Scope intersection at use time and immediate revocation
 - [x] **GRAPHOS-IDENTITY-R009:** Multi-provider OIDC with mapping rules and JIT policy
 - [x] **GRAPHOS-IDENTITY-R009.1:** Typed OIDC mapping-rule model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R009.2:** PKCE/state/nonce flow, presets, link migration, hinted logout
