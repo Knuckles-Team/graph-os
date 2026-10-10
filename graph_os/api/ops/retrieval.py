@@ -81,14 +81,16 @@ async def handle_retrieval_search(
     retriever: Retriever = bound_service(
         context, "retriever", reason="retriever is not composed"
     )
-    budget = params["context_budget"]
+    context_budget = params["context_budget"]
     outcome = await retriever.search(
-        tenant=context.caller.tenant, query=params["query"], context_budget=budget
+        tenant=context.caller.tenant,
+        query=params["query"],
+        context_budget=context_budget,
     )
     kept: list[RetrievalHit] = []
     used = 0
     for hit in outcome.hits:
-        if used + hit.tokens > budget:
+        if used + hit.tokens > context_budget:
             break
         used += hit.tokens
         kept.append(hit)
