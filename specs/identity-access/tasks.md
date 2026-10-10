@@ -62,7 +62,11 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GRAPHOS-IDENTITY-R011.2:** SCIM create/update/patch/deactivate server surface
 - [ ] **GRAPHOS-IDENTITY-R012:** Native SAML service provider (rollup)
 - [ ] **GRAPHOS-IDENTITY-R012.1:** Typed SAML service-provider model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R012.2:** Assertion verification and SAML sign-in
+- [ ] **GRAPHOS-IDENTITY-R012.2:** Assertion verification and SAML sign-in (rollup)
+- [ ] **GRAPHOS-IDENTITY-R012.2.1:** Typed parsed-assertion model and audience/recipient/time-window checks
+- [ ] **GRAPHOS-IDENTITY-R012.2.2:** Signature verification through an injected verifier port
+- [ ] **GRAPHOS-IDENTITY-R012.2.3:** Replay check and sign-in handler wiring
+- [ ] **GRAPHOS-IDENTITY-R012.2.4:** Live IdP sign-in probe
 - [ ] **GRAPHOS-IDENTITY-R016:** Optional SMTP adapter for identity email
 - [ ] **GRAPHOS-IDENTITY-R016.1:** Remaining scope of GRAPHOS-IDENTITY-R016 (slice .1): Optional SMTP adapter for identity email
 - [ ] **GRAPHOS-IDENTITY-R016.2:** Remaining scope of GRAPHOS-IDENTITY-R016 (slice .2): Optional SMTP adapter for identity email
