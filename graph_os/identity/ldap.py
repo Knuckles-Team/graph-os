@@ -6,6 +6,7 @@ The directory bind, filter escaping, and nested-group sync are later slices.
 
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 
 from .engine import IdentityUnavailable
@@ -35,3 +36,30 @@ class LdapBindConfig:
             raise IdentityUnavailable(
                 "LDAP bind must use ldaps, plaintext ldap is refused"
             )
+
+
+def _normalize_dn(dn: str) -> str:
+    """Case-fold a DN and strip whitespace around RDN separators and ``=``."""
+    parts = []
+    for rdn in dn.split(","):
+        attr, sep, value = rdn.partition("=")
+        parts.append(f"{attr.strip()}{sep}{value.strip()}".casefold())
+    return ",".join(parts)
+
+
+def map_groups_to_roles(
+    group_dns: Collection[str],
+    mapping: Mapping[str, Collection[str]],
+) -> frozenset[str]:
+    """Roles granted by a directory user's groups (GRAPHOS-IDENTITY-R010.2.1).
+
+    ``mapping`` is group DN to roles; DNs compare case-insensitively. Fails
+    closed: no matching group, or a matching group yielding no role, is refused.
+    """
+    wanted = {_normalize_dn(dn): roles for dn, roles in mapping.items()}
+    roles: set[str] = set()
+    for dn in group_dns:
+        roles.update(wanted.get(_normalize_dn(dn), ()))
+    if not roles:
+        raise IdentityUnavailable("no directory group maps to a role")
+    return frozenset(roles)
