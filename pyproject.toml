@@ -178,6 +178,9 @@ warn_unused_ignores = true
 testpaths = ["tests"]
 addopts = "-q"
 asyncio_mode = "auto"
+markers = [
+    "spec: binds a test to a spec requirement ID",
+]
 
 # Inputs of the shared hooks (Knuckles-Team/pipelines .pre-commit-hooks.yaml).
 [tool.pipelines_hooks]

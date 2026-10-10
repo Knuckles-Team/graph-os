@@ -4,11 +4,22 @@
 #   scripts/bootstrap.sh              uv, pinned Python, sibling sources, locked deps, git hooks
 #   scripts/bootstrap.sh --kernel     also build epistemic-graph's numeric kernel (Rust, slow)
 #   scripts/bootstrap.sh --scanners   also the pinned native scanners (cargo/npm, ~15 min cold)
+#   scripts/bootstrap.sh --siblings-only
+#                                     sibling sources + `uv sync` only; skips git
+#                                     hooks/kernel/scanners. For a fresh `git worktree
+#                                     add` lane that has no ../<repo> checkouts next to
+#                                     it: symlinks each sibling from the canonical
+#                                     checkout at $GRAPH_OS_CANONICAL_SIBLINGS
+#                                     (never writes into it) and falls back to cloning
+#                                     origin/main when no local or canonical copy
+#                                     exists. Fresh worktree: `scripts/bootstrap.sh
+#                                     --siblings-only && uv run pytest tests/<file>`.
 #
 # Idempotent and non-interactive. Sibling sources are linked from ../<repo>
 # checkouts when present (the public layout in
-# graph_os/skills/graph-os-development/references/bootstrap.md); without them
-# the dependency sync is skipped and the hooks that need it report SKIPPED.
+# graph_os/skills/graph-os-development/references/bootstrap.md), else from the
+# canonical checkouts, else cloned from origin/main; without any of those the
+# dependency sync is skipped and the hooks that need it report SKIPPED.
 # Afterwards:
 #   uvx pre-commit run --all-files
 #   uvx pre-commit run pytest --hook-stage manual --all-files
@@ -18,12 +29,14 @@ cd "$(dirname "$0")/.."
 
 kernel=0
 scanners=0
+siblings_only=0
 for arg in "$@"; do
   case "$arg" in
     --kernel) kernel=1 ;;
     --scanners) scanners=1 ;;
+    --siblings-only) siblings_only=1 ;;
     -h | --help)
-      sed -n '2,14p' "$0"
+      sed -n '2,21p' "$0"
       exit 0
       ;;
     *)
@@ -32,6 +45,10 @@ for arg in "$@"; do
       ;;
   esac
 done
+if [[ "$siblings_only" == 1 ]]; then
+  kernel=0
+  scanners=0
+fi
 
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 
@@ -52,15 +69,33 @@ echo "bootstrap: Python $python_version"
 uv python install "$python_version"
 
 # Link every [tool.uv.sources] path (here and, transitively, in each linked
-# sibling) to a ../<repo> checkout when it is missing. Never replaces a link.
+# sibling) to a ../<repo> checkout when present, else to the canonical
+# checkout at $GRAPH_OS_CANONICAL_SIBLINGS (symlink only; that checkout is a
+# live mount and is never written to), else clone origin/main. Never replaces
+# an existing link or directory.
 echo "bootstrap: sibling sources"
+export GRAPH_OS_CANONICAL_SIBLINGS="${GRAPH_OS_CANONICAL_SIBLINGS:-/home/apps/workspace/agent-packages}"
 python3 - <<'PY'
+import os
+import subprocess
 import tomllib
 from pathlib import Path
+
+CANONICAL_ROOT = Path(os.environ["GRAPH_OS_CANONICAL_SIBLINGS"]).resolve()
+
+def resolve_checkout(project: Path, name: str) -> Path | None:
+    for candidate in (project.resolve().parent / name, CANONICAL_ROOT / name):
+        if (candidate / "pyproject.toml").is_file():
+            return candidate
+    return None
 
 def link_sources(project: Path, depth: int = 0) -> None:
     pyproject = project / "pyproject.toml"
     if depth > 3 or not pyproject.is_file():
+        return
+    # A project resolved from the canonical read-only checkouts manages its
+    # own siblings already; never write into it.
+    if depth > 0 and CANONICAL_ROOT in project.resolve().parents:
         return
     sources = tomllib.loads(pyproject.read_text()).get("tool", {}).get("uv", {}).get("sources", {})
     for source in sources.values():
@@ -68,22 +103,40 @@ def link_sources(project: Path, depth: int = 0) -> None:
         if not path or not path.startswith(".uv-workspace-siblings/"):
             continue
         target = project / path
-        checkout = Path.cwd().resolve().parent / target.name
-        if not target.exists() and not target.is_symlink() and (checkout / "pyproject.toml").is_file():
-            target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            link_sources(target, depth + 1)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        checkout = resolve_checkout(project, target.name)
+        if checkout is not None:
             target.symlink_to(checkout)
             print(f"  linked {target} -> {checkout}")
+        else:
+            url = f"https://github.com/Knuckles-Team/{target.name}.git"
+            print(f"  cloning {target.name} from {url} (origin/main; no local or canonical checkout)")
+            subprocess.run(["git", "clone", "--depth", "1", url, str(target)], check=True)
         link_sources(target, depth + 1)
 
 link_sources(Path.cwd())
 PY
 
 eg=.uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph
-if [[ ! -e "$eg" && -e .uv-workspace-siblings/agent-utilities && -e ../epistemic-graph/pyproject.toml ]]; then
+au_real="$(realpath -m .uv-workspace-siblings/agent-utilities 2>/dev/null || true)"
+canonical_real="$(realpath -m "$GRAPH_OS_CANONICAL_SIBLINGS" 2>/dev/null || true)"
+if [[ ! -e "$eg" && -e .uv-workspace-siblings/agent-utilities \
+      && "$au_real" != "$canonical_real"/* ]]; then
   # agent-utilities overlays epistemic-graph from source (not a declared path source).
   mkdir -p "$(dirname "$eg")"
-  ln -s "$(cd ../epistemic-graph && pwd)" "$eg"
-  echo "  linked $eg -> ../epistemic-graph"
+  if [[ -e ../epistemic-graph/pyproject.toml ]]; then
+    ln -s "$(cd ../epistemic-graph && pwd)" "$eg"
+    echo "  linked $eg -> ../epistemic-graph"
+  elif [[ -e "${GRAPH_OS_CANONICAL_SIBLINGS}/epistemic-graph/pyproject.toml" ]]; then
+    ln -s "${GRAPH_OS_CANONICAL_SIBLINGS}/epistemic-graph" "$eg"
+    echo "  linked $eg -> ${GRAPH_OS_CANONICAL_SIBLINGS}/epistemic-graph"
+  else
+    echo "  cloning epistemic-graph from origin/main (no local or canonical checkout)"
+    git clone --depth 1 "https://github.com/Knuckles-Team/epistemic-graph.git" "$eg"
+  fi
 fi
 
 missing=0
@@ -106,8 +159,12 @@ if [[ "$kernel" == 1 ]]; then
     python "$eg/scripts/build_numeric_kernel.py"
 fi
 
-echo "bootstrap: git hooks"
-uvx pre-commit install --hook-type pre-commit --hook-type pre-push
+if [[ "$siblings_only" == 1 ]]; then
+  echo "bootstrap: --siblings-only, skipping git hooks (shared .git/hooks across worktrees)"
+else
+  echo "bootstrap: git hooks"
+  uvx pre-commit install --hook-type pre-commit --hook-type pre-push
+fi
 
 if [[ "$scanners" == 1 ]]; then
   echo "bootstrap: native scanners (cargo/npm builds; ~15 min cold)"

@@ -23,6 +23,8 @@ from graph_os.fleet.error_budget import (
 from graph_os.fleet.throttle_service import ThrottleRegistry
 from tests.api._ops_support import service_context as _context
 
+pytestmark = pytest.mark.spec("GRAPHOS-CAPACITY-R002")
+
 _PARTITION_PARAMS = {
     "tenant": "t1",
     "child": "search",

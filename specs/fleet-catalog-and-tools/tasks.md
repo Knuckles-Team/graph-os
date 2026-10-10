@@ -5,8 +5,16 @@ Check a task only after its linked code and tests land. A checked source task is
 - [x] T01 — Inventory existing fleet/MCP code and generated engine/SDK contracts; record current behavior and one owner per interface. Cover GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R004, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007.
 - [x] T02 — Define frozen `OpSpec`, stable IDs, exact scope/effect metadata, canonical digest, reviewed engine exclusions, and generator checks. Cover GRAPHOS-FLEET-R011, GRAPHOS-FLEET-R012, GRAPHOS-FLEET-R016.
 - [x] T03 — Implement typed `invoke` with caller validation, narrowing policy, service executor, effect plans, audit, and stable errors; move child dispatch behind one fleet gateway. Cover GRAPHOS-FLEET-R015, GRAPHOS-FLEET-R021, GRAPHOS-FLEET-R003.
-- [x] T04 — Project the six intent verbs and four resident fleet tools, generated schemas/resources, cross-surface discovery, and bounded resolver. Remove obsolete harvest and granular registration in the same cutover. Cover GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007, GRAPHOS-FLEET-R020.
+- [x] T04 — Project the six intent verbs and four resident fleet tools, generated schemas/resources, cross-surface discovery, and bounded resolver. Remove obsolete harvest and granular registration in the same cutover. Cover GRAPHOS-FLEET-R013, GRAPHOS-FLEET-R014, GRAPHOS-FLEET-R005, GRAPHOS-FLEET-R006, GRAPHOS-FLEET-R007, GRAPHOS-FLEET-R020. GRAPHOS-FLEET-R006 is now a rollup over GRAPHOS-FLEET-R006.1-.5; GRAPHOS-FLEET-R007 is now a rollup over GRAPHOS-FLEET-R007.1-.3.
   - [x] GRAPHOS-FLEET-R005.1 (child, producer): `graph_os/a2a/work_items.py` (`WorkItemView`, `work_item_view`, `parse_work_item_view`, `list_work_item_views`) + `tests/a2a/test_work_items.py`.
+  - [ ] GRAPHOS-FLEET-R006.1 (child, producer): `tests/fleet/test_harvest_inventory.py` pins the current harvest call-site baseline in `graph_os/fleet/multiplexer.py`.
+  - [ ] GRAPHOS-FLEET-R006.2 (child, consumer of .1): cut `_probe_skills`/`_probe_prompts` over to the resident `build_local_skill_catalog` path for an already-admitted child, keeping fallback for a non-admitted one.
+  - [ ] GRAPHOS-FLEET-R006.3 (child, consumer of .2): delete the now-dead `_harvest_resource_bodies`, `_harvest_deadline`, `_harvest_error_reason`, `_SKILL_HARVEST_SPEC`, `_PROMPT_HARVEST_SPEC` from `graph_os/fleet/multiplexer.py`.
+  - [ ] GRAPHOS-FLEET-R006.4 (child, consumer of .3): rename `_harvest_probe_results` to `_settled_probe_results` in `graph_os/fleet/multiplexer.py`.
+  - [ ] GRAPHOS-FLEET-R006.5 (child, closing audit, consumer of .1-.4): `tests/fleet/test_no_harvest_remains.py` asserts the R006.1 baseline is now zero.
+  - [ ] GRAPHOS-FLEET-R007.1 (child, producer, cross-repo: agent-connector-sdk): `agent_connector_sdk/mcp/server.py`'s `create_mcp_server()` registers a native `.prompt()`/`.resource()`/`.resource_template()`.
+  - [ ] GRAPHOS-FLEET-R007.2 (child, consumer of .1, cross-repo: agent-utilities): `agent_utilities/mcp/graphos_surface.py`'s `register_graphos_surface()` backing `FastMCP("graph-os-backing")` registers native prompts/resources/templates.
+  - [ ] GRAPHOS-FLEET-R007.3 (child, consumer of .2, this repo): `graph_os/mcp_server/server.py` serves the composed loop end to end + `tests/mcp/test_fastmcp4_native.py`.
 - [x] T05 — Build one filtered catalog for all six item kinds, native per-session mounts, cap/expiry/eviction, queued notifications, fallback calls, and credential delegation. Cover GRAPHOS-FLEET-R018, GRAPHOS-FLEET-R001, GRAPHOS-FLEET-R004.
 - [x] T06 — Install embedded/remote Eunomia policy in graph-os; prove exact scopes and principal rules at discover/load/call and fail-closed outage behavior. Cover GRAPHOS-FLEET-R019, GRAPHOS-FLEET-R021.
 - [ ] T07 — Add atomic generation refresh, durable ordered delta receipts, last-known-good fallback, in-flight drain, replay, and replica convergence. Cover GRAPHOS-FLEET-R022 and PA-12.
@@ -16,7 +24,11 @@ Check a task only after its linked code and tests land. A checked source task is
 - [x] T09.1 (GRAPHOS-FLEET-R009.1): Build the typed capacity-acquisition primitive (ledger): all-or-nothing acquire, exactly one re-decision on denial, release on stop.
 - [ ] T09.2 (GRAPHOS-FLEET-R009.2): Wire the capacity ledger into `control_plane/runs/admission.py`'s `admit_once`.
 - [ ] T09.3 (GRAPHOS-FLEET-R009.3): Wire the capacity ledger into `graph_os/a2a/routing.py` and `composition.py`'s publish step.
+- [x] T08 — Certify actual connector schemas and annotations; expose typed write-back and sanitized telemetry/security/CI feed metadata through registry ops. Cover GRAPHOS-FLEET-R002, GRAPHOS-FLEET-R003, GRAPHOS-FLEET-R008. GRAPHOS-FLEET-R003 is now a rollup over GRAPHOS-FLEET-R003.1-.3.
   - [x] GRAPHOS-FLEET-R002.1 (child, producer): `graph_os/fleet/catalog_items.py` (`compute_schema_fingerprint`, `CatalogItem.schema_fingerprint`, wired into `_probed_item`) + `tests/fleet/test_schema_fingerprint.py`.
+  - [ ] GRAPHOS-FLEET-R003.1 (child, producer): `graph_os/api/ops/write_back.py` (`WriteBackPreviewParams`, `WriteBackCommitParams`, `WriteBackPreview`, `WriteBackReceipt`, `derive_write_back_idempotency_key`) + `tests/api/test_write_back_models.py`.
+  - [ ] GRAPHOS-FLEET-R003.2 (child, consumer of .1): register `fleet.write_back.preview`/`fleet.write_back.commit` as typed `OpSpec` entries in `graph_os/api/ops/write_back.py`, wired into `graph_os/api/ops/registry_factory.py` + `tests/api/test_write_back_ops.py`.
+  - [ ] GRAPHOS-FLEET-R003.3 (child, consumer of .2): restart/fault test `tests/fleet/test_write_back_restart.py` proving idempotent replay and preview gating survive a service restart.
 - [ ] T09 — Correct generated assembly agent parsing and all-or-nothing capacity admission, one re-decision, and release on stop. Cover GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010.
 - [ ] T10 — Run clean-checkout format/lint/types/tests, generated artifact and public-surface checks, CCCC, KISS, jscpd, dupehound, authority parity, and local served protocol matrix. Cover GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017.
 - [ ] T11 — Land reviewed code and record merge commits per slice in `spec.md`; do not mark ACCEPTED on source evidence alone.
@@ -100,3 +112,9 @@ beyond an unrelated audit-chain capacity check. None of these is a safe
 
 - [ ] **GRAPHOS-FLEET-R002.2:** Remaining scope of GRAPHOS-FLEET-R002 (slice .2): Tool schema fingerprints recomputed from served schemas (rollup)
 - [ ] **GRAPHOS-FLEET-R005.2:** Remaining scope of GRAPHOS-FLEET-R005 (slice .2): A2A task routing with typed work-item and lease operations (rollup)
+
+## Decomposition children (tracked)
+
+- [ ] **PA-12:** Catalog reload rejects invalid candidates, proves replica convergence
+- [ ] **PA-12.1:** Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence
+- [ ] **PA-12.2:** Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence

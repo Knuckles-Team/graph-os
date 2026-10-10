@@ -431,6 +431,7 @@ def test_service_subject_denial_and_caller_owner():
     assert context.owner_ref.startswith("principal:sha256:")
 
 
+@pytest.mark.spec("GRAPHOS-A2A-R007")
 def test_audit_reservation_failure_prevents_dispatch():
     services, runtime, audit, journal, _ = setup_services()
     audit.fail_reserve = True
