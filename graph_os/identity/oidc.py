@@ -117,20 +117,26 @@ def check_id_token_claims(
         raise OidcTokenRefused(
             OidcRefusalReason.WRONG_ISSUER, "ID token issuer does not match"
         )
-    aud = claims.get("aud")
+    _check_audience(claims.get("aud"), audience)
+    _check_expiry(claims.get("exp"), now, clock_skew)
+    if claims.get("nonce") != nonce:
+        raise OidcTokenRefused(
+            OidcRefusalReason.NONCE_MISMATCH, "ID token nonce does not match"
+        )
+
+
+def _check_audience(aud: object, audience: str) -> None:
     audiences = [aud] if isinstance(aud, str) else aud
     if not isinstance(audiences, (list, tuple)) or audience not in audiences:
         raise OidcTokenRefused(
             OidcRefusalReason.WRONG_AUDIENCE, "ID token audience is not this client"
         )
-    exp = claims.get("exp")
+
+
+def _check_expiry(exp: object, now: datetime, clock_skew: timedelta) -> None:
     if isinstance(exp, bool) or not isinstance(exp, (int, float)):
         raise OidcTokenRefused(
             OidcRefusalReason.MISSING_EXPIRY, "ID token has no usable expiry"
         )
     if now.astimezone(UTC) - clock_skew >= datetime.fromtimestamp(exp, UTC):
         raise OidcTokenRefused(OidcRefusalReason.EXPIRED, "ID token has expired")
-    if claims.get("nonce") != nonce:
-        raise OidcTokenRefused(
-            OidcRefusalReason.NONCE_MISMATCH, "ID token nonce does not match"
-        )

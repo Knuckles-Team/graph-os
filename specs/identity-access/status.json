@@ -33,6 +33,8 @@
     "GRAPHOS-IDENTITY-R010.2.1",
     "GRAPHOS-IDENTITY-R010.2.2",
     "GRAPHOS-IDENTITY-R010.2.3",
+    "GRAPHOS-IDENTITY-R010.2.3.1",
+    "GRAPHOS-IDENTITY-R010.2.3.2",
     "GRAPHOS-IDENTITY-R010.2.4",
     "GRAPHOS-IDENTITY-R011",
     "GRAPHOS-IDENTITY-R012",
@@ -308,9 +310,17 @@
     {
       "id": "GRAPHOS-IDENTITY-R009.2.2",
       "title": "ID-token validation inputs and typed refusal",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "4ecc19a9f4e8"
+      ],
+      "verified_by": [
+        "tests/identity/test_oidc_id_token_claims.py:41",
+        "tests/identity/test_oidc_id_token_claims.py:47",
+        "tests/identity/test_oidc_id_token_claims.py:52",
+        "tests/identity/test_oidc_id_token_claims.py:58",
+        "tests/identity/test_oidc_id_token_claims.py:66"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R009.2.3",
@@ -371,13 +381,38 @@
     {
       "id": "GRAPHOS-IDENTITY-R010.2.2",
       "title": "Bind through an injected directory port",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "57c4aff42c64"
+      ],
+      "verified_by": [
+        "tests/identity/test_ldap_bind.py:22",
+        "tests/identity/test_ldap_bind.py:29",
+        "tests/identity/test_ldap_bind.py:35",
+        "tests/identity/test_ldap_bind.py:41"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.2.3",
+      "title": "Scheduled group sync (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R010.2.3.1",
+        "GRAPHOS-IDENTITY-R010.2.3.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.2.3.1",
+      "title": "Pure sync plan",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
-      "id": "GRAPHOS-IDENTITY-R010.2.3",
-      "title": "Scheduled group sync",
+      "id": "GRAPHOS-IDENTITY-R010.2.3.2",
+      "title": "Scheduled apply",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -454,8 +489,10 @@
     {
       "id": "GRAPHOS-IDENTITY-R011.2.2",
       "title": "SCIM credential check",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "966dc25b5493"
+      ],
       "verified_by": []
     },
     {
@@ -516,9 +553,15 @@
     {
       "id": "GRAPHOS-IDENTITY-R012.2.2",
       "title": "Signature verification through an injected verifier port",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "2eaa6baaabc5"
+      ],
+      "verified_by": [
+        "tests/identity/test_saml_signature_verification.py:47",
+        "tests/identity/test_saml_signature_verification.py:54",
+        "tests/identity/test_saml_signature_verification.py:63"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R012.2.3",

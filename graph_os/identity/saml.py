@@ -75,21 +75,27 @@ class ParsedSamlAssertion:
 
     def __post_init__(self) -> None:
         for name in ("assertion_id", "issuer", "subject", "recipient"):
-            value = getattr(self, name)
-            if not isinstance(value, str) or not value:
-                raise IdentityUnavailable(f"SAML assertion requires a {name}")
-        if not self.audiences or not all(
-            isinstance(a, str) and a for a in self.audiences
-        ):
+            _require_text(getattr(self, name), f"SAML assertion requires a {name}")
+        if not self.audiences:
             raise IdentityUnavailable("SAML assertion requires an audience")
+        for audience in self.audiences:
+            _require_text(audience, "SAML assertion requires an audience")
         for name in ("not_before", "not_on_or_after"):
-            value = getattr(self, name)
-            if not isinstance(value, datetime) or value.tzinfo is None:
-                raise IdentityUnavailable(
-                    f"SAML assertion {name} must be a timezone-aware datetime"
-                )
+            _require_aware(getattr(self, name), name)
         if self.not_on_or_after <= self.not_before:
             raise IdentityUnavailable("SAML assertion validity window is empty")
+
+
+def _require_text(value: object, message: str) -> None:
+    if not isinstance(value, str) or not value:
+        raise IdentityUnavailable(message)
+
+
+def _require_aware(value: object, name: str) -> None:
+    if not isinstance(value, datetime) or value.tzinfo is None:
+        raise IdentityUnavailable(
+            f"SAML assertion {name} must be a timezone-aware datetime"
+        )
 
 
 def check_assertion_conditions(

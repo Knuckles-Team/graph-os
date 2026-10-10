@@ -47,6 +47,11 @@
     "GRAPHOS-OPS-R022",
     "GRAPHOS-OPS-R022.1",
     "GRAPHOS-OPS-R022.2",
+    "GRAPHOS-OPS-R022.2.1",
+    "GRAPHOS-OPS-R022.2.2",
+    "GRAPHOS-OPS-R022.2.3",
+    "GRAPHOS-OPS-R022.2.4",
+    "GRAPHOS-OPS-R022.2.5",
     "GRAPHOS-OPS-R023",
     "GRAPHOS-OPS-R024",
     "GRAPHOS-OPS-R024.1",
@@ -453,7 +458,7 @@
     {
       "id": "GRAPHOS-OPS-R021",
       "title": "Decision, retrieval, and policy operations",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [],
       "verified_by": [],
       "rollup_of": [
@@ -474,7 +479,7 @@
     {
       "id": "GRAPHOS-OPS-R021.2",
       "title": "Retrieval, context, and freshness read operations — retrieval slice",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "e78a5e5b701e"
       ],
@@ -499,8 +504,10 @@
     {
       "id": "GRAPHOS-OPS-R021.2.2",
       "title": "`retrieval.freshness` op",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "f6f2177ab1e0"
+      ],
       "verified_by": [
         "tests/api/test_retrieval_ops.py:68",
         "tests/api/test_retrieval_ops.py:81"
@@ -538,6 +545,50 @@
     {
       "id": "GRAPHOS-OPS-R022.2",
       "title": "Evolution loop, schedule, and proposal operations — evolution slice",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R022.2.1",
+        "GRAPHOS-OPS-R022.2.2",
+        "GRAPHOS-OPS-R022.2.3",
+        "GRAPHOS-OPS-R022.2.4",
+        "GRAPHOS-OPS-R022.2.5"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.1",
+      "title": "`evolution.loops.status` op",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "364ef8b376e6"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.2",
+      "title": "`evolution.schedules.list` op",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.3",
+      "title": "`evolution.proposals.list` op",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.4",
+      "title": "`evolution.loops.run` op",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.5",
+      "title": "`evolution.loops.pause` op",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []

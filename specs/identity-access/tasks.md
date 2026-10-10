@@ -64,7 +64,9 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GRAPHOS-IDENTITY-R010.2:** Directory bind, filter escaping, nested-group sync, deprovisioning (rollup)
 - [x] **GRAPHOS-IDENTITY-R010.2.1:** Group-DN-to-role mapping evaluation with refusal on no match
 - [x] **GRAPHOS-IDENTITY-R010.2.2:** Bind through injected directory port, filter escaping
-- [ ] **GRAPHOS-IDENTITY-R010.2.3:** Scheduled nested-group sync and deprovisioning
+- [ ] **GRAPHOS-IDENTITY-R010.2.3:** Scheduled nested-group sync and deprovisioning (rollup)
+- [x] **GRAPHOS-IDENTITY-R010.2.3.1:** Pure directory sync plan with empty-snapshot refusal
+- [ ] **GRAPHOS-IDENTITY-R010.2.3.2:** Schedule the sync and apply the plan through the identity port
 - [ ] **GRAPHOS-IDENTITY-R010.2.4:** Live directory probe
 - [ ] **GRAPHOS-IDENTITY-R011.1:** Typed SCIM service-credential model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R011.2:** SCIM create/update/patch/deactivate server surface (rollup)
