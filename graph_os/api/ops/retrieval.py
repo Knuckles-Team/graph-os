@@ -46,6 +46,23 @@ class RetrievalSearchResult(Params):
     value: dict[str, Any]
 
 
+class RetrievalFreshnessParams(Params):
+    """``retrieval.freshness`` takes no parameters; the tenant is the caller's."""
+
+
+class RetrievalFreshnessOutcome(BaseModel):
+    """Freshness of one tenant's retrieval sources."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    tenant: str
+    sources: dict[str, str]
+
+
+class RetrievalFreshnessResult(Params):
+    value: dict[str, Any]
+
+
 @runtime_checkable
 class Retriever(Protocol):
     """The one typed port GraphOS calls the engine retrieval through."""
@@ -53,6 +70,8 @@ class Retriever(Protocol):
     async def search(
         self, *, tenant: str, query: str, context_budget: int
     ) -> RetrievalSearchOutcome: ...
+
+    async def freshness(self, *, tenant: str) -> RetrievalFreshnessOutcome: ...
 
 
 async def handle_retrieval_search(
@@ -77,6 +96,17 @@ async def handle_retrieval_search(
     return {"value": bounded.model_dump(mode="json")}
 
 
+async def handle_retrieval_freshness(
+    context: Any, params: Mapping[str, Any], op: OpSpec
+) -> dict[str, Any]:
+    """Return source freshness for the caller's own tenant."""
+    retriever: Retriever = bound_service(
+        context, "retriever", reason="retriever is not composed"
+    )
+    outcome = await retriever.freshness(tenant=context.caller.tenant)
+    return {"value": outcome.model_dump(mode="json")}
+
+
 def operations() -> tuple[OpSpec, ...]:
     return (
         build_read_op(
@@ -89,17 +119,31 @@ def operations() -> tuple[OpSpec, ...]:
             handler="graph_os.api.ops.retrieval.handle_retrieval_search",
             scope="memory:read",
         ),
+        build_read_op(
+            verb=Verb.FIND,
+            op_id="retrieval.freshness",
+            summary="Report freshness of the caller's retrieval sources",
+            examples=("how fresh are my retrieval sources",),
+            params=RetrievalFreshnessParams,
+            result=RetrievalFreshnessResult,
+            handler="graph_os.api.ops.retrieval.handle_retrieval_freshness",
+            scope="memory:read",
+        ),
     )
 
 
 specs = operations
 
 __all__ = [
+    "RetrievalFreshnessOutcome",
+    "RetrievalFreshnessParams",
+    "RetrievalFreshnessResult",
     "RetrievalHit",
     "RetrievalSearchOutcome",
     "RetrievalSearchParams",
     "RetrievalSearchResult",
     "Retriever",
+    "handle_retrieval_freshness",
     "handle_retrieval_search",
     "operations",
     "specs",

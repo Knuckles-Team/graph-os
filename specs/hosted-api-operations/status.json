@@ -492,8 +492,8 @@
         "e78a5e5b701e"
       ],
       "verified_by": [
-        "tests/api/test_retrieval_ops.py:34",
-        "tests/api/test_retrieval_ops.py:49"
+        "tests/api/test_retrieval_ops.py:43",
+        "tests/api/test_retrieval_ops.py:58"
       ]
     },
     {
@@ -501,7 +501,10 @@
       "title": "`retrieval.freshness` op",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_retrieval_ops.py:68",
+        "tests/api/test_retrieval_ops.py:81"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R021.3",
