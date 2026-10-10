@@ -49,7 +49,7 @@ jobs:
     # before it could ever save a cache entry, so every PR run stayed cold
     # forever. 20 minutes buys the one build that seeds the cache; every
     # run after that restores it and finishes in the original fast window.
-    timeout-minutes: ${{ github.event_name == 'pull_request' && 20 || 60 }}
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 45 || 60 }}
     name: gates
     # Homelab self-hosted runner for same-repo push/PR traffic (the org
     # runner group is scoped to the 6 core repos already); a fork PR's head

@@ -85,6 +85,7 @@ def _curated(method: str, op_id: str) -> OpSpec:
     )
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R008")
 def test_generates_exact_caller_bound_ops(tmp_path: Path) -> None:
     contract, exclusions = _fixture(tmp_path)
     ops = load_eg_bindings(contract_root=contract, exclusions_path=exclusions)
@@ -129,6 +130,7 @@ def test_curated_binding_cannot_weaken_engine_scope(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R008")
 def test_exclusion_needs_current_method_and_valid_reason(tmp_path: Path) -> None:
     contract, exclusions = _fixture(tmp_path)
     exclusions.write_text("exclusions:\n  - method: Read\n    reason: service-only\n")
@@ -183,3 +185,16 @@ def test_missing_schema_pointer_fails_closed(tmp_path: Path) -> None:
     path.write_text(json.dumps(document))
     with pytest.raises(EgContractError, match="missing schema pointer"):
         load_eg_bindings(contract_root=contract, exclusions_path=exclusions)
+
+
+@pytest.mark.spec("GRAPHOS-OPS-R006")
+def test_method_not_marked_wire_callable_is_not_bound(tmp_path: Path) -> None:
+    contract, exclusions = _fixture(tmp_path)
+    path = contract / "methods.json"
+    document = json.loads(path.read_text())
+    for row in document["methods"]:
+        if row["id"] == "Service":
+            row["is_wire_callable"] = False
+    path.write_text(json.dumps(document))
+    ops = load_eg_bindings(contract_root=contract, exclusions_path=exclusions)
+    assert {op.id for op in ops} == {"eg.query.Admin", "eg.query.Read"}

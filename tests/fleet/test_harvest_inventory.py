@@ -49,7 +49,6 @@ _BASELINE_HARVEST_ENTRY_POINTS = frozenset(
 # _resolve_via_local_catalog_or_harvest; GRAPHOS-FLEET-R006.3 removes that
 # fallback and the remaining _probe_protocol_families sites.
 _BASELINE_CALL_SITES_BY_METHOD = {
-    "_probe_protocol_families": 2,
     "_resolve_via_local_catalog_or_harvest": 1,
 }
 _BASELINE_TOTAL_CALL_SITES = sum(_BASELINE_CALL_SITES_BY_METHOD.values())
@@ -124,3 +123,56 @@ def test_harvest_resource_bodies_call_sites_match_pinned_baseline() -> None:
         f"baseline={_BASELINE_CALL_SITES_BY_METHOD}"
     )
     assert sum(found.values()) == _BASELINE_TOTAL_CALL_SITES
+
+
+@pytest.mark.spec("GRAPHOS-FLEET-R006.3.1")
+def test_probe_protocol_families_has_no_direct_harvest_call() -> None:
+    found = _harvest_resource_bodies_call_sites_by_method(_multiplexer_tree())
+    assert "_probe_protocol_families" not in found
+    assert found == {"_resolve_via_local_catalog_or_harvest": 1}
+
+
+@pytest.mark.spec("GRAPHOS-FLEET-R006.3.1")
+@pytest.mark.asyncio
+async def test_probe_protocol_families_resolves_admitted_skill_without_wire_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace
+
+    from graph_os.fleet import multiplexer as mux
+
+    resource = SimpleNamespace(
+        uri="skill://admitted/SKILL.md", name="admitted", description="d"
+    )
+
+    class _Session:
+        async def list_resources(self):
+            return SimpleNamespace(resources=[resource])
+
+        async def list_resource_templates(self):
+            return SimpleNamespace(resource_templates=[])
+
+        async def list_prompts(self):
+            return SimpleNamespace(prompts=[])
+
+        async def read_resource(self, *_a, **_k):
+            raise AssertionError("wire read for an admitted child")
+
+    monkeypatch.setattr(
+        mux,
+        "build_local_skill_catalog",
+        lambda: ([{"name": "admitted", "instructions": "LOCAL BODY"}], []),
+    )
+    monkeypatch.setattr(
+        mux,
+        "_bounded_skill_catalog",
+        lambda _r: [{"name": "admitted", "uri": resource.uri}],
+    )
+    monkeypatch.setattr(mux, "_bounded_prompt_catalog", lambda _r: [])
+    monkeypatch.setattr(mux, "_bounded_descriptor_catalog", lambda *_a, **_k: [])
+    m = mux.MCPMultiplexer.__new__(mux.MCPMultiplexer)
+    *_rest, skills, _prompts, errors = await m._probe_protocol_families(
+        "srv", _Session()
+    )
+    assert errors == {}
+    assert skills[0][mux._SKILL_HARVEST_SPEC.body_field] == "LOCAL BODY"

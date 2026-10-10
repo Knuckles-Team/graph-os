@@ -34,15 +34,24 @@
     "GRAPHOS-OPS-R020.2",
     "GRAPHOS-OPS-R020.3",
     "GRAPHOS-OPS-R020.3.1",
+    "GRAPHOS-OPS-R020.3.1.1",
+    "GRAPHOS-OPS-R020.3.1.2",
     "GRAPHOS-OPS-R020.4",
     "GRAPHOS-OPS-R020.5",
     "GRAPHOS-OPS-R021",
     "GRAPHOS-OPS-R021.1",
     "GRAPHOS-OPS-R021.2",
+    "GRAPHOS-OPS-R021.2.1",
+    "GRAPHOS-OPS-R021.2.2",
     "GRAPHOS-OPS-R021.3",
     "GRAPHOS-OPS-R022",
     "GRAPHOS-OPS-R022.1",
     "GRAPHOS-OPS-R022.2",
+    "GRAPHOS-OPS-R022.2.1",
+    "GRAPHOS-OPS-R022.2.2",
+    "GRAPHOS-OPS-R022.2.3",
+    "GRAPHOS-OPS-R022.2.4",
+    "GRAPHOS-OPS-R022.2.5",
     "GRAPHOS-OPS-R023",
     "GRAPHOS-OPS-R024",
     "GRAPHOS-OPS-R024.1",
@@ -66,6 +75,10 @@
     "GRAPHOS-OPS-R032.2.1",
     "GRAPHOS-OPS-R032.2.2",
     "GRAPHOS-OPS-R032.2.3",
+    "GRAPHOS-OPS-R032.2.3.1",
+    "GRAPHOS-OPS-R032.2.3.2",
+    "GRAPHOS-OPS-R032.2.3.2.1",
+    "GRAPHOS-OPS-R032.2.3.2.2",
     "GRAPHOS-OPS-R032.2.4",
     "GRAPHOS-OPS-R033",
     "GRAPHOS-OPS-R034",
@@ -109,56 +122,82 @@
     {
       "id": "GRAPHOS-OPS-R004",
       "title": "FastMCP 4 bridge for the MCP server",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "a7947166d00a"
+        "a7947166d00a",
+        "b5bf4ba58902"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_release_canary.py:63",
+        "tests/deployment/test_release_canary.py:94"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R005",
       "title": "Stable auth error codes from the engine contract",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "100d015ca012"
+        "100d015ca012",
+        "b5bf4ba58902"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_contract_admission.py:120",
+        "tests/api/test_contract_admission.py:70",
+        "tests/api/test_errors.py:285"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R006",
       "title": "Consume the engine's packaged wire-callable contract",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "100d015ca012"
+        "100d015ca012",
+        "97061e59c412"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_eg_binding.py:190"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R007",
       "title": "Immutable operation registry with digest and authorization",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "4b83c69e2b41"
+        "4b83c69e2b41",
+        "97061e59c412"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_api_registry.py:110",
+        "tests/api/test_api_registry.py:63"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R008",
       "title": "Generated engine-bound operations with exclusions",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "4b83c69e2b41"
+        "4b83c69e2b41",
+        "97061e59c412"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_eg_binding.py:133",
+        "tests/api/test_eg_binding.py:88"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R009",
       "title": "Single invoke pipeline for authority, effect, and audit",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
+        "97061e59c412",
         "deb2b45bf83d"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_invoke_contract.py:238",
+        "tests/api/test_invoke_governance.py:193",
+        "tests/api/test_invoke_governance.py:250",
+        "tests/api/test_invoke_governance.py:87"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R010",
@@ -325,7 +364,7 @@
     {
       "id": "GRAPHOS-OPS-R020",
       "title": "Ingest operations through a typed SDK runner facade",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
         "e990e195ab42"
       ],
@@ -350,8 +389,8 @@
         "cc90ee37583f"
       ],
       "verified_by": [
-        "tests/api/test_ingest_ops.py:80",
-        "tests/api/test_ingest_ops.py:99"
+        "tests/api/test_ingest_ops.py:116",
+        "tests/api/test_ingest_ops.py:97"
       ]
     },
     {
@@ -366,17 +405,17 @@
         "cc90ee37583f"
       ],
       "verified_by": [
-        "tests/api/test_ingest_ops.py:121",
-        "tests/api/test_ingest_ops.py:137",
-        "tests/api/test_ingest_ops.py:151",
-        "tests/api/test_ingest_ops.py:164",
-        "tests/api/test_ingest_ops.py:174"
+        "tests/api/test_ingest_ops.py:138",
+        "tests/api/test_ingest_ops.py:154",
+        "tests/api/test_ingest_ops.py:168",
+        "tests/api/test_ingest_ops.py:181",
+        "tests/api/test_ingest_ops.py:191"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R020.3",
       "title": "Pack and job management operations",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "822f55d5835d"
       ],
@@ -388,9 +427,41 @@
     {
       "id": "GRAPHOS-OPS-R020.3.1",
       "title": "Missing `ingest.packs.*` and `ingest.jobs.*` ops",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "16c9b2bddda3"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R020.3.1.1",
+        "GRAPHOS-OPS-R020.3.1.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3.1.1",
+      "title": "`ingest.packs.list` op",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "16c9b2bddda3"
+      ],
+      "verified_by": [
+        "tests/api/test_ingest_ops.py:228",
+        "tests/api/test_ingest_ops.py:240",
+        "tests/api/test_ingest_ops.py:249"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3.1.2",
+      "title": "`ingest.jobs.status` op",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "634a344fade7"
+      ],
+      "verified_by": [
+        "tests/api/test_ingest_ops.py:256",
+        "tests/api/test_ingest_ops.py:266",
+        "tests/api/test_ingest_ops.py:275"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R020.4",
@@ -413,7 +484,7 @@
     {
       "id": "GRAPHOS-OPS-R021",
       "title": "Decision, retrieval, and policy operations",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [],
       "verified_by": [],
       "rollup_of": [
@@ -434,9 +505,39 @@
     {
       "id": "GRAPHOS-OPS-R021.2",
       "title": "Retrieval, context, and freshness read operations — retrieval slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "e78a5e5b701e"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R021.2.1",
+        "GRAPHOS-OPS-R021.2.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R021.2.1",
+      "title": "`retrieval.search` op",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "e78a5e5b701e"
+      ],
+      "verified_by": [
+        "tests/api/test_retrieval_ops.py:43",
+        "tests/api/test_retrieval_ops.py:58"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R021.2.2",
+      "title": "`retrieval.freshness` op",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "f6f2177ab1e0"
+      ],
+      "verified_by": [
+        "tests/api/test_retrieval_ops.py:68",
+        "tests/api/test_retrieval_ops.py:81"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R021.3",
@@ -470,6 +571,48 @@
     {
       "id": "GRAPHOS-OPS-R022.2",
       "title": "Evolution loop, schedule, and proposal operations — evolution slice",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R022.2.1",
+        "GRAPHOS-OPS-R022.2.2",
+        "GRAPHOS-OPS-R022.2.3",
+        "GRAPHOS-OPS-R022.2.4",
+        "GRAPHOS-OPS-R022.2.5"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.1",
+      "title": "`evolution.loops.status` op",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.2",
+      "title": "`evolution.schedules.list` op",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.3",
+      "title": "`evolution.proposals.list` op",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.4",
+      "title": "`evolution.loops.run` op",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R022.2.5",
+      "title": "`evolution.loops.pause` op",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -704,9 +847,15 @@
     {
       "id": "GRAPHOS-OPS-R032.2.1",
       "title": "Identity runtime constructor in the composition root",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "3dc5a3607868"
+      ],
+      "verified_by": [
+        "tests/identity/test_identity_composition.py:32",
+        "tests/identity/test_identity_composition.py:52",
+        "tests/identity/test_identity_composition.py:62"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R032.2.2",
@@ -717,7 +866,43 @@
     },
     {
       "id": "GRAPHOS-OPS-R032.2.3",
-      "title": "Inject identity ports into webui_host and webui_co_service",
+      "title": "Inject identity ports into webui_host and webui_co_service (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R032.2.3.1",
+        "GRAPHOS-OPS-R032.2.3.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.1",
+      "title": "compose_web_application requires injected identity ports",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.2",
+      "title": "Thread identity ports through run_web_ui and the webui_host package (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R032.2.3.2.1",
+        "GRAPHOS-OPS-R032.2.3.2.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.2.1",
+      "title": "run_web_ui accepts and binds identity ports",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.2.2",
+      "title": "Supply identity ports from mcp_server composition to the agent-webui start call",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []

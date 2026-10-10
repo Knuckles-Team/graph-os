@@ -64,9 +64,13 @@
     {
       "id": "GRAPHOS-A2A-002-R005",
       "title": "No advisory, cached, or partial substitute",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "63762147f0bc"
+      ],
+      "verified_by": [
+        "tests/a2a/test_admission.py:52"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-002-R006",

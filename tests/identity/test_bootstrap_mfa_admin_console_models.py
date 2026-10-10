@@ -12,6 +12,7 @@ def test_bootstrap_accepts_loopback() -> None:
     assert LoopbackBootstrapPrincipal(bind_host="127.0.0.1").bind_host == "127.0.0.1"
 
 
+@pytest.mark.spec("GRAPHOS-IDENTITY-R004.1")
 def test_bootstrap_refuses_non_loopback_without_acknowledgment() -> None:
     with pytest.raises(IdentityUnavailable):
         LoopbackBootstrapPrincipal(bind_host="10.0.0.5")
@@ -24,6 +25,7 @@ def test_bootstrap_allows_non_loopback_with_acknowledgment() -> None:
     assert principal.exposure_acknowledged is True
 
 
+@pytest.mark.spec("GRAPHOS-IDENTITY-R004.1")
 def test_bootstrap_refuses_empty_host() -> None:
     with pytest.raises(IdentityUnavailable):
         LoopbackBootstrapPrincipal(bind_host="")

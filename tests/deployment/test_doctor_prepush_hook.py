@@ -8,6 +8,8 @@ path that does not resolve under the repository root.
 
 from __future__ import annotations
 
+import pytest
+
 from graph_os.deployment import doctor as D
 
 _REAL_SHIM = """#!/usr/bin/env bash
@@ -17,6 +19,7 @@ exec pre-commit "${ARGS[@]}"
 """
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R003")
 def test_missing_hook_is_a_failure(tmp_path):
     result = D.audit_prepush_shim(None, repo_root=tmp_path)
     assert result["status"] == "fail"
@@ -36,6 +39,7 @@ def test_shim_missing_config_reference_is_a_failure(tmp_path):
     assert "no --config reference" in result["detail"]
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R003")
 def test_relocated_config_path_is_a_failure_not_silent_pass(tmp_path):
     """The verification case named in requirements.md: a relocated config."""
     result = D.audit_prepush_shim(_REAL_SHIM, repo_root=tmp_path)

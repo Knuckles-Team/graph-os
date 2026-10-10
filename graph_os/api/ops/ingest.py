@@ -25,8 +25,10 @@ from graph_os.api.registry import (
     Verb,
 )
 from graph_os.ingest.service import (
+    get_job_status,
     get_source_status,
     index_repository,
+    list_packs,
     list_sources,
     sync_source,
 )
@@ -38,8 +40,10 @@ from graph_os.ingest.service import (
 #: (``graph_os.ingest.service``).
 __all__ = [
     "operations",
+    "get_job_status",
     "get_source_status",
     "index_repository",
+    "list_packs",
     "list_sources",
     "sync_source",
 ]
@@ -79,6 +83,22 @@ class IngestSourceStatusParams(_Params):
 
 
 class IngestSourceStatusResult(_Params):
+    value: dict[str, str]
+
+
+class IngestPacksListParams(_Params):
+    pass
+
+
+class IngestPackListResult(_Params):
+    value: dict[str, object]
+
+
+class IngestJobStatusParams(_Params):
+    job_id: str = Field(min_length=1, max_length=256)
+
+
+class IngestJobStatusResult(_Params):
     value: dict[str, str]
 
 
@@ -129,6 +149,28 @@ def operations() -> tuple[OpSpec, ...]:
             params=IngestSourceStatusParams,
             result=IngestSourceStatusResult,
             binding=Composite(handler="graph_os.api.ops.ingest.get_source_status"),
+            scopes=frozenset({"ingest:read"}),
+            effect=Effect.READ,
+        ),
+        OpSpec(
+            id="ingest.packs.list",
+            verb=Verb.FIND,
+            summary="List this tenant's ingestion packs",
+            examples=("list my ingestion packs",),
+            params=IngestPacksListParams,
+            result=IngestPackListResult,
+            binding=Composite(handler="graph_os.api.ops.ingest.list_packs"),
+            scopes=frozenset({"ingest:read"}),
+            effect=Effect.READ,
+        ),
+        OpSpec(
+            id="ingest.jobs.status",
+            verb=Verb.ASK,
+            summary="Show one durable ingestion job's current status",
+            examples=("show the status of this ingestion job",),
+            params=IngestJobStatusParams,
+            result=IngestJobStatusResult,
+            binding=Composite(handler="graph_os.api.ops.ingest.get_job_status"),
             scopes=frozenset({"ingest:read"}),
             effect=Effect.READ,
         ),

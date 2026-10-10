@@ -37,8 +37,21 @@ Status vocabulary is defined in [spec.md](spec.md). Check a task only after its 
 - [x] **GRAPHOS-HOST-R005.1:** Landed typed approved action-to-operation mapping model. Evidence: `tests/mcp_server/test_legacy_action_mapping.py`.
 - [ ] **GRAPHOS-HOST-R005.2:** Parity test proves no served action is dropped (rollup of .2.1-.2.8)
 - [ ] **GRAPHOS-HOST-R005.2.1:** Approved mapping for the analyze action family
+- [ ] **GRAPHOS-HOST-R005.2.1.1:** Add graph-os operation for code navigation actions
+- [ ] **GRAPHOS-HOST-R005.2.1.2:** Add graph-os operation for impact actions
+- [ ] **GRAPHOS-HOST-R005.2.1.3:** Add graph-os operation for `similar_code` and the remaining `graph_analyze` actions
+- [ ] **GRAPHOS-HOST-R005.2.1.4:** Add graph-os operation for `process_writeback`
+- [ ] **GRAPHOS-HOST-R005.2.1.5:** Approve the analyze mappings
 - [ ] **GRAPHOS-HOST-R005.2.2:** Approved mapping for the configure action family
 - [ ] **GRAPHOS-HOST-R005.2.3:** Approved mapping for the ingest action family
+- [ ] **GRAPHOS-HOST-R005.2.3.1:** Map `sync` to `ingest.sources.sync`
+- [ ] **GRAPHOS-HOST-R005.2.3.2:** Add graph-os operation for ingest submission actions
+- [ ] **GRAPHOS-HOST-R005.2.3.3:** Add graph-os operation for `backfill_platform_history` and `corpus`
+- [ ] **GRAPHOS-HOST-R005.2.3.4:** Add graph-os operation for job lifecycle actions
+- [ ] **GRAPHOS-HOST-R005.2.3.5:** Add graph-os operation for `rebuild_indexes` and `observe`
+- [ ] **GRAPHOS-HOST-R005.2.3.6:** Add graph-os operation for `materialize` and `materialize_source`
+- [ ] **GRAPHOS-HOST-R005.2.3.7:** Add graph-os operation for `reflect` and `agent_toolkit`
+- [ ] **GRAPHOS-HOST-R005.2.3.8:** Approve the ingest mappings
 - [ ] **GRAPHOS-HOST-R005.2.4:** Approved mapping for the query-memory action family
 - [ ] **GRAPHOS-HOST-R005.2.5:** Approved mapping for the orchestrate action family
 - [ ] **GRAPHOS-HOST-R005.2.6:** Approved mapping for the mine-learn action family

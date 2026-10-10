@@ -12,8 +12,21 @@
     "GRAPHOS-HOST-R005.1",
     "GRAPHOS-HOST-R005.2",
     "GRAPHOS-HOST-R005.2.1",
+    "GRAPHOS-HOST-R005.2.1.1",
+    "GRAPHOS-HOST-R005.2.1.2",
+    "GRAPHOS-HOST-R005.2.1.3",
+    "GRAPHOS-HOST-R005.2.1.4",
+    "GRAPHOS-HOST-R005.2.1.5",
     "GRAPHOS-HOST-R005.2.2",
     "GRAPHOS-HOST-R005.2.3",
+    "GRAPHOS-HOST-R005.2.3.1",
+    "GRAPHOS-HOST-R005.2.3.2",
+    "GRAPHOS-HOST-R005.2.3.3",
+    "GRAPHOS-HOST-R005.2.3.4",
+    "GRAPHOS-HOST-R005.2.3.5",
+    "GRAPHOS-HOST-R005.2.3.6",
+    "GRAPHOS-HOST-R005.2.3.7",
+    "GRAPHOS-HOST-R005.2.3.8",
     "GRAPHOS-HOST-R005.2.4",
     "GRAPHOS-HOST-R005.2.5",
     "GRAPHOS-HOST-R005.2.6",
@@ -142,11 +155,14 @@
     {
       "id": "GRAPHOS-HOST-R003",
       "title": "Web UI rename cutover across GraphOS",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "4ca77fbff9e3"
+        "4ca77fbff9e3",
+        "6dda5ac3548c"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/architecture/test_webui_rename_references.py:13"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R004",
@@ -208,6 +224,48 @@
       "title": "Approved mapping for the analyze action family",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R005.2.1.1",
+        "GRAPHOS-HOST-R005.2.1.2",
+        "GRAPHOS-HOST-R005.2.1.3",
+        "GRAPHOS-HOST-R005.2.1.4",
+        "GRAPHOS-HOST-R005.2.1.5"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.1.1",
+      "title": "Add graph-os operation for code navigation actions",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.1.2",
+      "title": "Add graph-os operation for impact actions",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.1.3",
+      "title": "Add graph-os operation for `similar_code` and the remaining `graph_analyze` actions",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.1.4",
+      "title": "Add graph-os operation for `process_writeback`",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.1.5",
+      "title": "Approve the analyze mappings",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
@@ -220,6 +278,76 @@
     {
       "id": "GRAPHOS-HOST-R005.2.3",
       "title": "Approved mapping for the ingest action family",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R005.2.3.1",
+        "GRAPHOS-HOST-R005.2.3.2",
+        "GRAPHOS-HOST-R005.2.3.3",
+        "GRAPHOS-HOST-R005.2.3.4",
+        "GRAPHOS-HOST-R005.2.3.5",
+        "GRAPHOS-HOST-R005.2.3.6",
+        "GRAPHOS-HOST-R005.2.3.7",
+        "GRAPHOS-HOST-R005.2.3.8"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3.1",
+      "title": "Map `sync` to `ingest.sources.sync`",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "567a2b417ed7"
+      ],
+      "verified_by": [
+        "tests/mcp_server/test_legacy_action_mapping_ingest_sync.py:11"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3.2",
+      "title": "Add graph-os operation for ingest submission actions",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3.3",
+      "title": "Add graph-os operation for `backfill_platform_history` and `corpus`",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3.4",
+      "title": "Add graph-os operation for job lifecycle actions",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3.5",
+      "title": "Add graph-os operation for `rebuild_indexes` and `observe`",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3.6",
+      "title": "Add graph-os operation for `materialize` and `materialize_source`",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3.7",
+      "title": "Add graph-os operation for `reflect` and `agent_toolkit`",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R005.2.3.8",
+      "title": "Approve the ingest mappings",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -874,11 +1002,15 @@
     {
       "id": "GRAPHOS-HOST-R010",
       "title": "GraphOS owns hosting/deployment configuration settings",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
+        "396d8307596f",
         "afc93c497524"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_host_config.py:32",
+        "tests/deployment/test_host_config.py:43"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R011",

@@ -51,18 +51,38 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [x] **GRAPHOS-IDENTITY-R007.1:** Typed admin-console tab model with refusal tests
 - [x] **GRAPHOS-IDENTITY-R007.2:** Mapping dry-run preview and mode-transition wizard
 - [ ] **GRAPHOS-IDENTITY-R008.1:** Typed API-key grant model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R008.2:** Scope intersection at use time and immediate revocation
+- [x] **GRAPHOS-IDENTITY-R008.2:** Scope intersection at use time and immediate revocation
 - [x] **GRAPHOS-IDENTITY-R009:** Multi-provider OIDC with mapping rules and JIT policy
 - [x] **GRAPHOS-IDENTITY-R009.1:** Typed OIDC mapping-rule model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R009.2:** PKCE/state/nonce flow, presets, link migration, hinted logout
+- [ ] **GRAPHOS-IDENTITY-R009.2:** OIDC authentication flow (rollup)
+- [ ] **GRAPHOS-IDENTITY-R009.2.1:** Ordered claim-to-rule evaluation
+- [ ] **GRAPHOS-IDENTITY-R009.2.2:** ID-token validation inputs and typed refusal
+- [ ] **GRAPHOS-IDENTITY-R009.2.3:** Callback handler wiring, link migration, hinted logout
+- [ ] **GRAPHOS-IDENTITY-R009.2.4:** Live IdP probe
 - [ ] **GRAPHOS-IDENTITY-R010:** LDAPS bind with nested group sync
 - [ ] **GRAPHOS-IDENTITY-R010.1:** Typed LDAPS bind-config model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R010.2:** Directory bind, filter escaping, nested-group sync, deprovisioning
+- [ ] **GRAPHOS-IDENTITY-R010.2:** Directory bind, filter escaping, nested-group sync, deprovisioning (rollup)
+- [x] **GRAPHOS-IDENTITY-R010.2.1:** Group-DN-to-role mapping evaluation with refusal on no match
+- [x] **GRAPHOS-IDENTITY-R010.2.2:** Bind through injected directory port, filter escaping
+- [ ] **GRAPHOS-IDENTITY-R010.2.3:** Scheduled nested-group sync and deprovisioning (rollup)
+- [x] **GRAPHOS-IDENTITY-R010.2.3.1:** Pure directory sync plan with empty-snapshot refusal
+- [ ] **GRAPHOS-IDENTITY-R010.2.3.2:** Schedule the sync and apply the plan through the identity port
+- [ ] **GRAPHOS-IDENTITY-R010.2.4:** Live directory probe
 - [ ] **GRAPHOS-IDENTITY-R011.1:** Typed SCIM service-credential model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R011.2:** SCIM create/update/patch/deactivate server surface
+- [ ] **GRAPHOS-IDENTITY-R011.2:** SCIM create/update/patch/deactivate server surface (rollup)
+- [x] **GRAPHOS-IDENTITY-R011.2.1:** Typed SCIM User resource model with refusal tests
+- [x] **GRAPHOS-IDENTITY-R011.2.2:** SCIM credential check via `ScimServiceCredential.authorizes`
+- [ ] **GRAPHOS-IDENTITY-R011.2.3:** SCIM create/patch/deactivate handlers through an injected identity port
+- [ ] **GRAPHOS-IDENTITY-R011.2.4:** SCIM route registration
 - [ ] **GRAPHOS-IDENTITY-R012:** Native SAML service provider (rollup)
 - [ ] **GRAPHOS-IDENTITY-R012.1:** Typed SAML service-provider model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R012.2:** Assertion verification and SAML sign-in
+- [ ] **GRAPHOS-IDENTITY-R012.2:** Assertion verification and SAML sign-in (rollup)
+- [ ] **GRAPHOS-IDENTITY-R012.2.1:** Typed parsed-assertion model and audience/recipient/time-window checks
+- [ ] **GRAPHOS-IDENTITY-R012.2.2:** Signature verification through an injected verifier port
+- [ ] **GRAPHOS-IDENTITY-R012.2.3:** Replay check and sign-in handler wiring
+- [ ] **GRAPHOS-IDENTITY-R012.2.3.1:** Replay check through a seen-assertion-id store port
+- [ ] **GRAPHOS-IDENTITY-R012.2.3.2:** Sign-in handler wiring into the browser authority
+- [ ] **GRAPHOS-IDENTITY-R012.2.4:** Live IdP sign-in probe
 - [ ] **GRAPHOS-IDENTITY-R016:** Optional SMTP adapter for identity email
 - [ ] **GRAPHOS-IDENTITY-R016.1:** Remaining scope of GRAPHOS-IDENTITY-R016 (slice .1): Optional SMTP adapter for identity email
 - [ ] **GRAPHOS-IDENTITY-R016.2:** Remaining scope of GRAPHOS-IDENTITY-R016 (slice .2): Optional SMTP adapter for identity email

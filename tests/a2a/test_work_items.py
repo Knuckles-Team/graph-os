@@ -28,6 +28,7 @@ _RECORD = {
 }
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 def test_projects_a_real_record_into_a_typed_view() -> None:
     view = work_item_view(_RECORD)
     assert view == WorkItemView(
@@ -41,6 +42,7 @@ def test_projects_a_real_record_into_a_typed_view() -> None:
     )
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 def test_optional_fields_default_when_absent() -> None:
     minimal = {
         "work_item_id": "workitem:orchestrator:x",
@@ -54,6 +56,7 @@ def test_optional_fields_default_when_absent() -> None:
     assert view.metadata == {}
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 @pytest.mark.parametrize("field_name", ["work_item_id", "kind", "tenant", "created_by"])
 def test_missing_required_field_is_refused(field_name: str) -> None:
     record = {k: v for k, v in _RECORD.items() if k != field_name}
@@ -61,6 +64,7 @@ def test_missing_required_field_is_refused(field_name: str) -> None:
         work_item_view(record)
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 @pytest.mark.parametrize("field_name", ["work_item_id", "kind", "tenant", "created_by"])
 def test_blank_required_field_is_refused(field_name: str) -> None:
     record = {**_RECORD, field_name: "   "}
@@ -68,16 +72,19 @@ def test_blank_required_field_is_refused(field_name: str) -> None:
         work_item_view(record)
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 def test_non_mapping_metadata_is_refused() -> None:
     with pytest.raises(ValueError, match="metadata"):
         work_item_view({**_RECORD, "metadata": "not-a-mapping"})
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 def test_parse_reports_a_malformed_record_as_absent() -> None:
     assert parse_work_item_view({**_RECORD, "tenant": ""}) is None
     assert parse_work_item_view(_RECORD) is not None
 
 
+@pytest.mark.spec("GRAPHOS-FLEET-R005.1")
 def test_list_drops_malformed_records_and_keeps_order() -> None:
     second = {**_RECORD, "work_item_id": "workitem:orchestrator:second"}
     broken = {**_RECORD, "kind": ""}
