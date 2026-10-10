@@ -43,13 +43,24 @@ class CompositionPlan:
 def detect_composition(
     engine: Any = None, *, messaging_intake_enabled: bool | None = None
 ) -> CompositionPlan:
-    """Read optional co-service intent without starting background work."""
-    from agent_utilities.core.config import config
+    """Read optional co-service intent without starting background work.
 
+    Single Telegram/messaging owner (root cause of the ``getUpdates`` 409
+    conflict loop): only the gateway daemon process (``KG_DAEMON_ROLE=host``,
+    ``graph_os.gateway.daemon``) may ever start inbound polling. Every other
+    entry point — the main MCP server, CLI, one-shot scripts — runs as
+    ``KG_DAEMON_ROLE=client`` and stays send-only regardless of the
+    ``MESSAGING_INTAKE_ENABLED`` deployment flag. A present ``TELEGRAM_BOT_TOKEN``
+    alone must never decide pollership, so this role check is ANDed with the
+    explicit flag rather than substituting for it.
+    """
+    from agent_utilities.core.config import config, setting
+
+    is_gateway_daemon_role = str(setting("KG_DAEMON_ROLE", "client")).strip() == "host"
     return CompositionPlan(
         messaging_platforms=configured_platforms(engine),
         web_ui_enabled=bool(getattr(config, "enable_web_ui", False)),
-        messaging_intake_enabled=bool(messaging_intake_enabled),
+        messaging_intake_enabled=bool(messaging_intake_enabled) and is_gateway_daemon_role,
     )
 
 
