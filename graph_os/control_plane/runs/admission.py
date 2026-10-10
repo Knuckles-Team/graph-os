@@ -91,7 +91,9 @@ class CapacityAcquisition:
             return dict(self._held.get(run_id, {}))
 
     def _can_satisfy(self, resources: dict[str, int]) -> bool:
-        return all(self._capacity.get(key, 0) >= units for key, units in resources.items())
+        return all(
+            self._capacity.get(key, 0) >= units for key, units in resources.items()
+        )
 
     def _commit(self, run_id: str, resources: dict[str, int]) -> None:
         for key, units in resources.items():
