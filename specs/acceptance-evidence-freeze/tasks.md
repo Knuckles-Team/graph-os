@@ -14,4 +14,5 @@ Status: SPECIFIED. Governing spec: [spec.md](spec.md). Design: [plan.md](plan.md
 
 ## Decomposition children (tracked)
 
+- [x] **GRAPHOS-ACCEPTANCE-R001:** Typed acceptance-evidence model and freeze-gap checker
 - [ ] **GRAPHOS-ACCEPTANCE-R001:** Typed acceptance-evidence model and freeze-gap checker

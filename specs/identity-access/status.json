@@ -32,7 +32,11 @@
     "GRAPHOS-IDENTITY-R021",
     "GRAPHOS-IDENTITY-R022",
     "GRAPHOS-IDENTITY-R023",
-    "GRAPHOS-IDENTITY-R024"
+    "GRAPHOS-IDENTITY-R024",
+    "GRAPHOS-IDENTITY-R016.1",
+    "GRAPHOS-IDENTITY-R016.2",
+    "GRAPHOS-IDENTITY-R017.1",
+    "GRAPHOS-IDENTITY-R017.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -582,6 +586,30 @@
     {
       "id": "GRAPHOS-IDENTITY-R024",
       "title": "Committed browser and Keycloak SSO probe",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R016.1",
+      "title": "Remaining scope of GRAPHOS-IDENTITY-R016 (slice .1): Optional SMTP adapter for identity email",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R016.2",
+      "title": "Remaining scope of GRAPHOS-IDENTITY-R016 (slice .2): Optional SMTP adapter for identity email",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R017.1",
+      "title": "Remaining scope of GRAPHOS-IDENTITY-R017 (slice .1): Remove the unauthenticated opt-out once clients migrate",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R017.2",
+      "title": "Remaining scope of GRAPHOS-IDENTITY-R017 (slice .2): Remove the unauthenticated opt-out once clients migrate",
       "delivery_state": "SPECIFIED",
       "evidence": []
     }
