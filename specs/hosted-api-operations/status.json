@@ -551,8 +551,10 @@
     {
       "id": "GRAPHOS-OPS-R026",
       "title": "API surface and compatibility drift gates",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "4b9d181069e4"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-OPS-R026.1",
@@ -562,23 +564,44 @@
     {
       "id": "GRAPHOS-OPS-R026.1",
       "title": "API-surface drift gate — api-surface slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "4b9d181069e4"
+      ],
+      "verified_by": [
+        "tests/api/test_surface_drift_gate.py:107",
+        "tests/api/test_surface_drift_gate.py:52",
+        "tests/api/test_surface_drift_gate.py:61",
+        "tests/api/test_surface_drift_gate.py:71",
+        "tests/api/test_surface_drift_gate.py:80"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R026.2",
       "title": "Backward-compatibility drift gate — backward-compat slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "4b9d181069e4"
+      ],
+      "verified_by": [
+        "tests/api/test_backward_compat_drift_gate.py:42",
+        "tests/api/test_backward_compat_drift_gate.py:51",
+        "tests/api/test_backward_compat_drift_gate.py:60",
+        "tests/api/test_backward_compat_drift_gate.py:70",
+        "tests/api/test_backward_compat_drift_gate.py:79"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R027",
       "title": "Authority-parity test across principals and surfaces",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "4b9d181069e4"
+      ],
+      "verified_by": [
+        "tests/api/test_authority_parity.py:114",
+        "tests/api/test_authority_parity.py:120"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R028",
@@ -730,7 +753,8 @@
       "title": "Native first-party A2A facade",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "20f773df9ddd"
+        "20f773df9ddd",
+        "d53165c2e72c"
       ],
       "verified_by": [
         "tests/a2a/test_application.py:68",
