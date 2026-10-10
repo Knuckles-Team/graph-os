@@ -130,7 +130,9 @@
       "title": "Fail-closed `graphos.plan/confirm` stub on the A2A method table",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/a2a/test_application.py:274"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R005.2",
@@ -175,7 +177,7 @@
       ],
       "verified_by": [
         "tests/a2a/test_application.py:236",
-        "tests/a2a/test_application.py:274"
+        "tests/a2a/test_application.py:275"
       ]
     },
     {
