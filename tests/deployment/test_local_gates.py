@@ -16,7 +16,9 @@ from graph_os.deployment.local_gates import (
 def test_push_blocked_while_a_local_gate_is_red() -> None:
     reports = [
         GateReport(name="ruff", green=True),
-        GateReport(name="kubernetes-test-namespace", green=False, detail="pod not ready"),
+        GateReport(
+            name="kubernetes-test-namespace", green=False, detail="pod not ready"
+        ),
     ]
     with pytest.raises(GateBlockedError) as excinfo:
         require_green_local_gates(reports)
@@ -27,9 +29,13 @@ def test_push_blocked_while_a_local_gate_is_red() -> None:
 def test_push_proceeds_once_every_local_gate_is_green() -> None:
     reports = [
         GateReport(name="ruff", green=True),
-        GateReport(name="kubernetes-test-namespace", green=True, detail="namespace=release-test"),
+        GateReport(
+            name="kubernetes-test-namespace",
+            green=True,
+            detail="namespace=release-test",
+        ),
     ]
-    assert require_green_local_gates(reports) is None
+    require_green_local_gates(reports)  # does not raise
 
 
 @pytest.mark.spec("GRAPHOS-RELEASE-R002")

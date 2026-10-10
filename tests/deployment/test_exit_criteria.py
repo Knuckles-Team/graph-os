@@ -44,4 +44,6 @@ def test_audit_never_marks_an_unregistered_obligation_as_a_silent_pass() -> None
     audit = audit_exit_criteria(matrix=[], collected_test_ids=["anything::at_all"])
     assert audit.satisfied == ()
     assert audit.missing == ()
-    assert audit.all_satisfied is True  # vacuously true over zero rows, never fabricated
+    assert (
+        audit.all_satisfied is True
+    )  # vacuously true over zero rows, never fabricated
