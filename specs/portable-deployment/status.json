@@ -1,7 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-DEPLOY-001",
   "owner_repo": "graph-os",
+  "delivery_state": "LANDED",
   "requirement_ids": [
     "GRAPHOS-DEPLOY-R001",
     "GRAPHOS-DEPLOY-R002",
@@ -11,541 +12,247 @@
     "GRAPHOS-DEPLOY-R006",
     "GRAPHOS-DEPLOY-R007",
     "GRAPHOS-DEPLOY-R007.1",
+    "GRAPHOS-DEPLOY-R007.2",
+    "GRAPHOS-DEPLOY-R007.3",
+    "GRAPHOS-DEPLOY-R007.4",
+    "GRAPHOS-DEPLOY-R007.5",
     "GRAPHOS-DEPLOY-R008",
     "GRAPHOS-DEPLOY-R009",
+    "GRAPHOS-DEPLOY-R009.1",
     "GRAPHOS-DEPLOY-R010",
     "GRAPHOS-DEPLOY-R011",
     "GRAPHOS-DEPLOY-R012",
     "GRAPHOS-DEPLOY-R013",
     "GRAPHOS-DEPLOY-R014",
     "GRAPHOS-DEPLOY-R015",
-    "GRAPHOS-DEPLOY-R016",
-    "GRAPHOS-DEPLOY-R007.2",
-    "GRAPHOS-DEPLOY-R007.3",
-    "GRAPHOS-DEPLOY-R007.4",
-    "GRAPHOS-DEPLOY-R007.5",
-    "GRAPHOS-DEPLOY-R009.1"
+    "GRAPHOS-DEPLOY-R016"
   ],
-  "delivery_state": "BUILDING",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-DEPLOY-R001",
       "title": "Worker topology manifest is digest-pinned",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "e7ae64dec334e0f841ea668ef3423d6aebbf9b62",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/e7ae64dec334e0f841ea668ef3423d6aebbf9b62",
-          "description": "GRAPHOS-DEPLOY-R001 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "e7ae64dec334"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R002",
       "title": "Executable release-qualification runbook",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d75db1ea42e89878569c94ed3c8f2190c14a6172",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d75db1ea42e89878569c94ed3c8f2190c14a6172",
-          "description": "GRAPHOS-DEPLOY-R002 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "d75db1ea42e8",
+        "eaabc7449a93"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R003",
       "title": "Pre-push hooks always run the full gate suite",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "Pre-push hook is installed and resolves to .pre-commit-config.yaml, and CI (release.yml) runs 'pre-commit run --hook-stage pre-push' directly, bypassing shim risk; but no committed test invokes the generated shim itself to prove it never silently no-ops on a relocated/missing config, as the requirem"
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "4a2d2cd9ac55",
+        "c3c6be59a12a"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R004",
       "title": "mypy hook type-checks the test suite",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "9d8a787b8495fd7aa8dffd3955653f1542858134",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/9d8a787b8495fd7aa8dffd3955653f1542858134",
-          "description": "Implemented on the default branch."
-        }
-      ]
+      "landed_in": [
+        "9d8a787b8495"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R005",
       "title": "Web UI keeps its component package name",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "ebb644b377cd8b0a92c5863f1d0213cf68a85095",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/ebb644b377cd8b0a92c5863f1d0213cf68a85095",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d75db1ea42e89878569c94ed3c8f2190c14a6172",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d75db1ea42e89878569c94ed3c8f2190c14a6172",
-          "description": "GRAPHOS-DEPLOY-R005 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "d75db1ea42e8",
+        "eaabc7449a93"
       ],
-      "remaining": "Rescoped by operator decision 2026-10-09: no rename cutover; agent-webui stays the component name and only user-visible strings read Graph OS (agent-webui PR #51)."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R006",
       "title": "gateway-widgets extra pins a compatible connector floor",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "d58ee3e250284c8bbf0347174d748d0ceca2ae24",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d58ee3e250284c8bbf0347174d748d0ceca2ae24",
-          "description": "GRAPHOS-DEPLOY-R006 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "45283d0137b9",
+        "d58ee3e25028",
+        "f42856691f97"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R007",
       "title": "GraphOS hosts deployment doctor and skill certification",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers agent-utilities-doctor = graph_os.deployment.doctor:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "29bf0fa1313da6c0bd1f5a591a0310e832f73652",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/118",
-          "description": "agent-utilities side: PR #118 removes the duplicate agent-utilities-doctor = agent_utilities.deployment.doctor:main registration from agent-utilities' pyproject.toml, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.1 merged to the default branch in this commit."
-        },
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers setup-config = graph_os.deployment.cli:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
-          "description": "agent-utilities side: PR #120 removes the duplicate setup-config = agent_utilities.deployment.cli:main registration (one of four in this PR) from agent-utilities' pyproject.toml, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.2 merged to the default branch in this commit."
-        },
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers graph-os-daemon = graph_os.gateway.daemon:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
-          "description": "agent-utilities side: PR #120 removes the duplicate graph-os-daemon = agent_utilities.gateway.daemon:main registration (one of four in this PR) from agent-utilities' pyproject.toml, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.3 merged to the default branch in this commit."
-        },
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers agent-utilities-venv = graph_os.deployment.venv_sync:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
-          "description": "agent-utilities side: PR #120 removes the duplicate agent-utilities-venv = agent_utilities.deployment.venv_sync:main registration (one of four in this PR) from agent-utilities' pyproject.toml, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.4 merged to the default branch in this commit."
-        },
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers graph-os-release-canary = graph_os.deployment.release_canary:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
-          "description": "agent-utilities side: PR #120 removes the duplicate graph-os-release-canary = agent_utilities.deployment.release_canary:main registration (one of four in this PR), and updates the one test that asserted this package's own pyproject.toml declares it, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.5 merged to the default branch in this commit."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.1 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.2 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.3 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.4 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.5 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
-        }
+      "landed_in": [
+        "fd761d59a171"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-DEPLOY-R007.1",
+        "GRAPHOS-DEPLOY-R007.2",
+        "GRAPHOS-DEPLOY-R007.3",
+        "GRAPHOS-DEPLOY-R007.4",
+        "GRAPHOS-DEPLOY-R007.5"
       ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.1",
-      "title": "agent-utilities-doctor console-script collision resolved",
+      "title": "`agent-utilities-doctor` console-script collision resolved",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers agent-utilities-doctor = graph_os.deployment.doctor:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "29bf0fa1313da6c0bd1f5a591a0310e832f73652",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/118",
-          "description": "agent-utilities side: PR #118 removes the duplicate agent-utilities-doctor = agent_utilities.deployment.doctor:main registration from agent-utilities' pyproject.toml, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.1 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "fd761d59a171"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R007.2",
+      "title": "`setup-config` console-script collision resolved",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fd761d59a171"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R007.3",
+      "title": "`graph-os-daemon` console-script collision resolved",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fd761d59a171"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R007.4",
+      "title": "`agent-utilities-venv` console-script collision resolved",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fd761d59a171"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R007.5",
+      "title": "`graph-os-release-canary` console-script collision resolved",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "fd761d59a171"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R008",
       "title": "GraphOS hosts its own boundary modules",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "ae856bc9a101"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R009",
       "title": "GraphOS owns hosting/deployment configuration settings",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "ae856bc9a101"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-DEPLOY-R009.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R009.1",
+      "title": "GraphOS hosts a typed `graph_os.core.config_admin` hosting/deployment settings module",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "ae856bc9a101"
+      ],
+      "verified_by": [
+        "tests/core/test_config_admin.py:17",
+        "tests/core/test_config_admin.py:30",
+        "tests/core/test_config_admin.py:41",
+        "tests/core/test_config_admin.py:57"
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R010",
       "title": "Ecosystem and repository development skills are published",
-      "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "remaining": "graph_os/skills/graph-os-development/SKILL.md exists and covers ecosystem ownership boundaries, but AGENTS.md (200 lines) is not trimmed to a navigation pointer -- it still duplicates setup/gates/branching procedure; no separate ecosystem-wide skill distinct from the repo skill; contract-regeneratio"
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "96e23d7f4ed4"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R011",
       "title": "Deployment layout test suite passes in full",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "2b605acbf3a6",
+        "962462cdc788"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R012",
       "title": "Pipelines dependency is referenced at main, never pinned",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "6c4b89f91732edb2af6953803685deea250882d2",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/6c4b89f91732edb2af6953803685deea250882d2",
-          "description": "Implemented on the default branch; exercised by tests/deployment/test_release_workflow_sources.py"
-        }
-      ]
+      "landed_in": [
+        "0f780429fb19",
+        "6c4b89f91732"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R013",
       "title": "Development and production deployment profiles",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "2abb9ebb3905e2daedc3e4c5e83dc5682c13f2bd",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/2abb9ebb3905e2daedc3e4c5e83dc5682c13f2bd",
-          "description": "PR #23 landed Kubernetes client prerequisite selection for dev/test/prod/enterprise and validated named environments. Missing kubectl/Helm, failed or timed-out probes, and invalid profiles block; probes remain client-only. This is source/fixture proof, not cluster access or first-boot acceptance. Merge verified as an ancestor of main 937d38569cef9f07abf46fd064aff98c24a33c85."
-        },
-        {
-          "kind": "test",
-          "result": "passed",
-          "commit": "7694c6eb891a23186805bc8cb62c531fc642ee5f",
-          "url": "https://github.com/Knuckles-Team/graph-os/actions/runs/37174546666",
-          "description": "PR #23 exact-head Release workflow passed gates (commit/push hooks, locked-environment mypy and full pytest), scanner quality and wheel build. Release-tag dependency readiness and publication were skipped; no installed-package, live-profile, identity, image-pull or CNI acceptance is inferred."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "0da5f7440603cd3112bf25dc091d84a9a902fb1d",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/0da5f7440603cd3112bf25dc091d84a9a902fb1d",
-          "description": "PR #24 landed the read-only Kubernetes first-boot observation verifier and offline fixtures for workload ownership/configuration, image digests, pod readiness and PVCs, with bounded collection and fail-closed malformed/missing evidence. Supplied engine/identity/administrator/secrets flags are snapshot-bound, not authenticated; acceptance remains not_qualified even when all flags are supplied. Merge verified as an ancestor of main 937d38569cef9f07abf46fd064aff98c24a33c85."
-        },
-        {
-          "kind": "test",
-          "result": "passed",
-          "commit": "80a4c66e071862f1335f2e3487090005f728d62e",
-          "url": "https://github.com/Knuckles-Team/graph-os/actions/runs/37175887401",
-          "description": "PR #24 exact-head Release workflow passed gates (commit/push hooks, locked-environment mypy and full pytest), scanner quality and wheel build. Release-tag dependency readiness and publication were skipped; no installed-package, live-profile, identity, image-pull or CNI acceptance is inferred."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "e9d99298003518d7b54f33a9854b48e471f6926c",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/e9d99298003518d7b54f33a9854b48e471f6926c",
-          "description": "PR #25 landed extension pod imagePullSecrets references and deduplicated configured extension TCP ports in the release-wide NetworkPolicy's same-namespace ingress rule, plus verified Helm 4.3.0 provisioning for CI. Render fixtures cover sidecar/child/shared topologies and preserved external ingress/egress constraints; they do not prove live registry pulls, CNI enforcement or application readiness. Merge verified as an ancestor of main 937d38569cef9f07abf46fd064aff98c24a33c85."
-        },
-        {
-          "kind": "test",
-          "result": "passed",
-          "commit": "7d700fc7cefca8c680bb5879cca71a1d1ff3a5e3",
-          "url": "https://github.com/Knuckles-Team/graph-os/actions/runs/37173473826",
-          "description": "PR #25 exact-head Release workflow passed gates (commit/push hooks, locked-environment mypy and full pytest), scanner quality and wheel build. Release-tag dependency readiness and publication were skipped; no installed-package, live-profile, identity, image-pull or CNI acceptance is inferred."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "e9d99298003518d7b54f33a9854b48e471f6926c",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/e9d99298003518d7b54f33a9854b48e471f6926c",
-          "description": "GRAPHOS-DEPLOY-R013 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "0da5f7440603",
+        "2abb9ebb3905",
+        "99028d9d9f82",
+        "d75db1ea42e8",
+        "e9d992980035"
       ],
-      "remaining": "R013 remains BUILDING and the spec remains NOT_AUDITED. Provision and independently verify the R013 development Compose and production Kubernetes/Helm profiles with the required engine sidecar; record exact profile/render/release digests and the selected identity mode and secrets backend. Before accepting traffic, prove engine/application readiness, the required first-administrator/bootstrap authority, default authorization policy and selected secrets resolution, including refusal when any prerequisite is absent or unhealthy. Qualify none/local/external behavior through the served identity authority and its owning identity-access contract; Kubernetes observations or supplied booleans cannot establish it. Prove authenticated pulls of pinned extension images with configured pull-secret references and live CNI allow/deny behavior for the release-wide extension-port rule (including 9123), preserving external ingress/egress restrictions. Retain functional MCP/API and selected-browser, persistence/recovery and rollback receipts. See tasks.md for the exact remaining checklist; no live qualification or release acceptance is recorded here."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R014",
       "title": "Agent runtime split into connector SDK, GraphOS and engine",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fe7c5c9a4a322c1bc033ed867561424e93df6492",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fe7c5c9a4a322c1bc033ed867561424e93df6492",
-          "description": "Implemented on the default branch; exercised by tests/deployment/test_release_workflow_sources.py"
-        }
-      ]
+      "landed_in": [
+        "fe7c5c9a4a32"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R015",
       "title": "AVX2 guard test runs on any hosted runner",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "67a387e5dbeddaafc987d0a677afc1c9c6bb483c",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/67a387e5dbeddaafc987d0a677afc1c9c6bb483c",
-          "description": "GRAPHOS-DEPLOY-R015 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "67a387e5dbed"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R016",
       "title": "One host daemon process shares the in-pod engine",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "eb31b775768129c7d22513265413f255c6056659",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/eb31b775768129c7d22513265413f255c6056659",
-          "description": "GRAPHOS-DEPLOY-R016 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "8b20c11b5dc5",
+        "eb31b7757681",
+        "f3bcee6dfbcf"
       ],
-      "remaining": "The internal deployment manifest carries the daemon container and its contract test. The manifest is not applied. Live receipts for host-lock ownership, process identity and sparse index growth are pending. The Helm production profile does not yet carry the daemon container."
-    },
-    {
-      "id": "GRAPHOS-DEPLOY-R007.2",
-      "title": "setup-config console-script collision resolved",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers setup-config = graph_os.deployment.cli:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
-          "description": "agent-utilities side: PR #120 removes the duplicate setup-config = agent_utilities.deployment.cli:main registration (one of four in this PR) from agent-utilities' pyproject.toml, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.2 merged to the default branch in this commit."
-        }
-      ]
-    },
-    {
-      "id": "GRAPHOS-DEPLOY-R007.3",
-      "title": "graph-os-daemon console-script collision resolved",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers graph-os-daemon = graph_os.gateway.daemon:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
-          "description": "agent-utilities side: PR #120 removes the duplicate graph-os-daemon = agent_utilities.gateway.daemon:main registration (one of four in this PR) from agent-utilities' pyproject.toml, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.3 merged to the default branch in this commit."
-        }
-      ]
-    },
-    {
-      "id": "GRAPHOS-DEPLOY-R007.4",
-      "title": "agent-utilities-venv console-script collision resolved",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers agent-utilities-venv = graph_os.deployment.venv_sync:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
-          "description": "agent-utilities side: PR #120 removes the duplicate agent-utilities-venv = agent_utilities.deployment.venv_sync:main registration (one of four in this PR) from agent-utilities' pyproject.toml, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.4 merged to the default branch in this commit."
-        }
-      ]
-    },
-    {
-      "id": "GRAPHOS-DEPLOY-R007.5",
-      "title": "graph-os-release-canary console-script collision resolved",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "graph-os side already owned this console script before this split: pyproject.toml's [project.scripts] registers graph-os-release-canary = graph_os.deployment.release_canary:main on main."
-        },
-        {
-          "kind": "pr",
-          "result": "passed",
-          "commit": "f7542b2cedd14008152c96fedfba339b5bece85d",
-          "url": "https://github.com/Knuckles-Team/agent-utilities/pull/120",
-          "description": "agent-utilities side: PR #120 removes the duplicate graph-os-release-canary = agent_utilities.deployment.release_canary:main registration (one of four in this PR), and updates the one test that asserted this package's own pyproject.toml declares it, open and not yet merged."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
-          "description": "GRAPHOS-DEPLOY-R007.5 merged to the default branch in this commit."
-        }
-      ]
-    },
-    {
-      "id": "GRAPHOS-DEPLOY-R009.1",
-      "title": "Remaining scope of GRAPHOS-DEPLOY-R009 (slice .1): GraphOS owns hosting/deployment configuration settings",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "verified_by": []
     }
   ]
 }

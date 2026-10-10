@@ -264,6 +264,36 @@ jobs:
             scripts/local_hook.sh pytest "${affected_tests[@]}"
           fi
 
+  # Fast, parallel spec-status lifecycle gate
+  # (plans/refactor/reconciliation-20261006/SPEC-STATUS-LIFECYCLE.md). Reads
+  # only git and tracked text under specs/ -- no build, no network -- so it
+  # runs standalone and is deliberately NOT a required check and NOT wired
+  # into any other job's `needs:`.
+  spec-gates:
+    name: spec-gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - *release-uv
+
+      - name: Spec status and decomposition are consistent
+        run: |
+          set -euo pipefail
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' pipelines-hook spec-status
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' pipelines-hook spec-decomposition
+
+      - name: Spec commit trailers (pull requests only)
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' \
+            pipelines-hook spec-trailers --base-ref "origin/${{ github.base_ref }}"
+
   scanner-quality:
     timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}
     name: Scanner quality (cccc, KISS, dupehound, jscpd)
