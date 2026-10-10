@@ -1,5 +1,5 @@
-"""GRAPHOS-FLEET-R006.1: the harvest call-site inventory, the removal
-baseline.
+"""GRAPHOS-FLEET-R006.1/.2: the harvest call-site inventory, and the first
+removal.
 
 ``graph_os/fleet/multiplexer.py`` still carries the skill/prompt
 body-harvest path (``_harvest_resource_bodies`` and its helpers) that
@@ -7,12 +7,16 @@ body-harvest path (``_harvest_resource_bodies`` and its helpers) that
 catalog (``graph_os/fleet/local_skill_catalog.py``) serves the same
 capability for an admitted child. This is a static, source-level census:
 it enumerates every ``_harvest``-named entry point defined in that module
-and every call site of ``_harvest_resource_bodies`` inside the three probe
-methods that invoke it today (``_probe_protocol_families``,
-``_probe_skills``, ``_probe_prompts``), and pins today's counts as the
-baseline the later children must shrink. No removal happens in this
-child; a failure here means a harvest-named symbol or call site was
-added or removed without updating the pinned baseline below.
+and every direct call site of ``_harvest_resource_bodies`` inside the
+probe methods that invoke it, and pins the counts as the baseline the
+later children must shrink. ``GRAPHOS-FLEET-R006.2`` moved ``_probe_skills``'
+and ``_probe_prompts``' call sites behind the new
+``_resolve_via_local_catalog_or_harvest`` cutover helper -- a non-admitted
+child still reaches ``_harvest_resource_bodies`` through it, but the call
+site no longer lives textually inside either probe method, so those two
+entries drop out of the pinned baseline below. A failure here means a
+harvest-named symbol or call site was added or removed without updating
+the pinned baseline.
 """
 
 from __future__ import annotations
@@ -40,15 +44,15 @@ _BASELINE_HARVEST_ENTRY_POINTS = frozenset(
     }
 )
 
-# GRAPHOS-FLEET-R006.1 baseline: call sites of _harvest_resource_bodies,
-# by the enclosing probe method. GRAPHOS-FLEET-R006.2 drops the
-# _probe_skills and _probe_prompts call sites for an admitted child
-# (leaving the fleet-harvest fallback for a non-admitted child), and
-# GRAPHOS-FLEET-R006.3 drops the remaining _probe_protocol_families sites.
+# GRAPHOS-FLEET-R006.1/.2 baseline: call sites of _harvest_resource_bodies,
+# by the enclosing probe method. GRAPHOS-FLEET-R006.2 dropped the
+# _probe_skills and _probe_prompts call sites for an admitted child (the
+# fleet-harvest fallback for a non-admitted child now runs through
+# _resolve_via_local_catalog_or_harvest instead, which is not one of the
+# three probe methods this census tracks), and GRAPHOS-FLEET-R006.3 drops
+# the remaining _probe_protocol_families sites.
 _BASELINE_CALL_SITES_BY_METHOD = {
     "_probe_protocol_families": 2,
-    "_probe_skills": 1,
-    "_probe_prompts": 1,
 }
 _BASELINE_TOTAL_CALL_SITES = sum(_BASELINE_CALL_SITES_BY_METHOD.values())
 

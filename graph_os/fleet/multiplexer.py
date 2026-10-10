@@ -4976,7 +4976,7 @@ class MCPMultiplexer:
                 redact_for_log(exc),
             )
             return []
-        await self._harvest_resource_bodies(
+        await self._resolve_via_local_catalog_or_harvest(
             server_name,
             session,
             skills,
@@ -4985,6 +4985,59 @@ class MCPMultiplexer:
             probe_deadline=probe_deadline,
         )
         return skills
+
+    async def _resolve_via_local_catalog_or_harvest(
+        self,
+        server_name: str,
+        session: _typing.Any,
+        entries: list[dict],
+        spec: _ResourceHarvestSpec,
+        reader: _typing.Any,
+        *,
+        probe_deadline: float | None = None,
+    ) -> None:
+        """Fill each entry's body from the resident local catalog when its
+        name is already admitted there (GRAPHOS-FLEET-R006.2); only the
+        remainder -- a name the resident local-skill catalog
+        (``graph_os.fleet.local_skill_catalog.build_local_skill_catalog``)
+        does not resolve -- still costs the pre-existing live
+        ``_harvest_resource_bodies`` round trip against ``session``. An
+        admitted child's skill/prompt resources are already served from a
+        package installed in THIS process (the same resolution
+        ``_local_skill_probe_info`` caches for the local-skill pseudo-server),
+        so reading the identical body back over the wire from the mounted
+        child would be redundant work for zero new information.
+        """
+        try:
+            local_entries = self._local_skill_probe_info().get("skills") or []
+        except AttributeError:
+            # A bare ``MCPMultiplexer.__new__(MCPMultiplexer)`` test fixture
+            # never ran ``__init__`` and so has no ``_local_skill_probe_cache``
+            # to build from; fall back to a fresh, uncached resolution rather
+            # than letting that pre-existing test pattern crash here.
+            local_entries, _problems = build_local_skill_catalog()
+        local_bodies = {
+            item["name"]: item["instructions"]
+            for item in local_entries
+            if item.get("name") and item.get("instructions")
+        }
+        non_admitted: list[dict] = []
+        for entry in entries:
+            local_body = local_bodies.get(entry.get("name"))
+            if local_body is not None:
+                entry[spec.body_field] = local_body
+                continue
+            non_admitted.append(entry)
+        if not non_admitted:
+            return
+        await self._harvest_resource_bodies(
+            server_name,
+            session,
+            non_admitted,
+            spec,
+            reader,
+            probe_deadline=probe_deadline,
+        )
 
     async def _harvest_resource_bodies(
         self,
@@ -5119,7 +5172,7 @@ class MCPMultiplexer:
                 redact_for_log(exc),
             )
             return []
-        await self._harvest_resource_bodies(
+        await self._resolve_via_local_catalog_or_harvest(
             server_name,
             session,
             prompts,
