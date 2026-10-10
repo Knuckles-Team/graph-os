@@ -17,10 +17,20 @@
     "GRAPHOS-IDENTITY-R007.1",
     "GRAPHOS-IDENTITY-R007.2",
     "GRAPHOS-IDENTITY-R008",
+    "GRAPHOS-IDENTITY-R008.1",
+    "GRAPHOS-IDENTITY-R008.2",
     "GRAPHOS-IDENTITY-R009",
+    "GRAPHOS-IDENTITY-R009.1",
+    "GRAPHOS-IDENTITY-R009.2",
     "GRAPHOS-IDENTITY-R010",
+    "GRAPHOS-IDENTITY-R010.1",
+    "GRAPHOS-IDENTITY-R010.2",
     "GRAPHOS-IDENTITY-R011",
+    "GRAPHOS-IDENTITY-R011.1",
+    "GRAPHOS-IDENTITY-R011.2",
     "GRAPHOS-IDENTITY-R012",
+    "GRAPHOS-IDENTITY-R012.1",
+    "GRAPHOS-IDENTITY-R012.2",
     "GRAPHOS-IDENTITY-R013",
     "GRAPHOS-IDENTITY-R014",
     "GRAPHOS-IDENTITY-R015",
@@ -349,9 +359,29 @@
       ]
     },
     {
+      "id": "GRAPHOS-IDENTITY-R008.1",
+      "title": "Typed API-key grant model with refusal tests",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "description": "graph_os/identity/api_keys.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R008.2",
+      "title": "Scope intersection at use time and immediate revocation",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
       "id": "GRAPHOS-IDENTITY-R009",
       "title": "Multi-provider OIDC with mapping rules and JIT policy",
-      "delivery_state": "LANDED",
+      "delivery_state": "BUILDING",
       "evidence": [
         {
           "kind": "branch",
@@ -370,6 +400,26 @@
       ]
     },
     {
+      "id": "GRAPHOS-IDENTITY-R009.1",
+      "title": "Typed OIDC mapping-rule model with refusal tests",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "description": "graph_os/identity/oidc.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R009.2",
+      "title": "PKCE/state/nonce flow, presets, link migration, hinted logout",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
       "id": "GRAPHOS-IDENTITY-R010",
       "title": "LDAPS bind with nested group sync",
       "delivery_state": "BUILT",
@@ -382,6 +432,26 @@
           "description": "Implementation commit is published on a branch; not yet merged to the default branch."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.1",
+      "title": "Typed LDAPS bind-config model with refusal tests",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/e74110bb69b568d5033285dac6ba044a03bcaa43",
+          "description": "graph_os/identity/ldap.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.2",
+      "title": "Directory bind, filter escaping, nested-group sync, deprovisioning",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     },
     {
       "id": "GRAPHOS-IDENTITY-R011",
@@ -398,8 +468,52 @@
       ]
     },
     {
+      "id": "GRAPHOS-IDENTITY-R011.1",
+      "title": "Typed SCIM service-credential model with refusal tests",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "117ad5b56bc6e7a8e39e415405ab57eedc218d3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/117ad5b56bc6e7a8e39e415405ab57eedc218d3d",
+          "description": "graph_os/identity/scim.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R011.2",
+      "title": "SCIM create/update/patch/deactivate server surface",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
       "id": "GRAPHOS-IDENTITY-R012",
-      "title": "Native SAML service provider",
+      "title": "Native SAML service provider (rollup)",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "children": [
+        "GRAPHOS-IDENTITY-R012.1",
+        "GRAPHOS-IDENTITY-R012.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.1",
+      "title": "Typed SAML service-provider model with refusal tests",
+      "delivery_state": "BUILT",
+      "evidence": [
+        {
+          "kind": "branch",
+          "result": "passed",
+          "commit": "117ad5b56bc6e7a8e39e415405ab57eedc218d3d",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/117ad5b56bc6e7a8e39e415405ab57eedc218d3d",
+          "description": "graph_os/identity/saml.py + refusal tests; implementation commit published on a branch, not yet merged to the default branch."
+        }
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R012.2",
+      "title": "Assertion verification and SAML sign-in",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },

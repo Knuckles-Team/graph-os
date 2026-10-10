@@ -27,6 +27,7 @@
     "GRAPHOS-FLEET-R009",
     "GRAPHOS-FLEET-R009.1",
     "GRAPHOS-FLEET-R009.2",
+    "GRAPHOS-FLEET-R009.3",
     "GRAPHOS-FLEET-R010",
     "GRAPHOS-FLEET-R011",
     "GRAPHOS-FLEET-R012",
@@ -42,6 +43,7 @@
     "GRAPHOS-FLEET-R022",
     "PA-12",
     "GRAPHOS-FLEET-R023",
+    "GRAPHOS-FLEET-R023.1",
     "GRAPHOS-FLEET-R024",
     "GRAPHOS-FLEET-R024.1",
     "GRAPHOS-FLEET-R024.2",
@@ -57,8 +59,7 @@
     "PA-12.1",
     "PA-12.2",
     "GRAPHOS-FLEET-R008.1",
-    "GRAPHOS-FLEET-R008.2",
-    "GRAPHOS-FLEET-R009.3"
+    "GRAPHOS-FLEET-R008.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -264,7 +265,7 @@
       "title": "Run admission evaluates, commits and publishes with capacity control (rollup)",
       "delivery_state": "SPECIFIED",
       "evidence": [],
-      "remaining": "Split across its 3 code roots (exceeds the 2-code-root threshold). GRAPHOS-FLEET-R009.1 (the all-or-nothing capacity primitive) is published on a branch, not yet merged. GRAPHOS-FLEET-R009.2 (wiring routing.py/composition.py through it) is specified but not started."
+      "remaining": "Split into GRAPHOS-FLEET-R009.1/.2/.3; this row is satisfied once all three children land."
     },
     {
       "id": "GRAPHOS-FLEET-R009.1",
@@ -283,7 +284,13 @@
     },
     {
       "id": "GRAPHOS-FLEET-R009.2",
-      "title": "Routing and composition publish only through acquired capacity",
+      "title": "Run admission acquires capacity before publish",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R009.3",
+      "title": "A2A routing and composition publish only after capacity grant",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
@@ -490,8 +497,15 @@
     {
       "id": "GRAPHOS-FLEET-R023",
       "title": "Connector count pins stay consistent across the fleet",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "BUILDING",
       "evidence": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R023.1",
+      "title": "Pure connector count-pin comparison (producer)",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "graph_os/fleet/connector_count_pins.py and scripts/check_connector_count_pins.py are implemented and unit-tested (tests/test_check_connector_count_pins.py), but no real count-pin site is wired in: the compatibility matrix and its check script are AU-owned, and the bundle-catalog schema/ontology.lock/federated IRI do not exist anywhere in the fleet yet. Real site wiring is cross-repo follow-up."
     },
     {
       "id": "GRAPHOS-FLEET-R024",
@@ -644,13 +658,13 @@
     },
     {
       "id": "PA-12.1",
-      "title": "Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence (rollup)",
+      "title": "Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "PA-12.2",
-      "title": "Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence (rollup)",
+      "title": "Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
@@ -671,12 +685,6 @@
     {
       "id": "GRAPHOS-FLEET-R008.2",
       "title": "Live feed ingestion wired into the catalog",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-FLEET-R009.3",
-      "title": "Run admission publishes with all-or-nothing capacity control",
       "delivery_state": "SPECIFIED",
       "evidence": []
     }

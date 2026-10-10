@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "spec_id": "GRAPHOS-A2A-003",
+  "owner_repo": "graph-os",
+  "requirement_ids": [
+    "GRAPHOS-A2A-R001",
+    "GRAPHOS-A2A-R001.1",
+    "GRAPHOS-A2A-R002",
+    "GRAPHOS-A2A-R003",
+    "GRAPHOS-A2A-R004",
+    "GRAPHOS-A2A-R005",
+    "GRAPHOS-A2A-R006",
+    "GRAPHOS-A2A-R007"
+  ],
+  "delivery_state": "BUILDING",
+  "acceptance_state": "NOT_AUDITED",
+  "evidence": [],
+  "requirements": [
+    {
+      "id": "GRAPHOS-A2A-R001",
+      "title": "Advertise only what is wired",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "Typed model (R001.1) landed in this PR; actual authority wiring for streaming/push/history is open and depends on GRAPHOS-A2A-002."
+    },
+    {
+      "id": "GRAPHOS-A2A-R001.1",
+      "title": "Typed Agent Card capability-advertisement model",
+      "delivery_state": "BUILDING",
+      "evidence": [],
+      "remaining": "tests/a2a/test_models.py passes locally on this branch (default-false, selective-true, all-true, non-conforming-object refusal); awaiting merged-head evidence."
+    },
+    {
+      "id": "GRAPHOS-A2A-R002",
+      "title": "WorkItem stream projection, not a shadow log",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Depends on GRAPHOS-A2A-002 landing."
+    },
+    {
+      "id": "GRAPHOS-A2A-R003",
+      "title": "Transition history is read-through to epistemic-graph",
+      "delivery_state": "SPECIFIED",
+      "evidence": [],
+      "remaining": "Depends on GRAPHOS-A2A-002 landing."
+    },
+    {
+      "id": "GRAPHOS-A2A-R004",
+      "title": "Typed refusal when the durable history authority is absent",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R005",
+      "title": "Push notifications are best-effort over a durable outbox",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R006",
+      "title": "No capability advertised before GRAPHOS-A2A-002 lands",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R007",
+      "title": "Caller-visible card matches served behavior",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    }
+  ]
+}

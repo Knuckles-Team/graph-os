@@ -45,6 +45,18 @@ def _session(tenant: str, *, scopes: tuple[str, ...] = ("kg:read",)) -> GraphSes
     )
 
 
+async def _assert_ask_denied(
+    served_native: SimpleNamespace, actor: ActorContext, session: GraphSession
+) -> None:
+    """Shared stdio/networked denial assertion: run ``ask`` as ``actor`` and
+    confirm the real native-tool entry point denies it without delegating."""
+    with use_actor(actor), use_session(session), pytest.raises(ToolError):
+        await served_native.call(
+            server_name="graph-os", tool_name="ask", arguments={"query": "read"}
+        )
+    assert served_native.observed == []
+
+
 @pytest.fixture
 def served_native(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
     _reset_served_multiplexer_for_tests()
@@ -141,6 +153,63 @@ async def test_unknown_native_handler_is_not_exposed(
         await served_native.call(server_name="graph-os", tool_name=tool, arguments={})
     assert served_native.observed == []
     served_native.mux.delegate_server_tool.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_native_dispatch_denies_admin_only_stdio_caller_without_delegate_scope(
+    served_native: SimpleNamespace,
+) -> None:
+    """GRAPHOS-IDENTITY-R022: the real native-tool entry point
+    (``_call_native_tool``, reached here through the served ``graph-os``
+    dispatch) must deny a local/stdio caller who holds only a generic
+    ``admin`` capability and not the fleet's own ``mcp:delegate`` scope --
+    exactly as it would deny an equally-scoped networked caller below."""
+    session = _session("tenant-a")
+    actor = replace(session.actor, roles=("admin",))
+    await _assert_ask_denied(served_native, actor, session)
+
+
+@pytest.mark.asyncio
+async def test_native_dispatch_denies_admin_only_networked_caller_without_delegate_scope(
+    served_native: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Same real entry point, the networked path: an authenticated HTTP
+    bearer caller holding only ``admin`` (never the exact ``mcp:delegate``
+    fleet scope) is denied identically to the stdio caller above -- proving
+    stdio/networked parity through the production dispatch path rather than
+    only the lower-level capability-check unit."""
+    monkeypatch.setattr(
+        "fastmcp.server.dependencies.get_http_request", lambda: SimpleNamespace()
+    )
+    monkeypatch.setattr(
+        "fastmcp.server.dependencies.get_access_token",
+        lambda: SimpleNamespace(scopes=["admin"], claims=None),
+    )
+    session = _session("tenant-a")
+    await _assert_ask_denied(served_native, session.actor, session)
+
+
+@pytest.mark.asyncio
+async def test_native_dispatch_allows_networked_caller_with_exact_delegate_scope(
+    served_native: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Positive parity half: a networked caller holding the exact
+    ``mcp:delegate`` fleet scope (no admin grant at all) is allowed through
+    the same real entry point, matching the stdio caller's success in
+    ``test_api_native_result_matches_served_mcp``."""
+    monkeypatch.setattr(
+        "fastmcp.server.dependencies.get_http_request", lambda: SimpleNamespace()
+    )
+    monkeypatch.setattr(
+        "fastmcp.server.dependencies.get_access_token",
+        lambda: SimpleNamespace(scopes=["mcp:delegate"], claims=None, client_id=None),
+    )
+    session = _session("tenant-a")
+    with use_actor(session.actor), use_session(session):
+        result = await served_native.call(
+            server_name="graph-os", tool_name="ask", arguments={"query": "read"}
+        )
+    assert result["tenant"] == "tenant-a"
 
 
 @pytest.mark.asyncio

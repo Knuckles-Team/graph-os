@@ -1,6 +1,6 @@
 # A2A task and approval projection — test contract
 
-Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. Governing [spec](spec.md).
+Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. Governing spec: [GRAPHOS-A2A-001](spec.md).
 
 | Test | Requirement | Setup and expected result |
 |---|---|---|

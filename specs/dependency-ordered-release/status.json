@@ -7,7 +7,13 @@
     "GRAPHOS-RELEASE-R002",
     "GRAPHOS-RELEASE-R003",
     "GRAPHOS-RELEASE-R003.1",
-    "GRAPHOS-RELEASE-R003.2"
+    "GRAPHOS-RELEASE-R003.2",
+    "GRAPHOS-RELEASE-R003.3",
+    "GRAPHOS-RELEASE-R003.4",
+    "GRAPHOS-RELEASE-R003.5",
+    "GRAPHOS-RELEASE-R003.6",
+    "GRAPHOS-RELEASE-R003.7",
+    "GRAPHOS-RELEASE-R003.8"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -37,17 +43,54 @@
       "id": "GRAPHOS-RELEASE-R003",
       "title": "Exit-criteria matrix maps readiness to tests",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "evidence": [],
+      "note": "Rollup. Split into GRAPHOS-RELEASE-R003.1 (typed model) first; later children cover each readiness-obligation code root (ingestion, query, orchestration, connector certification, write-back, browser/IdP, typed abstention)."
     },
     {
       "id": "GRAPHOS-RELEASE-R003.1",
-      "title": "Remaining scope of GRAPHOS-RELEASE-R003 (slice .1): Exit-criteria matrix maps readiness to tests",
+      "title": "Typed exit-criteria matrix model with obligation/test mapping validation",
       "delivery_state": "SPECIFIED",
       "evidence": []
     },
     {
       "id": "GRAPHOS-RELEASE-R003.2",
-      "title": "Remaining scope of GRAPHOS-RELEASE-R003 (slice .2): Exit-criteria matrix maps readiness to tests",
+      "title": "the one entry point that loads a real matrix (committed fixture or CLI command) and the ingestion-receipt row's mapped test",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.3",
+      "title": "SPARQL and natural-language query-proof rows",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.4",
+      "title": "multi-agent orchestration-graph row",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.5",
+      "title": "connector-certification row",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.6",
+      "title": "write-back receipt row",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.7",
+      "title": "browser-and-identity-provider login probe row",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.8",
+      "title": "typed-abstention response row",
       "delivery_state": "SPECIFIED",
       "evidence": []
     }
