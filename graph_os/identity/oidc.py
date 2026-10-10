@@ -1,12 +1,15 @@
 """Typed model for ordered OIDC mapping rules (GRAPHOS-IDENTITY-R009).
 
-Slice .1: the typed model, construction validation, and refusal tests only.
-PKCE/state/nonce verification and JIT policy enforcement are later slices.
+Slice .1: the typed model and construction validation.
+Slice .2.1: pure ordered claim-to-rule evaluation (``select_mapping_rule``).
+PKCE/state/nonce verification and the callback wiring are later slices.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from .engine import IdentityUnavailable
 
@@ -37,3 +40,39 @@ class OidcMappingRule:
             raise IdentityUnavailable(
                 f"unknown JIT policy {self.jit_policy!r}; expected one of {sorted(_JIT_POLICIES)}"
             )
+
+
+def _claim_matches(claim_match: str, claims: Mapping[str, Any]) -> bool:
+    """True when ``name=value`` matches a scalar claim or a member of a list claim."""
+    name, sep, expected = claim_match.partition("=")
+    if not sep or not name or not expected:
+        raise IdentityUnavailable(
+            f"malformed OIDC claim match {claim_match!r}; expected 'name=value'"
+        )
+    actual = claims.get(name)
+    if isinstance(actual, str):
+        return actual == expected
+    if isinstance(actual, (list, tuple, set, frozenset)):
+        return expected in actual
+    return False
+
+
+def select_mapping_rule(
+    rules: Iterable[OidcMappingRule],
+    provider_id: str,
+    claims: Mapping[str, Any],
+) -> OidcMappingRule:
+    """Return the first rule (lowest ``order``) of the provider matching the claims.
+
+    Fails closed: no matching rule, or two rules sharing an order, is refused.
+    """
+    candidates = sorted(
+        (r for r in rules if r.provider_id == provider_id), key=lambda r: r.order
+    )
+    orders = [r.order for r in candidates]
+    if len(set(orders)) != len(orders):
+        raise IdentityUnavailable("OIDC mapping rules have ambiguous duplicate order")
+    for rule in candidates:
+        if _claim_matches(rule.claim_match, claims):
+            return rule
+    raise IdentityUnavailable("no OIDC mapping rule matches the presented claims")
