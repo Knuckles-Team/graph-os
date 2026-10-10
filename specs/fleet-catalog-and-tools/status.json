@@ -108,7 +108,9 @@
       "id": "GRAPHOS-FLEET-R003",
       "title": "D18 write-back exposed only as a typed, previewed operation (rollup)",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-FLEET-R003.1",
@@ -174,7 +176,9 @@
       "id": "GRAPHOS-FLEET-R006",
       "title": "Multiplexer skill and prompt harvest path removed",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-FLEET-R006.1",
@@ -188,7 +192,9 @@
       "id": "GRAPHOS-FLEET-R007",
       "title": "Bridge upgraded to FastMCP 4 (rollup)",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-FLEET-R007.1",
@@ -200,7 +206,9 @@
       "id": "GRAPHOS-FLEET-R008",
       "title": "RUM, security-audit and CI/CD feeds join the catalog (rollup)",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "67b1b9ab916e"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-FLEET-R008.1",
@@ -225,7 +233,10 @@
       "id": "GRAPHOS-FLEET-R009",
       "title": "Run admission evaluates, commits and publishes with capacity control",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "67b1b9ab916e",
+        "c77ede8726fa"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-FLEET-R009.1",
@@ -236,8 +247,10 @@
     {
       "id": "GRAPHOS-FLEET-R009.1",
       "title": "Capacity acquisition is all-or-nothing with one re-decision",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "c77ede8726fa"
+      ],
       "verified_by": [
         "tests/control_plane/admission/test_capacity_acquisition.py:13",
         "tests/control_plane/admission/test_capacity_acquisition.py:23",
@@ -249,8 +262,10 @@
     {
       "id": "GRAPHOS-FLEET-R009.2",
       "title": "Routing and composition publish only through acquired capacity",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "c77ede8726fa"
+      ],
       "verified_by": []
     },
     {
@@ -278,8 +293,10 @@
     {
       "id": "GRAPHOS-FLEET-R006.1",
       "title": "Harvest call-site inventory, the removal baseline",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "a94c87aa090e"
+      ],
       "verified_by": [
         "tests/fleet/test_harvest_inventory.py:106",
         "tests/fleet/test_harvest_inventory.py:117"
@@ -288,8 +305,10 @@
     {
       "id": "GRAPHOS-FLEET-R006.2",
       "title": "Skill/prompt body-harvest cutover for an already-admitted child",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "a94c87aa090e"
+      ],
       "verified_by": []
     },
     {
@@ -388,8 +407,10 @@
     {
       "id": "GRAPHOS-FLEET-R016",
       "title": "Automated gates catch API surface and compatibility drift",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "ba0aa6a11b4a"
+      ],
       "verified_by": [
         "tests/api/test_gates_cli.py:106",
         "tests/api/test_gates_cli.py:57",
@@ -400,8 +421,10 @@
     {
       "id": "GRAPHOS-FLEET-R017",
       "title": "Authority-parity oracle validates principal, operation and surface",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "ba0aa6a11b4a"
+      ],
       "verified_by": [
         "tests/api/test_authority_parity.py:78"
       ]
@@ -440,6 +463,8 @@
       "delivery_state": "LANDED",
       "landed_in": [
         "18038a22a875",
+        "2c70abad2b68",
+        "336f9faf3f21",
         "444cedaf2b6d",
         "e7a32f572005"
       ],

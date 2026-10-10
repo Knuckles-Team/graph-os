@@ -23,8 +23,10 @@
     {
       "id": "GRAPHOS-RELEASE-R002",
       "title": "Local Kubernetes validation gates every push",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "03ec8432da14"
+      ],
       "verified_by": [
         "tests/deployment/test_local_gates.py:15",
         "tests/deployment/test_local_gates.py:28",
@@ -37,7 +39,9 @@
       "id": "GRAPHOS-RELEASE-R003",
       "title": "Exit-criteria matrix maps readiness to tests",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "03ec8432da14"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-RELEASE-R003.1",
@@ -47,8 +51,10 @@
     {
       "id": "GRAPHOS-RELEASE-R003.1",
       "title": "Exit-criteria matrix registry and audit mechanism (graph-os side, against the currently pinned epistemic-graph)",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "03ec8432da14"
+      ],
       "verified_by": [
         "tests/deployment/test_exit_criteria.py:10",
         "tests/deployment/test_exit_criteria.py:27",

@@ -197,6 +197,7 @@
       "delivery_state": "VERIFIED",
       "landed_in": [
         "1fb96633563e",
+        "a974d10c5d0c",
         "ea736715b7fb"
       ],
       "verified_by": [
@@ -230,7 +231,7 @@
     {
       "id": "GRAPHOS-OPS-R017",
       "title": "Finance and markets operations with tenant isolation",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [],
       "verified_by": [],
       "rollup_of": [
@@ -241,8 +242,10 @@
     {
       "id": "GRAPHOS-OPS-R017.1",
       "title": "Tenant-scoped market reads under finance:read",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
       "verified_by": [
         "tests/finance/test_markets.py:34",
         "tests/finance/test_markets.py:68"
@@ -251,14 +254,16 @@
     {
       "id": "GRAPHOS-OPS-R017.2",
       "title": "Position and paper-trading actions with subject ownership checks",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R018",
       "title": "Query, search, ontology, and analytics operations",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [],
       "verified_by": [],
       "rollup_of": [
@@ -269,21 +274,25 @@
     {
       "id": "GRAPHOS-OPS-R018.1",
       "title": "Sparql, sql_schema, and ontology operations",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R018.2",
       "title": "Uql, sql, search, indexes, and analytics.series operations",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R019",
       "title": "Federation source registration and sharing operations",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [],
       "verified_by": [],
       "rollup_of": [
@@ -294,15 +303,19 @@
     {
       "id": "GRAPHOS-OPS-R019.1",
       "title": "Federation source register, list, get, and probe",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R019.2",
       "title": "Federation source share and unshare",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
       "verified_by": []
     },
     {
@@ -327,6 +340,7 @@
       "delivery_state": "VERIFIED",
       "landed_in": [
         "822f55d5835d",
+        "a974d10c5d0c",
         "e990e195ab42"
       ],
       "verified_by": [
@@ -339,7 +353,8 @@
       "title": "Repository indexing and source inventory operations",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "822f55d5835d"
+        "822f55d5835d",
+        "a974d10c5d0c"
       ],
       "verified_by": [
         "tests/api/test_ingest_ops.py:121",
@@ -558,8 +573,10 @@
     {
       "id": "GRAPHOS-OPS-R029",
       "title": "Single resident-tool server cutover",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "5bc24c262ef0"
+      ],
       "verified_by": [
         "tests/api/test_resident_tool_surface.py:33",
         "tests/api/test_resident_tool_surface.py:43",
@@ -569,8 +586,10 @@
     {
       "id": "GRAPHOS-OPS-R030",
       "title": "Accurate MCP server and API documentation",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "5bc24c262ef0"
+      ],
       "verified_by": [
         "tests/docs/test_mcp_server_doc_accuracy.py:24",
         "tests/docs/test_mcp_server_doc_accuracy.py:38"
@@ -579,8 +598,10 @@
     {
       "id": "GRAPHOS-OPS-R031",
       "title": "Published tool-to-operation parity inventory",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "5bc24c262ef0"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-OPS-R031.1"
@@ -589,8 +610,10 @@
     {
       "id": "GRAPHOS-OPS-R031.1",
       "title": "Fleet meta-tool parity mapping — resident fleet slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "5bc24c262ef0"
+      ],
       "verified_by": [
         "tests/api/test_fleet_tool_parity_inventory.py:33",
         "tests/api/test_fleet_tool_parity_inventory.py:42"
@@ -610,8 +633,10 @@
     {
       "id": "GRAPHOS-OPS-R032.1",
       "title": "Static identity-ports import boundary",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "b97b75e763ed"
+      ],
       "verified_by": [
         "tests/architecture/test_identity_ports_boundary.py:51"
       ]
@@ -655,8 +680,10 @@
     {
       "id": "GRAPHOS-OPS-R035.1",
       "title": "Four-tool meta-registration and routing-only visibility, unit-bound",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "b97b75e763ed"
+      ],
       "verified_by": [
         "tests/api/mcp/test_registration_governed_visibility.py:27",
         "tests/api/mcp/test_registration_governed_visibility.py:58"

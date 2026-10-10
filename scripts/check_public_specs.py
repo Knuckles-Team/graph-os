@@ -150,20 +150,26 @@ def _receipt_errors(path: Path, data: dict, entries: object) -> list[str]:
     return errors
 
 
-def _status_field_errors_v2(path: Path, data: dict) -> list[str]:
+def _common_status_field_errors(
+    path: Path, data: dict, schema_version: int, delivery_states: frozenset[str]
+) -> list[str]:
     errors = []
     ids = data.get("requirement_ids")
     if (
-        data.get("schema_version") != 2
+        data.get("schema_version") != schema_version
         or not data.get("spec_id")
         or not data.get("owner_repo")
     ):
         errors.append(f"{path}: schema_version, spec_id, and owner_repo are required")
     if not _valid_ids(ids):
         errors.append(f"{path}: nonempty real requirement_ids are required")
-    if data.get("delivery_state") not in DELIVERY_STATES_V2:
+    if data.get("delivery_state") not in delivery_states:
         errors.append(f"{path}: invalid delivery_state")
     return errors
+
+
+def _status_field_errors_v2(path: Path, data: dict) -> list[str]:
+    return _common_status_field_errors(path, data, 2, DELIVERY_STATES_V2)
 
 
 def _requirement_entry_errors_v2(path: Path, entry: dict) -> list[str]:
@@ -262,18 +268,7 @@ def _requirement_errors(root: Path, path: Path, data: dict) -> list[str]:
 
 
 def _status_field_errors(path: Path, data: dict) -> list[str]:
-    errors = []
-    ids = data.get("requirement_ids")
-    if (
-        data.get("schema_version") != 1
-        or not data.get("spec_id")
-        or not data.get("owner_repo")
-    ):
-        errors.append(f"{path}: schema_version, spec_id, and owner_repo are required")
-    if not _valid_ids(ids):
-        errors.append(f"{path}: nonempty real requirement_ids are required")
-    if data.get("delivery_state") not in DELIVERY_STATES:
-        errors.append(f"{path}: invalid delivery_state")
+    errors = _common_status_field_errors(path, data, 1, DELIVERY_STATES)
     if data.get("acceptance_state") not in ACCEPTANCE_STATES:
         errors.append(f"{path}: invalid acceptance_state")
     return errors

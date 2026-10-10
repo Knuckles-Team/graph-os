@@ -2,7 +2,7 @@
   "schema_version": 2,
   "spec_id": "GRAPHOS-DEPLOY-001",
   "owner_repo": "graph-os",
-  "delivery_state": "SPECIFIED",
+  "delivery_state": "LANDED",
   "requirement_ids": [
     "GRAPHOS-DEPLOY-R001",
     "GRAPHOS-DEPLOY-R002",
@@ -150,15 +150,19 @@
     {
       "id": "GRAPHOS-DEPLOY-R008",
       "title": "GraphOS hosts its own boundary modules",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "ae856bc9a101"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R009",
       "title": "GraphOS owns hosting/deployment configuration settings",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "ae856bc9a101"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-DEPLOY-R009.1"
@@ -167,8 +171,10 @@
     {
       "id": "GRAPHOS-DEPLOY-R009.1",
       "title": "GraphOS hosts a typed `graph_os.core.config_admin` hosting/deployment settings module",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "ae856bc9a101"
+      ],
       "verified_by": [
         "tests/core/test_config_admin.py:17",
         "tests/core/test_config_admin.py:30",

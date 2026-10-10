@@ -247,8 +247,11 @@
     {
       "id": "GRAPHOS-IDENTITY-R018",
       "title": "Identity administration operations for self, admin, config",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "2c70abad2b68",
+        "336f9faf3f21"
+      ],
       "verified_by": []
     },
     {
@@ -274,8 +277,11 @@
     {
       "id": "GRAPHOS-IDENTITY-R021",
       "title": "Identity wiring depends only on identity ports",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "2c70abad2b68",
+        "336f9faf3f21"
+      ],
       "verified_by": [
         "tests/identity/test_identity_ports_boundary.py:105",
         "tests/identity/test_identity_ports_boundary.py:77"
@@ -284,8 +290,10 @@
     {
       "id": "GRAPHOS-IDENTITY-R022",
       "title": "Fleet authorization fails closed on exact scopes",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "2c70abad2b68"
+      ],
       "verified_by": [
         "tests/fleet/test_multiplexer_dynamic_gateway.py:1510",
         "tests/fleet/test_multiplexer_dynamic_gateway.py:1721",
