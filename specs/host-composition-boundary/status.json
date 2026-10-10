@@ -109,7 +109,18 @@
     "GRAPHOS-HOST-R022",
     "GRAPHOS-HOST-R023",
     "GRAPHOS-HOST-R024",
-    "GRAPHOS-HOST-R025"
+    "GRAPHOS-HOST-R025",
+    "GRAPHOS-HOST-R026",
+    "GRAPHOS-HOST-R026.1",
+    "GRAPHOS-HOST-R026.2",
+    "GRAPHOS-HOST-R026.3",
+    "GRAPHOS-HOST-R026.4",
+    "GRAPHOS-HOST-R026.5",
+    "GRAPHOS-HOST-R027",
+    "GRAPHOS-HOST-R027.1",
+    "GRAPHOS-HOST-R027.2",
+    "GRAPHOS-HOST-R027.3",
+    "GRAPHOS-HOST-R028"
   ],
   "requirements": [
     {
@@ -1017,6 +1028,97 @@
       "landed_in": [
         "c39349d16c53"
       ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R026",
+      "title": "Durable A2A task persistence in the graph-os agent host",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "8d1bc46ecbdb"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R026.1",
+        "GRAPHOS-HOST-R026.2",
+        "GRAPHOS-HOST-R026.3",
+        "GRAPHOS-HOST-R026.4",
+        "GRAPHOS-HOST-R026.5"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R026.1",
+      "title": "Define the typed A2A task-store port",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R026.2",
+      "title": "Implement the engine-backed A2A task store",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R026.3",
+      "title": "Wire the hosted A2A app to the task store, fail-closed when absent",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R026.4",
+      "title": "Add the doctor check for A2A task persistence",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R026.5",
+      "title": "Point the `g34-a2a` certification gate at graph-os tests",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R027",
+      "title": "Loopback OIDC authority for skill certification",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-HOST-R027.1",
+        "GRAPHOS-HOST-R027.2",
+        "GRAPHOS-HOST-R027.3"
+      ]
+    },
+    {
+      "id": "GRAPHOS-HOST-R027.1",
+      "title": "Add the loopback OIDC authority owner module for skill certification",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R027.2",
+      "title": "Add the loopback OIDC authority test fixture",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R027.3",
+      "title": "Add the loopback OIDC authority script",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-HOST-R028",
+      "title": "Bump the pinned agent-utilities source for the new `agent_utilities.api.*` export modules",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     }
   ]

@@ -47,7 +47,8 @@
     "GRAPHOS-IDENTITY-R021",
     "GRAPHOS-IDENTITY-R022",
     "GRAPHOS-IDENTITY-R023",
-    "GRAPHOS-IDENTITY-R024"
+    "GRAPHOS-IDENTITY-R024",
+    "GRAPHOS-IDENTITY-R025"
   ],
   "requirements": [
     {
@@ -508,6 +509,13 @@
     {
       "id": "GRAPHOS-IDENTITY-R024",
       "title": "Committed browser and Keycloak SSO probe",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R025",
+      "title": "Register identity ops once the engine contract lists `identity:admin`",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []

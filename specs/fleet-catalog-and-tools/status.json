@@ -66,7 +66,10 @@
     "GRAPHOS-FLEET-R028",
     "GRAPHOS-FLEET-R030",
     "GRAPHOS-FLEET-R031",
-    "GRAPHOS-FLEET-R032"
+    "GRAPHOS-FLEET-R032",
+    "GRAPHOS-FLEET-R033",
+    "GRAPHOS-FLEET-R033.1",
+    "GRAPHOS-FLEET-R033.2"
   ],
   "requirements": [
     {
@@ -722,6 +725,31 @@
       "verified_by": [
         "tests/gateway/test_aggregator.py:159"
       ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R033",
+      "title": "Fleet-catalog `servers` read owned by graph-os",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R033.1",
+        "GRAPHOS-FLEET-R033.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R033.1",
+      "title": "Define the typed fleet-catalog `servers` reader",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R033.2",
+      "title": "Add refusal tests for the `servers` reader",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     }
   ]
 }
