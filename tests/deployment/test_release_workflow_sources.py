@@ -144,11 +144,19 @@ def test_every_uvx_runs_after_a_pinned_uv() -> None:
 
 
 def test_one_python_version_is_pinned_for_every_job() -> None:
+    # actions/setup-python's downloaded CPython build needs AVX2 and crashes
+    # on the AVX2-free homelab self-hosted runners `gates`/`build` may land
+    # on, so the pin lives on the astral-sh/setup-uv step instead (its
+    # python-build-standalone download has no such requirement); either
+    # action's python-version counts here, so this still catches a second,
+    # inconsistent pin however it is set.
     versions = {
         step["with"]["python-version"]
         for job in _workflow()["jobs"].values()
         for step in job["steps"]
         if "actions/setup-python@" in step.get("uses", "")
+        or "astral-sh/setup-uv@" in step.get("uses", "")
+        if "python-version" in step.get("with", {})
     }
 
     # scripts/bootstrap.sh reads this same pin.

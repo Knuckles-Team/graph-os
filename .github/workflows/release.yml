@@ -61,6 +61,14 @@ jobs:
       CARGO_BUILD_JOBS: "4"
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_RELEASE_DEBUG: "0"
+      # The homelab self-hosted runner is itself an RKE2 pod, so Kubernetes
+      # injects KUBERNETES_SERVICE_HOST -- agent_utilities.core.live_mount_guard
+      # (D-EGK-1) reads that as "running inside a pod" and asserts a hostPath
+      # live-mount or a build-time .source-revision provenance marker, neither
+      # of which this job's plain sibling checkout has or needs. This is a CI
+      # checkout, not a deployed graph-os instance, so the check is a false
+      # positive here; skip it explicitly rather than fabricating a marker.
+      AGENT_UTILITIES_SKIP_LIVE_MOUNT_CHECK: "true"
     steps:
       # YAML anchors, reused by `scanner-quality` and `build`: jscpd's
       # differential gate flags a copy-pasted preamble as a new same-file
@@ -71,15 +79,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - &release-python
-        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
-        with:
-          python-version: '3.12'
-
+      # One astral-sh/setup-uv step provisions both the pinned uv binary and
+      # the pinned Python -- not actions/setup-python, whose downloaded
+      # CPython build requires AVX2 and crashes on the AVX2-free homelab
+      # self-hosted runners this job (and `build`) may land on. uv's own
+      # python-build-standalone download has no such requirement.
       - &release-uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.11.7'
+          python-version: '3.12'
           enable-cache: true
           cache-dependency-glob: uv.lock
 
@@ -264,7 +273,6 @@ jobs:
       CARGO_PROFILE_RELEASE_DEBUG: "0"
     steps:
       - *release-checkout
-      - *release-python
       - *release-uv
 
       - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
@@ -333,7 +341,6 @@ jobs:
       SOURCE_DATE_EPOCH: "0"
     steps:
       - *release-checkout
-      - *release-python
       - *release-uv
 
       - name: Build wheel
