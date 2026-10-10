@@ -89,13 +89,15 @@
     {
       "id": "GRAPHOS-DEPLOY-R006",
       "title": "gateway-widgets extra pins a compatible connector floor",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "45283d0137b9",
         "d58ee3e25028",
         "f42856691f97"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/gateway/test_gateway_widgets_extra.py:57"
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R007",
