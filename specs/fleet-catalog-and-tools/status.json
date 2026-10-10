@@ -433,10 +433,10 @@
         "ba0aa6a11b4a"
       ],
       "verified_by": [
-        "tests/api/test_gates_cli.py:106",
-        "tests/api/test_gates_cli.py:57",
-        "tests/api/test_gates_cli.py:69",
-        "tests/api/test_gates_cli.py:91"
+        "tests/api/test_gates_cli.py:27",
+        "tests/api/test_gates_cli.py:39",
+        "tests/api/test_gates_cli.py:61",
+        "tests/api/test_gates_cli.py:76"
       ]
     },
     {

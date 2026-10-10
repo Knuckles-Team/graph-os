@@ -13,8 +13,20 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from pydantic import BaseModel
+
 from graph_os.api.invoke.steps import VerifiedCaller
-from graph_os.api.registry import AuditClass, Composite, Effect, Registry, Surface, Verb
+from graph_os.api.registry import (
+    AuditClass,
+    Composite,
+    Effect,
+    HttpShape,
+    OpSpec,
+    PrincipalRule,
+    Registry,
+    Surface,
+    Verb,
+)
 
 
 def identity_disable_op_values(
@@ -93,4 +105,27 @@ def assert_capacity_throttle_scope_split(
     return status_op, mode_op
 
 
-__all__ = ["make_verified_caller", "assert_capacity_throttle_scope_split"]
+class IdentityReadInput(BaseModel):
+    user_id: str
+
+
+class IdentityReadOutput(BaseModel):
+    ok: bool
+
+
+def identity_read_op(op_id: str = "identity.users.read", **changes: Any) -> OpSpec:
+    """One read-only public op used by the surface drift and gates CLI tests."""
+    values: dict[str, Any] = {
+        "id": op_id,
+        "verb": Verb.FIND,
+        "summary": "Read a user",
+        "examples": ("Look up this user",),
+        "params": IdentityReadInput,
+        "result": IdentityReadOutput,
+        "binding": Composite(handler="graph_os.identity.admin_service.read_user"),
+        "principals": PrincipalRule.ANY,
+        "effect": Effect.READ,
+        "http": HttpShape(method="GET", path="/v1/identity/users/{user_id}"),
+    }
+    values.update(changes)
+    return OpSpec(**values)
