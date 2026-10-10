@@ -184,7 +184,9 @@
       "id": "GRAPHOS-IDENTITY-R008",
       "title": "API keys and service accounts replace static MCP tokens",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "e74110bb69b5"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-IDENTITY-R008.1",
@@ -196,7 +198,8 @@
       "title": "Multi-provider OIDC with mapping rules and JIT policy",
       "delivery_state": "SPECIFIED",
       "landed_in": [
-        "4a3410afa6de"
+        "4a3410afa6de",
+        "e74110bb69b5"
       ],
       "verified_by": [],
       "rollup_of": [
@@ -208,7 +211,9 @@
       "id": "GRAPHOS-IDENTITY-R010",
       "title": "LDAPS bind with nested group sync",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "e74110bb69b5"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-IDENTITY-R010.1",
@@ -261,7 +266,9 @@
       "id": "GRAPHOS-IDENTITY-R011",
       "title": "SCIM 2.0 provisioning server",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "117ad5b56bc6"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-IDENTITY-R011.1",
@@ -272,7 +279,9 @@
       "id": "GRAPHOS-IDENTITY-R012",
       "title": "Native SAML service provider",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "117ad5b56bc6"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-IDENTITY-R012.1",
@@ -447,7 +456,8 @@
       "title": "Fleet authorization fails closed on exact scopes",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "2c70abad2b68"
+        "2c70abad2b68",
+        "76d418e32221"
       ],
       "verified_by": [
         "tests/fleet/test_multiplexer_dynamic_gateway.py:1510",

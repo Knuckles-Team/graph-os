@@ -248,8 +248,9 @@
     {
       "id": "GRAPHOS-FLEET-R009",
       "title": "Run admission evaluates, commits and publishes with capacity control",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
+        "58ee1a06a392",
         "67b1b9ab916e",
         "c77ede8726fa"
       ],
@@ -265,6 +266,7 @@
       "title": "Capacity acquisition is all-or-nothing with one re-decision",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "58ee1a06a392",
         "c77ede8726fa"
       ],
       "verified_by": [
@@ -280,6 +282,7 @@
       "title": "Routing and composition publish only through acquired capacity",
       "delivery_state": "LANDED",
       "landed_in": [
+        "58ee1a06a392",
         "c77ede8726fa"
       ],
       "verified_by": []
@@ -287,8 +290,10 @@
     {
       "id": "GRAPHOS-FLEET-R009.3",
       "title": "Run admission publishes with all-or-nothing capacity control",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "58ee1a06a392"
+      ],
       "verified_by": []
     },
     {
@@ -311,6 +316,7 @@
       "title": "Harvest call-site inventory, the removal baseline",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "031958c74eb8",
         "a94c87aa090e"
       ],
       "verified_by": [
@@ -323,6 +329,8 @@
       "title": "Skill/prompt body-harvest cutover for an already-admitted child",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "031958c74eb8",
+        "1db599dcf40c",
         "a94c87aa090e"
       ],
       "verified_by": [
@@ -516,8 +524,10 @@
     {
       "id": "GRAPHOS-FLEET-R023",
       "title": "Connector count pins stay consistent across the fleet",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "667a206c800e"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-FLEET-R023.1"
@@ -526,8 +536,10 @@
     {
       "id": "GRAPHOS-FLEET-R023.1",
       "title": "Pure connector count-pin comparison (producer)",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "667a206c800e"
+      ],
       "verified_by": []
     },
     {

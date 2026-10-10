@@ -31,7 +31,8 @@
       "title": "Local Kubernetes validation gates every push",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "03ec8432da14"
+        "03ec8432da14",
+        "f3f45f5e2d1b"
       ],
       "verified_by": [
         "tests/deployment/test_local_gates.py:15",
@@ -46,7 +47,8 @@
       "title": "Exit-criteria matrix maps readiness to tests",
       "delivery_state": "SPECIFIED",
       "landed_in": [
-        "03ec8432da14"
+        "03ec8432da14",
+        "7db4c4a5d87c"
       ],
       "verified_by": [],
       "rollup_of": [
@@ -65,7 +67,8 @@
       "title": "Exit-criteria matrix registry and audit mechanism (graph-os side, against the currently pinned epistemic-graph)",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "03ec8432da14"
+        "03ec8432da14",
+        "7db4c4a5d87c"
       ],
       "verified_by": [
         "tests/deployment/test_exit_criteria.py:10",

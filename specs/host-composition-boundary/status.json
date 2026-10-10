@@ -34,8 +34,10 @@
     {
       "id": "GRAPHOS-HOST-R001",
       "title": "Cross-repository composition boundary assignment",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "9760bef27075"
+      ],
       "verified_by": []
     },
     {
@@ -116,8 +118,10 @@
     {
       "id": "GRAPHOS-HOST-R010",
       "title": "GraphOS owns hosting/deployment configuration settings",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "afc93c497524"
+      ],
       "verified_by": []
     },
     {
@@ -137,6 +141,7 @@
       "title": "Component registry carries GraphOS and SDK boundary entries",
       "delivery_state": "LANDED",
       "landed_in": [
+        "9760bef27075",
         "d75db1ea42e8",
         "e278fafd4073"
       ],
@@ -165,8 +170,10 @@
     {
       "id": "GRAPHOS-HOST-R015",
       "title": "Layered agent capability model with a harness abstraction",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "1f575184e8da"
+      ],
       "verified_by": []
     },
     {

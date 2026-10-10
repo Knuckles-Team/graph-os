@@ -339,9 +339,11 @@
       "title": "Typed ingest runner port and the source-sync entry point",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "4b69b27f1d76",
+        "5ffd23ca7883",
         "822f55d5835d",
         "a974d10c5d0c",
-        "e990e195ab42"
+        "cc90ee37583f"
       ],
       "verified_by": [
         "tests/api/test_ingest_ops.py:80",
@@ -353,8 +355,11 @@
       "title": "Repository indexing and source inventory operations",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "4b69b27f1d76",
+        "5ffd23ca7883",
         "822f55d5835d",
-        "a974d10c5d0c"
+        "a974d10c5d0c",
+        "cc90ee37583f"
       ],
       "verified_by": [
         "tests/api/test_ingest_ops.py:121",
@@ -432,8 +437,10 @@
     {
       "id": "GRAPHOS-OPS-R021.3",
       "title": "Policy and swarm read operations — policy slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "cc90ee37583f"
+      ],
       "verified_by": []
     },
     {
@@ -450,8 +457,10 @@
     {
       "id": "GRAPHOS-OPS-R022.1",
       "title": "Work-item and offer operations — work slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "c4cc3e21b439"
+      ],
       "verified_by": []
     },
     {
@@ -473,7 +482,7 @@
     {
       "id": "GRAPHOS-OPS-R024",
       "title": "Telemetry, security, usage, and admin operations",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [],
       "verified_by": [],
       "rollup_of": [
@@ -487,36 +496,47 @@
     {
       "id": "GRAPHOS-OPS-R024.1",
       "title": "Telemetry operations — telemetry slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "4b69b27f1d76"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R024.2",
       "title": "Security operations — security slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "4b69b27f1d76"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R024.3",
       "title": "Usage operations — usage slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "4b69b27f1d76"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R024.4",
       "title": "Memory operations — memory slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "5ffd23ca7883",
+        "8d1bc46ecbdb"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R024.5",
       "title": "Operational admin operations — admin slice",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "8d1bc46ecbdb"
+      ],
       "verified_by": []
     },
     {
