@@ -74,9 +74,16 @@
     {
       "id": "GRAPHOS-MCP-RESOURCES-R004",
       "title": "Status docs are the gate's result, not hand-maintained prose",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "94ee72171294"
+      ],
+      "verified_by": [
+        "tests/fleet/test_mcp_resource_status_docs.py:20",
+        "tests/fleet/test_mcp_resource_status_docs.py:25",
+        "tests/fleet/test_mcp_resource_status_docs.py:32",
+        "tests/fleet/test_mcp_resource_status_docs.py:44"
+      ]
     }
   ]
 }

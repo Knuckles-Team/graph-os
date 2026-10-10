@@ -36,7 +36,7 @@ left_name = "operations"
 left_digest = "sha256:1dd92a3cf607864448698507dd859bedcd0b2837cddb97a0aeef56d1adc0a706"
 right_file = "graph_os/api/ops/ingest.py"
 right_name = "operations"
-right_digest = "sha256:b34d30a8a6914622efd841d8584e31cac462f51acf90ab8f9a1e51992dbe2193"
+right_digest = "sha256:7a6286e3952d0525803507b1a6ddbcd6c8023a3b65fd2305c93369b41e3ae149"
 reason = "Both declare an unrelated domain's own OpSpec registry (operational-admin vs ingestion) using the one mandated declarative registration shape every ops module shares by design; the registry factory, not this duplication, is the single point of consolidation."
 reviewed_on = "2026-10-10"
 

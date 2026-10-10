@@ -293,9 +293,17 @@
     {
       "id": "GRAPHOS-IDENTITY-R009.2.1",
       "title": "Ordered claim-to-rule evaluation",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "0714a7bf6f8e"
+      ],
+      "verified_by": [
+        "tests/identity/test_oidc_rule_selection.py:17",
+        "tests/identity/test_oidc_rule_selection.py:24",
+        "tests/identity/test_oidc_rule_selection.py:30",
+        "tests/identity/test_oidc_rule_selection.py:37",
+        "tests/identity/test_oidc_rule_selection.py:43"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R009.2.2",
@@ -335,7 +343,9 @@
       "id": "GRAPHOS-IDENTITY-R010.2",
       "title": "Directory bind and group sync (rollup)",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "9fc4eae0f299"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-IDENTITY-R010.2.1",
@@ -347,9 +357,16 @@
     {
       "id": "GRAPHOS-IDENTITY-R010.2.1",
       "title": "Group-DN-to-role mapping evaluation",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "9fc4eae0f299"
+      ],
+      "verified_by": [
+        "tests/identity/test_ldap_group_roles.py:13",
+        "tests/identity/test_ldap_group_roles.py:19",
+        "tests/identity/test_ldap_group_roles.py:25",
+        "tests/identity/test_ldap_group_roles.py:32"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R010.2.2",
@@ -428,8 +445,10 @@
     {
       "id": "GRAPHOS-IDENTITY-R011.2.1",
       "title": "Typed SCIM User resource model",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "e92d812eb39d"
+      ],
       "verified_by": []
     },
     {
@@ -482,9 +501,17 @@
     {
       "id": "GRAPHOS-IDENTITY-R012.2.1",
       "title": "Typed parsed-assertion model and condition checks",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "fdbaebdb795a"
+      ],
+      "verified_by": [
+        "tests/identity/test_saml_assertion_conditions.py:37",
+        "tests/identity/test_saml_assertion_conditions.py:42",
+        "tests/identity/test_saml_assertion_conditions.py:64",
+        "tests/identity/test_saml_assertion_conditions.py:74",
+        "tests/identity/test_saml_assertion_conditions.py:89"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R012.2.2",
