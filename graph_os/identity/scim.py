@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Protocol
 
 from .engine import IdentityUnavailable
 
@@ -92,3 +93,40 @@ def check_scim_credential(
     if not credential.authorizes(requested_provider_id):
         raise ScimCredentialRefused("SCIM credential is scoped to a different provider")
     return credential
+
+
+class ScimIdentityPort(Protocol):
+    """Injected identity port the SCIM handlers drive (GRAPHOS-IDENTITY-R011.2.3)."""
+
+    def create_user(self, user: ScimUser) -> str: ...
+
+    def update_user(self, user_id: str, user: ScimUser) -> None: ...
+
+    def deactivate_user(self, user_id: str) -> None: ...
+
+
+def _require_port(port: ScimIdentityPort | None) -> ScimIdentityPort:
+    if port is None:
+        raise IdentityUnavailable("SCIM identity port is not configured")
+    return port
+
+
+def scim_create_user(
+    port: ScimIdentityPort | None, payload: Mapping[str, object]
+) -> str:
+    """Validate a SCIM User payload and create it; returns the new user id."""
+    user = ScimUser.from_payload(payload)
+    return _require_port(port).create_user(user)
+
+
+def scim_patch_user(
+    port: ScimIdentityPort | None, user_id: str, payload: Mapping[str, object]
+) -> None:
+    """Validate a SCIM User payload and apply it to an existing user."""
+    user = ScimUser.from_payload(payload)
+    _require_port(port).update_user(user_id, user)
+
+
+def scim_deactivate_user(port: ScimIdentityPort | None, user_id: str) -> None:
+    """Deactivate a user; the port must never delete the user's owned data."""
+    _require_port(port).deactivate_user(user_id)
