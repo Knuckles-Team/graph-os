@@ -47,6 +47,7 @@ def test_scopes_by_name_indexes_every_declared_scope() -> None:
     assert indexed["webui:admin"].scope_class == "admin"
 
 
+@pytest.mark.spec("GRAPHOS-IDENTITY-R002")
 def test_declared_scopes_match_a_consistent_registry(tmp_path: Path) -> None:
     contract, _exclusions = _fixture(tmp_path)
     scope_path = contract / "scopes.json"

@@ -111,9 +111,9 @@
       ],
       "verified_by": [
         "tests/deployment/test_release_canary.py:31",
-        "tests/deployment/test_release_canary.py:63",
-        "tests/deployment/test_release_canary.py:82",
-        "tests/deployment/test_release_canary.py:93"
+        "tests/deployment/test_release_canary.py:64",
+        "tests/deployment/test_release_canary.py:83",
+        "tests/deployment/test_release_canary.py:95"
       ]
     },
     {
@@ -216,8 +216,8 @@
         "c2a6ab839fd3"
       ],
       "verified_by": [
-        "tests/api/test_invoke_contract.py:434",
-        "tests/api/test_invoke_governance.py:440"
+        "tests/api/test_invoke_contract.py:435",
+        "tests/api/test_invoke_governance.py:443"
       ]
     },
     {

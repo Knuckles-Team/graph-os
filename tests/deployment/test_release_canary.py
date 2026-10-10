@@ -60,6 +60,7 @@ def test_run_canary_reports_only_aggregate_checks(monkeypatch) -> None:
     assert all(key in {"status", "checks", "privacySafe"} for key in report)
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R004")
 @pytest.mark.spec("GRAPHOS-A2A-R004")
 def test_declared_fastmcp_major_reads_graph_os_requirement(monkeypatch) -> None:
     monkeypatch.setattr(
@@ -90,6 +91,7 @@ def test_served_fastmcp_matches_declared_true_on_matching_major(
     assert release_canary._served_fastmcp_matches_declared() is True
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R004")
 @pytest.mark.spec("GRAPHOS-A2A-R004")
 def test_served_fastmcp_matches_declared_false_on_major_drift(monkeypatch) -> None:
     monkeypatch.setattr(release_canary, "_declared_fastmcp_major", lambda: 4)

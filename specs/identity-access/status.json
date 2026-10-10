@@ -82,11 +82,14 @@
     {
       "id": "GRAPHOS-IDENTITY-R002",
       "title": "Domain scopes consume the generated scope registry",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "a2212420d6c6"
+        "a2212420d6c6",
+        "d497f656144a"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_domain_scopes.py:50"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R003",
@@ -114,11 +117,15 @@
     {
       "id": "GRAPHOS-IDENTITY-R004.1",
       "title": "Typed bootstrap-principal model",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "cd652df8f6c8"
+        "cd652df8f6c8",
+        "d497f656144a"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/identity/test_bootstrap_mfa_admin_console_models.py:15",
+        "tests/identity/test_bootstrap_mfa_admin_console_models.py:28"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R004.2",
@@ -487,11 +494,17 @@
     {
       "id": "GRAPHOS-IDENTITY-R011.2.1",
       "title": "Typed SCIM User resource model",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "e92d812eb39d"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/identity/test_scim_user.py:15",
+        "tests/identity/test_scim_user.py:21",
+        "tests/identity/test_scim_user.py:26",
+        "tests/identity/test_scim_user.py:32",
+        "tests/identity/test_scim_user.py:40"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R011.2.2",

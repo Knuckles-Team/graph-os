@@ -282,6 +282,7 @@ def test_confirmation_rejects_unbounded_or_forged_resume_values() -> None:
     assert envelope["error"]["details"] == {}
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R005")
 def test_engine_source_without_generated_contract_fails(monkeypatch) -> None:
     from graph_os.api.registry.eg_binding import EgContractError
 

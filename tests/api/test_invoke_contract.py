@@ -235,6 +235,7 @@ def run(
     )
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R009")
 @pytest.mark.parametrize("surface", list(Surface))
 def test_equivalent_surface_authority_and_result(surface):
     services, runtime, audit, _, _ = setup_services()

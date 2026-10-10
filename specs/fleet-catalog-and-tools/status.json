@@ -72,12 +72,17 @@
     {
       "id": "GRAPHOS-FLEET-R001",
       "title": "Typed pack publisher replaces placeholder ContentPack",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "18038a22a875",
+        "223bee6a0edd",
         "8df218e2f742"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/test_connector_pack_typed_publisher.py:29",
+        "tests/test_connector_pack_typed_publisher.py:51",
+        "tests/test_connector_pack_typed_publisher.py:65"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R002",
@@ -95,11 +100,18 @@
     {
       "id": "GRAPHOS-FLEET-R002.1",
       "title": "Per-tool schema fingerprint computed from the served schema",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "0f346a4d0e4a"
+        "0f346a4d0e4a",
+        "223bee6a0edd"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_schema_fingerprint.py:27",
+        "tests/fleet/test_schema_fingerprint.py:36",
+        "tests/fleet/test_schema_fingerprint.py:42",
+        "tests/fleet/test_schema_fingerprint.py:48",
+        "tests/fleet/test_schema_fingerprint.py:57"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R002.2",
@@ -153,11 +165,17 @@
     {
       "id": "GRAPHOS-FLEET-R004",
       "title": "Pack annotations carry capability, digest, modality, cost, latency",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "0aba0c33acd0"
+        "0aba0c33acd0",
+        "f2a3173e9a84"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_catalog_items_pack_annotations.py:28",
+        "tests/fleet/test_catalog_items_pack_annotations.py:45",
+        "tests/fleet/test_catalog_items_pack_annotations.py:63",
+        "tests/fleet/test_catalog_items_pack_annotations.py:71"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R005",
@@ -175,11 +193,18 @@
     {
       "id": "GRAPHOS-FLEET-R005.1",
       "title": "Typed WorkItem view, the GetWorkItem/ListWorkItems producer",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "3b404ee3ecf8"
+        "3b404ee3ecf8",
+        "f2a3173e9a84"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/a2a/test_work_items.py:31",
+        "tests/a2a/test_work_items.py:45",
+        "tests/a2a/test_work_items.py:59",
+        "tests/a2a/test_work_items.py:67",
+        "tests/a2a/test_work_items.py:75"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R005.2",
@@ -236,11 +261,18 @@
     {
       "id": "GRAPHOS-FLEET-R008.1",
       "title": "Typed feed-event model per feed kind",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "67b1b9ab916e"
+        "67b1b9ab916e",
+        "f2a3173e9a84"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_feeds.py:15",
+        "tests/fleet/test_feeds.py:23",
+        "tests/fleet/test_feeds.py:31",
+        "tests/fleet/test_feeds.py:37",
+        "tests/fleet/test_feeds.py:44"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R008.2",

@@ -25,6 +25,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+import pytest
 from packaging.requirements import Requirement
 from setuptools.config.pyprojecttoml import read_configuration
 
@@ -53,6 +54,7 @@ def test_manifest_declares_the_gateway_widgets_extra() -> None:
         )
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R006")
 def test_gateway_widgets_pins_the_connector_sdk_floor() -> None:
     data = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     requirements = {

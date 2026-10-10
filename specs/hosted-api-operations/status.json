@@ -122,56 +122,82 @@
     {
       "id": "GRAPHOS-OPS-R004",
       "title": "FastMCP 4 bridge for the MCP server",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "a7947166d00a"
+        "a7947166d00a",
+        "b5bf4ba58902"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_release_canary.py:63",
+        "tests/deployment/test_release_canary.py:94"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R005",
       "title": "Stable auth error codes from the engine contract",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "100d015ca012"
+        "100d015ca012",
+        "b5bf4ba58902"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_contract_admission.py:120",
+        "tests/api/test_contract_admission.py:70",
+        "tests/api/test_errors.py:285"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R006",
       "title": "Consume the engine's packaged wire-callable contract",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "100d015ca012"
+        "100d015ca012",
+        "97061e59c412"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_eg_binding.py:190"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R007",
       "title": "Immutable operation registry with digest and authorization",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "4b83c69e2b41"
+        "4b83c69e2b41",
+        "97061e59c412"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_api_registry.py:110",
+        "tests/api/test_api_registry.py:63"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R008",
       "title": "Generated engine-bound operations with exclusions",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "4b83c69e2b41"
+        "4b83c69e2b41",
+        "97061e59c412"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_eg_binding.py:133",
+        "tests/api/test_eg_binding.py:88"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R009",
       "title": "Single invoke pipeline for authority, effect, and audit",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
+        "97061e59c412",
         "deb2b45bf83d"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_invoke_contract.py:238",
+        "tests/api/test_invoke_governance.py:193",
+        "tests/api/test_invoke_governance.py:250",
+        "tests/api/test_invoke_governance.py:87"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R010",
