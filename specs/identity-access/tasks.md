@@ -63,6 +63,11 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GRAPHOS-IDENTITY-R012:** Native SAML service provider (rollup)
 - [ ] **GRAPHOS-IDENTITY-R012.1:** Typed SAML service-provider model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R012.2:** Assertion verification and SAML sign-in
+- [ ] **GRAPHOS-IDENTITY-R016:** Optional SMTP adapter for identity email
+- [ ] **GRAPHOS-IDENTITY-R016.1:** Remaining scope of GRAPHOS-IDENTITY-R016 (slice .1): Optional SMTP adapter for identity email
+- [ ] **GRAPHOS-IDENTITY-R016.2:** Remaining scope of GRAPHOS-IDENTITY-R016 (slice .2): Optional SMTP adapter for identity email
+- [ ] **GRAPHOS-IDENTITY-R017.1:** Remaining scope of GRAPHOS-IDENTITY-R017 (slice .1): Remove the unauthenticated opt-out once clients migrate
+- [ ] **GRAPHOS-IDENTITY-R017.2:** Remaining scope of GRAPHOS-IDENTITY-R017 (slice .2): Remove the unauthenticated opt-out once clients migrate
 - [ ] **GRAPHOS-IDENTITY-R004.2:** Bootstrap resolution path, Host/Origin validation, unsecured-mode indicators
 - [ ] **GRAPHOS-IDENTITY-R006:** Optional MFA with TOTP, WebAuthn, and recovery codes (rollup)
 - [x] **GRAPHOS-IDENTITY-R006.1:** Typed MFA enrollment model with refusal tests
