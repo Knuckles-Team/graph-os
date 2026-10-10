@@ -54,7 +54,11 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [x] **GRAPHOS-IDENTITY-R008.2:** Scope intersection at use time and immediate revocation
 - [x] **GRAPHOS-IDENTITY-R009:** Multi-provider OIDC with mapping rules and JIT policy
 - [x] **GRAPHOS-IDENTITY-R009.1:** Typed OIDC mapping-rule model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R009.2:** PKCE/state/nonce flow, presets, link migration, hinted logout
+- [ ] **GRAPHOS-IDENTITY-R009.2:** OIDC authentication flow (rollup)
+- [ ] **GRAPHOS-IDENTITY-R009.2.1:** Ordered claim-to-rule evaluation
+- [ ] **GRAPHOS-IDENTITY-R009.2.2:** ID-token validation inputs and typed refusal
+- [ ] **GRAPHOS-IDENTITY-R009.2.3:** Callback handler wiring, link migration, hinted logout
+- [ ] **GRAPHOS-IDENTITY-R009.2.4:** Live IdP probe
 - [ ] **GRAPHOS-IDENTITY-R010:** LDAPS bind with nested group sync
 - [ ] **GRAPHOS-IDENTITY-R010.1:** Typed LDAPS bind-config model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R010.2:** Directory bind, filter escaping, nested-group sync, deprovisioning (rollup)
