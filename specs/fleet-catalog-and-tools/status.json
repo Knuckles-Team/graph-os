@@ -163,11 +163,16 @@
     {
       "id": "GRAPHOS-FLEET-R004",
       "title": "Pack annotations carry capability, digest, modality, cost, latency",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "0aba0c33acd0"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_catalog_items_pack_annotations.py:28",
+        "tests/fleet/test_catalog_items_pack_annotations.py:45",
+        "tests/fleet/test_catalog_items_pack_annotations.py:63",
+        "tests/fleet/test_catalog_items_pack_annotations.py:71"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R005",
@@ -185,11 +190,17 @@
     {
       "id": "GRAPHOS-FLEET-R005.1",
       "title": "Typed WorkItem view, the GetWorkItem/ListWorkItems producer",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "3b404ee3ecf8"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/a2a/test_work_items.py:31",
+        "tests/a2a/test_work_items.py:45",
+        "tests/a2a/test_work_items.py:59",
+        "tests/a2a/test_work_items.py:67",
+        "tests/a2a/test_work_items.py:75"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R005.2",
@@ -246,11 +257,17 @@
     {
       "id": "GRAPHOS-FLEET-R008.1",
       "title": "Typed feed-event model per feed kind",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "67b1b9ab916e"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_feeds.py:15",
+        "tests/fleet/test_feeds.py:23",
+        "tests/fleet/test_feeds.py:31",
+        "tests/fleet/test_feeds.py:37",
+        "tests/fleet/test_feeds.py:44"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R008.2",
