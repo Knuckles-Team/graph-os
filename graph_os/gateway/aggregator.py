@@ -16,7 +16,7 @@ import threading
 import time
 from collections.abc import AsyncIterator, Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, TypeVar
+from typing import Any
 
 from agent_utilities.security.error_surface import public_error_payload
 
@@ -29,8 +29,6 @@ from graph_os.gateway.models import (
 from graph_os.gateway.registry import Registry, get_registry
 
 logger = logging.getLogger(__name__)
-
-_T = TypeVar("_T")
 
 # GRAPHOS-FLEET-R032: the service authority the aggregator binds around
 # every widget fetch, lazily minted and cached process-wide (same shape as
@@ -77,7 +75,7 @@ def _service_authority() -> Any:
         return _SERVICE_SESSION
 
 
-def _run_as_service_actor(fn: Callable[[], _T]) -> _T:
+def _run_as_service_actor[T](fn: Callable[[], T]) -> T:
     """Run synchronous ``fn`` with the gateway's service actor bound.
 
     Called *inside* the worker thread (see ``_fetch_one``/``health_check``
