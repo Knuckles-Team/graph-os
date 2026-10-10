@@ -728,11 +728,14 @@
     {
       "id": "GRAPHOS-OPS-R037",
       "title": "Native first-party A2A facade",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "20f773df9ddd"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/a2a/test_application.py:68",
+        "tests/a2a/test_application.py:90"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R038",
