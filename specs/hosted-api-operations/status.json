@@ -458,7 +458,7 @@
     {
       "id": "GRAPHOS-OPS-R021",
       "title": "Decision, retrieval, and policy operations",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [],
       "verified_by": [],
       "rollup_of": [
@@ -479,7 +479,7 @@
     {
       "id": "GRAPHOS-OPS-R021.2",
       "title": "Retrieval, context, and freshness read operations — retrieval slice",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "e78a5e5b701e"
       ],
@@ -504,8 +504,10 @@
     {
       "id": "GRAPHOS-OPS-R021.2.2",
       "title": "`retrieval.freshness` op",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "f6f2177ab1e0"
+      ],
       "verified_by": [
         "tests/api/test_retrieval_ops.py:68",
         "tests/api/test_retrieval_ops.py:81"
