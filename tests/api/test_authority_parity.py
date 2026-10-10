@@ -1,5 +1,5 @@
-"""GRAPHOS-FLEET-R017: the authority-parity oracle across principal,
-operation and serving surface.
+"""GRAPHOS-OPS-R027 / GRAPHOS-FLEET-R017: the authority-parity oracle across
+principal, operation and serving surface.
 
 ``tests/api/authority_matrix.yaml`` enumerates every (principal rule, op
 surfaces/scopes, caller) combination this fixture covers and the single
@@ -9,12 +9,13 @@ authorization chokepoint -- surface membership plus
 every row, so a change to either check cannot silently diverge for one
 principal kind, operation or surface while looking correct for another.
 
-This is a sibling oracle to ``GRAPHOS-OPS-R027``'s inline matrix in the
-same module name (added by PR #178, not yet on `main` at the time this
-was written): that one is a synthetic probe of the ``authorized()``
-chokepoint alone; this one additionally asserts serving-surface
-membership from a checked-in YAML fixture. A later merge should
-consolidate both matrices into one file rather than keep two.
+This module consolidates two independently-authored matrices (one inline
+synthetic probe of the ``authorized()`` chokepoint alone from
+``GRAPHOS-OPS-R027``, one additionally asserting serving-surface membership
+from a checked-in YAML fixture from ``GRAPHOS-FLEET-R017``) into a single
+fixture and test function. Every case from both lineages is kept; cases
+that were semantically identical across the two are deduped to one row
+carrying both specs' ``@pytest.mark.spec`` bindings.
 """
 
 from __future__ import annotations
@@ -75,8 +76,12 @@ def _case_id(case: dict[str, Any]) -> str:
     return case["name"]
 
 
-@pytest.mark.spec("GRAPHOS-FLEET-R017")
-@pytest.mark.parametrize("case", _load_matrix(), ids=_case_id)
+def _case_param(case: dict[str, Any]) -> Any:
+    marks = [pytest.mark.spec(spec_id) for spec_id in case.get("specs", ())]
+    return pytest.param(case, id=_case_id(case), marks=marks)
+
+
+@pytest.mark.parametrize("case", [_case_param(case) for case in _load_matrix()])
 def test_authority_matrix_row_matches_expected_outcome(case: dict[str, Any]) -> None:
     op = OpSpec(
         id=f"authority.matrix.{case['name'].replace('-', '_')}",
@@ -104,3 +109,15 @@ def test_authority_matrix_row_matches_expected_outcome(case: dict[str, Any]) -> 
     actual = served and authorized(op, caller, policy=policy)
 
     assert actual is case["expected"], case["name"]
+
+
+@pytest.mark.spec("GRAPHOS-OPS-R027")
+def test_authority_matrix_fixture_covers_every_principal_rule() -> None:
+    covered = {case["principal_rule"] for case in _load_matrix()}
+    assert covered == {rule.value for rule in PrincipalRule}
+
+
+@pytest.mark.spec("GRAPHOS-OPS-R027")
+def test_authority_matrix_fixture_covers_every_caller_kind() -> None:
+    covered = {case["caller_kind"] for case in _load_matrix()}
+    assert {"human", "service"} <= covered

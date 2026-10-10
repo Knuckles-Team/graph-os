@@ -11,7 +11,6 @@ from pydantic import BaseModel, ValidationError
 from graph_os.api.registry import (
     AuditClass,
     Caller,
-    Composite,
     Confirm,
     Effect,
     EgSchemaRef,
@@ -26,6 +25,7 @@ from graph_os.api.registry import (
     Verb,
     canonical_registry,
 )
+from tests.api._support import identity_disable_op_values
 
 
 class Input(BaseModel):
@@ -46,19 +46,12 @@ class _FakeCaller:
 
 
 def make_op(op_id: str = "identity.users.disable", **changes: Any) -> OpSpec:
-    values: dict[str, Any] = {
-        "id": op_id,
-        "verb": Verb.MANAGE,
-        "summary": "Disable a user",
-        "examples": ("Disable this user account",),
-        "params": Input,
-        "result": Output,
-        "binding": Composite(handler="graph_os.identity.admin_service.disable_user"),
-        "scopes": frozenset({"identity:admin"}),
-        "effect": Effect.ADMIN,
-        "principals": PrincipalRule.HUMAN_UNDELEGATED,
-        "audit": AuditClass.IDENTITY_CHAIN,
-    }
+    values = identity_disable_op_values(
+        op_id,
+        params=Input,
+        result=Output,
+        principals=PrincipalRule.HUMAN_UNDELEGATED,
+    )
     values.update(changes)
     return OpSpec(**values)
 
