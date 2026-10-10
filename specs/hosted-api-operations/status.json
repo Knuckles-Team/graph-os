@@ -704,9 +704,15 @@
     {
       "id": "GRAPHOS-OPS-R032.2.1",
       "title": "Identity runtime constructor in the composition root",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "3dc5a3607868"
+      ],
+      "verified_by": [
+        "tests/identity/test_identity_composition.py:32",
+        "tests/identity/test_identity_composition.py:52",
+        "tests/identity/test_identity_composition.py:62"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R032.2.2",
