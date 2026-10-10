@@ -42,6 +42,7 @@
       "title": "Executable release-qualification runbook",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "689f232dc362",
         "d75db1ea42e8",
         "eaabc7449a93"
       ],
@@ -58,6 +59,7 @@
       "delivery_state": "VERIFIED",
       "landed_in": [
         "4a2d2cd9ac55",
+        "689f232dc362",
         "c3c6be59a12a"
       ],
       "verified_by": [
@@ -70,21 +72,27 @@
     {
       "id": "GRAPHOS-DEPLOY-R004",
       "title": "mypy hook type-checks the test suite",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
+        "689f232dc362",
         "9d8a787b8495"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_mypy_hook_scope.py:13"
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R005",
       "title": "Web UI keeps its component package name",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
+        "d6f16cd447e2",
         "d75db1ea42e8",
         "eaabc7449a93"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_component_names_and_scripts.py:17"
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R006",
@@ -93,6 +101,7 @@
       "landed_in": [
         "45283d0137b9",
         "d58ee3e25028",
+        "d6f16cd447e2",
         "f42856691f97"
       ],
       "verified_by": [
@@ -118,20 +127,26 @@
     {
       "id": "GRAPHOS-DEPLOY-R007.1",
       "title": "`agent-utilities-doctor` console-script collision resolved",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
+        "d6f16cd447e2",
         "fd761d59a171"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_component_names_and_scripts.py:40"
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.2",
       "title": "`setup-config` console-script collision resolved",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
+        "d6f16cd447e2",
         "fd761d59a171"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_component_names_and_scripts.py:49"
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.3",

@@ -144,11 +144,14 @@
     {
       "id": "GRAPHOS-HOST-R003",
       "title": "Web UI rename cutover across GraphOS",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "4ca77fbff9e3"
+        "4ca77fbff9e3",
+        "6dda5ac3548c"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/architecture/test_webui_rename_references.py:13"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R004",
@@ -990,6 +993,7 @@
       "title": "GraphOS owns hosting/deployment configuration settings",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "396d8307596f",
         "afc93c497524"
       ],
       "verified_by": [

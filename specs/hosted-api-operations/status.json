@@ -124,7 +124,8 @@
       "title": "FastMCP 4 bridge for the MCP server",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "a7947166d00a"
+        "a7947166d00a",
+        "b5bf4ba58902"
       ],
       "verified_by": [
         "tests/deployment/test_release_canary.py:63",
@@ -136,7 +137,8 @@
       "title": "Stable auth error codes from the engine contract",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "100d015ca012"
+        "100d015ca012",
+        "b5bf4ba58902"
       ],
       "verified_by": [
         "tests/api/test_contract_admission.py:120",
@@ -149,7 +151,8 @@
       "title": "Consume the engine's packaged wire-callable contract",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "100d015ca012"
+        "100d015ca012",
+        "97061e59c412"
       ],
       "verified_by": [
         "tests/api/test_eg_binding.py:190"
@@ -160,7 +163,8 @@
       "title": "Immutable operation registry with digest and authorization",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "4b83c69e2b41"
+        "4b83c69e2b41",
+        "97061e59c412"
       ],
       "verified_by": [
         "tests/api/test_api_registry.py:110",
@@ -172,7 +176,8 @@
       "title": "Generated engine-bound operations with exclusions",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "4b83c69e2b41"
+        "4b83c69e2b41",
+        "97061e59c412"
       ],
       "verified_by": [
         "tests/api/test_eg_binding.py:133",
@@ -184,6 +189,7 @@
       "title": "Single invoke pipeline for authority, effect, and audit",
       "delivery_state": "VERIFIED",
       "landed_in": [
+        "97061e59c412",
         "deb2b45bf83d"
       ],
       "verified_by": [

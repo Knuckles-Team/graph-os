@@ -84,7 +84,8 @@
       "title": "Domain scopes consume the generated scope registry",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "a2212420d6c6"
+        "a2212420d6c6",
+        "d497f656144a"
       ],
       "verified_by": [
         "tests/api/test_domain_scopes.py:50"
@@ -118,7 +119,8 @@
       "title": "Typed bootstrap-principal model",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "cd652df8f6c8"
+        "cd652df8f6c8",
+        "d497f656144a"
       ],
       "verified_by": [
         "tests/identity/test_bootstrap_mfa_admin_console_models.py:15",

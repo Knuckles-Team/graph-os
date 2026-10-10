@@ -75,6 +75,7 @@
       "delivery_state": "VERIFIED",
       "landed_in": [
         "18038a22a875",
+        "223bee6a0edd",
         "8df218e2f742"
       ],
       "verified_by": [
@@ -101,7 +102,8 @@
       "title": "Per-tool schema fingerprint computed from the served schema",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "0f346a4d0e4a"
+        "0f346a4d0e4a",
+        "223bee6a0edd"
       ],
       "verified_by": [
         "tests/fleet/test_schema_fingerprint.py:27",
@@ -165,7 +167,8 @@
       "title": "Pack annotations carry capability, digest, modality, cost, latency",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "0aba0c33acd0"
+        "0aba0c33acd0",
+        "f2a3173e9a84"
       ],
       "verified_by": [
         "tests/fleet/test_catalog_items_pack_annotations.py:28",
@@ -192,7 +195,8 @@
       "title": "Typed WorkItem view, the GetWorkItem/ListWorkItems producer",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "3b404ee3ecf8"
+        "3b404ee3ecf8",
+        "f2a3173e9a84"
       ],
       "verified_by": [
         "tests/a2a/test_work_items.py:31",
@@ -259,7 +263,8 @@
       "title": "Typed feed-event model per feed kind",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "67b1b9ab916e"
+        "67b1b9ab916e",
+        "f2a3173e9a84"
       ],
       "verified_by": [
         "tests/fleet/test_feeds.py:15",
