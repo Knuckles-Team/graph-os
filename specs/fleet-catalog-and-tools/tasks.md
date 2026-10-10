@@ -24,6 +24,8 @@ Check a task only after its linked code and tests land. A checked source task is
   - [ ] GRAPHOS-FLEET-R003.2 (child, consumer of .1): register `fleet.write_back.preview`/`fleet.write_back.commit` as typed `OpSpec` entries in `graph_os/api/ops/write_back.py`, wired into `graph_os/api/ops/registry_factory.py` + `tests/api/test_write_back_ops.py`.
   - [ ] GRAPHOS-FLEET-R003.3 (child, consumer of .2): restart/fault test `tests/fleet/test_write_back_restart.py` proving idempotent replay and preview gating survive a service restart.
 - [ ] T09 — Correct generated assembly agent parsing and all-or-nothing capacity admission, one re-decision, and release on stop. Cover GRAPHOS-FLEET-R009, GRAPHOS-FLEET-R010.
+- [x] T09.1 — Capacity-acquisition primitive (acquire/release, one re-decision) in `graph_os/control_plane/runs/admission.py`. Cover GRAPHOS-FLEET-R009.1.
+- [ ] T09.2 — Wire `graph_os/a2a/routing.py`/`composition.py` evaluate/commit/publish through the GRAPHOS-FLEET-R009.1 primitive. Cover GRAPHOS-FLEET-R009.2.
 - [ ] T10 — Run clean-checkout format/lint/types/tests, generated artifact and public-surface checks, CCCC, KISS, jscpd, dupehound, authority parity, and local served protocol matrix. Cover GRAPHOS-FLEET-R016, GRAPHOS-FLEET-R017.
 - [ ] T11 — Land reviewed code and record merge commits per slice in `spec.md`; do not mark ACCEPTED on source evidence alone.
 - [ ] T12 — Run the disposable two-replica reload and fault probe against the landed revision; attach generation, receipt, trace, timing, and policy evidence; then mark only passing slices ACCEPTED.
