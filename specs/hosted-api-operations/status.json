@@ -122,20 +122,27 @@
     {
       "id": "GRAPHOS-OPS-R004",
       "title": "FastMCP 4 bridge for the MCP server",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "a7947166d00a"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/deployment/test_release_canary.py:63",
+        "tests/deployment/test_release_canary.py:94"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R005",
       "title": "Stable auth error codes from the engine contract",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "100d015ca012"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_contract_admission.py:120",
+        "tests/api/test_contract_admission.py:70",
+        "tests/api/test_errors.py:285"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R006",
