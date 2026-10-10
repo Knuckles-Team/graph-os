@@ -70,6 +70,8 @@
     "GRAPHOS-OPS-R032.2.3",
     "GRAPHOS-OPS-R032.2.3.1",
     "GRAPHOS-OPS-R032.2.3.2",
+    "GRAPHOS-OPS-R032.2.3.2.1",
+    "GRAPHOS-OPS-R032.2.3.2.2",
     "GRAPHOS-OPS-R032.2.4",
     "GRAPHOS-OPS-R033",
     "GRAPHOS-OPS-R034",
@@ -329,7 +331,7 @@
     {
       "id": "GRAPHOS-OPS-R020",
       "title": "Ingest operations through a typed SDK runner facade",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "LANDED",
       "landed_in": [
         "e990e195ab42"
       ],
@@ -380,7 +382,7 @@
     {
       "id": "GRAPHOS-OPS-R020.3",
       "title": "Pack and job management operations",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "822f55d5835d"
       ],
@@ -392,7 +394,7 @@
     {
       "id": "GRAPHOS-OPS-R020.3.1",
       "title": "Missing `ingest.packs.*` and `ingest.jobs.*` ops",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "16c9b2bddda3"
       ],
@@ -418,8 +420,10 @@
     {
       "id": "GRAPHOS-OPS-R020.3.1.2",
       "title": "`ingest.jobs.status` op",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "634a344fade7"
+      ],
       "verified_by": [
         "tests/api/test_ingest_ops.py:256",
         "tests/api/test_ingest_ops.py:266",
@@ -775,7 +779,25 @@
     },
     {
       "id": "GRAPHOS-OPS-R032.2.3.2",
-      "title": "Thread identity ports through run_web_ui and the webui_host package",
+      "title": "Thread identity ports through run_web_ui and the webui_host package (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R032.2.3.2.1",
+        "GRAPHOS-OPS-R032.2.3.2.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.2.1",
+      "title": "run_web_ui accepts and binds identity ports",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.2.2",
+      "title": "Supply identity ports from mcp_server composition to the agent-webui start call",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []

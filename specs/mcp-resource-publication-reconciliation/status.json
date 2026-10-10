@@ -55,8 +55,10 @@
     {
       "id": "GRAPHOS-MCP-RESOURCES-R003.1",
       "title": "Swap guard function",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "965d34390876"
+      ],
       "verified_by": [
         "tests/fleet/test_mcp_resource_reconciliation.py:119",
         "tests/fleet/test_mcp_resource_reconciliation.py:138"
