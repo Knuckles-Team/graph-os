@@ -13,6 +13,8 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] Review public documentation and mark only individually proven capabilities accepted.
 - [x] **GRAPHOS-OPS-R021.1:** Decide operations (service-executed) — decide slice of `GRAPHOS-OPS-R021`.
 - [ ] **GRAPHOS-OPS-R021.2:** Retrieval, context, and freshness read operations — retrieval slice of `GRAPHOS-OPS-R021`.
+- [ ] **GRAPHOS-OPS-R021.2.1:** `retrieval.search` op
+- [ ] **GRAPHOS-OPS-R021.2.2:** `retrieval.freshness` op
 - [ ] **GRAPHOS-OPS-R021.3:** Policy and swarm read operations — policy slice of `GRAPHOS-OPS-R021`.
 - [ ] **GRAPHOS-OPS-R022.1:** Work-item and offer operations — work slice of `GRAPHOS-OPS-R022`.
 - [ ] **GRAPHOS-OPS-R022.2:** Evolution loop, schedule, and proposal operations — evolution slice of `GRAPHOS-OPS-R022`.
@@ -49,9 +51,16 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [x] **GRAPHOS-OPS-R020.2:** Repository indexing and source inventory operations
 - [x] **GRAPHOS-OPS-R020.3:** Pack and job management operations
 - [ ] **GRAPHOS-OPS-R020.3.1:** Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations
+- [ ] **GRAPHOS-OPS-R020.3.1.1:** `ingest.packs.list` op
+- [ ] **GRAPHOS-OPS-R020.3.1.2:** `ingest.jobs.status` op
 - [ ] **GRAPHOS-OPS-R020.4:** Drift listing and repair-with-approval operations
 - [ ] **GRAPHOS-OPS-R020.5:** Embedding admission and re-embedding operations
 - [ ] **GRAPHOS-OPS-R020.3.1:** Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations
+- [ ] **GRAPHOS-OPS-R022.2.1:** `evolution.loops.status` op
+- [ ] **GRAPHOS-OPS-R022.2.2:** `evolution.schedules.list` op
+- [ ] **GRAPHOS-OPS-R022.2.3:** `evolution.proposals.list` op
+- [ ] **GRAPHOS-OPS-R022.2.4:** `evolution.loops.run` op
+- [ ] **GRAPHOS-OPS-R022.2.5:** `evolution.loops.pause` op
 - [ ] **GRAPHOS-OPS-R031:** Published tool-to-operation parity inventory
 - [ ] **GRAPHOS-OPS-R031.1:** Remaining scope of GRAPHOS-OPS-R031 (slice .1): Published tool-to-operation parity inventory
 - [ ] **GRAPHOS-OPS-R032:** Identity dependency inversion via ports
@@ -60,6 +69,10 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] **GRAPHOS-OPS-R032.2.1:** Remaining scope of GRAPHOS-OPS-R032.2: Identity runtime constructor in the composition root.
 - [ ] **GRAPHOS-OPS-R032.2.2:** Remaining scope of GRAPHOS-OPS-R032.2: Inject identity ports into mcp_server.
 - [ ] **GRAPHOS-OPS-R032.2.3:** Remaining scope of GRAPHOS-OPS-R032.2: Inject identity ports into webui_host and webui_co_service.
+- [ ] **GRAPHOS-OPS-R032.2.3.1:** Remaining scope of GRAPHOS-OPS-R032.2.3: compose_web_application requires injected identity ports.
+- [ ] **GRAPHOS-OPS-R032.2.3.2:** Remaining scope of GRAPHOS-OPS-R032.2.3: Thread identity ports through run_web_ui and the webui_host package.
+- [ ] **GRAPHOS-OPS-R032.2.3.2.1:** Remaining scope of GRAPHOS-OPS-R032.2.3.2: run_web_ui accepts and binds identity ports (with GRAPHOS-OPS-R032.2.3.1).
+- [ ] **GRAPHOS-OPS-R032.2.3.2.2:** Remaining scope of GRAPHOS-OPS-R032.2.3.2: Supply identity ports from mcp_server composition (depends on GRAPHOS-OPS-R032.2.2).
 - [ ] **GRAPHOS-OPS-R032.2.4:** Remaining scope of GRAPHOS-OPS-R032.2: Integration test of single injected identity runtime.
 - [ ] **GRAPHOS-OPS-R035:** Multiplexer registration reduced to four resident tools
 - [ ] **GRAPHOS-OPS-R035.1:** Remaining scope of GRAPHOS-OPS-R035 (slice .1): Multiplexer registration reduced to four resident tools

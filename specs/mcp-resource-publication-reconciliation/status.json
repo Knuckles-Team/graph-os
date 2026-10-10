@@ -8,6 +8,8 @@
     "GRAPHOS-MCP-RESOURCES-R001.1",
     "GRAPHOS-MCP-RESOURCES-R002",
     "GRAPHOS-MCP-RESOURCES-R003",
+    "GRAPHOS-MCP-RESOURCES-R003.1",
+    "GRAPHOS-MCP-RESOURCES-R003.2",
     "GRAPHOS-MCP-RESOURCES-R004"
   ],
   "requirements": [
@@ -29,19 +31,46 @@
         "6a19f564d301"
       ],
       "verified_by": [
-        "tests/fleet/test_mcp_resource_reconciliation.py:20"
+        "tests/fleet/test_mcp_resource_reconciliation.py:22"
       ]
     },
     {
       "id": "GRAPHOS-MCP-RESOURCES-R002",
       "title": "epistemic-graph is the sole admissible receipt source",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "028338c38838"
+      ],
+      "verified_by": [
+        "tests/fleet/test_mcp_resource_receipt_source.py:32"
+      ]
     },
     {
       "id": "GRAPHOS-MCP-RESOURCES-R003",
-      "title": "Gate wired at the one catalog-publish entry point",
+      "title": "Gate wired at the one catalog-publish entry point (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-MCP-RESOURCES-R003.1",
+        "GRAPHOS-MCP-RESOURCES-R003.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-MCP-RESOURCES-R003.1",
+      "title": "Swap guard function",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "965d34390876"
+      ],
+      "verified_by": [
+        "tests/fleet/test_mcp_resource_reconciliation.py:119",
+        "tests/fleet/test_mcp_resource_reconciliation.py:138"
+      ]
+    },
+    {
+      "id": "GRAPHOS-MCP-RESOURCES-R003.2",
+      "title": "Call the guard from the publish step (depends on `fleet-catalog-and-tools` R022/PA-12 landing in graph-os)",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -49,9 +78,16 @@
     {
       "id": "GRAPHOS-MCP-RESOURCES-R004",
       "title": "Status docs are the gate's result, not hand-maintained prose",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "94ee72171294"
+      ],
+      "verified_by": [
+        "tests/fleet/test_mcp_resource_status_docs.py:20",
+        "tests/fleet/test_mcp_resource_status_docs.py:25",
+        "tests/fleet/test_mcp_resource_status_docs.py:32",
+        "tests/fleet/test_mcp_resource_status_docs.py:44"
+      ]
     }
   ]
 }

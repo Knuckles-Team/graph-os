@@ -13,8 +13,10 @@ the final release task records served evidence.
 - [ ] T03 — Confirm and link the epistemic-graph producing contract (`EG-REPO-INGEST-001`) in
   `spec.md`/`requirements.md`. Cover `GRAPHOS-MCP-RESOURCES-R002`. (Link added this PR; EG-side
   delivery is tracked in epistemic-graph's own spec, not here.)
-- [ ] T04 — Wire `gate_mcp_resource_publication()` into the GRAPHOS-FLEET-001 atomic generation-
-  publish step for the four MCP families. Cover `GRAPHOS-MCP-RESOURCES-R003`.
+- [ ] T04 — Add `require_reconciled_for_swap()` and `PublicationRefusedError` with refusal tests.
+  Cover `GRAPHOS-MCP-RESOURCES-R003.1`.
+- [ ] T04.1 — Call the guard from the GRAPHOS-FLEET-001 atomic generation-publish step once
+  `fleet-catalog-and-tools` R022/PA-12 lands. Cover `GRAPHOS-MCP-RESOURCES-R003.2`.
 - [ ] T05 — Reconcile `docs/status.md` / `docs/fleet.md` wording against the gate's actual
   status/reason vocabulary. Cover `GRAPHOS-MCP-RESOURCES-R004`.
 - [ ] T06 — Land reviewed code and record merge commits per slice in `spec.md`; do not mark

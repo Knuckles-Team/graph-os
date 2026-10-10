@@ -47,3 +47,20 @@ def test_admission_decision_always_carries_provenance_and_typed_reason() -> None
             "EG_ASSEMBLE_UNAVAILABLE",
             "ENVELOPE_LACKS_ALLOWED_TOOL_SUBSET",
         )
+
+
+@pytest.mark.spec("GRAPHOS-A2A-002-R005")
+def test_admission_never_returns_advisory_cached_or_partial_subset() -> None:
+    """GRAPHOS-A2A-002-R005: an incomplete upstream answer is a refusal."""
+
+    for ref, tokens in (("graph-a", 4_096), ("graph-a", 65_536), ("graph-b", 4_096)):
+        decision = admit_tool_subset(
+            ToolSubsetAdmissionRequest(
+                agent_graph_ref=ref,
+                context_budget=A2AContextBudget(tokens=tokens),
+            )
+        )
+
+        assert decision.admitted is False
+        assert decision.admitted_tools == ()
+        assert decision.refusal_reason is not None
