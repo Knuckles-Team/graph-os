@@ -13,6 +13,8 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUNBOOK = REPO_ROOT / "docs" / "release-qualification-runbook.md"
 
@@ -27,6 +29,7 @@ def test_runbook_exists_and_is_linked_from_mkdocs() -> None:
     assert "release-qualification-runbook.md" in nav
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R002")
 def test_runbook_covers_every_required_component() -> None:
     text = _runbook_text()
     for component in (
@@ -41,6 +44,7 @@ def test_runbook_covers_every_required_component() -> None:
         assert component in text, f"runbook is missing a stage for: {component}"
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R002")
 def test_runbook_cites_real_doctor_checks() -> None:
     from graph_os.deployment.doctor import _LIVE_CHECK_NAMES, CHECKS
 
@@ -51,6 +55,7 @@ def test_runbook_cites_real_doctor_checks() -> None:
     assert "mcp_fleet" in _LIVE_CHECK_NAMES
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R002")
 def test_runbook_cites_real_console_scripts() -> None:
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
     scripts = pyproject["project"]["scripts"]
@@ -64,6 +69,7 @@ def test_runbook_cites_real_console_scripts() -> None:
         assert script_name in scripts, f"{script_name} is no longer a console script"
 
 
+@pytest.mark.spec("GRAPHOS-DEPLOY-R002")
 def test_runbook_cites_a_real_test_directory() -> None:
     assert "tests/deployment" in _runbook_text()
     assert (REPO_ROOT / "tests" / "deployment").is_dir()
