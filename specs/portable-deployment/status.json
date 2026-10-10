@@ -23,7 +23,8 @@
     "GRAPHOS-DEPLOY-R007.2",
     "GRAPHOS-DEPLOY-R007.3",
     "GRAPHOS-DEPLOY-R007.4",
-    "GRAPHOS-DEPLOY-R007.5"
+    "GRAPHOS-DEPLOY-R007.5",
+    "GRAPHOS-DEPLOY-R009.1"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -434,6 +435,12 @@
           "description": "GRAPHOS-DEPLOY-R007.5 merged to the default branch in this commit."
         }
       ]
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R009.1",
+      "title": "Remaining scope of GRAPHOS-DEPLOY-R009 (slice .1): GraphOS owns hosting/deployment configuration settings",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
     }
   ]
 }
