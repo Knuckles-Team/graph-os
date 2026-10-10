@@ -56,6 +56,11 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] **GRAPHOS-OPS-R020.4:** Drift listing and repair-with-approval operations
 - [ ] **GRAPHOS-OPS-R020.5:** Embedding admission and re-embedding operations
 - [ ] **GRAPHOS-OPS-R020.3.1:** Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations
+- [ ] **GRAPHOS-OPS-R022.2.1:** `evolution.loops.status` op
+- [ ] **GRAPHOS-OPS-R022.2.2:** `evolution.schedules.list` op
+- [ ] **GRAPHOS-OPS-R022.2.3:** `evolution.proposals.list` op
+- [ ] **GRAPHOS-OPS-R022.2.4:** `evolution.loops.run` op
+- [ ] **GRAPHOS-OPS-R022.2.5:** `evolution.loops.pause` op
 - [ ] **GRAPHOS-OPS-R031:** Published tool-to-operation parity inventory
 - [ ] **GRAPHOS-OPS-R031.1:** Remaining scope of GRAPHOS-OPS-R031 (slice .1): Published tool-to-operation parity inventory
 - [ ] **GRAPHOS-OPS-R032:** Identity dependency inversion via ports
