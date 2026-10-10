@@ -393,7 +393,9 @@
       "id": "GRAPHOS-OPS-R020.3.1",
       "title": "Missing `ingest.packs.*` and `ingest.jobs.*` ops",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "16c9b2bddda3"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-OPS-R020.3.1.1",
@@ -403,8 +405,10 @@
     {
       "id": "GRAPHOS-OPS-R020.3.1.1",
       "title": "`ingest.packs.list` op",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "16c9b2bddda3"
+      ],
       "verified_by": [
         "tests/api/test_ingest_ops.py:221",
         "tests/api/test_ingest_ops.py:233",

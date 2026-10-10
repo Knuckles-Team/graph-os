@@ -281,9 +281,13 @@
     {
       "id": "GRAPHOS-HOST-R005.2.3.1",
       "title": "Map `sync` to `ingest.sources.sync`",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "567a2b417ed7"
+      ],
+      "verified_by": [
+        "tests/mcp_server/test_legacy_action_mapping_ingest_sync.py:11"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R005.2.3.2",
