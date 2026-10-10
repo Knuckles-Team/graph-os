@@ -45,6 +45,18 @@ def _session(tenant: str, *, scopes: tuple[str, ...] = ("kg:read",)) -> GraphSes
     )
 
 
+async def _assert_ask_denied(
+    served_native: SimpleNamespace, actor: ActorContext, session: GraphSession
+) -> None:
+    """Shared stdio/networked denial assertion: run ``ask`` as ``actor`` and
+    confirm the real native-tool entry point denies it without delegating."""
+    with use_actor(actor), use_session(session), pytest.raises(ToolError):
+        await served_native.call(
+            server_name="graph-os", tool_name="ask", arguments={"query": "read"}
+        )
+    assert served_native.observed == []
+
+
 @pytest.fixture
 def served_native(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
     _reset_served_multiplexer_for_tests()
@@ -154,11 +166,7 @@ async def test_native_dispatch_denies_admin_only_stdio_caller_without_delegate_s
     exactly as it would deny an equally-scoped networked caller below."""
     session = _session("tenant-a")
     actor = replace(session.actor, roles=("admin",))
-    with use_actor(actor), use_session(session), pytest.raises(ToolError):
-        await served_native.call(
-            server_name="graph-os", tool_name="ask", arguments={"query": "read"}
-        )
-    assert served_native.observed == []
+    await _assert_ask_denied(served_native, actor, session)
 
 
 @pytest.mark.asyncio
@@ -178,11 +186,7 @@ async def test_native_dispatch_denies_admin_only_networked_caller_without_delega
         lambda: SimpleNamespace(scopes=["admin"], claims=None),
     )
     session = _session("tenant-a")
-    with use_actor(session.actor), use_session(session), pytest.raises(ToolError):
-        await served_native.call(
-            server_name="graph-os", tool_name="ask", arguments={"query": "read"}
-        )
-    assert served_native.observed == []
+    await _assert_ask_denied(served_native, session.actor, session)
 
 
 @pytest.mark.asyncio
