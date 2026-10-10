@@ -63,6 +63,10 @@
     "GRAPHOS-OPS-R032",
     "GRAPHOS-OPS-R032.1",
     "GRAPHOS-OPS-R032.2",
+    "GRAPHOS-OPS-R032.2.1",
+    "GRAPHOS-OPS-R032.2.2",
+    "GRAPHOS-OPS-R032.2.3",
+    "GRAPHOS-OPS-R032.2.4",
     "GRAPHOS-OPS-R033",
     "GRAPHOS-OPS-R034",
     "GRAPHOS-OPS-R035",
@@ -687,6 +691,40 @@
     {
       "id": "GRAPHOS-OPS-R032.2",
       "title": "Injected composition root for identity ports",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R032.2.1",
+        "GRAPHOS-OPS-R032.2.2",
+        "GRAPHOS-OPS-R032.2.3",
+        "GRAPHOS-OPS-R032.2.4"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.1",
+      "title": "Identity runtime constructor in the composition root",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.2",
+      "title": "Inject identity ports into mcp_server",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3",
+      "title": "Inject identity ports into webui_host and webui_co_service",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.4",
+      "title": "Integration test of single injected identity runtime",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []

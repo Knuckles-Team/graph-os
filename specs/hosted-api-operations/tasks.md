@@ -57,6 +57,10 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] **GRAPHOS-OPS-R032:** Identity dependency inversion via ports
 - [ ] **GRAPHOS-OPS-R032.1:** Remaining scope of GRAPHOS-OPS-R032 (slice .1): Identity dependency inversion via ports
 - [ ] **GRAPHOS-OPS-R032.2:** Remaining scope of GRAPHOS-OPS-R032 (slice .2): Identity dependency inversion via ports
+- [ ] **GRAPHOS-OPS-R032.2.1:** Remaining scope of GRAPHOS-OPS-R032.2: Identity runtime constructor in the composition root.
+- [ ] **GRAPHOS-OPS-R032.2.2:** Remaining scope of GRAPHOS-OPS-R032.2: Inject identity ports into mcp_server.
+- [ ] **GRAPHOS-OPS-R032.2.3:** Remaining scope of GRAPHOS-OPS-R032.2: Inject identity ports into webui_host and webui_co_service.
+- [ ] **GRAPHOS-OPS-R032.2.4:** Remaining scope of GRAPHOS-OPS-R032.2: Integration test of single injected identity runtime.
 - [ ] **GRAPHOS-OPS-R035:** Multiplexer registration reduced to four resident tools
 - [ ] **GRAPHOS-OPS-R035.1:** Remaining scope of GRAPHOS-OPS-R035 (slice .1): Multiplexer registration reduced to four resident tools
 - [ ] **GRAPHOS-OPS-R035.2:** Remaining scope of GRAPHOS-OPS-R035 (slice .2): Multiplexer registration reduced to four resident tools
