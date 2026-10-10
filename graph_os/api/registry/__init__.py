@@ -27,11 +27,19 @@ from .spec import (
     Surface,
     Verb,
 )
+from .surface_gate import (
+    CompatBreak,
+    SurfaceDrift,
+    diff_backward_compat,
+    diff_public_surface,
+    public_surface,
+)
 
 __all__ = [
     "DOMAIN_SCOPE_CLASSES",
     "AuditClass",
     "Caller",
+    "CompatBreak",
     "Composite",
     "Confirm",
     "Effect",
@@ -53,9 +61,13 @@ __all__ = [
     "SubjectRef",
     "SubjectSource",
     "Surface",
+    "SurfaceDrift",
     "Verb",
     "authorized",
     "canonical_op",
     "canonical_registry",
+    "diff_backward_compat",
+    "diff_public_surface",
+    "public_surface",
     "registry_digest",
 ]
