@@ -24,14 +24,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from graph_os.api.registry import (
-    AuditClass,
-    Composite,
-    Effect,
-    OpSpec,
-    Surface,
-    Verb,
-)
+from graph_os.api.ops._simple_op import simple_op
+from graph_os.api.registry import AuditClass, Effect, OpSpec, Surface, Verb
 from graph_os.identity.admin_console import AdminConsoleTab, dry_run_mapping
 
 
@@ -64,16 +58,14 @@ async def handle_mapping_dry_run(
 
 def operations() -> tuple[OpSpec, ...]:
     return (
-        OpSpec(
-            id="identity.admin.mapping_dry_run",
-            verb=Verb.ASK,
-            summary="Preview the roles a provider mapping-rule set would assign",
-            examples=("preview provider mapping roles for these claims",),
-            params=MappingDryRunParams,
-            result=MappingDryRunResult,
-            binding=Composite(
-                handler="graph_os.api.ops.identity.handle_mapping_dry_run"
-            ),
+        simple_op(
+            "identity.admin.mapping_dry_run",
+            Verb.ASK,
+            "Preview the roles a provider mapping-rule set would assign",
+            ("preview provider mapping roles for these claims",),
+            MappingDryRunParams,
+            MappingDryRunResult,
+            handler="graph_os.api.ops.identity.handle_mapping_dry_run",
             scopes=frozenset({"identity:admin"}),
             effect=Effect.READ,
             audit=AuditClass.NONE,

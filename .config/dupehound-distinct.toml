@@ -6,8 +6,16 @@
 # a human re-reviews it. An entry matching no current finding fails the
 # gate as stale. Nothing here is written or updated by a tool.
 #
-# Currently empty: this repository has no reviewed-distinct pairs yet (it
-# has almost no source at all — see AGENTS.md "Status"). Do not add an
-# entry to force the dupehound gate green; add one only when dupehound
-# genuinely reports a structurally-identical, semantically-unrelated pair
-# that manual review confirms should not be consolidated.
+# Do not add an entry to force the dupehound gate green; add one only when
+# dupehound genuinely reports a structurally-identical, semantically-unrelated
+# pair that manual review confirms should not be consolidated.
+
+[[pair]]
+left_file = "graph_os/api/ops/identity.py"
+left_name = "operations"
+left_digest = "sha256:10d6e5bdea4692d157c140af463d91a8c0365fea790969f923972c373d10f1fc"
+right_file = "graph_os/api/ops/capacity.py"
+right_name = "operations"
+right_digest = "sha256:4d3091649801b6dfbac9596399d828c6d71ec98949ce54c7c25db6e98d63393f"
+reason = "Both already delegate their one real duplicated shape, the OpSpec(id, verb, summary, examples, params, result, binding, scopes, effect, audit, surfaces) construction, to the shared graph_os.api.ops._simple_op.simple_op() helper; the remaining similarity is only the mandatory operations() -> tuple[OpSpec, ...] wrapper every curated ops module exports for registry_factory.get_registry(), which cannot be merged across the identity and capacity domains without violating the one-module-per-domain boundary documented in AGENTS.md."
+reviewed_on = "2026-10-09"

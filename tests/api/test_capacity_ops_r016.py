@@ -11,11 +11,14 @@ That EG-dependent remainder is tracked as ``GRAPHOS-OPS-R016.2`` in
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 from pydantic import ValidationError
 
 from graph_os.api.ops import capacity
 from graph_os.api.registry import Effect, Registry, Surface
+from graph_os.fleet.error_budget import ThrottleMode
 
 pytestmark = pytest.mark.spec("GRAPHOS-OPS-R016.1")
 
@@ -39,13 +42,14 @@ def test_throttle_mode_is_bounded_to_the_observe_enforce_enum() -> None:
             child="search",
             operation_class="read",
             policy_revision="p1",
-            mode="disabled",
+            mode=cast(ThrottleMode, "disabled"),
         )
 
 
 def test_registry_factory_includes_capacity_in_curated_modules() -> None:
-    import graph_os.api.ops.registry_factory as registry_factory_module
     import inspect
+
+    import graph_os.api.ops.registry_factory as registry_factory_module
 
     source = inspect.getsource(registry_factory_module.get_registry)
     assert "capacity" in source

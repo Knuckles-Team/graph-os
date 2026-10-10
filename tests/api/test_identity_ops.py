@@ -49,8 +49,9 @@ async def test_mapping_dry_run_returns_no_roles_when_nothing_matches() -> None:
 
 
 def test_registry_factory_includes_identity_in_curated_modules() -> None:
-    import graph_os.api.ops.registry_factory as registry_factory_module
     import inspect
+
+    import graph_os.api.ops.registry_factory as registry_factory_module
 
     source = inspect.getsource(registry_factory_module.get_registry)
     assert "identity" in source

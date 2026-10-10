@@ -11,7 +11,6 @@ require; that EG-dependent remainder is tracked as ``GRAPHOS-OPS-R015.2`` in
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
 import pytest
 
