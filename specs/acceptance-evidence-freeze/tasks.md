@@ -11,3 +11,7 @@ Status: SPECIFIED. Governing spec: [spec.md](spec.md). Design: [plan.md](plan.md
 - [ ] `GRAPHOS-ACCEPTANCE-R005`: wire the checker into the repository's pre-commit/CI spec-check group as an informational (non-blocking) worklist report.
 - [ ] Run focused tests and `scripts/check_public_specs.py`; capture exact revision and results in `status.json`.
 - [ ] Review evidence and change `acceptance_state` only after required gates and the distinct-auditor review in `GRAPHOS-ACCEPTANCE-R002`.
+
+## Decomposition children (tracked)
+
+- [x] **GRAPHOS-ACCEPTANCE-R001:** Typed acceptance-evidence model and freeze-gap checker
