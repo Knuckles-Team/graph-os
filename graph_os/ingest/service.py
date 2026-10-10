@@ -66,6 +66,24 @@ class IngestSourceInventory(BaseModel):
     sources: tuple[IngestSourceRecord, ...]
 
 
+class IngestPackRecord(BaseModel):
+    """One ingestion pack's identity and current state."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    pack_id: str
+    tenant: str
+    state: IngestSourceState
+
+
+class IngestPackInventory(BaseModel):
+    """A tenant's full ingestion-pack inventory."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    packs: tuple[IngestPackRecord, ...]
+
+
 @runtime_checkable
 class IngestRunner(Protocol):
     """The one typed port GraphOS calls the ingestion SDK through.
@@ -89,6 +107,8 @@ class IngestRunner(Protocol):
     async def get_source_status(
         self, *, tenant: str, source_id: str
     ) -> IngestSourceRecord: ...
+
+    async def list_packs(self, *, tenant: str) -> IngestPackInventory: ...
 
 
 def _bound_runner(context: Any) -> IngestRunner:
@@ -142,3 +162,10 @@ async def get_source_status(context: Any, params: Mapping[str, Any], op: Any) ->
         tenant=context.caller.tenant, source_id=params["source_id"]
     )
     return {"value": record.model_dump(mode="json")}
+
+
+async def list_packs(context: Any, params: Mapping[str, Any], op: Any) -> Any:
+    """List this tenant's ingestion packs through the composed runner."""
+    runner = _bound_runner(context)
+    inventory = await runner.list_packs(tenant=context.caller.tenant)
+    return {"value": inventory.model_dump(mode="json")}
