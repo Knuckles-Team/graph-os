@@ -87,7 +87,7 @@ def make_verified_caller(default_scope: str) -> Callable[..., VerifiedCaller]:
 
 def assert_capacity_throttle_scope_split(
     registry: Registry,
-) -> tuple[object, object]:
+) -> tuple[OpSpec, OpSpec]:
     """Shared GRAPHOS-OPS-R016 contract, asserted identically by
     ``test_capacity_ops.py`` (the full GRAPHOS-CAPACITY-R002 contract) and
     ``test_capacity_ops_r016.py`` (the R016.1 read/admin scope-split slice):
