@@ -475,7 +475,9 @@
       "id": "GRAPHOS-OPS-R021.2",
       "title": "Retrieval, context, and freshness read operations — retrieval slice",
       "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "landed_in": [
+        "e78a5e5b701e"
+      ],
       "verified_by": [],
       "rollup_of": [
         "GRAPHOS-OPS-R021.2.1",
@@ -485,9 +487,14 @@
     {
       "id": "GRAPHOS-OPS-R021.2.1",
       "title": "`retrieval.search` op",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "e78a5e5b701e"
+      ],
+      "verified_by": [
+        "tests/api/test_retrieval_ops.py:34",
+        "tests/api/test_retrieval_ops.py:49"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R021.2.2",
