@@ -26,6 +26,10 @@
     "GRAPHOS-IDENTITY-R009.2",
     "GRAPHOS-IDENTITY-R010.1",
     "GRAPHOS-IDENTITY-R010.2",
+    "GRAPHOS-IDENTITY-R010.2.1",
+    "GRAPHOS-IDENTITY-R010.2.2",
+    "GRAPHOS-IDENTITY-R010.2.3",
+    "GRAPHOS-IDENTITY-R010.2.4",
     "GRAPHOS-IDENTITY-R011",
     "GRAPHOS-IDENTITY-R012",
     "GRAPHOS-IDENTITY-R011.1",
@@ -283,7 +287,41 @@
     },
     {
       "id": "GRAPHOS-IDENTITY-R010.2",
-      "title": "Directory bind and group sync",
+      "title": "Directory bind and group sync (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-IDENTITY-R010.2.1",
+        "GRAPHOS-IDENTITY-R010.2.2",
+        "GRAPHOS-IDENTITY-R010.2.3",
+        "GRAPHOS-IDENTITY-R010.2.4"
+      ]
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.2.1",
+      "title": "Group-DN-to-role mapping evaluation",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.2.2",
+      "title": "Bind through an injected directory port",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.2.3",
+      "title": "Scheduled group sync",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-IDENTITY-R010.2.4",
+      "title": "Live directory probe",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
