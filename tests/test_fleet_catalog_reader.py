@@ -208,6 +208,7 @@ def test_reader_joins_liveness_current_records_and_content_with_bounded_pages() 
     ]
 
 
+@pytest.mark.spec("PA-12.1")
 def test_reader_fails_closed_on_cross_tenant_search_receipt() -> None:
     port = FakeFleetCatalogPort(
         component_pages=[
@@ -219,6 +220,7 @@ def test_reader_fails_closed_on_cross_tenant_search_receipt() -> None:
         asyncio.run(FleetCatalogReader(port).read())
 
 
+@pytest.mark.spec("PA-12.1")
 def test_reader_fails_closed_when_search_entry_is_no_longer_current() -> None:
     port = FakeFleetCatalogPort()
     port.current[TOOL_COMPONENT.component_id] = replace(
@@ -229,6 +231,7 @@ def test_reader_fails_closed_when_search_entry_is_no_longer_current() -> None:
         asyncio.run(FleetCatalogReader(port).read())
 
 
+@pytest.mark.spec("PA-12.1")
 def test_reader_fails_closed_on_unresolved_server_provenance_pin() -> None:
     bad_tool = replace(
         TOOL_COMPONENT,
@@ -245,6 +248,7 @@ def test_reader_fails_closed_on_unresolved_server_provenance_pin() -> None:
         asyncio.run(FleetCatalogReader(port).read())
 
 
+@pytest.mark.spec("PA-12.1")
 def test_reader_fails_closed_on_content_revision_mismatch() -> None:
     port = FakeFleetCatalogPort()
     port.contents[TOOL_COMPONENT.component_id] = replace(
@@ -255,6 +259,7 @@ def test_reader_fails_closed_on_content_revision_mismatch() -> None:
         asyncio.run(FleetCatalogReader(port).read())
 
 
+@pytest.mark.spec("PA-12.1")
 def test_reader_rejects_cyclic_cursor_without_unbounded_io() -> None:
     port = FakeFleetCatalogPort(
         server_pages=[server_page(cursor="repeat"), server_page(cursor="repeat")]

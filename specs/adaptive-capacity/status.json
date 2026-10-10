@@ -2,7 +2,7 @@
   "schema_version": 2,
   "spec_id": "GRAPHOS-CAPACITY-001",
   "owner_repo": "graph-os",
-  "delivery_state": "LANDED",
+  "delivery_state": "VERIFIED",
   "requirement_ids": [
     "GRAPHOS-CAPACITY-R001",
     "GRAPHOS-CAPACITY-R001.1",
@@ -12,7 +12,7 @@
     {
       "id": "GRAPHOS-CAPACITY-R001",
       "title": "AIMD error-budget throttling that only narrows automatically (rollup)",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "d2f29725918d"
       ],
@@ -24,21 +24,25 @@
     {
       "id": "GRAPHOS-CAPACITY-R001.1",
       "title": "Pure partitioned AIMD decision rule",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "c46a1ded6a8f",
         "d2f29725918d"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_error_budget.py:28"
+      ]
     },
     {
       "id": "GRAPHOS-CAPACITY-R002",
       "title": "Capacity status and mode operations",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "c46a1ded6a8f"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_capacity_ops.py:28"
+      ]
     }
   ]
 }

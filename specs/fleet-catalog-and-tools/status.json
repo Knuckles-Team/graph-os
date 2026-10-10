@@ -15,6 +15,17 @@
     "GRAPHOS-FLEET-R005.2",
     "GRAPHOS-FLEET-R006",
     "GRAPHOS-FLEET-R007",
+    "GRAPHOS-FLEET-R003.1",
+    "GRAPHOS-FLEET-R003.2",
+    "GRAPHOS-FLEET-R003.3",
+    "GRAPHOS-FLEET-R006.1",
+    "GRAPHOS-FLEET-R006.2",
+    "GRAPHOS-FLEET-R006.3",
+    "GRAPHOS-FLEET-R006.4",
+    "GRAPHOS-FLEET-R006.5",
+    "GRAPHOS-FLEET-R007.1",
+    "GRAPHOS-FLEET-R007.2",
+    "GRAPHOS-FLEET-R007.3",
     "GRAPHOS-FLEET-R008",
     "GRAPHOS-FLEET-R009",
     "GRAPHOS-FLEET-R010",
@@ -31,6 +42,8 @@
     "GRAPHOS-FLEET-R021",
     "GRAPHOS-FLEET-R022",
     "PA-12",
+    "PA-12.1",
+    "PA-12.2",
     "GRAPHOS-FLEET-R023",
     "GRAPHOS-FLEET-R024",
     "GRAPHOS-FLEET-R024.1",
@@ -88,10 +101,15 @@
     },
     {
       "id": "GRAPHOS-FLEET-R003",
-      "title": "D18 write-back exposed only as a typed, previewed operation",
+      "title": "D18 write-back exposed only as a typed, previewed operation (rollup)",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R003.1",
+        "GRAPHOS-FLEET-R003.2",
+        "GRAPHOS-FLEET-R003.3"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R004",
@@ -138,11 +156,100 @@
       "title": "Multiplexer skill and prompt harvest path removed",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R006.1",
+        "GRAPHOS-FLEET-R006.2",
+        "GRAPHOS-FLEET-R006.3",
+        "GRAPHOS-FLEET-R006.4",
+        "GRAPHOS-FLEET-R006.5"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R007",
-      "title": "Bridge upgraded to FastMCP 4",
+      "title": "Bridge upgraded to FastMCP 4 (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-FLEET-R007.1",
+        "GRAPHOS-FLEET-R007.2",
+        "GRAPHOS-FLEET-R007.3"
+      ]
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.1",
+      "title": "Typed write-back request/preview/receipt models, the write-back producer",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.2",
+      "title": "Write-back registered as a typed, gated registry operation, not a native child tool",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R003.3",
+      "title": "Write-back idempotency and preview gating survive a service restart",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.1",
+      "title": "Harvest call-site inventory, the removal baseline",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.2",
+      "title": "Skill/prompt body-harvest cutover for an already-admitted child",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.3",
+      "title": "Dead harvest helpers removed",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.4",
+      "title": "Residual `_harvest`-named symbol renamed off the removed path",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R006.5",
+      "title": "Closing audit: no harvest or hydration code remains",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R007.1",
+      "title": "agent-connector-sdk's FastMCP instance gains native prompt/resource/template registration (cross-repo, owner: agent-connector-sdk)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R007.2",
+      "title": "agent-utilities' graph-os bridge surface gains native prompt/resource/template registration (cross-repo, owner: agent-utilities)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-FLEET-R007.3",
+      "title": "graph-os's served bridge exercises native prompts, resources and templates end to end",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -202,7 +309,10 @@
       "title": "Resolver ranks catalog items with partitioned feedback",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_resolve.py:112",
+        "tests/api/test_resolve.py:159"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R015",
@@ -273,7 +383,31 @@
     },
     {
       "id": "PA-12",
-      "title": "Catalog reload rejects invalid candidates, proves replica convergence",
+      "title": "Catalog reload rejects invalid candidates, proves replica convergence (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "PA-12.1",
+        "PA-12.2"
+      ]
+    },
+    {
+      "id": "PA-12.1",
+      "title": "Catalog reload rejects invalid candidates",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/test_fleet_catalog_reader.py:211",
+        "tests/test_fleet_catalog_reader.py:223",
+        "tests/test_fleet_catalog_reader.py:234",
+        "tests/test_fleet_catalog_reader.py:251",
+        "tests/test_fleet_catalog_reader.py:262"
+      ]
+    },
+    {
+      "id": "PA-12.2",
+      "title": "Multi-replica convergence is observed by generation and digest",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []

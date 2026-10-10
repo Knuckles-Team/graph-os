@@ -19,7 +19,10 @@
       "landed_in": [
         "a5951682d6da"
       ],
-      "verified_by": [],
+      "verified_by": [
+        "tests/test_check_acceptance_evidence.py:137",
+        "tests/test_check_acceptance_evidence.py:83"
+      ],
       "rollup_of": [
         "GRAPHOS-ACCEPTANCE-R001.1"
       ]
@@ -36,38 +39,49 @@
     {
       "id": "GRAPHOS-ACCEPTANCE-R002",
       "title": "Auditor distinct from delivery lane",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "a5951682d6da"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/test_check_acceptance_evidence.py:179",
+        "tests/test_check_acceptance_evidence.py:192",
+        "tests/test_check_acceptance_evidence.py:205"
+      ]
     },
     {
       "id": "GRAPHOS-ACCEPTANCE-R003",
       "title": "Evidence is append-only",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "a5951682d6da"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/test_check_acceptance_evidence.py:216",
+        "tests/test_check_acceptance_evidence.py:224"
+      ]
     },
     {
       "id": "GRAPHOS-ACCEPTANCE-R004",
       "title": "Operational evidence tracks the current commit, not a stale one",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "a5951682d6da"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/test_check_acceptance_evidence.py:99"
+      ]
     },
     {
       "id": "GRAPHOS-ACCEPTANCE-R005",
       "title": "Checker is the only path to an `ACCEPTED` report",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "a5951682d6da"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/test_check_acceptance_evidence.py:232"
+      ]
     }
   ]
 }

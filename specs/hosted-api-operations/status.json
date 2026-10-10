@@ -82,7 +82,9 @@
       "title": "Remove multiplexer skill/prompt harvest path",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_no_duplicate_skill_prompt_harvest.py:59"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R004",
@@ -160,7 +162,13 @@
       "title": "Bounded resolver for natural-language operation lookup",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_resolve.py:101",
+        "tests/api/test_resolve.py:40",
+        "tests/api/test_resolve.py:52",
+        "tests/api/test_resolve.py:62",
+        "tests/api/test_resolve.py:71"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R013",

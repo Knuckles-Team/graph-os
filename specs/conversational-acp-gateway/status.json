@@ -2,18 +2,43 @@
   "schema_version": 2,
   "spec_id": "GRAPHOS-ACP-001",
   "owner_repo": "graph-os",
-  "delivery_state": "LANDED",
+  "delivery_state": "SPECIFIED",
   "requirement_ids": [
-    "GRAPHOS-ACP-R001"
+    "GRAPHOS-ACP-R001",
+    "GRAPHOS-ACP-R001.1",
+    "GRAPHOS-ACP-R001.2"
   ],
   "requirements": [
     {
       "id": "GRAPHOS-ACP-R001",
       "title": "Conversational ACP gateway session admission and policy",
-      "delivery_state": "LANDED",
+      "delivery_state": "SPECIFIED",
       "landed_in": [
         "9a79acee8b6c"
       ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-ACP-R001.1",
+        "GRAPHOS-ACP-R001.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-ACP-R001.1",
+      "title": "Typed ACP session-policy model and fail-closed admission check",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "9a79acee8b6c"
+      ],
+      "verified_by": [
+        "tests/acp/test_session_policy.py:31",
+        "tests/acp/test_session_policy.py:71"
+      ]
+    },
+    {
+      "id": "GRAPHOS-ACP-R001.2",
+      "title": "Owner dependency: agent-utilities chat adapter",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     }
   ]

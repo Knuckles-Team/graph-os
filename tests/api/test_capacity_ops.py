@@ -25,6 +25,8 @@ from graph_os.fleet.error_budget import (
 )
 from graph_os.fleet.throttle_service import ThrottleRegistry
 
+pytestmark = pytest.mark.spec("GRAPHOS-CAPACITY-R002")
+
 _PARTITION_PARAMS = {
     "tenant": "t1",
     "child": "search",

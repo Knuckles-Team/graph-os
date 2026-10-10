@@ -33,3 +33,17 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [x] Add a release-canary check proving the promoted environment serves the
   FastMCP major it declares (GRAPHOS-A2A-R004). Semantic/composition proof
   that FastMCP 4 runs end to end remains open.
+
+## Decomposition children (tracked)
+
+- [ ] **GRAPHOS-A2A-R002.1:** Fail-closed refusal when assembly selects a tool subset
+- [ ] **GRAPHOS-A2A-R002.2:** Caller-filtered tool-subset enforcement at dispatch
+- [ ] **GRAPHOS-A2A-R002.2.1:** Remaining scope of GRAPHOS-A2A-R002.2 (slice .1): Caller-filtered tool-subset enforcement at dispatch
+- [ ] **GRAPHOS-A2A-R005:** Durable, fail-closed A2A approval exchange for tool calls
+- [ ] **GRAPHOS-A2A-R005.1:** Fail-closed `graphos.plan/confirm` stub on the A2A method table
+- [ ] **GRAPHOS-A2A-R005.2:** Full signed human approval chain and input-required task emission
+- [ ] **GRAPHOS-A2A-R005.2.1:** Remaining scope of GRAPHOS-A2A-R005.2 (slice .1): Full signed human approval chain and input-required task emission
+- [ ] **GRAPHOS-A2A-R006:** Operation invoke and plan-confirm methods for A2A
+- [ ] **GRAPHOS-A2A-R006.1:** Register `graphos.op/invoke` and `graphos.plan/confirm`, fail-closed
+- [ ] **GRAPHOS-A2A-R006.2:** Bridge `graphos.op/invoke` to the shared hosted-operation registry
+- [ ] **GRAPHOS-A2A-R006.2.1:** Remaining scope of GRAPHOS-A2A-R006.2 (slice .1): Bridge graphos.op/invoke to the shared hosted-operation registry
