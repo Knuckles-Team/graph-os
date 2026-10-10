@@ -5,7 +5,9 @@
   "requirement_ids": [
     "GRAPHOS-RELEASE-R001",
     "GRAPHOS-RELEASE-R002",
-    "GRAPHOS-RELEASE-R003"
+    "GRAPHOS-RELEASE-R003",
+    "GRAPHOS-RELEASE-R003.1",
+    "GRAPHOS-RELEASE-R003.2"
   ],
   "delivery_state": "BUILDING",
   "acceptance_state": "NOT_AUDITED",
@@ -34,6 +36,18 @@
     {
       "id": "GRAPHOS-RELEASE-R003",
       "title": "Exit-criteria matrix maps readiness to tests",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.1",
+      "title": "Remaining scope of GRAPHOS-RELEASE-R003 (slice .1): Exit-criteria matrix maps readiness to tests",
+      "delivery_state": "SPECIFIED",
+      "evidence": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.2",
+      "title": "Remaining scope of GRAPHOS-RELEASE-R003 (slice .2): Exit-criteria matrix maps readiness to tests",
       "delivery_state": "SPECIFIED",
       "evidence": []
     }

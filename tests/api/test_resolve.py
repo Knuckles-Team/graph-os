@@ -1,8 +1,10 @@
-"""GRAPHOS-OPS-R012: bounded resolver for natural-language operation lookup.
+"""GRAPHOS-OPS-R012 / GRAPHOS-FLEET-R014: bounded resolver for NL operation lookup.
 
-Covers the three properties the requirement names: combined lexical/semantic
-ranking order, the bounded result cache, and the read-only preview fallback
-for an unmatched ``ask`` call (never a direct mutation).
+Covers combined lexical/semantic ranking order, the bounded result cache,
+the read-only preview fallback for an unmatched ``ask`` call (never a direct
+mutation), and (GRAPHOS-FLEET-R014) that ``record_execution``'s outcome
+feedback is an EMA partitioned by the caller's opaque ``scope_ref`` so one
+tenant/policy partition's learned reward never leaks into another's rank.
 """
 
 from __future__ import annotations
@@ -105,3 +107,59 @@ def test_matched_mutation_verb_always_requires_a_reviewed_preview() -> None:
 
     assert resolution.op == "deploy.restart"
     assert resolution.preview is True
+
+
+@pytest.mark.spec("GRAPHOS-FLEET-R014")
+def test_outcome_feedback_is_partitioned_by_scope_ref() -> None:
+    """A recorded outcome under one tenant/policy scope never leaks into another's rank.
+
+    ``record_execution`` folds an EMA of observed success into the next
+    ``rank`` call for the *same* ``scope_ref``, but a different tenant or
+    policy revision (a different opaque ``scope_ref``) must see the
+    unbiased baseline score, not the first partition's learned reward.
+    """
+
+    resolver = IntentResolver()
+    scope_a = resolver.scope_ref("tenant-a", "policy-1")
+    scope_b = resolver.scope_ref("tenant-b", "policy-1")
+
+    baseline = resolver.rank(
+        "act", "restart the deploy", _DESCRIPTORS, scope_ref=scope_a
+    )
+    baseline_score = next(
+        c.score for c in baseline if c.descriptor.id == "deploy.restart"
+    )
+
+    for _ in range(5):
+        resolver.record_execution(
+            scope_ref=scope_a, verb="act", op="deploy.restart", success=True
+        )
+
+    scope_a_ranked = resolver.rank(
+        "act", "restart the deploy", _DESCRIPTORS, scope_ref=scope_a
+    )
+    scope_a_score = next(
+        c.score for c in scope_a_ranked if c.descriptor.id == "deploy.restart"
+    )
+    scope_b_ranked = resolver.rank(
+        "act", "restart the deploy", _DESCRIPTORS, scope_ref=scope_b
+    )
+    scope_b_score = next(
+        c.score for c in scope_b_ranked if c.descriptor.id == "deploy.restart"
+    )
+
+    assert scope_a_score > baseline_score, (
+        "repeated successful outcomes must raise the score for their own scope_ref"
+    )
+    assert scope_b_score < scope_a_score, (
+        "a different tenant/policy scope_ref must not see scope_a's learned reward"
+    )
+
+
+@pytest.mark.spec("GRAPHOS-FLEET-R014")
+def test_scope_ref_requires_verified_tenant_and_policy_revision() -> None:
+    resolver = IntentResolver()
+    with pytest.raises(ValueError):
+        resolver.scope_ref("", "policy-1")
+    with pytest.raises(ValueError):
+        resolver.scope_ref("tenant-a", "")

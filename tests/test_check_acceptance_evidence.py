@@ -80,6 +80,7 @@ def test_fully_evidenced_requirement_reports_no_gap() -> None:
     assert gaps_for_status(data) == []
 
 
+@pytest.mark.spec("GRAPHOS-ACCEPTANCE-R001")
 def test_landed_requirement_missing_test_and_operational_is_reported() -> None:
     data = _status(
         [
@@ -95,6 +96,7 @@ def test_landed_requirement_missing_test_and_operational_is_reported() -> None:
     assert gaps == [RequirementGap("FIX-R002", COMMIT_A, ("test", "operational"))]
 
 
+@pytest.mark.spec("GRAPHOS-ACCEPTANCE-R004")
 def test_stale_operational_evidence_against_newer_merged_head_is_missing() -> None:
     data = _status(
         [
@@ -132,6 +134,7 @@ def test_specified_requirement_is_never_reported() -> None:
     assert gaps_for_status(data) == []
 
 
+@pytest.mark.spec("GRAPHOS-ACCEPTANCE-R001")
 def test_load_status_refuses_missing_file(tmp_path: Path) -> None:
     missing = tmp_path / "does-not-exist" / "status.json"
     with pytest.raises(AcceptanceEvidenceError):
@@ -173,6 +176,7 @@ def test_main_reports_gap_and_exits_nonzero(tmp_path: Path) -> None:
     assert exit_code == 1
 
 
+@pytest.mark.spec("GRAPHOS-ACCEPTANCE-R002")
 def test_review_trail_refuses_same_identity_auditor() -> None:
     """GRAPHOS-ACCEPTANCE-R002: auditor must differ from the merged_head author."""
     decision = ReviewDecision(
@@ -185,6 +189,7 @@ def test_review_trail_refuses_same_identity_auditor() -> None:
         validate_review_trail(decision)
 
 
+@pytest.mark.spec("GRAPHOS-ACCEPTANCE-R002")
 def test_review_trail_refuses_when_checker_still_reports_gap() -> None:
     """GRAPHOS-ACCEPTANCE-R002: the checker must report no gap before ACCEPTED."""
     decision = ReviewDecision(
@@ -197,6 +202,7 @@ def test_review_trail_refuses_when_checker_still_reports_gap() -> None:
         validate_review_trail(decision)
 
 
+@pytest.mark.spec("GRAPHOS-ACCEPTANCE-R002")
 def test_review_trail_accepts_distinct_auditor_with_no_gap() -> None:
     decision = ReviewDecision(
         requirement_id="FIX-R002",
@@ -207,6 +213,7 @@ def test_review_trail_accepts_distinct_auditor_with_no_gap() -> None:
     validate_review_trail(decision)  # does not raise
 
 
+@pytest.mark.spec("GRAPHOS-ACCEPTANCE-R003")
 def test_evidence_append_only_accepts_pure_appends() -> None:
     """GRAPHOS-ACCEPTANCE-R003: appending a correction entry is allowed."""
     old = [_evidence("merged_head", COMMIT_A)]
@@ -214,6 +221,7 @@ def test_evidence_append_only_accepts_pure_appends() -> None:
     assert evidence_is_append_only(old, new) is True
 
 
+@pytest.mark.spec("GRAPHOS-ACCEPTANCE-R003")
 def test_evidence_append_only_rejects_rewrite_in_place() -> None:
     """GRAPHOS-ACCEPTANCE-R003: mutating an existing entry's fields is refused."""
     old = [_evidence("merged_head", COMMIT_A, result="passed")]
@@ -221,6 +229,7 @@ def test_evidence_append_only_rejects_rewrite_in_place() -> None:
     assert evidence_is_append_only(old, new) is False
 
 
+@pytest.mark.spec("GRAPHOS-ACCEPTANCE-R005")
 def test_main_discovery_mode_is_deterministic_across_runs(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
