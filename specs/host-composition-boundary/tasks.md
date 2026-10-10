@@ -24,3 +24,13 @@ Status vocabulary is defined in [spec.md](spec.md). Check a task only after its 
 - [x] GRAPHOS-HOST-R008 (slice 5 of N): move `security/conformance/**` (surface_manifest + surface_inventory, the GOC-62 auth conformance suite) into `graph_os/security/conformance/`. Evidence: `graph_os/security/conformance/`, 9 tests ported (8 pass; 1 fails identically on AU main today — pre-existing, BUG-PE-006, not introduced here). Zero real production importers in AU (only its own tests). Not a bare copy: `surface_inventory.QUERY_TOOLS_MODULE` and the proof-citation paths in `test_known_fail_opens.py` assumed same-repo-relative paths into `agent_utilities/mcp/tools/query_tools.py` and AU's own `tests/` tree; both now resolve through the installed `agent_utilities` distribution (`importlib.util.find_spec`), with the AU-`tests/`-relative checks skipping (not failing) when AU isn't present as an editable sibling checkout — extending this file's own existing graceful-skip convention for the epistemic-graph/agent-webui sibling checks. **State: Building** (PR #78, open).
 
 **Current evidence gap:** No exact commit and served receipt set is recorded here for the strict public-port cutover or the complete parity matrix. Preserve `Implemented in part / acceptance pending` until those are attached.
+- [x] **GRAPHOS-HOST-R005.1:** Landed typed approved action-to-operation mapping model. Evidence: `tests/mcp_server/test_legacy_action_mapping.py`.
+- [ ] **GRAPHOS-HOST-R005.2:** Parity test proves no served action is dropped (rollup of .2.1-.2.8)
+- [ ] **GRAPHOS-HOST-R005.2.1:** Approved mapping for the analyze action family
+- [ ] **GRAPHOS-HOST-R005.2.2:** Approved mapping for the configure action family
+- [ ] **GRAPHOS-HOST-R005.2.3:** Approved mapping for the ingest action family
+- [ ] **GRAPHOS-HOST-R005.2.4:** Approved mapping for the query-memory action family
+- [ ] **GRAPHOS-HOST-R005.2.5:** Approved mapping for the orchestrate action family
+- [ ] **GRAPHOS-HOST-R005.2.6:** Approved mapping for the mine-learn action family
+- [ ] **GRAPHOS-HOST-R005.2.7:** Approved mapping for the governance-ops action family
+- [ ] **GRAPHOS-HOST-R005.2.8:** Parity test over the full legacy action surface
