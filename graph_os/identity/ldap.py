@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass
+from typing import Protocol
 
 from .engine import IdentityUnavailable
 
@@ -63,3 +64,33 @@ def map_groups_to_roles(
     if not roles:
         raise IdentityUnavailable("no directory group maps to a role")
     return frozenset(roles)
+
+
+class DirectoryPort(Protocol):
+    """Injected directory client; the real LDAP transport lives behind it."""
+
+    def bind(self, config: LdapBindConfig) -> None:
+        """Bind to the directory, raising on failure."""
+
+
+_FILTER_ESCAPES = {"\\": r"\5c", "*": r"\2a", "(": r"\28", ")": r"\29", "\x00": r"\00"}
+
+
+def escape_filter_value(value: str) -> str:
+    """Escape an assertion value for an LDAP search filter (RFC 4515)."""
+    return "".join(_FILTER_ESCAPES.get(ch, ch) for ch in value)
+
+
+def bind_directory(port: DirectoryPort | None, config: LdapBindConfig) -> None:
+    """Bind through the injected port (GRAPHOS-IDENTITY-R010.2.2).
+
+    Fails closed: a missing port or any bind failure is ``IdentityUnavailable``.
+    """
+    if port is None:
+        raise IdentityUnavailable("no directory port is configured")
+    try:
+        port.bind(config)
+    except IdentityUnavailable:
+        raise
+    except Exception as exc:
+        raise IdentityUnavailable("directory bind failed") from exc
