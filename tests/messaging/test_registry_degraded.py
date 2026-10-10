@@ -60,10 +60,11 @@ def test_create_backend_raises_typed_adapter_missing_when_not_installed() -> Non
         registry.create_backend("not-a-real-backend")
 
 
-@pytest.mark.spec("GRAPHOS-MESSAGING-R005")
-def test_create_all_enabled_degrades_missing_adapter_and_creates_present_one(
+def _create_all_enabled_with_one_missing(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
+) -> tuple[MessagingRegistry, dict[str, Any]]:
+    """Build a registry with one adapter that fails to import and one that
+    loads fine, then run ``create_all_enabled()`` against it."""
     monkeypatch.setenv("MESSAGING_MISSING_TOKEN", synthetic_token("x", "y", "z"))
     monkeypatch.setenv("MESSAGING_PRESENT_TOKEN", synthetic_token("a", "b", "c"))
 
@@ -78,6 +79,14 @@ def test_create_all_enabled_degrades_missing_adapter_and_creates_present_one(
     )
 
     created = registry.create_all_enabled()
+    return registry, created
+
+
+@pytest.mark.spec("GRAPHOS-MESSAGING-R005")
+def test_create_all_enabled_degrades_missing_adapter_and_creates_present_one(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry, created = _create_all_enabled_with_one_missing(monkeypatch)
 
     assert set(created) == {"present"}
     assert isinstance(created["present"], _PresentBackend)
@@ -93,20 +102,7 @@ def test_create_all_enabled_degrades_missing_adapter_and_creates_present_one(
 async def test_present_channel_still_reaches_running_while_missing_one_is_degraded(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("MESSAGING_MISSING_TOKEN", synthetic_token("x", "y", "z"))
-    monkeypatch.setenv("MESSAGING_PRESENT_TOKEN", synthetic_token("a", "b", "c"))
-
-    def _fail_import() -> Any:
-        raise ImportError("no module named fake_missing_sdk")
-
-    registry = _registry_with(
-        {
-            "missing": _FakeEntryPoint("missing", _fail_import),
-            "present": _FakeEntryPoint("present", lambda: _PresentBackend),
-        }
-    )
-
-    created = registry.create_all_enabled()
+    registry, created = _create_all_enabled_with_one_missing(monkeypatch)
     assert registry.degraded_backends() == {"missing": ChannelSupervisionState.DEGRADED}
 
     router = InboundRouter()
