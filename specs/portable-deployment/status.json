@@ -117,8 +117,44 @@
     {
       "id": "GRAPHOS-DEPLOY-R007",
       "title": "GraphOS hosts deployment doctor and skill certification",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "evidence": [
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.1 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.2 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.3 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.4 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
+        },
+        {
+          "kind": "merged_head",
+          "result": "passed",
+          "commit": "fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "url": "https://github.com/Knuckles-Team/graph-os/commit/fd761d59a171c148b7f2d7d952369c3b2b1a8628",
+          "description": "GRAPHOS-DEPLOY-R007.5 merged to the default branch in this commit; full implementation/pr evidence recorded on that child row."
+        }
+      ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R007.1",

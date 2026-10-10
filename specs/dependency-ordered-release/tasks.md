@@ -8,3 +8,9 @@ Status: SPECIFIED. Governing [spec](spec.md) and [plan](plan.md).
 - [ ] Implement stop, retry and rollback decisions with observed post-rollback checks; expose partial recovery honestly.
 - [ ] Run every T-RL positive/negative fixture in portable CI and release-only hosted qualification at the exact candidate digest.
 - [ ] Publish public receipt and operator instructions; change status only when landed and acceptance evidence independently exists.
+
+## Decomposition children (tracked)
+
+- [ ] **GRAPHOS-RELEASE-R003:** Exit-criteria matrix maps readiness to tests
+- [ ] **GRAPHOS-RELEASE-R003.1:** Remaining scope of GRAPHOS-RELEASE-R003 (slice .1): Exit-criteria matrix maps readiness to tests
+- [ ] **GRAPHOS-RELEASE-R003.2:** Remaining scope of GRAPHOS-RELEASE-R003 (slice .2): Exit-criteria matrix maps readiness to tests
