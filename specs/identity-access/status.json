@@ -183,7 +183,7 @@
     {
       "id": "GRAPHOS-IDENTITY-R008",
       "title": "API keys and service accounts replace static MCP tokens",
-      "delivery_state": "SPECIFIED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "e74110bb69b5"
       ],
@@ -236,9 +236,16 @@
     {
       "id": "GRAPHOS-IDENTITY-R008.2",
       "title": "Scope intersection and revocation",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "d45ad779b80c"
+      ],
+      "verified_by": [
+        "tests/identity/test_api_key_use_time.py:22",
+        "tests/identity/test_api_key_use_time.py:31",
+        "tests/identity/test_api_key_use_time.py:39",
+        "tests/identity/test_api_key_use_time.py:49"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R009.1",
