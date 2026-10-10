@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
+from typing import Protocol
 
 from .engine import IdentityUnavailable
 
@@ -48,6 +49,8 @@ class SamlRefusalReason(StrEnum):
     WRONG_RECIPIENT = "wrong_recipient"
     NOT_YET_VALID = "not_yet_valid"
     EXPIRED = "expired"
+    SIGNATURE_VERIFIER_ABSENT = "signature_verifier_absent"
+    INVALID_SIGNATURE = "invalid_signature"
 
 
 class SamlAssertionRefused(IdentityUnavailable):
@@ -113,3 +116,31 @@ def check_assertion_conditions(
         )
     if now_utc - clock_skew >= assertion.not_on_or_after:
         raise SamlAssertionRefused(SamlRefusalReason.EXPIRED, "assertion has expired")
+
+
+class SamlSignatureVerifier(Protocol):
+    """Injected port that verifies an assertion signature (crypto lives elsewhere)."""
+
+    def verify(self, assertion: ParsedSamlAssertion, idp_certificate_pem: str) -> bool:
+        """Return True only if the assertion is validly signed by the IdP certificate."""
+        ...
+
+
+def verify_assertion(
+    provider: SamlServiceProvider,
+    assertion: ParsedSamlAssertion,
+    verifier: SamlSignatureVerifier | None,
+    now: datetime,
+    clock_skew: timedelta = timedelta(0),
+) -> None:
+    """Refuse without a verifier or on a bad signature, then check conditions."""
+    if verifier is None:
+        raise SamlAssertionRefused(
+            SamlRefusalReason.SIGNATURE_VERIFIER_ABSENT,
+            "no SAML signature verifier is configured",
+        )
+    if verifier.verify(assertion, provider.idp_certificate_pem) is not True:
+        raise SamlAssertionRefused(
+            SamlRefusalReason.INVALID_SIGNATURE, "assertion signature is invalid"
+        )
+    check_assertion_conditions(provider, assertion, now, clock_skew)
