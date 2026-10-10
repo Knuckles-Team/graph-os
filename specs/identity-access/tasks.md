@@ -69,7 +69,7 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GRAPHOS-IDENTITY-R011.1:** Typed SCIM service-credential model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R011.2:** SCIM create/update/patch/deactivate server surface (rollup)
 - [x] **GRAPHOS-IDENTITY-R011.2.1:** Typed SCIM User resource model with refusal tests
-- [ ] **GRAPHOS-IDENTITY-R011.2.2:** SCIM credential check via `ScimServiceCredential.authorizes`
+- [x] **GRAPHOS-IDENTITY-R011.2.2:** SCIM credential check via `ScimServiceCredential.authorizes`
 - [ ] **GRAPHOS-IDENTITY-R011.2.3:** SCIM create/patch/deactivate handlers through an injected identity port
 - [ ] **GRAPHOS-IDENTITY-R011.2.4:** SCIM route registration
 - [ ] **GRAPHOS-IDENTITY-R012:** Native SAML service provider (rollup)
