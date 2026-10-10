@@ -53,7 +53,7 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GRAPHOS-IDENTITY-R008.1:** Typed API-key grant model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R008.2:** Scope intersection at use time and immediate revocation
 - [x] **GRAPHOS-IDENTITY-R009:** Multi-provider OIDC with mapping rules and JIT policy
-- [ ] **GRAPHOS-IDENTITY-R009.1:** Typed OIDC mapping-rule model with refusal tests
+- [x] **GRAPHOS-IDENTITY-R009.1:** Typed OIDC mapping-rule model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R009.2:** PKCE/state/nonce flow, presets, link migration, hinted logout
 - [ ] **GRAPHOS-IDENTITY-R010:** LDAPS bind with nested group sync
 - [ ] **GRAPHOS-IDENTITY-R010.1:** Typed LDAPS bind-config model with refusal tests
