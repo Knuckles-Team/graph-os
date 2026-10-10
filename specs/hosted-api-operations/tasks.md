@@ -23,3 +23,30 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] **GRAPHOS-OPS-R024.5:** Operational admin operations — admin slice of `GRAPHOS-OPS-R024` (graph/query/search/ontology excluded; owned by `GRAPHOS-HOST-R026.x`).
 - [ ] **GRAPHOS-OPS-R026.1:** API-surface drift gate — api-surface slice of `GRAPHOS-OPS-R026`.
 - [ ] **GRAPHOS-OPS-R026.2:** Backward-compatibility drift gate — backward-compat slice of `GRAPHOS-OPS-R026`.
+
+## Decomposition children (tracked)
+
+- [ ] **GRAPHOS-OPS-R017:** Finance and markets operations with tenant isolation
+- [ ] **GRAPHOS-OPS-R017.1:** Remaining scope of GRAPHOS-OPS-R017 (slice .1): Finance and markets operations with tenant isolation
+- [ ] **GRAPHOS-OPS-R017.2:** Remaining scope of GRAPHOS-OPS-R017 (slice .2): Finance and markets operations with tenant isolation
+- [ ] **GRAPHOS-OPS-R018:** Query, search, ontology, and analytics operations
+- [ ] **GRAPHOS-OPS-R018.1:** Remaining scope of GRAPHOS-OPS-R018 (slice .1): Query, search, ontology, and analytics operations
+- [ ] **GRAPHOS-OPS-R018.2:** Remaining scope of GRAPHOS-OPS-R018 (slice .2): Query, search, ontology, and analytics operations
+- [ ] **GRAPHOS-OPS-R019:** Federation source registration and sharing operations
+- [ ] **GRAPHOS-OPS-R019.1:** Remaining scope of GRAPHOS-OPS-R019 (slice .1): Federation source registration and sharing operations
+- [ ] **GRAPHOS-OPS-R019.2:** Remaining scope of GRAPHOS-OPS-R019 (slice .2): Federation source registration and sharing operations
+- [x] **GRAPHOS-OPS-R020:** Ingest operations through a typed SDK runner facade
+- [x] **GRAPHOS-OPS-R020.1:** Typed ingest runner port and the source-sync entry point
+- [x] **GRAPHOS-OPS-R020.2:** Repository indexing and source inventory operations
+- [x] **GRAPHOS-OPS-R020.3:** Pack and job management operations
+- [ ] **GRAPHOS-OPS-R020.3.1:** Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations
+- [ ] **GRAPHOS-OPS-R020.4:** Drift listing and repair-with-approval operations
+- [ ] **GRAPHOS-OPS-R020.5:** Embedding admission and re-embedding operations
+- [ ] **GRAPHOS-OPS-R031:** Published tool-to-operation parity inventory
+- [ ] **GRAPHOS-OPS-R031.1:** Remaining scope of GRAPHOS-OPS-R031 (slice .1): Published tool-to-operation parity inventory
+- [ ] **GRAPHOS-OPS-R032:** Identity dependency inversion via ports
+- [ ] **GRAPHOS-OPS-R032.1:** Remaining scope of GRAPHOS-OPS-R032 (slice .1): Identity dependency inversion via ports
+- [ ] **GRAPHOS-OPS-R032.2:** Remaining scope of GRAPHOS-OPS-R032 (slice .2): Identity dependency inversion via ports
+- [ ] **GRAPHOS-OPS-R035:** Multiplexer registration reduced to four resident tools
+- [ ] **GRAPHOS-OPS-R035.1:** Remaining scope of GRAPHOS-OPS-R035 (slice .1): Multiplexer registration reduced to four resident tools
+- [ ] **GRAPHOS-OPS-R035.2:** Remaining scope of GRAPHOS-OPS-R035 (slice .2): Multiplexer registration reduced to four resident tools
