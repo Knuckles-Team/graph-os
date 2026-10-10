@@ -30,6 +30,11 @@ from .config_generator import (
     is_restart_required,
     write_config,
 )
+from .exit_criteria import (
+    ExitCriteriaAudit,
+    ExitCriterion,
+    audit_exit_criteria,
+)
 from .genesis_environments import (
     EnvironmentProfile,
     EnvironmentProfileError,
@@ -38,6 +43,12 @@ from .genesis_environments import (
     load_environment_profile,
     profile_summary,
     validate_environment_profile,
+)
+from .local_gates import (
+    GateBlockedError,
+    GateReport,
+    require_green_local_gates,
+    validate_test_namespace,
 )
 from .repo_templates import (
     CI_TEMPLATES,
@@ -69,11 +80,16 @@ __all__ = [
     "CodexRegistrationError",
     "EnvironmentProfile",
     "EnvironmentProfileError",
+    "ExitCriteriaAudit",
+    "ExitCriterion",
+    "GateBlockedError",
+    "GateReport",
     "MissingSecretReferenceError",
     "PROFILES",
     "PROFILE_REPO_SETS",
     "STANDARD_REPOS",
     "RepoTemplate",
+    "audit_exit_criteria",
     "config_doctor",
     "config_reference",
     "generate_config",
@@ -88,11 +104,13 @@ __all__ = [
     "register_codex_graphos",
     "execute_redeploy",
     "plan_redeploy",
+    "require_green_local_gates",
     "run_doctor",
     "run_preflight",
     "runner_plan",
     "standard_repos",
     "validate_environment_profile",
+    "validate_test_namespace",
     "write_config",
 ]
 
