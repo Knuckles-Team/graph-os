@@ -324,8 +324,8 @@
         "a94c87aa090e"
       ],
       "verified_by": [
-        "tests/fleet/test_harvest_inventory.py:106",
-        "tests/fleet/test_harvest_inventory.py:117"
+        "tests/fleet/test_harvest_inventory.py:105",
+        "tests/fleet/test_harvest_inventory.py:116"
       ]
     },
     {
@@ -362,7 +362,10 @@
       "title": "`_probe_protocol_families` harvest calls routed through the cutover helper",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_harvest_inventory.py:128",
+        "tests/fleet/test_harvest_inventory.py:135"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R006.3.2",

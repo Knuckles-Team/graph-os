@@ -4917,7 +4917,7 @@ class MCPMultiplexer:
                 errors["prompts"] = type(exc).__name__
             native_prompts = []
 
-        await self._harvest_resource_bodies(
+        await self._resolve_via_local_catalog_or_harvest(
             server_name,
             session,
             skills,
@@ -4925,7 +4925,7 @@ class MCPMultiplexer:
             self._read_skill_body,
             probe_deadline=probe_deadline,
         )
-        await self._harvest_resource_bodies(
+        await self._resolve_via_local_catalog_or_harvest(
             server_name,
             session,
             prompt_resources,
