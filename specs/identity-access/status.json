@@ -494,11 +494,17 @@
     {
       "id": "GRAPHOS-IDENTITY-R011.2.1",
       "title": "Typed SCIM User resource model",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "e92d812eb39d"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/identity/test_scim_user.py:15",
+        "tests/identity/test_scim_user.py:21",
+        "tests/identity/test_scim_user.py:26",
+        "tests/identity/test_scim_user.py:32",
+        "tests/identity/test_scim_user.py:40"
+      ]
     },
     {
       "id": "GRAPHOS-IDENTITY-R011.2.2",
