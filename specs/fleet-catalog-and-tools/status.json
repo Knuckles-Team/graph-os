@@ -72,12 +72,16 @@
     {
       "id": "GRAPHOS-FLEET-R001",
       "title": "Typed pack publisher replaces placeholder ContentPack",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "18038a22a875",
         "8df218e2f742"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/test_connector_pack_typed_publisher.py:29",
+        "tests/test_connector_pack_typed_publisher.py:51",
+        "tests/test_connector_pack_typed_publisher.py:65"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R002",
@@ -95,11 +99,17 @@
     {
       "id": "GRAPHOS-FLEET-R002.1",
       "title": "Per-tool schema fingerprint computed from the served schema",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "0f346a4d0e4a"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/fleet/test_schema_fingerprint.py:27",
+        "tests/fleet/test_schema_fingerprint.py:36",
+        "tests/fleet/test_schema_fingerprint.py:42",
+        "tests/fleet/test_schema_fingerprint.py:48",
+        "tests/fleet/test_schema_fingerprint.py:57"
+      ]
     },
     {
       "id": "GRAPHOS-FLEET-R002.2",
