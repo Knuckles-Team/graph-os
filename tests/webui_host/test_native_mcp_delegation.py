@@ -337,6 +337,7 @@ async def test_concurrent_native_api_calls_keep_caller_identity(
     served_native.mux.delegate_server_tool.assert_not_awaited()
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R017')
 @pytest.mark.asyncio
 async def test_native_server_inventory_lists_registered_native_tools(
     served_native: SimpleNamespace,

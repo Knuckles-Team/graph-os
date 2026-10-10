@@ -9,6 +9,8 @@ removals) and are out of scope for this structural layout check.
 
 from __future__ import annotations
 
+import pytest
+
 from pathlib import Path
 
 GRAPH_OS_ROOT = Path(__file__).resolve().parents[2] / "graph_os"
@@ -23,11 +25,13 @@ def _top_level_packages_named_like_gateway() -> set[Path]:
     }
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R004')
 def test_graph_os_gateway_package_exists() -> None:
     assert GATEWAY_ROOT.is_dir()
     assert (GATEWAY_ROOT / "__init__.py").is_file()
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R004')
 def test_no_duplicate_top_level_gateway_package_exists() -> None:
     found = _top_level_packages_named_like_gateway()
     assert found == {GATEWAY_ROOT}, (

@@ -7,6 +7,8 @@ ever defined outside ``graph_os/fleet/`` -- the shape the requirement names
 
 from __future__ import annotations
 
+import pytest
+
 import ast
 from pathlib import Path
 
@@ -23,6 +25,7 @@ def _multiplexer_class_defs(source_file: Path) -> list[str]:
     ]
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R006')
 def test_fleet_defines_the_multiplexer_implementation() -> None:
     found = {
         name: path
@@ -32,6 +35,7 @@ def test_fleet_defines_the_multiplexer_implementation() -> None:
     assert "MCPMultiplexer" in found
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R006')
 def test_no_multiplexer_class_is_defined_outside_graph_os_fleet() -> None:
     offenders = {
         (path, name)

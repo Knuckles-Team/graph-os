@@ -8,6 +8,8 @@ paths and a nonempty public import surface -- no coverage gap.
 
 from __future__ import annotations
 
+import pytest
+
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +26,7 @@ def _load_seeds() -> dict[str, Any]:
     return yaml.safe_load(_SEEDS_PATH.read_text(encoding="utf-8"))
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R012')
 def test_boundary_seeds_file_exists_and_is_owned_by_graph_os() -> None:
     manifest = _load_seeds()
     assert manifest["schema"] == "graphos-boundary-owner-seeds/v1"
@@ -31,6 +34,7 @@ def test_boundary_seeds_file_exists_and_is_owned_by_graph_os() -> None:
     assert isinstance(manifest.get("seeds"), list) and manifest["seeds"]
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R012')
 def test_graph_os_and_connector_sdk_each_have_a_registry_entry() -> None:
     manifest = _load_seeds()
     owners = {seed["owner_repository"] for seed in manifest["seeds"]}
@@ -38,6 +42,7 @@ def test_graph_os_and_connector_sdk_each_have_a_registry_entry() -> None:
     assert not missing, f"boundary seed coverage gap for: {sorted(missing)}"
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R012')
 def test_every_seed_names_owning_modules_and_a_public_surface() -> None:
     manifest = _load_seeds()
     for seed in manifest["seeds"]:

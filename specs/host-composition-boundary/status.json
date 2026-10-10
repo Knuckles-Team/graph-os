@@ -34,11 +34,14 @@
     {
       "id": "GRAPHOS-HOST-R001",
       "title": "Cross-repository composition boundary assignment",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "9760bef27075"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/architecture/test_boundary_census.py:20",
+        "tests/architecture/test_boundary_census.py:35"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R002",
@@ -59,12 +62,15 @@
     {
       "id": "GRAPHOS-HOST-R004",
       "title": "Single gateway implementation under graph_os/gateway",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "45283d0137b9",
         "f37f67d33d37"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/architecture/test_single_gateway_implementation.py:28",
+        "tests/architecture/test_single_gateway_implementation.py:34"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R005",
@@ -78,11 +84,14 @@
     {
       "id": "GRAPHOS-HOST-R006",
       "title": "graph_os.fleet is the sole multiplexer and host owner",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "97b844e615b7"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/architecture/test_fleet_sole_multiplexer.py:28",
+        "tests/architecture/test_fleet_sole_multiplexer.py:38"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R007",
@@ -139,13 +148,17 @@
     {
       "id": "GRAPHOS-HOST-R012",
       "title": "Component registry carries GraphOS and SDK boundary entries",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "9760bef27075",
         "d75db1ea42e8",
         "e278fafd4073"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/test_component_registry_boundary_seeds.py:29",
+        "tests/test_component_registry_boundary_seeds.py:37",
+        "tests/test_component_registry_boundary_seeds.py:45"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R013",
@@ -159,22 +172,29 @@
     {
       "id": "GRAPHOS-HOST-R014",
       "title": "Agent runtime split into connector SDK, GraphOS and engine",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "0062797e3c37",
         "91c0d96adb17",
         "f8d31551067c"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/architecture/test_dependency_manifest_pins_published_packages.py:39",
+        "tests/architecture/test_dependency_manifest_pins_published_packages.py:50"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R015",
       "title": "Layered agent capability model with a harness abstraction",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "1f575184e8da"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/architecture/test_capability_layers.py:14",
+        "tests/architecture/test_capability_layers.py:26",
+        "tests/architecture/test_capability_layers.py:38"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R016",
@@ -188,73 +208,96 @@
     {
       "id": "GRAPHOS-HOST-R017",
       "title": "Browser inventory lists native GraphOS tools",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "3b2c6ac9d864",
         "a4928a7047e1"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/webui_host/test_native_mcp_delegation.py:340"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R018",
       "title": "Browser catalog reads run under the process authority",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "3b2c6ac9d864",
         "a4928a7047e1"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/gateway/test_enhanced_catalog_api.py:293",
+        "tests/gateway/test_enhanced_catalog_api.py:333"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R019",
       "title": "GraphOS serves the service dashboard surface the web UI composes",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "975596a67ed0",
         "a504e36c3c7c"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/gateway/test_dashboard_api.py:139",
+        "tests/gateway/test_dashboard_api.py:62",
+        "tests/gateway/test_dashboard_api.py:72",
+        "tests/gateway/test_dashboard_api.py:82"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R020",
       "title": "Serving start installs the decide consumers",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "91c0d96adb17",
         "c4e7f7197b78",
         "d7eb02776c45",
         "e96c8e3a5360"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/mcp_server/test_decide_wiring.py:111",
+        "tests/mcp_server/test_decide_wiring.py:50",
+        "tests/mcp_server/test_decide_wiring.py:78",
+        "tests/mcp_server/test_decide_wiring.py:90"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R021",
       "title": "Serving start binds the assembler's commit and publish providers and installs the topology asker",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "117301017944",
         "e67f069a9ed4"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/mcp_server/test_decide_wiring.py:177"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R022",
       "title": "Serving start binds the task planner's capability-search, guardrail and workflow lookups",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "af5f5c292007",
         "e67f069a9ed4"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/mcp_server/test_decide_wiring.py:231"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R023",
       "title": "GraphOS serves its eight-tool MCP intent surface from its own operation registry",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
         "c39349d16c53"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/api/test_mcp_serving.py:208",
+        "tests/api/test_mcp_serving.py:239",
+        "tests/api/test_mcp_serving.py:57"
+      ]
     },
     {
       "id": "GRAPHOS-HOST-R024",

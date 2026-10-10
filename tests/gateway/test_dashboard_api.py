@@ -59,6 +59,7 @@ def client(aggregator: _FakeAggregator) -> TestClient:
     return TestClient(app)
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R019')
 def test_frontend_dashboard_paths_are_mounted() -> None:
     app = FastAPI()
     dashboard_api.register_dashboard_routes(app)
@@ -68,6 +69,7 @@ def test_frontend_dashboard_paths_are_mounted() -> None:
     assert any(getattr(route, "path", None) == "/ws/dashboard" for route in app.routes)
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R019')
 def test_registration_is_idempotent_for_the_websocket_route() -> None:
     app = FastAPI()
     dashboard_api.register_dashboard_routes(app)
@@ -77,6 +79,7 @@ def test_registration_is_idempotent_for_the_websocket_route() -> None:
     assert len(ws_routes) == 1
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R019')
 def test_graph_routes_compose_the_dashboard_surface() -> None:
     """register_graph_routes is the composer agent-webui calls."""
     import inspect
@@ -133,6 +136,7 @@ def test_unknown_service_id_shape_is_404(client: TestClient) -> None:
     assert client.get("/api/dashboard/data/..%2Fetc").status_code == 404
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R019')
 def test_websocket_streams_snapshot_then_scoped_update(
     client: TestClient, aggregator: _FakeAggregator
 ) -> None:

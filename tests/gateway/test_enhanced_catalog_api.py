@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import hashlib
 from typing import Any
 
@@ -288,6 +290,7 @@ def test_route_module_has_no_webui_or_au_gateway_fallback() -> None:
     assert "agent_utilities.gateway" not in text
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R018')
 def test_catalog_reads_run_under_the_configured_process_authority(
     monkeypatch: Any,
 ) -> None:
@@ -327,6 +330,7 @@ def test_catalog_reads_run_under_the_configured_process_authority(
     assert bound == []
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R018')
 def test_failed_catalog_read_logs_its_cause(monkeypatch: Any, caplog: Any) -> None:
     async def denied() -> Any:
         raise RuntimeError("ACCESS_DENIED: lacks Read access to graph '__commons__'")

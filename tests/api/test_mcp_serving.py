@@ -9,6 +9,8 @@ operation matches.
 
 from __future__ import annotations
 
+import pytest
+
 import asyncio
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
@@ -52,6 +54,7 @@ LIVE_CONTRACT_TOOL_NAMES = frozenset(
 )
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R023')
 def test_register_intent_surface_matches_the_live_tool_contract() -> None:
     from fastmcp import FastMCP
 
@@ -202,6 +205,7 @@ def _build_projection(op: OpSpec) -> tuple[MCPProjection, _FixtureRuntime]:
     return projection, runtime
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R023')
 def test_dispatch_runs_through_the_real_invocation_pipeline() -> None:
     """``ask`` on a real op reaches the real ``invoke`` pipeline, not a stub."""
 
@@ -232,6 +236,7 @@ def replace_caller_for_request(
     return replace(projection, caller_for_request=lambda: _caller(**changes))
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R023')
 def test_ask_falls_back_to_nl_query_only_when_no_operation_matches() -> None:
     """The synthetic fallback descriptor never outranks a real matching op."""
 

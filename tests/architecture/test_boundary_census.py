@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import textwrap
 from pathlib import Path
 
@@ -15,6 +17,7 @@ def test_census_loads_seeds_from_the_published_registry() -> None:
     assert owner.owner_repository == "agent-connector-sdk"
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R001')
 def test_census_accepts_an_import_through_the_public_surface(tmp_path: Path) -> None:
     census = ImportBoundaryCensus.from_seeds_file()
     source = tmp_path / "allowed.py"
@@ -29,6 +32,7 @@ def test_census_accepts_an_import_through_the_public_surface(tmp_path: Path) -> 
     assert census.census(source) == []
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R001')
 def test_census_refuses_an_import_outside_the_public_surface(tmp_path: Path) -> None:
     census = ImportBoundaryCensus.from_seeds_file()
     source = tmp_path / "leaking.py"

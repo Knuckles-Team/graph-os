@@ -11,6 +11,8 @@ override and is intentionally excluded from this check.
 
 from __future__ import annotations
 
+import pytest
+
 import re
 import tomllib
 from pathlib import Path
@@ -34,6 +36,7 @@ def _all_dependency_strings(pyproject: dict) -> list[str]:
     return deps
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R014')
 def test_manifest_declares_each_split_repository_package() -> None:
     pyproject = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
     deps = _all_dependency_strings(pyproject)
@@ -44,6 +47,7 @@ def test_manifest_declares_each_split_repository_package() -> None:
         assert matches, f"{package} is not declared as a project dependency: {deps}"
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R014')
 def test_split_repository_dependencies_use_version_specifiers_not_paths() -> None:
     pyproject = tomllib.loads(PYPROJECT_PATH.read_text(encoding="utf-8"))
     deps = _all_dependency_strings(pyproject)

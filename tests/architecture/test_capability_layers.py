@@ -11,6 +11,7 @@ from graph_os.architecture.capability_layers import (
 )
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R015')
 def test_layers_are_ordered_lowest_to_highest() -> None:
     ordered = sorted(CapabilityLayer)
     assert ordered == [
@@ -22,6 +23,7 @@ def test_layers_are_ordered_lowest_to_highest() -> None:
     ]
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R015')
 def test_harness_runs_a_layer_it_declares_support_for() -> None:
     harness = InProcessHarness(
         name="pilot",
@@ -33,6 +35,7 @@ def test_harness_runs_a_layer_it_declares_support_for() -> None:
     assert run.layer is CapabilityLayer.SINGLE_TOOL_CALL
 
 
+@pytest.mark.spec('GRAPHOS-HOST-R015')
 def test_harness_refuses_a_layer_it_does_not_support() -> None:
     harness = InProcessHarness(
         name="pilot",
