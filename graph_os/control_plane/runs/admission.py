@@ -16,6 +16,8 @@ from .models import (
 )
 
 __all__ = [
+    "CapacityAcquisition",
+    "CapacityDeniedError",
     "InMemoryNativeAdmission",
     "NativeAdmissionError",
     "NativeWorkItemAdmissionProtocol",
@@ -34,6 +36,67 @@ class NativeAdmissionError(ValueError):
 
 class ReplayDriftError(NativeAdmissionError):
     """A duplicate identity arrived with a different body or resolution."""
+
+
+class CapacityDeniedError(NativeAdmissionError):
+    """A candidate run was denied capacity after its one re-decision."""
+
+    def __init__(self, run_id: str) -> None:
+        super().__init__("capacity_denied_after_redecision", run_id)
+
+
+class CapacityAcquisition:
+    """All-or-nothing capacity acquisition with one re-decision on denial.
+
+    GRAPHOS-FLEET-R009.1: a candidate run acquires every requested resource
+    unit or none at all. The first denial consumes that run's single
+    re-decision and returns ``False`` so the caller may retry once against a
+    revised resource set; a second denial for the same run fails closed with
+    :class:`CapacityDeniedError`. A stopped (or re-acquiring) run releases
+    every unit it is currently holding before anything else is evaluated.
+    """
+
+    def __init__(self, *, capacity: dict[str, int]) -> None:
+        self._lock = threading.RLock()
+        self._capacity: dict[str, int] = dict(capacity)
+        self._held: dict[str, dict[str, int]] = {}
+        self._redecided: set[str] = set()
+
+    def acquire(self, run_id: str, resources: dict[str, int]) -> bool:
+        """Acquire ``resources`` for ``run_id``, all-or-nothing."""
+
+        with self._lock:
+            if self._can_satisfy(resources):
+                self._commit(run_id, resources)
+                self._redecided.discard(run_id)
+                return True
+            if run_id in self._redecided:
+                raise CapacityDeniedError(run_id)
+            self._redecided.add(run_id)
+            return False
+
+    def release(self, run_id: str) -> None:
+        """Release every resource unit ``run_id`` currently holds (stop)."""
+
+        with self._lock:
+            held = self._held.pop(run_id, None)
+            self._redecided.discard(run_id)
+            if held is None:
+                return
+            for key, units in held.items():
+                self._capacity[key] = self._capacity.get(key, 0) + units
+
+    def held(self, run_id: str) -> dict[str, int]:
+        with self._lock:
+            return dict(self._held.get(run_id, {}))
+
+    def _can_satisfy(self, resources: dict[str, int]) -> bool:
+        return all(self._capacity.get(key, 0) >= units for key, units in resources.items())
+
+    def _commit(self, run_id: str, resources: dict[str, int]) -> None:
+        for key, units in resources.items():
+            self._capacity[key] = self._capacity.get(key, 0) - units
+        self._held[run_id] = dict(resources)
 
 
 @runtime_checkable
