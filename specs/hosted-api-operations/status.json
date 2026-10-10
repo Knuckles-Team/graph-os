@@ -41,6 +41,8 @@
     "GRAPHOS-OPS-R021",
     "GRAPHOS-OPS-R021.1",
     "GRAPHOS-OPS-R021.2",
+    "GRAPHOS-OPS-R021.2.1",
+    "GRAPHOS-OPS-R021.2.2",
     "GRAPHOS-OPS-R021.3",
     "GRAPHOS-OPS-R022",
     "GRAPHOS-OPS-R022.1",
@@ -470,6 +472,24 @@
     {
       "id": "GRAPHOS-OPS-R021.2",
       "title": "Retrieval, context, and freshness read operations — retrieval slice",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R021.2.1",
+        "GRAPHOS-OPS-R021.2.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R021.2.1",
+      "title": "`retrieval.search` op",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R021.2.2",
+      "title": "`retrieval.freshness` op",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
