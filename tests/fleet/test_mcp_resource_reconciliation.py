@@ -13,8 +13,10 @@ import pytest
 from graph_os.fleet.mcp_resource_reconciliation import (
     MCP_RESOURCE_FAMILIES,
     PublicationGateResult,
+    PublicationRefusedError,
     ReconciliationReceipt,
     gate_mcp_resource_publication,
+    require_reconciled_for_swap,
 )
 
 pytestmark = pytest.mark.spec("GRAPHOS-MCP-RESOURCES-R001.1")
@@ -101,3 +103,39 @@ def test_valid_receipt_is_reconciled() -> None:
     assert result.status == "reconciled"
     assert result.reason is None
     assert result.receipt is receipt
+
+
+def _require(receipt: ReconciliationReceipt | None) -> ReconciliationReceipt:
+    return require_reconciled_for_swap(
+        receipt,
+        tenant_id=TENANT,
+        expected_generation=GENERATION,
+        expected_digest=DIGEST,
+        now_ms=NOW_MS,
+        max_age_ms=MAX_AGE_MS,
+    )
+
+
+@pytest.mark.spec("GRAPHOS-MCP-RESOURCES-R003.1")
+@pytest.mark.parametrize(
+    ("receipt", "reason"),
+    [
+        (None, "missing"),
+        (_valid_receipt(issued_at_ms=NOW_MS - MAX_AGE_MS - 1), "stale"),
+        (_valid_receipt(snapshot_digest="sha256:other"), "invalid"),
+    ],
+)
+def test_swap_guard_raises_typed_refusal(
+    receipt: ReconciliationReceipt | None, reason: str
+) -> None:
+    with pytest.raises(PublicationRefusedError) as excinfo:
+        _require(receipt)
+    assert excinfo.value.result.status == "reingestion-unreconciled"
+    assert excinfo.value.result.reason == reason
+    assert excinfo.value.result.receipt is receipt
+
+
+@pytest.mark.spec("GRAPHOS-MCP-RESOURCES-R003.1")
+def test_swap_guard_returns_matching_receipt() -> None:
+    receipt = _valid_receipt()
+    assert _require(receipt) is receipt
