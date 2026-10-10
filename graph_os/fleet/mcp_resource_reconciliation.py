@@ -106,3 +106,42 @@ def gate_mcp_resource_publication(
         return _unreconciled("stale", receipt)
 
     return _reconciled(receipt)
+
+
+class PublicationRefusedError(Exception):
+    """Raised when a candidate generation may not be swapped in as published.
+
+    Carries the typed ``PublicationGateResult`` so the caller can surface the
+    stable ``reason`` instead of swallowing the refusal.
+    """
+
+    def __init__(self, result: PublicationGateResult) -> None:
+        self.result = result
+        super().__init__(f"{result.code}: publication refused (reason={result.reason})")
+
+
+def require_reconciled_for_swap(
+    receipt: ReconciliationReceipt | None,
+    *,
+    tenant_id: str,
+    expected_generation: int,
+    expected_digest: str,
+    now_ms: int,
+    max_age_ms: int,
+) -> ReconciliationReceipt:
+    """Return the matching receipt, or raise ``PublicationRefusedError``.
+
+    Wraps ``gate_mcp_resource_publication`` so the publish step cannot bypass
+    the gate by ignoring a returned status.
+    """
+    result = gate_mcp_resource_publication(
+        receipt,
+        tenant_id=tenant_id,
+        expected_generation=expected_generation,
+        expected_digest=expected_digest,
+        now_ms=now_ms,
+        max_age_ms=max_age_ms,
+    )
+    if result.status != "reconciled" or result.receipt is None:
+        raise PublicationRefusedError(result)
+    return result.receipt
