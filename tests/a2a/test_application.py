@@ -65,6 +65,7 @@ def _app() -> tuple[Any, Authenticator, Authority]:
     return app, auth, authority
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R037")
 def test_agent_card_is_authenticated_truthful_and_has_one_path() -> None:
     app, auth, _authority = _app()
     client = TestClient(app)
@@ -86,6 +87,7 @@ def test_agent_card_is_authenticated_truthful_and_has_one_path() -> None:
     assert auth.scopes == ["kg:read", "kg:read"]
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R037")
 def test_json_rpc_unary_methods_use_typed_shared_contract() -> None:
     app, auth, authority = _app()
     client = TestClient(app)

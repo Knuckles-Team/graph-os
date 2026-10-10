@@ -10,6 +10,7 @@ Status: BUILDING. Governing [spec](spec.md) and [plan](plan.md).
 
 ## Decomposition children (tracked)
 
+- [x] **GRAPHOS-ACP-R001:** Conversational ACP gateway session admission and policy
 - [ ] **GRAPHOS-ACP-R001:** Conversational ACP gateway session admission and policy
 - [ ] **GRAPHOS-ACP-R001.1:** Remaining scope of GRAPHOS-ACP-R001 (slice .1): Conversational ACP gateway session admission and policy
 - [ ] **GRAPHOS-ACP-R001.2:** Remaining scope of GRAPHOS-ACP-R001 (slice .2): Conversational ACP gateway session admission and policy

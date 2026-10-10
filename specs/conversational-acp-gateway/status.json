@@ -1,33 +1,50 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-ACP-001",
   "owner_repo": "graph-os",
+  "delivery_state": "VERIFIED",
   "requirement_ids": [
     "GRAPHOS-ACP-R001",
     "GRAPHOS-ACP-R001.1",
     "GRAPHOS-ACP-R001.2"
   ],
-  "delivery_state": "BUILDING",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-ACP-R001",
       "title": "Conversational ACP gateway session admission and policy",
-      "delivery_state": "BUILDING",
-      "evidence": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "9a79acee8b6c",
+        "c2a6ab839fd3"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-ACP-R001.1",
+        "GRAPHOS-ACP-R001.2"
+      ]
     },
     {
       "id": "GRAPHOS-ACP-R001.1",
-      "title": "Remaining scope of GRAPHOS-ACP-R001 (slice .1): Conversational ACP gateway session admission and policy",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "Typed ACP session-policy model and fail-closed admission check",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "9a79acee8b6c",
+        "c2a6ab839fd3"
+      ],
+      "verified_by": [
+        "tests/acp/test_session_policy.py:31",
+        "tests/acp/test_session_policy.py:71"
+      ]
     },
     {
       "id": "GRAPHOS-ACP-R001.2",
-      "title": "Remaining scope of GRAPHOS-ACP-R001 (slice .2): Conversational ACP gateway session admission and policy",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "RETIRED: tracked by agent-utilities AU-CONTROL-001",
+      "delivery_state": "RETIRED",
+      "landed_in": [
+        "c2a6ab839fd3"
+      ],
+      "verified_by": [],
+      "retired_reason": "tracked by agent-utilities AU-CONTROL-001"
     }
   ]
 }

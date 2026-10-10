@@ -1,0 +1,69 @@
+{
+  "schema_version": 2,
+  "spec_id": "GRAPHOS-A2A-002",
+  "owner_repo": "graph-os",
+  "delivery_state": "SPECIFIED",
+  "requirement_ids": [
+    "GRAPHOS-A2A-002-R001",
+    "GRAPHOS-A2A-002-R001.1",
+    "GRAPHOS-A2A-002-R002",
+    "GRAPHOS-A2A-002-R003",
+    "GRAPHOS-A2A-002-R004",
+    "GRAPHOS-A2A-002-R005",
+    "GRAPHOS-A2A-002-R006"
+  ],
+  "requirements": [
+    {
+      "id": "GRAPHOS-A2A-002-R001",
+      "title": "Typed admission request/decision model",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-A2A-002-R001.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-002-R001.1",
+      "title": "Fail-closed admission function proven against today's unavailable upstreams",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-002-R002",
+      "title": "Context-budget-bound subset sourced from EG assembly",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-002-R003",
+      "title": "Cryptographic enforcement via the signed AU envelope",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-002-R004",
+      "title": "Typed refusal reason and provenance on every decision",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-002-R005",
+      "title": "No advisory, cached, or partial substitute",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-002-R006",
+      "title": "Fresh checkout",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-OPS-001",
   "owner_repo": "graph-os",
+  "delivery_state": "SPECIFIED",
   "requirement_ids": [
     "GRAPHOS-OPS-R001",
     "GRAPHOS-OPS-R002",
@@ -17,15 +18,28 @@
     "GRAPHOS-OPS-R012",
     "GRAPHOS-OPS-R013",
     "GRAPHOS-OPS-R014",
+    "GRAPHOS-OPS-R014.1",
+    "GRAPHOS-OPS-R014.2",
     "GRAPHOS-OPS-R015",
+    "GRAPHOS-OPS-R015.1",
+    "GRAPHOS-OPS-R015.2",
     "GRAPHOS-OPS-R016",
+    "GRAPHOS-OPS-R016.1",
+    "GRAPHOS-OPS-R016.2",
     "GRAPHOS-OPS-R017",
     "GRAPHOS-OPS-R018",
     "GRAPHOS-OPS-R019",
+    "GRAPHOS-OPS-R017.1",
+    "GRAPHOS-OPS-R017.2",
+    "GRAPHOS-OPS-R018.1",
+    "GRAPHOS-OPS-R018.2",
+    "GRAPHOS-OPS-R019.1",
+    "GRAPHOS-OPS-R019.2",
     "GRAPHOS-OPS-R020",
     "GRAPHOS-OPS-R020.1",
     "GRAPHOS-OPS-R020.2",
     "GRAPHOS-OPS-R020.3",
+    "GRAPHOS-OPS-R020.3.1",
     "GRAPHOS-OPS-R020.4",
     "GRAPHOS-OPS-R020.5",
     "GRAPHOS-OPS-R021",
@@ -51,428 +65,424 @@
     "GRAPHOS-OPS-R029",
     "GRAPHOS-OPS-R030",
     "GRAPHOS-OPS-R031",
+    "GRAPHOS-OPS-R031.1",
     "GRAPHOS-OPS-R032",
+    "GRAPHOS-OPS-R032.1",
+    "GRAPHOS-OPS-R032.2",
     "GRAPHOS-OPS-R033",
     "GRAPHOS-OPS-R034",
     "GRAPHOS-OPS-R035",
+    "GRAPHOS-OPS-R035.1",
+    "GRAPHOS-OPS-R035.2",
     "GRAPHOS-OPS-R036",
     "GRAPHOS-OPS-R037",
-    "GRAPHOS-OPS-R038",
-    "GRAPHOS-OPS-R014.1",
-    "GRAPHOS-OPS-R014.2",
-    "GRAPHOS-OPS-R015.1",
-    "GRAPHOS-OPS-R015.2",
-    "GRAPHOS-OPS-R016.1",
-    "GRAPHOS-OPS-R016.2",
-    "GRAPHOS-OPS-R017.1",
-    "GRAPHOS-OPS-R017.2",
-    "GRAPHOS-OPS-R018.1",
-    "GRAPHOS-OPS-R018.2",
-    "GRAPHOS-OPS-R019.1",
-    "GRAPHOS-OPS-R019.2",
-    "GRAPHOS-OPS-R020.3.1",
-    "GRAPHOS-OPS-R031.1",
-    "GRAPHOS-OPS-R032.1",
-    "GRAPHOS-OPS-R032.2",
-    "GRAPHOS-OPS-R035.1",
-    "GRAPHOS-OPS-R035.2"
+    "GRAPHOS-OPS-R038"
   ],
-  "delivery_state": "BUILDING",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-OPS-R001",
       "title": "Native MCP/REST facade with A2A unary operations then streaming",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "deb2b45bf83d"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R002",
       "title": "Scoped A2A task routing and fleet tool exposure",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "20f773df9ddd416e10f1111cb7e35d245ce93f3b",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/20f773df9ddd416e10f1111cb7e35d245ce93f3b",
-          "description": "Part of the requirement is implemented on the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "20f773df9ddd416e10f1111cb7e35d245ce93f3b",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/20f773df9ddd416e10f1111cb7e35d245ce93f3b",
-          "description": "GRAPHOS-OPS-R002 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "20f773df9ddd"
       ],
-      "remaining": "Inbound A2A routing and per-caller/session tool filtering exist and are tested on main, but typed GetWorkItem/ListWorkItems bound by control leases and read classification are not found anywhere in the repo."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R003",
       "title": "Remove multiplexer skill/prompt harvest path",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "b5222cf9bbec1779c328e60085bc48d7b654e0ba",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/b5222cf9bbec1779c328e60085bc48d7b654e0ba",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "deb2b45bf83d"
+      ],
+      "verified_by": [
+        "tests/fleet/test_no_duplicate_skill_prompt_harvest.py:59"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R004",
       "title": "FastMCP 4 bridge for the MCP server",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "a7947166d00acd71360a13cf83cbd8b2c4d09b95",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/a7947166d00acd71360a13cf83cbd8b2c4d09b95",
-          "description": "Part of the requirement is implemented on the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "a7947166d00acd71360a13cf83cbd8b2c4d09b95",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/a7947166d00acd71360a13cf83cbd8b2c4d09b95",
-          "description": "GRAPHOS-OPS-R004 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "a7947166d00a"
       ],
-      "remaining": "fastmcp 4.0.5 is already required/locked and exercised by tests on main, but shared_multiplexer.py's own docstring states the FastMCP transport and the WebUI ASGI co-service still run on two different event loops, not one consolidated loop; native WebMCP support unconfirmed."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R005",
       "title": "Stable auth error codes from the engine contract",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "description": "Contract admission and generated engine-error consumption are published on PR #43; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "description": "GRAPHOS-OPS-R005 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "100d015ca012"
       ],
-      "remaining": "Admission validates the registry against the generated provider pin and error table. Startup proof against an installed engine package is pending. Engine scopes are not adopted."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R006",
       "title": "Consume the engine's packaged wire-callable contract",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "description": "Contract admission and generated engine-error consumption are published on PR #43; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/100d015ca012fcb2b23931a2619c69f345fb1fd6",
-          "description": "GRAPHOS-OPS-R006 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "100d015ca012"
       ],
-      "remaining": "The engine package ships no scopes contract yet. Scope coverage and wire-callable exclusion against the installed package remain unproven."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R007",
       "title": "Immutable operation registry with digest and authorization",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "GRAPHOS-OPS-R007 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "4b83c69e2b41"
       ],
-      "remaining": "Implemented and unit-tested on the default branch under graph_os/api/. The reachability report shows no served entry point imports that package yet. Remaining: compose it into the served application, with a test through the served entry point."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R008",
       "title": "Generated engine-bound operations with exclusions",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Registry core and generator are on the default branch; exercised by tests/api."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "GRAPHOS-OPS-R008 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "4b83c69e2b41"
       ],
-      "remaining": "Confirm the generated engine bindings and published artifacts once the invoke, HTTP and MCP projection slices land."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R009",
       "title": "Single invoke pipeline for authority, effect, and audit",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "a3ab232c64b02a7f9daacca2cc74e63fdb15f46e",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/a3ab232c64b02a7f9daacca2cc74e63fdb15f46e",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ]
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "deb2b45bf83d"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R010",
       "title": "Closed error enum and one response envelope",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "The closed error enum, response envelope and fleet error path are on the default branch; exercised by tests/api/test_errors.py."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "GRAPHOS-OPS-R010 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "4b83c69e2b41"
       ],
-      "remaining": "Engine-sourced errors are refused until the engine contract file is available at the pinned engine revision; the generated engine error table and its tests return then."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R011",
       "title": "Six resident MCP verbs with typed discovery",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "6b63aeb7ba0310277885d69a4a2da516000aa23f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/6b63aeb7ba0310277885d69a4a2da516000aa23f",
-          "description": "GRAPHOS-OPS-R011 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "6b63aeb7ba03",
+        "ea736715b7fb"
       ],
-      "remaining": "The six MCP verbs, typed discovery, resources and the registry digest are implemented and unit-tested on the default branch (tests/api/test_mcp_verbs.py), but nothing mounts the MCP projection into the served application yet: the live MCP surface is still the multiplexer. Remaining: mount it, with a test through the served entry point."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R012",
       "title": "Bounded resolver for natural-language operation lookup",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "4af96764619d2d9b6859ee51d6ec5859a7276b65",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4af96764619d2d9b6859ee51d6ec5859a7276b65",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "43db6b7ac49b",
+        "deb2b45bf83d"
+      ],
+      "verified_by": [
+        "tests/api/test_resolve.py:101",
+        "tests/api/test_resolve.py:40",
+        "tests/api/test_resolve.py:52",
+        "tests/api/test_resolve.py:62",
+        "tests/api/test_resolve.py:71"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R013",
       "title": "Generated HTTP API for every registry operation",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "9e34d398efb01573a49ea15b09cdd75de675810d",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/9e34d398efb01573a49ea15b09cdd75de675810d",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "1fb96633563e97fe33ac9f118146afab402d8c6e",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/1fb96633563e97fe33ac9f118146afab402d8c6e",
-          "description": "GRAPHOS-OPS-R013 merged to the default branch in this commit."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "1fb96633563e",
+        "a974d10c5d0c",
+        "ea736715b7fb"
+      ],
+      "verified_by": [
+        "tests/api/test_http_projection.py:188",
+        "tests/api/test_http_projection.py:288",
+        "tests/api/test_http_projection.py:326",
+        "tests/api/test_http_projection.py:91"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R014",
       "title": "Identity self-service and admin operations",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "2f0b06fd3785290b417dd8ca206b898de58fb646",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/2f0b06fd3785290b417dd8ca206b898de58fb646",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R014.1",
+        "GRAPHOS-OPS-R014.2"
       ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R014.1",
+      "title": "Identity-provider mapping dry-run operation",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "b3268e35d586"
+      ],
+      "verified_by": [
+        "tests/api/test_identity_ops.py:12"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R014.2",
+      "title": "Remaining identity self-service and admin operations",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R015",
       "title": "Access elevation, approval, and lease operations",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "9f238618e6e9aaa68cb37abde6ac25be6980db08",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/9f238618e6e9aaa68cb37abde6ac25be6980db08",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R015.1",
+        "GRAPHOS-OPS-R015.2"
       ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R015.1",
+      "title": "Elevation, lease, check, and policy-explain operations",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "b3268e35d586"
+      ],
+      "verified_by": [
+        "tests/api/test_access_ops_r015.py:21"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R015.2",
+      "title": "Approval and denial operations",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R016",
       "title": "Capacity status and throttle mode operations",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "c4835dbb48f3958a4d9273220fe7a6ff60a4183a",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c4835dbb48f3958a4d9273220fe7a6ff60a4183a",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "7ab20ccc2604"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R016.1",
+        "GRAPHOS-OPS-R016.2"
       ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R016.1",
+      "title": "Throttle status and mode operations",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "b3268e35d586"
+      ],
+      "verified_by": [
+        "tests/api/test_capacity_ops_r016.py:24"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R016.2",
+      "title": "Capacity-cell status and update operations",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R017",
       "title": "Finance and markets operations with tenant isolation",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "LANDED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R017.1",
+        "GRAPHOS-OPS-R017.2"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R018",
       "title": "Query, search, ontology, and analytics operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R018.1",
+        "GRAPHOS-OPS-R018.2"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R019",
       "title": "Federation source registration and sharing operations",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "LANDED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R019.1",
+        "GRAPHOS-OPS-R019.2"
       ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R017.1",
+      "title": "Tenant-scoped market reads under finance:read",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
+      "verified_by": [
+        "tests/finance/test_markets.py:34",
+        "tests/finance/test_markets.py:68"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R017.2",
+      "title": "Position and paper-trading actions with subject ownership checks",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R018.1",
+      "title": "Sparql, sql_schema, and ontology operations",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R018.2",
+      "title": "Uql, sql, search, indexes, and analytics.series operations",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R019.1",
+      "title": "Federation source register, list, get, and probe",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R019.2",
+      "title": "Federation source share and unshare",
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "64a0c091b354"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R020",
       "title": "Ingest operations through a typed SDK runner facade",
-      "delivery_state": "BUILDING",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "e990e195ab42aef66aa576e051f01b3667046267",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/e990e195ab42aef66aa576e051f01b3667046267",
-          "description": "GRAPHOS-OPS-R020 merged to the default branch in this commit."
-        }
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "7ab20ccc2604",
+        "e990e195ab42"
       ],
-      "remaining": "Split into GRAPHOS-OPS-R020.1 through R020.5 (net-new, sliced by delivery layer). R020.1 (typed runner port + ingest.sources.sync) is building; R020.2-R020.5 (repository/source inventory, pack/job management, drift repair, embedding admission) remain SPECIFIED."
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R020.1",
+        "GRAPHOS-OPS-R020.2",
+        "GRAPHOS-OPS-R020.3",
+        "GRAPHOS-OPS-R020.4",
+        "GRAPHOS-OPS-R020.5"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R020.1",
       "title": "Typed ingest runner port and the source-sync entry point",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "822f55d5835d696f850ca4fc82ce087249a69afc",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/822f55d5835d696f850ca4fc82ce087249a69afc",
-          "description": "GRAPHOS-OPS-R020.1 merged to the default branch in this commit."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "822f55d5835d",
+        "a974d10c5d0c",
+        "e990e195ab42"
       ],
-      "remaining": "graph_os/ingest/service.py (IngestRunner port, sync_source) and graph_os/api/ops/ingest.py (ingest.sources.sync) are implemented and unit-tested; pending merge to the default branch."
+      "verified_by": [
+        "tests/api/test_ingest_ops.py:80",
+        "tests/api/test_ingest_ops.py:99"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R020.2",
       "title": "Repository indexing and source inventory operations",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "822f55d5835d696f850ca4fc82ce087249a69afc",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/822f55d5835d696f850ca4fc82ce087249a69afc",
-          "description": "GRAPHOS-OPS-R020.2 merged to the default branch in this commit."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "822f55d5835d",
+        "a974d10c5d0c"
+      ],
+      "verified_by": [
+        "tests/api/test_ingest_ops.py:121",
+        "tests/api/test_ingest_ops.py:137",
+        "tests/api/test_ingest_ops.py:151",
+        "tests/api/test_ingest_ops.py:164",
+        "tests/api/test_ingest_ops.py:174"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R020.3",
       "title": "Pack and job management operations",
-      "delivery_state": "BUILDING",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "822f55d5835d696f850ca4fc82ce087249a69afc",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/822f55d5835d696f850ca4fc82ce087249a69afc",
-          "description": "GRAPHOS-OPS-R020.3 merged to the default branch in this commit."
-        }
+      "delivery_state": "SPECIFIED",
+      "landed_in": [
+        "822f55d5835d"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R020.3.1"
       ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R020.3.1",
+      "title": "Missing `ingest.packs.*` and `ingest.jobs.*` ops",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R020.4",
       "title": "Drift listing and repair-with-approval operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "822f55d5835d"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R020.5",
       "title": "Embedding admission and re-embedding operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "822f55d5835d"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R021",
       "title": "Decision, retrieval, and policy operations",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/d5f590a7d28ada7c6c6c48170b000b872319e69f",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ],
-      "rollup": true,
-      "children": [
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
         "GRAPHOS-OPS-R021.1",
         "GRAPHOS-OPS-R021.2",
         "GRAPHOS-OPS-R021.3"
@@ -482,50 +492,32 @@
       "id": "GRAPHOS-OPS-R021.1",
       "title": "Decide operations (service-executed) — decide slice",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "1ded59edd1a6eff7f55cceaadb427cae011a8d5f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/1ded59edd1a6eff7f55cceaadb427cae011a8d5f",
-          "description": "GRAPHOS-OPS-R021.1 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "1ded59edd1a6"
       ],
-      "depends_on": []
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R021.2",
       "title": "Retrieval, context, and freshness read operations — retrieval slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": [
-        "GRAPHOS-OPS-R021.1"
-      ]
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R021.3",
       "title": "Policy and swarm read operations — policy slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": [
-        "GRAPHOS-OPS-R021.2"
-      ]
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R022",
       "title": "Work and evolution loop operations",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "c4835dbb48f3958a4d9273220fe7a6ff60a4183a",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/c4835dbb48f3958a4d9273220fe7a6ff60a4183a",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ],
-      "rollup": true,
-      "children": [
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
         "GRAPHOS-OPS-R022.1",
         "GRAPHOS-OPS-R022.2"
       ]
@@ -534,54 +526,32 @@
       "id": "GRAPHOS-OPS-R022.1",
       "title": "Work-item and offer operations — work slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R022.2",
       "title": "Evolution loop, schedule, and proposal operations — evolution slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": [
-        "GRAPHOS-OPS-R022.1"
-      ]
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R023",
       "title": "Agent, browser, RLM, and fleet call operations",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "e632abb7eab0398f2890a5441b8588d6b467a9b9",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/e632abb7eab0398f2890a5441b8588d6b467a9b9",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "e1d37ca10ef7e14540629848249e9b328ada1574",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/e1d37ca10ef7e14540629848249e9b328ada1574",
-          "description": "GRAPHOS-OPS-R023 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "e1d37ca10ef7"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R024",
       "title": "Telemetry, security, usage, and admin operations",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "63410f550a0b76b8e97e3210da8b6ff256f48232",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/63410f550a0b76b8e97e3210da8b6ff256f48232",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ],
-      "rollup": true,
-      "children": [
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
         "GRAPHOS-OPS-R024.1",
         "GRAPHOS-OPS-R024.2",
         "GRAPHOS-OPS-R024.3",
@@ -593,82 +563,53 @@
       "id": "GRAPHOS-OPS-R024.1",
       "title": "Telemetry operations — telemetry slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": []
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R024.2",
       "title": "Security operations — security slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": [
-        "GRAPHOS-OPS-R024.1"
-      ]
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R024.3",
       "title": "Usage operations — usage slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": [
-        "GRAPHOS-OPS-R024.2"
-      ]
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R024.4",
       "title": "Memory operations — memory slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": [
-        "GRAPHOS-OPS-R024.3"
-      ]
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R024.5",
       "title": "Operational admin operations — admin slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": [
-        "GRAPHOS-OPS-R024.4"
-      ]
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R025",
       "title": "Generated registry, OpenAPI, and client artifacts",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "Registry core and generator are on the default branch; exercised by tests/api."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4b83c69e2b41a252ba2e7d79799b2e1ad50e1b15",
-          "description": "GRAPHOS-OPS-R025 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "4b83c69e2b41"
       ],
-      "remaining": "Confirm the generated engine bindings and published artifacts once the invoke, HTTP and MCP projection slices land."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R026",
       "title": "API surface and compatibility drift gates",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "1f3b30ff69312556daa87e636d543d1f1ad9f391",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/1f3b30ff69312556daa87e636d543d1f1ad9f391",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
-      ],
-      "rollup": true,
-      "children": [
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
         "GRAPHOS-OPS-R026.1",
         "GRAPHOS-OPS-R026.2"
       ]
@@ -677,292 +618,205 @@
       "id": "GRAPHOS-OPS-R026.1",
       "title": "API-surface drift gate — api-surface slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": []
+      "landed_in": [],
+      "verified_by": [
+        "tests/api/test_surface_drift_gate.py:107",
+        "tests/api/test_surface_drift_gate.py:52",
+        "tests/api/test_surface_drift_gate.py:61",
+        "tests/api/test_surface_drift_gate.py:71",
+        "tests/api/test_surface_drift_gate.py:80"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R026.2",
       "title": "Backward-compatibility drift gate — backward-compat slice",
       "delivery_state": "SPECIFIED",
-      "evidence": [],
-      "depends_on": [
-        "GRAPHOS-OPS-R026.1"
+      "landed_in": [],
+      "verified_by": [
+        "tests/api/test_backward_compat_drift_gate.py:42",
+        "tests/api/test_backward_compat_drift_gate.py:51",
+        "tests/api/test_backward_compat_drift_gate.py:60",
+        "tests/api/test_backward_compat_drift_gate.py:70",
+        "tests/api/test_backward_compat_drift_gate.py:79"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R027",
       "title": "Authority-parity test across principals and surfaces",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "990b75e50a5b07b4b156f0d7b470a94f042f027b",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/990b75e50a5b07b4b156f0d7b470a94f042f027b",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [
+        "tests/api/test_authority_parity.py:114",
+        "tests/api/test_authority_parity.py:120"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R028",
       "title": "Exported domain scope classes",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "9a4eb52552f814ea2ddf70597ad8c7fac2bd7a47",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/9a4eb52552f814ea2ddf70597ad8c7fac2bd7a47",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "b47b39eac0ae873f780f0d9c2a5331e265bc3846",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/b47b39eac0ae873f780f0d9c2a5331e265bc3846",
-          "description": "GRAPHOS-OPS-R028 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "4b83c69e2b41",
+        "b47b39eac0ae"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R029",
       "title": "Single resident-tool server cutover",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "fb06321fe19358019f09ba390a8498a0ec80610b",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/fb06321fe19358019f09ba390a8498a0ec80610b",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "5bc24c262ef0"
+      ],
+      "verified_by": [
+        "tests/api/test_resident_tool_surface.py:33",
+        "tests/api/test_resident_tool_surface.py:43",
+        "tests/api/test_resident_tool_surface.py:56"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R030",
       "title": "Accurate MCP server and API documentation",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "4cb996b304dab8c726735e62f1c3c9982954ec94",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/4cb996b304dab8c726735e62f1c3c9982954ec94",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "5bc24c262ef0"
+      ],
+      "verified_by": [
+        "tests/docs/test_mcp_server_doc_accuracy.py:24",
+        "tests/docs/test_mcp_server_doc_accuracy.py:38"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R031",
       "title": "Published tool-to-operation parity inventory",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "5bc24c262ef0"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R031.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R031.1",
+      "title": "Fleet meta-tool parity mapping — resident fleet slice",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "5bc24c262ef0"
+      ],
+      "verified_by": [
+        "tests/api/test_fleet_tool_parity_inventory.py:33",
+        "tests/api/test_fleet_tool_parity_inventory.py:42"
+      ]
     },
     {
       "id": "GRAPHOS-OPS-R032",
       "title": "Identity dependency inversion via ports",
-      "delivery_state": "BUILT",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "1935dd7f06da2b903e297f748520420aac833677",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/1935dd7f06da2b903e297f748520420aac833677",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        }
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R032.1",
+        "GRAPHOS-OPS-R032.2"
       ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.1",
+      "title": "Static identity-ports import boundary",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "b97b75e763ed"
+      ],
+      "verified_by": [
+        "tests/architecture/test_identity_ports_boundary.py:51"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2",
+      "title": "Injected composition root for identity ports",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R033",
       "title": "Dynamic multiplexer discovery, load, and call",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "implementation",
-          "result": "passed",
-          "commit": "b9141334e1baec2ba1d75ebf4a1e472cc49a743e",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/b9141334e1baec2ba1d75ebf4a1e472cc49a743e",
-          "description": "Part of the requirement is implemented on the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "b9141334e1baec2ba1d75ebf4a1e472cc49a743e",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/b9141334e1baec2ba1d75ebf4a1e472cc49a743e",
-          "description": "GRAPHOS-OPS-R033 merged to the default branch in this commit."
-        }
+      "landed_in": [
+        "b9141334e1ba"
       ],
-      "remaining": "find_tools/load_tools/unload_tools/multiplexer_status exist and are tested on main, but find_tools has no browse=true (list_catalog remains a separate tool), and no evidence of the 64/256 load cap, 1h idle expiry, or opt-in LRU eviction."
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R034",
       "title": "Eunomia narrowing-only policy enforcement",
-      "delivery_state": "BUILDING",
-      "evidence": [],
-      "remaining": "Implemented and unit-tested on the default branch under graph_os/api/. The reachability report shows no served entry point imports that package yet. Remaining: compose it into the served application, with a test through the served entry point."
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "4b83c69e2b41"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R035",
       "title": "Multiplexer registration reduced to four resident tools",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R035.1",
+        "GRAPHOS-OPS-R035.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R035.1",
+      "title": "Four-tool meta-registration and routing-only visibility, unit-bound",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "b97b75e763ed"
+      ],
+      "verified_by": [
+        "tests/api/mcp/test_registration_governed_visibility.py:27",
+        "tests/api/mcp/test_registration_governed_visibility.py:58"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R035.2",
+      "title": "Registration wired into the live server",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R036",
       "title": "Pre-dispatch audit reservation for governed effects",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "branch",
-          "result": "passed",
-          "commit": "5d86560021f51048cf14f1d399d76c2f95912f09",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/5d86560021f51048cf14f1d399d76c2f95912f09",
-          "description": "Implementation commit is published on a branch; not yet merged to the default branch."
-        },
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "a9025191159ea14ed4b8407c686af1c806431dc7",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/a9025191159ea14ed4b8407c686af1c806431dc7",
-          "description": "GRAPHOS-OPS-R036 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "a9025191159e"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-OPS-R037",
       "title": "Native first-party A2A facade",
-      "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "20f773df9ddd416e10f1111cb7e35d245ce93f3b",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/20f773df9ddd416e10f1111cb7e35d245ce93f3b",
-          "description": "Implemented on the default branch; exercised by tests/a2a/test_application.py::test_json_rpc_unary_methods_use_typed_shared_contract"
-        }
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "20f773df9ddd"
+      ],
+      "verified_by": [
+        "tests/a2a/test_application.py:68",
+        "tests/a2a/test_application.py:90"
       ]
     },
     {
       "id": "GRAPHOS-OPS-R038",
       "title": "Generated OpenAPI served through Swagger UI",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "1fb96633563e97fe33ac9f118146afab402d8c6e",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/1fb96633563e97fe33ac9f118146afab402d8c6e",
-          "description": "GRAPHOS-OPS-R038 merged to the default branch in this commit."
-        }
-      ]
-    },
-    {
-      "id": "GRAPHOS-OPS-R014.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R014 (slice .1): Identity self-service and admin operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R014.2",
-      "title": "Remaining scope of GRAPHOS-OPS-R014 (slice .2): Identity self-service and admin operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R015.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R015 (slice .1): Access elevation, approval, and lease operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R015.2",
-      "title": "Remaining scope of GRAPHOS-OPS-R015 (slice .2): Access elevation, approval, and lease operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R016.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R016 (slice .1): Capacity status and throttle mode operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R016.2",
-      "title": "Remaining scope of GRAPHOS-OPS-R016 (slice .2): Capacity status and throttle mode operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R017.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R017 (slice .1): Finance and markets operations with tenant isolation",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R017.2",
-      "title": "Remaining scope of GRAPHOS-OPS-R017 (slice .2): Finance and markets operations with tenant isolation",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R018.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R018 (slice .1): Query, search, ontology, and analytics operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R018.2",
-      "title": "Remaining scope of GRAPHOS-OPS-R018 (slice .2): Query, search, ontology, and analytics operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R019.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R019 (slice .1): Federation source registration and sharing operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R019.2",
-      "title": "Remaining scope of GRAPHOS-OPS-R019 (slice .2): Federation source registration and sharing operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R020.3.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R020.3 (slice .1): Pack and job management operations",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R031.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R031 (slice .1): Published tool-to-operation parity inventory",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R032.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R032 (slice .1): Identity dependency inversion via ports",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R032.2",
-      "title": "Remaining scope of GRAPHOS-OPS-R032 (slice .2): Identity dependency inversion via ports",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R035.1",
-      "title": "Remaining scope of GRAPHOS-OPS-R035 (slice .1): Multiplexer registration reduced to four resident tools",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
-    },
-    {
-      "id": "GRAPHOS-OPS-R035.2",
-      "title": "Remaining scope of GRAPHOS-OPS-R035 (slice .2): Multiplexer registration reduced to four resident tools",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [
+        "1fb96633563e",
+        "ea736715b7fb",
+        "f13ce20b05dc"
+      ],
+      "verified_by": []
     }
   ]
 }

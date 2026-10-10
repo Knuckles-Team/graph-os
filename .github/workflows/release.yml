@@ -42,12 +42,33 @@ permissions:
 
 jobs:
   gates:
+    # 20, not 10, for pull_request: the epistemic-graph numeric-kernel build
+    # (Swatinem/rust-cache below) has never completed once yet, so there is
+    # no warm cache to restore -- a cold Cargo compile of that workspace
+    # measured >10 real minutes and was killed mid-build by the timeout
+    # before it could ever save a cache entry, so every PR run stayed cold
+    # forever. 20 minutes buys the one build that seeds the cache; every
+    # run after that restores it and finishes in the original fast window.
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 20 || 60 }}
     name: gates
-    runs-on: ubuntu-latest
+    # Homelab self-hosted runner for same-repo push/PR traffic (the org
+    # runner group is scoped to the 6 core repos already); a fork PR's head
+    # repo never matches `github.repository`, so it always lands on the
+    # GitHub-hosted runner -- self-hosted capacity is never offered to an
+    # untrusted fork without the separate first-run approval gate.
+    runs-on: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted", "homelab"]') || 'ubuntu-latest' }}
     env:
       CARGO_BUILD_JOBS: "4"
       CARGO_PROFILE_DEV_DEBUG: "0"
       CARGO_PROFILE_RELEASE_DEBUG: "0"
+      # The homelab self-hosted runner is itself an RKE2 pod, so Kubernetes
+      # injects KUBERNETES_SERVICE_HOST -- agent_utilities.core.live_mount_guard
+      # (D-EGK-1) reads that as "running inside a pod" and asserts a hostPath
+      # live-mount or a build-time .source-revision provenance marker, neither
+      # of which this job's plain sibling checkout has or needs. This is a CI
+      # checkout, not a deployed graph-os instance, so the check is a false
+      # positive here; skip it explicitly rather than fabricating a marker.
+      AGENT_UTILITIES_SKIP_LIVE_MOUNT_CHECK: "true"
     steps:
       # YAML anchors, reused by `scanner-quality` and `build`: jscpd's
       # differential gate flags a copy-pasted preamble as a new same-file
@@ -58,15 +79,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - &release-python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: '3.12'
-
+      # One astral-sh/setup-uv step provisions both the pinned uv binary and
+      # the pinned Python -- not actions/setup-python, whose downloaded
+      # CPython build requires AVX2 and crashes on the AVX2-free homelab
+      # self-hosted runners this job (and `build`) may land on. uv's own
+      # python-build-standalone download has no such requirement.
       - &release-uv
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: '0.11.7'
+          python-version: '3.12'
           enable-cache: true
           cache-dependency-glob: uv.lock
 
@@ -196,14 +218,84 @@ jobs:
           PYTHONPATH="$eg_source${PYTHONPATH:+:$PYTHONPATH}" uv run --no-sync python -c \
             'from pathlib import Path; import epistemic_graph; from epistemic_graph.generated import connector_pack, source_ingestion, storage; root = Path(".uv-workspace-siblings/agent-utilities/.uv-workspace-siblings/epistemic-graph").resolve(); assert Path(epistemic_graph.__file__).resolve().is_relative_to(root); assert connector_pack.ConnectorPackStatusRequest; assert source_ingestion.SourceCheckpoint; assert storage.send_agent_component_content'
 
-      - name: Locked-environment type check and full test suite (manual-stage hooks)
+      - name: Locked-environment type check (manual-stage hook, always full)
+        run: uvx --from pre-commit==4.6.0 pre-commit run mypy-env --hook-stage manual --all-files
+
+      # Operator decision (2026-10-09): PR gates run a fast subset so a PR
+      # auto-merges within minutes -- lint and the spec check already ran
+      # full above (the commit-stage pre-commit step), the type check just
+      # ran full too, and only the test matrix narrows here. `push` to main
+      # and a release tag are never `pull_request` and keep running the full
+      # suite unchanged via the manual-stage `pytest` hook, exactly as before.
+      - name: Resolve pull-request test scope
+        if: github.event_name == 'pull_request'
+        id: pr-test-scope
         run: |
           set -euo pipefail
-          for hook in mypy-env pytest; do
-            uvx --from pre-commit==4.6.0 pre-commit run "$hook" --hook-stage manual --all-files
-          done
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' \
+            pipelines-hook pr-test-scope --base-ref "$PRE_COMMIT_FROM_REF" \
+            --src-root graph_os --tests-root tests > "$RUNNER_TEMP/pr-test-scope.txt"
+          cat "$RUNNER_TEMP/pr-test-scope.txt"
+          {
+            echo "scope<<PR_TEST_SCOPE_EOF"
+            cat "$RUNNER_TEMP/pr-test-scope.txt"
+            echo "PR_TEST_SCOPE_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Full test suite (push to main / release tag; manual-stage hook)
+        if: github.event_name != 'pull_request'
+        run: uvx --from pre-commit==4.6.0 pre-commit run pytest --hook-stage manual --all-files
+
+      - name: Test suite -- pull request fast subset
+        if: github.event_name == 'pull_request'
+        env:
+          SCOPE: ${{ steps.pr-test-scope.outputs.scope }}
+        run: |
+          set -euo pipefail
+          if [ "$SCOPE" = "NONE" ]; then
+            echo "pr-test-scope: no graph_os/tests change in this diff; skipping pytest"
+          elif [ "$SCOPE" = "FULL" ]; then
+            echo "pr-test-scope: unmapped source change (or an unreadable diff); running the full suite"
+            scripts/local_hook.sh pytest
+          else
+            echo "pr-test-scope: running only the tests this diff affects:"
+            echo "$SCOPE"
+            mapfile -t affected_tests <<< "$SCOPE"
+            scripts/local_hook.sh pytest "${affected_tests[@]}"
+          fi
+
+  # Fast, parallel spec-status lifecycle gate
+  # (plans/refactor/reconciliation-20261006/SPEC-STATUS-LIFECYCLE.md). Reads
+  # only git and tracked text under specs/ -- no build, no network -- so it
+  # runs standalone and is deliberately NOT a required check and NOT wired
+  # into any other job's `needs:`.
+  spec-gates:
+    name: spec-gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - *release-uv
+
+      - name: Spec status and decomposition are consistent
+        run: |
+          set -euo pipefail
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' pipelines-hook spec-status
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' pipelines-hook spec-decomposition
+
+      - name: Spec commit trailers (pull requests only)
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          uvx --from 'git+https://github.com/Knuckles-Team/pipelines@main' \
+            pipelines-hook spec-trailers --base-ref "origin/${{ github.base_ref }}"
 
   scanner-quality:
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}
     name: Scanner quality (cccc, KISS, dupehound, jscpd)
     runs-on: ubuntu-latest
     env:
@@ -211,7 +303,6 @@ jobs:
       CARGO_PROFILE_RELEASE_DEBUG: "0"
     steps:
       - *release-checkout
-      - *release-python
       - *release-uv
 
       - uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
@@ -272,14 +363,14 @@ jobs:
           key: ${{ steps.scanner-cache-identity.outputs.key }}
 
   build:
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}
     name: build
     needs: [gates]
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted", "homelab"]') || 'ubuntu-latest' }}
     env:
       SOURCE_DATE_EPOCH: "0"
     steps:
       - *release-checkout
-      - *release-python
       - *release-uv
 
       - name: Build wheel
@@ -293,6 +384,7 @@ jobs:
           retention-days: 7
 
   publish-pypi:
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}
     name: publish
     needs: build
     if: github.event_name == 'push' && github.ref_type == 'tag' && startsWith(github.ref_name, 'v')

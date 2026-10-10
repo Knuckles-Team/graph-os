@@ -1,55 +1,126 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "spec_id": "GRAPHOS-RELEASE-001",
   "owner_repo": "graph-os",
+  "delivery_state": "SPECIFIED",
   "requirement_ids": [
     "GRAPHOS-RELEASE-R001",
     "GRAPHOS-RELEASE-R002",
     "GRAPHOS-RELEASE-R003",
     "GRAPHOS-RELEASE-R003.1",
-    "GRAPHOS-RELEASE-R003.2"
+    "GRAPHOS-RELEASE-R003.2",
+    "GRAPHOS-RELEASE-R003.3",
+    "GRAPHOS-RELEASE-R003.4",
+    "GRAPHOS-RELEASE-R003.5",
+    "GRAPHOS-RELEASE-R003.6",
+    "GRAPHOS-RELEASE-R003.7",
+    "GRAPHOS-RELEASE-R003.8"
   ],
-  "delivery_state": "BUILDING",
-  "acceptance_state": "NOT_AUDITED",
-  "evidence": [],
   "requirements": [
     {
       "id": "GRAPHOS-RELEASE-R001",
       "title": "Dependency-ordered, digest-verified release promotion",
       "delivery_state": "LANDED",
-      "evidence": [
-        {
-          "kind": "merged_head",
-          "result": "passed",
-          "commit": "eacc29a1952ed0a2a9510b34fae582c66f49bc1f",
-          "url": "https://github.com/Knuckles-Team/graph-os/commit/eacc29a1952ed0a2a9510b34fae582c66f49bc1f",
-          "description": "GRAPHOS-RELEASE-R001 merged to the default branch in this commit."
-        }
-      ]
+      "landed_in": [
+        "eacc29a1952e"
+      ],
+      "verified_by": []
     },
     {
       "id": "GRAPHOS-RELEASE-R002",
       "title": "Local Kubernetes validation gates every push",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "03ec8432da14"
+      ],
+      "verified_by": [
+        "tests/deployment/test_local_gates.py:15",
+        "tests/deployment/test_local_gates.py:28",
+        "tests/deployment/test_local_gates.py:41",
+        "tests/deployment/test_local_gates.py:47",
+        "tests/deployment/test_local_gates.py:59"
+      ]
     },
     {
       "id": "GRAPHOS-RELEASE-R003",
       "title": "Exit-criteria matrix maps readiness to tests",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [
+        "03ec8432da14"
+      ],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-RELEASE-R003.1",
+        "GRAPHOS-RELEASE-R003.2",
+        "GRAPHOS-RELEASE-R003.3",
+        "GRAPHOS-RELEASE-R003.4",
+        "GRAPHOS-RELEASE-R003.5",
+        "GRAPHOS-RELEASE-R003.6",
+        "GRAPHOS-RELEASE-R003.7",
+        "GRAPHOS-RELEASE-R003.8"
+      ]
     },
     {
       "id": "GRAPHOS-RELEASE-R003.1",
-      "title": "Remaining scope of GRAPHOS-RELEASE-R003 (slice .1): Exit-criteria matrix maps readiness to tests",
-      "delivery_state": "SPECIFIED",
-      "evidence": []
+      "title": "Exit-criteria matrix registry and audit mechanism (graph-os side, against the currently pinned epistemic-graph)",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "03ec8432da14"
+      ],
+      "verified_by": [
+        "tests/deployment/test_exit_criteria.py:10",
+        "tests/deployment/test_exit_criteria.py:27",
+        "tests/deployment/test_exit_criteria.py:42"
+      ]
     },
     {
       "id": "GRAPHOS-RELEASE-R003.2",
-      "title": "Remaining scope of GRAPHOS-RELEASE-R003 (slice .2): Exit-criteria matrix maps readiness to tests",
+      "title": "Full exit-criteria matrix closes green across all seven obligations",
       "delivery_state": "SPECIFIED",
-      "evidence": []
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.3",
+      "title": "SPARQL and natural-language query-proof rows",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.4",
+      "title": "multi-agent orchestration-graph row",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.5",
+      "title": "connector-certification row",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.6",
+      "title": "write-back receipt row",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.7",
+      "title": "browser-and-identity-provider login probe row",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-RELEASE-R003.8",
+      "title": "typed-abstention response row",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     }
   ]
 }
