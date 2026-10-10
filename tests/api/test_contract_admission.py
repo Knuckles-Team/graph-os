@@ -67,6 +67,7 @@ def test_empty_registry_is_refused() -> None:
         _validate_registry_bindings(Registry(()))
 
 
+@pytest.mark.spec("GRAPHOS-OPS-R005")
 def test_missing_binding_is_not_silently_generated(installed_contract: Path) -> None:
     ops = load_eg_bindings()
     registry = Registry(ops[1:])
@@ -116,6 +117,7 @@ def test_changed_method_evidence_is_refused(
         "schemas/result.query.json",
     ],
 )
+@pytest.mark.spec("GRAPHOS-OPS-R005")
 def test_missing_contract_file_is_refused(
     installed_contract: Path, filename: str
 ) -> None:
