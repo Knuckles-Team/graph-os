@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -186,8 +187,12 @@ def _requirement_entry_errors_v2(path: Path, entry: dict) -> list[str]:
     return errors
 
 
-def _requirement_errors_v2(root: Path, path: Path, data: dict) -> list[str]:
-    """Each requirement ID has one defined entry with its own state."""
+def _requirement_list_errors(
+    root: Path,
+    path: Path,
+    data: dict,
+    entry_errors: Callable[[Path, dict], list[str]],
+) -> list[str]:
     entries = data.get("requirements")
     if entries is None:
         return []
@@ -203,8 +208,13 @@ def _requirement_errors_v2(root: Path, path: Path, data: dict) -> list[str]:
     for entry in entries:
         if f"`{entry.get('id')}`" not in defined:
             errors.append(f"{path}: {entry.get('id')} lacks a definition")
-        errors.extend(_requirement_entry_errors_v2(path, entry))
+        errors.extend(entry_errors(path, entry))
     return errors
+
+
+def _requirement_errors_v2(root: Path, path: Path, data: dict) -> list[str]:
+    """Each requirement ID has one defined entry with its own state."""
+    return _requirement_list_errors(root, path, data, _requirement_entry_errors_v2)
 
 
 def _status_errors_v2(root: Path, path: Path, data: dict) -> list[str]:
@@ -247,24 +257,12 @@ def _requirement_entry_errors(path: Path, owner: str, entry: dict) -> list[str]:
 
 def _requirement_errors(root: Path, path: Path, data: dict) -> list[str]:
     """Each requirement ID has one defined entry with its own state and evidence."""
-    entries = data.get("requirements")
-    if entries is None:
-        return []
-    if not isinstance(entries, list) or any(
-        not isinstance(entry, dict) for entry in entries
-    ):
-        return [f"{path}: requirements must be an array of objects"]
-    errors = []
-    if [entry.get("id") for entry in entries] != data.get("requirement_ids"):
-        errors.append(f"{path}: requirements must match requirement_ids in order")
-    register = root / path.parent / "requirements.md"
-    defined = register.read_text(encoding="utf-8") if register.is_file() else ""
     owner = data.get("owner_repo", "")
-    for entry in entries:
-        if f"`{entry.get('id')}`" not in defined:
-            errors.append(f"{path}: {entry.get('id')} lacks a definition")
-        errors.extend(_requirement_entry_errors(path, owner, entry))
-    return errors
+
+    def entry_errors(path: Path, entry: dict) -> list[str]:
+        return _requirement_entry_errors(path, owner, entry)
+
+    return _requirement_list_errors(root, path, data, entry_errors)
 
 
 def _status_field_errors(path: Path, data: dict) -> list[str]:
