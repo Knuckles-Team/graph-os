@@ -52,7 +52,8 @@
       "title": "Pre-push hooks always run the full gate suite",
       "delivery_state": "LANDED",
       "landed_in": [
-        "4a2d2cd9ac55"
+        "4a2d2cd9ac55",
+        "c3c6be59a12a"
       ],
       "verified_by": []
     },

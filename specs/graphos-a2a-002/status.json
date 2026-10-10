@@ -33,15 +33,19 @@
     {
       "id": "GRAPHOS-A2A-002-R002",
       "title": "Context-budget-bound subset sourced from EG assembly",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "07f8cca8a1a7"
+      ],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-002-R003",
       "title": "Cryptographic enforcement via the signed AU envelope",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "LANDED",
+      "landed_in": [
+        "07f8cca8a1a7"
+      ],
       "verified_by": []
     },
     {
