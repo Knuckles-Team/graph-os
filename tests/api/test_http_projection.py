@@ -274,6 +274,17 @@ async def _return_caller(caller):
     return caller
 
 
+def _endpoint_kwargs(fake_invoke, *, generic):
+    caller = SimpleNamespace(request_id="req")
+    return caller, dict(
+        services=SimpleNamespace(registry=SimpleNamespace(digest="digest")),
+        authenticate=lambda _: _return_caller(caller),
+        invoke=fake_invoke,
+        response=lambda outcome, op, request_id: JSONResponse({"ok": True}),
+        generic=generic,
+    )
+
+
 @pytest.mark.spec("GRAPHOS-OPS-R013")
 async def test_endpoint_rejects_an_empty_idempotency_key_and_forwards_a_valid_one() -> (
     None
@@ -284,14 +295,10 @@ async def test_endpoint_rejects_an_empty_idempotency_key_and_forwards_a_valid_on
         seen.append(kwargs["idempotency_key"])
         return SimpleNamespace(value={"ok": True})
 
-    caller = SimpleNamespace(request_id="req")
+    _, endpoint_kwargs = _endpoint_kwargs(fake_invoke, generic=True)
     endpoint = make_endpoint(
         SimpleNamespace(id="ingest.sources.sync"),
-        services=SimpleNamespace(registry=SimpleNamespace(digest="digest")),
-        authenticate=lambda _: _return_caller(caller),
-        invoke=fake_invoke,
-        response=lambda outcome, op, request_id: JSONResponse({"ok": True}),
-        generic=True,
+        **endpoint_kwargs,
     )
     headers = [(b"content-type", b"application/json")]
     rejected = await endpoint(
@@ -324,14 +331,10 @@ async def test_resource_endpoint_merges_cursor_query_param_into_params() -> None
         seen.append(params)
         return SimpleNamespace(value={"ok": True})
 
-    caller = SimpleNamespace(request_id="req")
+    _, endpoint_kwargs = _endpoint_kwargs(fake_invoke, generic=False)
     endpoint = make_endpoint(
         SimpleNamespace(id="ingest.sources.list"),
-        services=SimpleNamespace(registry=SimpleNamespace(digest="digest")),
-        authenticate=lambda _: _return_caller(caller),
-        invoke=fake_invoke,
-        response=lambda outcome, op, request_id: JSONResponse({"ok": True}),
-        generic=False,
+        **endpoint_kwargs,
     )
     req = request("GET", "/api/v1/ingest/sources")
     req.scope["query_string"] = b"cursor=opaque-cursor&limit=25"
