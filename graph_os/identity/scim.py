@@ -67,3 +67,28 @@ class ScimUser:
             active=active,
             external_id=external_id if isinstance(external_id, str) else None,
         )
+
+
+class ScimCredentialRefused(IdentityUnavailable):
+    """A SCIM request carried a missing, unknown or wrong-provider credential."""
+
+
+def check_scim_credential(
+    credentials: Mapping[str, ScimServiceCredential],
+    bearer_token: str | None,
+    requested_provider_id: str,
+) -> ScimServiceCredential:
+    """Gate a SCIM request on its bearer token (GRAPHOS-IDENTITY-R011.2.2).
+
+    ``credentials`` maps bearer tokens to their provider-scoped credential.
+    Fails closed with ``ScimCredentialRefused`` for a missing or unknown token
+    or one scoped to a different provider.
+    """
+    if not isinstance(bearer_token, str) or not bearer_token:
+        raise ScimCredentialRefused("SCIM request lacks a bearer credential")
+    credential = credentials.get(bearer_token)
+    if credential is None:
+        raise ScimCredentialRefused("SCIM bearer credential is unknown")
+    if not credential.authorizes(requested_provider_id):
+        raise ScimCredentialRefused("SCIM credential is scoped to a different provider")
+    return credential
