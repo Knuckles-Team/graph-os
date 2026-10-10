@@ -60,7 +60,8 @@ def detect_composition(
     return CompositionPlan(
         messaging_platforms=configured_platforms(engine),
         web_ui_enabled=bool(getattr(config, "enable_web_ui", False)),
-        messaging_intake_enabled=bool(messaging_intake_enabled) and is_gateway_daemon_role,
+        messaging_intake_enabled=bool(messaging_intake_enabled)
+        and is_gateway_daemon_role,
     )
 
 
