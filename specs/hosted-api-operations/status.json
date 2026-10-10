@@ -70,6 +70,8 @@
     "GRAPHOS-OPS-R032.2.3",
     "GRAPHOS-OPS-R032.2.3.1",
     "GRAPHOS-OPS-R032.2.3.2",
+    "GRAPHOS-OPS-R032.2.3.2.1",
+    "GRAPHOS-OPS-R032.2.3.2.2",
     "GRAPHOS-OPS-R032.2.4",
     "GRAPHOS-OPS-R033",
     "GRAPHOS-OPS-R034",
@@ -777,7 +779,25 @@
     },
     {
       "id": "GRAPHOS-OPS-R032.2.3.2",
-      "title": "Thread identity ports through run_web_ui and the webui_host package",
+      "title": "Thread identity ports through run_web_ui and the webui_host package (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R032.2.3.2.1",
+        "GRAPHOS-OPS-R032.2.3.2.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.2.1",
+      "title": "run_web_ui accepts and binds identity ports",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R032.2.3.2.2",
+      "title": "Supply identity ports from mcp_server composition to the agent-webui start call",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
