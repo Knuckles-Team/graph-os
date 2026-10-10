@@ -8,6 +8,8 @@
     "GRAPHOS-MCP-RESOURCES-R001.1",
     "GRAPHOS-MCP-RESOURCES-R002",
     "GRAPHOS-MCP-RESOURCES-R003",
+    "GRAPHOS-MCP-RESOURCES-R003.1",
+    "GRAPHOS-MCP-RESOURCES-R003.2",
     "GRAPHOS-MCP-RESOURCES-R004"
   ],
   "requirements": [
@@ -41,7 +43,25 @@
     },
     {
       "id": "GRAPHOS-MCP-RESOURCES-R003",
-      "title": "Gate wired at the one catalog-publish entry point",
+      "title": "Gate wired at the one catalog-publish entry point (rollup)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-MCP-RESOURCES-R003.1",
+        "GRAPHOS-MCP-RESOURCES-R003.2"
+      ]
+    },
+    {
+      "id": "GRAPHOS-MCP-RESOURCES-R003.1",
+      "title": "Swap guard function",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-MCP-RESOURCES-R003.2",
+      "title": "Call the guard from the publish step (depends on `fleet-catalog-and-tools` R022/PA-12 landing in graph-os)",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
