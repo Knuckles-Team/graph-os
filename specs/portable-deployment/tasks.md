@@ -184,3 +184,11 @@ Order: R017.1 (placement), R017.2 to R017.5 (assembly, view, confirm, refusal), 
 - [ ] **GRAPHOS-DEPLOY-R017.6:** Existing artifact per target
 - [ ] **GRAPHOS-DEPLOY-R017.7:** In-process unchanged
 - [ ] **GRAPHOS-DEPLOY-R017.8:** Thin setup-config subcommand
+- [ ] **GRAPHOS-DEPLOY-R017.9:** Checker dispatches on document shape.
+- [ ] **GRAPHOS-DEPLOY-R017.10:** Compose/Swarm literal images use the existing grammar.
+- [ ] **GRAPHOS-DEPLOY-R017.11:** Template mode accepts the required-variable form.
+- [ ] **GRAPHOS-DEPLOY-R017.12:** Resolve mode checks the supplied value.
+- [ ] **GRAPHOS-DEPLOY-R017.13:** Run the checker on the shipped Compose and Swarm files.
+- [ ] **GRAPHOS-DEPLOY-R017.14:** Helm pinned and default renders.
+- [ ] **GRAPHOS-DEPLOY-R017.15:** systemd stays refused.
+- [ ] **GRAPHOS-DEPLOY-R017.16:** Environment policy drives the check.
