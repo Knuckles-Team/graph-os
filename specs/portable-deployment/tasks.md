@@ -171,20 +171,16 @@ non-test importer (or, for `agent_utilities.deployment.cli`, a direct test impor
 - [ ] **GRAPHOS-DEPLOY-R009:** GraphOS owns hosting/deployment configuration settings
 - [ ] **GRAPHOS-DEPLOY-R009.1:** Remaining scope of GRAPHOS-DEPLOY-R009 (slice .1): GraphOS owns hosting/deployment configuration settings
 
-## GRAPHOS-DEPLOY-R017 backend deployment planner (carry-over)
+## GRAPHOS-DEPLOY-R017 engine-routed deployment placement and assembly
 
-Order: producer first (R017.1 to R017.3), renderers (R017.4 to R017.6), backends (R017.7 to R017.10), then command and parity (R017.11, R017.12). No cross-repo prerequisite; fleet tool contracts are consumed as data only.
+Order: R017.1 (placement), R017.2 to R017.5 (assembly, view, confirm, refusal), R017.6 and R017.7 (existing artifacts, in-process), R017.8 (command). Engine prerequisites: a deployment-placement question kind for `EG-DECISION-ENGINE-R046`/`R111` (name to be assigned by the engine spec) and a real `AgentAssemble` handler replacing the refusal stub. Until then R017.1 to R017.5 land only as typed refusals.
 
-- [ ] **GRAPHOS-DEPLOY-R017:** Backend deployment planner carried over from agent-utilities
-- [ ] **GRAPHOS-DEPLOY-R017.1:** Plan model
-- [ ] **GRAPHOS-DEPLOY-R017.2:** Backend protocol, error and registry
-- [ ] **GRAPHOS-DEPLOY-R017.3:** Digest-pinned image check
-- [ ] **GRAPHOS-DEPLOY-R017.4:** Compose renderer
-- [ ] **GRAPHOS-DEPLOY-R017.5:** Kubernetes renderer
-- [ ] **GRAPHOS-DEPLOY-R017.6:** systemd renderer
-- [ ] **GRAPHOS-DEPLOY-R017.7:** in_process backend
-- [ ] **GRAPHOS-DEPLOY-R017.8:** container backend
-- [ ] **GRAPHOS-DEPLOY-R017.9:** kubernetes backend
-- [ ] **GRAPHOS-DEPLOY-R017.10:** native_shell backend
-- [ ] **GRAPHOS-DEPLOY-R017.11:** `deploy-plan` subcommand
-- [ ] **GRAPHOS-DEPLOY-R017.12:** Composition parity test
+- [ ] **GRAPHOS-DEPLOY-R017:** Deployment placement and sequencing go through the engine
+- [ ] **GRAPHOS-DEPLOY-R017.1:** Placement Decide mapping
+- [ ] **GRAPHOS-DEPLOY-R017.2:** Request assembly for a deployment task
+- [ ] **GRAPHOS-DEPLOY-R017.3:** Present the assembled graph read-only
+- [ ] **GRAPHOS-DEPLOY-R017.4:** Confirm through plan/confirm
+- [ ] **GRAPHOS-DEPLOY-R017.5:** Typed refusal while unavailable
+- [ ] **GRAPHOS-DEPLOY-R017.6:** Existing artifact per target
+- [ ] **GRAPHOS-DEPLOY-R017.7:** In-process unchanged
+- [ ] **GRAPHOS-DEPLOY-R017.8:** Thin setup-config subcommand

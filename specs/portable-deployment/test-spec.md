@@ -33,12 +33,13 @@ Repository scanner checks include CCCC, jscpd, dupehound and KISS alongside Pyth
 | Server-side dry run | The API server accepts the deployment. |
 | Live host lock | The daemon status command reports this container as the host-lock holder. |
 
-## GRAPHOS-DEPLOY-R017 backend deployment planner
+## GRAPHOS-DEPLOY-R017 engine-routed deployment placement and assembly
 
 | Check | Expected result |
 |---|---|
-| Plan models and registry | Frozen models; unknown backend and empty target refused. |
-| Renderers | Parsed YAML and unit text match the composition; floating images refused; no secret values. |
-| Plan-only backends | `apply(dry_run=False)` raises `PlanOnlyBackendError`; plan never dispatches a fleet call. |
-| in_process | Dry run returns the plan; live apply needs a verified session and starts the supervisor. |
-| Command | `setup-config deploy-plan` prints valid JSON per backend and refuses a malformed override. |
+| Placement Decide | One typed request; engine decision returned verbatim; graph-os names no backend. |
+| Assembly, view, confirm | Assembled graph shown read-only and executed only after `graphos.plan/confirm`. |
+| Refusal | Stubbed assemble or confirm yields a distinct typed refusal with no side effect. |
+| Existing artifacts | compose, helm, swarm resolve to files under `deploy/`, digest-pinned; systemd refused as unsupported. |
+| In-process | Live start calls `start_composed_services`. |
+| Command | `setup-config deploy` prints the engine's decision and graph and imports no planning code. |

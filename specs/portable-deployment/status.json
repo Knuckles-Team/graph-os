@@ -34,11 +34,7 @@
     "GRAPHOS-DEPLOY-R017.5",
     "GRAPHOS-DEPLOY-R017.6",
     "GRAPHOS-DEPLOY-R017.7",
-    "GRAPHOS-DEPLOY-R017.8",
-    "GRAPHOS-DEPLOY-R017.9",
-    "GRAPHOS-DEPLOY-R017.10",
-    "GRAPHOS-DEPLOY-R017.11",
-    "GRAPHOS-DEPLOY-R017.12"
+    "GRAPHOS-DEPLOY-R017.8"
   ],
   "requirements": [
     {
@@ -296,7 +292,7 @@
     },
     {
       "id": "GRAPHOS-DEPLOY-R017",
-      "title": "Backend deployment planner carried over from agent-utilities",
+      "title": "Deployment placement and sequencing go through the engine decision functionality",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": [],
@@ -308,93 +304,61 @@
         "GRAPHOS-DEPLOY-R017.5",
         "GRAPHOS-DEPLOY-R017.6",
         "GRAPHOS-DEPLOY-R017.7",
-        "GRAPHOS-DEPLOY-R017.8",
-        "GRAPHOS-DEPLOY-R017.9",
-        "GRAPHOS-DEPLOY-R017.10",
-        "GRAPHOS-DEPLOY-R017.11",
-        "GRAPHOS-DEPLOY-R017.12"
+        "GRAPHOS-DEPLOY-R017.8"
       ]
     },
     {
       "id": "GRAPHOS-DEPLOY-R017.1",
-      "title": "Plan model",
+      "title": "Placement Decide mapping",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R017.2",
-      "title": "Backend protocol, error and registry",
+      "title": "Request assembly for a deployment task",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R017.3",
-      "title": "Digest-pinned image check",
+      "title": "Present the assembled graph read-only",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R017.4",
-      "title": "Compose renderer",
+      "title": "Confirm through plan/confirm",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R017.5",
-      "title": "Kubernetes renderer",
+      "title": "Typed refusal while unavailable",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R017.6",
-      "title": "systemd renderer",
+      "title": "Existing artifact per target",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R017.7",
-      "title": "in_process backend",
+      "title": "In-process unchanged",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-DEPLOY-R017.8",
-      "title": "container backend",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-DEPLOY-R017.9",
-      "title": "kubernetes backend",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-DEPLOY-R017.10",
-      "title": "native_shell backend",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-DEPLOY-R017.11",
-      "title": "`deploy-plan` subcommand",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
-      "verified_by": []
-    },
-    {
-      "id": "GRAPHOS-DEPLOY-R017.12",
-      "title": "Composition parity test",
+      "title": "Thin setup-config subcommand",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
