@@ -34,7 +34,15 @@
     "GRAPHOS-DEPLOY-R017.5",
     "GRAPHOS-DEPLOY-R017.6",
     "GRAPHOS-DEPLOY-R017.7",
-    "GRAPHOS-DEPLOY-R017.8"
+    "GRAPHOS-DEPLOY-R017.8",
+    "GRAPHOS-DEPLOY-R017.9",
+    "GRAPHOS-DEPLOY-R017.10",
+    "GRAPHOS-DEPLOY-R017.11",
+    "GRAPHOS-DEPLOY-R017.12",
+    "GRAPHOS-DEPLOY-R017.13",
+    "GRAPHOS-DEPLOY-R017.14",
+    "GRAPHOS-DEPLOY-R017.15",
+    "GRAPHOS-DEPLOY-R017.16"
   ],
   "requirements": [
     {
@@ -304,7 +312,15 @@
         "GRAPHOS-DEPLOY-R017.5",
         "GRAPHOS-DEPLOY-R017.6",
         "GRAPHOS-DEPLOY-R017.7",
-        "GRAPHOS-DEPLOY-R017.8"
+        "GRAPHOS-DEPLOY-R017.8",
+        "GRAPHOS-DEPLOY-R017.9",
+        "GRAPHOS-DEPLOY-R017.10",
+        "GRAPHOS-DEPLOY-R017.11",
+        "GRAPHOS-DEPLOY-R017.12",
+        "GRAPHOS-DEPLOY-R017.13",
+        "GRAPHOS-DEPLOY-R017.14",
+        "GRAPHOS-DEPLOY-R017.15",
+        "GRAPHOS-DEPLOY-R017.16"
       ]
     },
     {
@@ -359,6 +375,62 @@
     {
       "id": "GRAPHOS-DEPLOY-R017.8",
       "title": "Thin setup-config subcommand",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.9",
+      "title": "Checker dispatches on document shape",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.10",
+      "title": "Compose/Swarm literal images use the existing grammar",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.11",
+      "title": "Template mode accepts the required-variable form",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.12",
+      "title": "Resolve mode checks the supplied value",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.13",
+      "title": "Run the checker on the shipped Compose and Swarm files",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.14",
+      "title": "Helm pinned and default renders",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.15",
+      "title": "systemd stays refused",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.16",
+      "title": "Environment policy drives the check",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []

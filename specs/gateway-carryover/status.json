@@ -19,7 +19,14 @@
     "GRAPHOS-GWC-R002.7",
     "GRAPHOS-GWC-R002.8",
     "GRAPHOS-GWC-R003",
-    "GRAPHOS-GWC-R003.1"
+    "GRAPHOS-GWC-R003.1",
+    "GRAPHOS-GWC-R001.5",
+    "GRAPHOS-GWC-R001.6",
+    "GRAPHOS-GWC-R001.7",
+    "GRAPHOS-GWC-R001.8",
+    "GRAPHOS-GWC-R001.9",
+    "GRAPHOS-GWC-R002.9",
+    "GRAPHOS-GWC-R002.10"
   ],
   "requirements": [
     {
@@ -32,7 +39,12 @@
         "GRAPHOS-GWC-R001.1",
         "GRAPHOS-GWC-R001.2",
         "GRAPHOS-GWC-R001.3",
-        "GRAPHOS-GWC-R001.4"
+        "GRAPHOS-GWC-R001.4",
+        "GRAPHOS-GWC-R001.5",
+        "GRAPHOS-GWC-R001.6",
+        "GRAPHOS-GWC-R001.7",
+        "GRAPHOS-GWC-R001.8",
+        "GRAPHOS-GWC-R001.9"
       ]
     },
     {
@@ -77,7 +89,9 @@
         "GRAPHOS-GWC-R002.5",
         "GRAPHOS-GWC-R002.6",
         "GRAPHOS-GWC-R002.7",
-        "GRAPHOS-GWC-R002.8"
+        "GRAPHOS-GWC-R002.8",
+        "GRAPHOS-GWC-R002.9",
+        "GRAPHOS-GWC-R002.10"
       ]
     },
     {
@@ -124,14 +138,14 @@
     },
     {
       "id": "GRAPHOS-GWC-R002.7",
-      "title": "Wire one call site: a register function in graph_os/gateway/artifacts_api.py called where the host mounts the graph and usage routes, with gateway:read on GET and gateway:write on POST",
+      "title": "Wire one call site: a register function in graph_os/gateway/artifacts_api.py called where the host mounts the graph and usage routes, reusing `_require_dashboard_read` on GET and `_require_dashboard_write` on POST from graph_os/gateway/dashboard_api.py (capabilities, not engine scopes; decision D3)",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-GWC-R002.8",
-      "title": "Add one function: a graph-backed source resolver in graph_os/gateway/artifacts_api.py that re-derives from source node ids and otherwise preserves prior data",
+      "title": "Wire one function: pass the exported `kg_source_resolver` (row R002.1) as the artifacts register function's resolver argument in graph_os/gateway/artifacts_api.py; no graph-os re-derivation code. Without it the default preserve-prior-data resolver is used",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
@@ -149,6 +163,55 @@
     {
       "id": "GRAPHOS-GWC-R003.1",
       "title": "Add one test in tests/gateway/test_registry.py asserting genius_agent is absent from the widget registry and no fixed-value widget is registered",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-GWC-R001.5",
+      "title": "Add one test in tests/gateway/test_dashboard_api.py pinning the key set returned by GET /daemon/status and POST /daemon/start against `graph_os.gateway.daemon.daemon_status`, compared with the old keys role, threads, jobs and queue depth",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-GWC-R001.6",
+      "title": "Replace the `agent_utilities.knowledge_graph.core.shard_topology` import in graph_os/gateway/dashboard_api.py `daemon_shards` with the engine client shard-topology method, after a contract test in tests/gateway/test_dashboard_api.py shows the installed client exposes it (`GRAPHOS-HOST-R002`). BLOCKED on the engine client owner if the method is absent",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-GWC-R001.7",
+      "title": "Replace `_active_engine` and `_hydration_manager` in graph_os/gateway/dashboard_api.py with the engine client source-sync methods, keeping 500 on no engine, 400 on `ValueError` and 422 on a malformed source",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-GWC-R001.8",
+      "title": "Add one test in tests/gateway/test_registry.py asserting GET /widgets returns every widget type of the deleted registry module map except `genius_agent`, with the same field set",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-GWC-R001.9",
+      "title": "Replace the `agent_utilities.core.config` and `agent_utilities.security.identity` imports in `_dashboard_capabilities` in graph_os/gateway/dashboard_api.py with a public `agent_utilities.api` capability resolver. Cross-repo prerequisite (owner: agent-utilities): export it under `AU-BOUNDARY-R013`",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-GWC-R002.9",
+      "title": "Cross-repo prerequisite (owner: agent-utilities): add the proposed `AU-BOUNDARY-R013.<n>` row of plan.md D4 to specs/au-boundary-deconstruction/requirements.md; it is the concrete form of R002.1",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-GWC-R002.10",
+      "title": "Add one test in tests/gateway/test_artifacts_route_mount.py asserting a caller without gateway:read gets 403 on GET and a caller with only gateway:read gets 403 on both POST routes, while API-key callers pass",
       "delivery_state": "SPECIFIED",
       "landed_in": [],
       "verified_by": []
