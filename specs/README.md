@@ -96,7 +96,6 @@ bootstrap skill, together with the [SDD full lifecycle](https://github.com/Knuck
 - [`GRAPHOS-DATA-MARKET`](data-and-market-projections/spec.md) — Schema context, source admission, and finance projection
 - [`GRAPHOS-RELEASE`](dependency-ordered-release/spec.md) — Dependency-ordered, digest-pinned GraphOS rollout
 - [`GRAPHOS-FLEET`](fleet-catalog-and-tools/spec.md) — Fleet catalog, intent tools, and policy safe reload
-- [`GRAPHOS-GWC`](gateway-carryover/spec.md) — Gateway carry-over from agent-utilities
 - [`GRAPHOS-A2A-002`](graphos-a2a-002/spec.md) — A2A context-budget tool-subset admission
 - [`GRAPHOS-HOST`](host-composition-boundary/spec.md) — GraphOS host composition and ownership boundary
 - [`GRAPHOS-OPS`](hosted-api-operations/spec.md) — Hosted API and intent operations
