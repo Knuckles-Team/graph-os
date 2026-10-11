@@ -136,3 +136,6 @@ beyond an unrelated audit-chain capacity check. None of these is a safe
 - [ ] **PA-12.2:** Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence
 - [ ] **PA-12.1:** Remaining scope of PA-12 (slice .1): Catalog reload rejects invalid candidates, proves replica convergence (rollup)
 - [ ] **PA-12.2:** Remaining scope of PA-12 (slice .2): Catalog reload rejects invalid candidates, proves replica convergence (rollup)
+- [ ] **GRAPHOS-FLEET-R033:** Fleet-catalog `servers` read owned by graph-os.
+- [ ] **GRAPHOS-FLEET-R033.1:** Define the typed fleet-catalog `servers` reader.
+- [ ] **GRAPHOS-FLEET-R033.2:** Add refusal tests for the `servers` reader.

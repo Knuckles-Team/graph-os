@@ -95,3 +95,4 @@ State: READY FOR IMPLEMENTATION. Check a task only with an exact commit and test
 - [ ] **GRAPHOS-IDENTITY-R007:** Admin console tabs with mapping dry-run and mode wizard (rollup)
 - [x] **GRAPHOS-IDENTITY-R007.1:** Typed admin-console tab model with refusal tests
 - [ ] **GRAPHOS-IDENTITY-R007.2:** Mapping dry-run preview and mode-transition wizard
+- [ ] **GRAPHOS-IDENTITY-R025:** Register identity ops once the engine contract lists `identity:admin`.

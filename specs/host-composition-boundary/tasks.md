@@ -57,3 +57,14 @@ Status vocabulary is defined in [spec.md](spec.md). Check a task only after its 
 - [ ] **GRAPHOS-HOST-R005.2.6:** Approved mapping for the mine-learn action family
 - [ ] **GRAPHOS-HOST-R005.2.7:** Approved mapping for the governance-ops action family
 - [ ] **GRAPHOS-HOST-R005.2.8:** Parity test over the full legacy action surface
+- [ ] **GRAPHOS-HOST-R026:** Durable A2A task persistence in the graph-os agent host.
+- [ ] **GRAPHOS-HOST-R026.1:** Define the typed A2A task-store port.
+- [ ] **GRAPHOS-HOST-R026.2:** Implement the engine-backed A2A task store.
+- [ ] **GRAPHOS-HOST-R026.3:** Wire the hosted A2A app to the task store, fail-closed when absent.
+- [ ] **GRAPHOS-HOST-R026.4:** Add the doctor check for A2A task persistence.
+- [ ] **GRAPHOS-HOST-R026.5:** Point the `g34-a2a` certification gate at graph-os tests.
+- [ ] **GRAPHOS-HOST-R027:** Loopback OIDC authority for skill certification.
+- [ ] **GRAPHOS-HOST-R027.1:** Add the loopback OIDC authority owner module for skill certification.
+- [ ] **GRAPHOS-HOST-R027.2:** Add the loopback OIDC authority test fixture.
+- [ ] **GRAPHOS-HOST-R027.3:** Add the loopback OIDC authority script.
+- [ ] **GRAPHOS-HOST-R028:** Bump the pinned agent-utilities source for the new `agent_utilities.api.*` export modules.
