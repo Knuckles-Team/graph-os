@@ -44,7 +44,7 @@ The historical IDs below are stable trace IDs only; every requirement needed to 
 | GRAPHOS-OPS-R031 | GraphOS publishes a complete legacy-verb/tool-to-op or intentional-drop inventory for the agent owner; removal of its former tool code is accepted separately by that repository | NOT ACCEPTED |
 | GRAPHOS-OPS-R037 | Final GraphOS facade over public engine/agent/connector contracts | NOT ACCEPTED |
 
-GRAPHOS-A2A-R006 and GRAPHOS-A2A-R005 are specified in [A2A task projection](../a2a-task-projection/spec.md). Browser and terminal client migrations are downstream consumer contracts; the server must publish a generated client and keep both surfaces equivalent.
+GRAPHOS-A2A-R006 and GRAPHOS-A2A-R005 are specified in [A2A task projection](../a2a/spec.md). Browser and terminal client migrations are downstream consumer contracts; the server must publish a generated client and keep both surfaces equivalent.
 
 ## Required operation families
 

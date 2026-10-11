@@ -66,7 +66,7 @@ class A2AStreamingUnavailable(RuntimeError):
 class A2ATransitionHistoryUnavailable(RuntimeError):
     """No reachable durable transition-history authority backs ``tasks/get`` history.
 
-    GRAPHOS-A2A-R004.2: when no ``A2ATransitionHistoryAuthority`` is wired or
+    GRAPHOS-A2A-R012.2: when no ``A2ATransitionHistoryAuthority`` is wired or
     the wired one is unreachable, history requests fail closed with this
     distinct error rather than an empty or partially reconstructed history.
     """

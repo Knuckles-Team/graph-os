@@ -158,7 +158,7 @@ class A2APushNotificationAuthority(Protocol):
 class A2ATransitionHistoryAuthority(Protocol):
     """Durable, append-only WorkItem transition-history authority.
 
-    Owned by epistemic-graph, not GraphOS; see GRAPHOS-A2A-003.
+    Owned by epistemic-graph, not GraphOS; see GRAPHOS-A2A-R011.
     """
 
     def transition_history(self, task_id: str) -> Any: ...
