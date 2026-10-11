@@ -252,11 +252,17 @@
     {
       "id": "GRAPHOS-A2A-R009",
       "title": "Advertise only what is wired",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "f400db63996b"
+        "35257e780f7c"
       ],
-      "verified_by": [],
+      "verified_by": [
+        "tests/a2a/test_models.py:38",
+        "tests/a2a/test_models.py:47",
+        "tests/a2a/test_models.py:56",
+        "tests/a2a/test_models.py:67",
+        "tests/a2a/test_models.py:88"
+      ],
       "rollup_of": [
         "GRAPHOS-A2A-R009.1"
       ]
@@ -264,28 +270,30 @@
     {
       "id": "GRAPHOS-A2A-R009.1",
       "title": "Typed Agent Card capability-advertisement model",
-      "delivery_state": "LANDED",
+      "delivery_state": "VERIFIED",
       "landed_in": [
-        "f400db63996b"
+        "35257e780f7c"
       ],
-      "verified_by": []
+      "verified_by": [
+        "tests/a2a/test_models.py:39",
+        "tests/a2a/test_models.py:48",
+        "tests/a2a/test_models.py:57",
+        "tests/a2a/test_models.py:68",
+        "tests/a2a/test_models.py:89"
+      ]
     },
     {
       "id": "GRAPHOS-A2A-R010",
       "title": "WorkItem stream projection, not a shadow log",
-      "delivery_state": "LANDED",
-      "landed_in": [
-        "f400db63996b"
-      ],
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R011",
       "title": "Transition history is read-through to epistemic-graph",
-      "delivery_state": "LANDED",
-      "landed_in": [
-        "f400db63996b"
-      ],
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
@@ -305,10 +313,10 @@
       "title": "Landed: the protocol exists, the error does not",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "f400db63996b"
+        "35257e780f7c"
       ],
       "verified_by": [
-        "tests/a2a/test_models.py:87"
+        "tests/a2a/test_models.py:97"
       ]
     },
     {
@@ -316,7 +324,7 @@
       "title": "Add the `A2ATransitionHistoryUnavailable` error type",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "f400db63996b"
+        "35257e780f7c"
       ],
       "verified_by": [
         "tests/a2a/test_authority.py:154"
@@ -332,28 +340,22 @@
     {
       "id": "GRAPHOS-A2A-R013",
       "title": "Push notifications are best-effort over a durable outbox",
-      "delivery_state": "LANDED",
-      "landed_in": [
-        "f400db63996b"
-      ],
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R014",
       "title": "No capability advertised before GRAPHOS-A2A lands",
-      "delivery_state": "LANDED",
-      "landed_in": [
-        "f400db63996b"
-      ],
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R015",
       "title": "Caller-visible card matches served behavior",
-      "delivery_state": "LANDED",
-      "landed_in": [
-        "f400db63996b"
-      ],
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
@@ -361,9 +363,11 @@
       "title": "Typed admission request/decision model",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "f400db63996b"
+        "35257e780f7c"
       ],
-      "verified_by": [],
+      "verified_by": [
+        "tests/a2a/test_admission.py:15"
+      ],
       "rollup_of": [
         "GRAPHOS-A2A-R016.1"
       ]
@@ -373,37 +377,35 @@
       "title": "Fail-closed admission function proven against today's unavailable upstreams",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "f400db63996b"
+        "35257e780f7c"
       ],
       "verified_by": [
-        "tests/a2a/test_admission.py:15"
+        "tests/a2a/test_admission.py:16"
       ]
     },
     {
       "id": "GRAPHOS-A2A-R017",
       "title": "Context-budget-bound subset sourced from EG assembly",
-      "delivery_state": "LANDED",
-      "landed_in": [
-        "f400db63996b"
-      ],
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R018",
       "title": "Cryptographic enforcement via the signed AU envelope",
-      "delivery_state": "LANDED",
-      "landed_in": [
-        "f400db63996b"
-      ],
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     },
     {
       "id": "GRAPHOS-A2A-R019",
       "title": "Typed refusal reason and provenance on every decision",
-      "delivery_state": "SPECIFIED",
-      "landed_in": [],
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "35257e780f7c"
+      ],
       "verified_by": [
-        "tests/a2a/test_admission.py:33"
+        "tests/a2a/test_admission.py:34"
       ]
     },
     {
@@ -411,10 +413,10 @@
       "title": "No advisory, cached, or partial substitute",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "f400db63996b"
+        "35257e780f7c"
       ],
       "verified_by": [
-        "tests/a2a/test_admission.py:52"
+        "tests/a2a/test_admission.py:53"
       ]
     },
     {
