@@ -87,7 +87,30 @@
     "GRAPHOS-OPS-R035.2",
     "GRAPHOS-OPS-R036",
     "GRAPHOS-OPS-R037",
-    "GRAPHOS-OPS-R038"
+    "GRAPHOS-OPS-R038",
+    "GRAPHOS-OPS-R039",
+    "GRAPHOS-OPS-R039.1",
+    "GRAPHOS-OPS-R039.2",
+    "GRAPHOS-OPS-R039.3",
+    "GRAPHOS-OPS-R039.4",
+    "GRAPHOS-OPS-R039.5",
+    "GRAPHOS-OPS-R039.6",
+    "GRAPHOS-OPS-R039.7",
+    "GRAPHOS-OPS-R039.8",
+    "GRAPHOS-OPS-R039.9",
+    "GRAPHOS-OPS-R040",
+    "GRAPHOS-OPS-R040.1",
+    "GRAPHOS-OPS-R040.2",
+    "GRAPHOS-OPS-R040.3",
+    "GRAPHOS-OPS-R040.4",
+    "GRAPHOS-OPS-R040.5",
+    "GRAPHOS-OPS-R040.6",
+    "GRAPHOS-OPS-R040.7",
+    "GRAPHOS-OPS-R040.8",
+    "GRAPHOS-OPS-R040.9",
+    "GRAPHOS-OPS-R040.10",
+    "GRAPHOS-OPS-R041",
+    "GRAPHOS-OPS-R041.1"
   ],
   "requirements": [
     {
@@ -993,6 +1016,193 @@
         "ea736715b7fb",
         "f13ce20b05dc"
       ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R039",
+      "title": "Dashboard route parity (replaces AU-BOUNDARY-R001.2, commit 0eb67c99c)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R039.1",
+        "GRAPHOS-OPS-R039.2",
+        "GRAPHOS-OPS-R039.3",
+        "GRAPHOS-OPS-R039.4",
+        "GRAPHOS-OPS-R039.5",
+        "GRAPHOS-OPS-R039.6",
+        "GRAPHOS-OPS-R039.7",
+        "GRAPHOS-OPS-R039.8",
+        "GRAPHOS-OPS-R039.9"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R039.1",
+      "title": "Add one test in tests/gateway/test_dashboard_route_census.py asserting the served dashboard router exposes all 15 old method and path pairs",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R039.2",
+      "title": "Add one test in tests/gateway/test_dashboard_api.py asserting read-capability callers get 403 on PUT /layout, POST /daemon/start, POST /hydrate and POST /hydrate/{source}, while API-key callers pass",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R039.3",
+      "title": "Add one test in tests/gateway/test_dashboard_api.py asserting GET /health returns 200 without a capability and sets Cache-Control no-store",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R039.4",
+      "title": "Add one test in tests/gateway/test_dashboard_api.py asserting a malformed hydrate source returns 422 and an unknown service id returns 404",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R039.5",
+      "title": "Add one test in tests/gateway/test_dashboard_api.py pinning the key set returned by GET /daemon/status and POST /daemon/start against `graph_os.gateway.daemon.daemon_status`, compared with the old keys role, threads, jobs and queue depth",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R039.6",
+      "title": "Replace the `agent_utilities.knowledge_graph.core.shard_topology` import in graph_os/gateway/dashboard_api.py `daemon_shards` with the engine client shard-topology method, after a contract test in tests/gateway/test_dashboard_api.py shows the installed client exposes it (`GRAPHOS-HOST-R002`). BLOCKED on the engine client owner if the method is absent",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R039.7",
+      "title": "Replace `_active_engine` and `_hydration_manager` in graph_os/gateway/dashboard_api.py with the engine client source-sync methods, keeping 500 on no engine, 400 on `ValueError` and 422 on a malformed source",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R039.8",
+      "title": "Add one test in tests/gateway/test_registry.py asserting GET /widgets returns every widget type of the deleted registry module map except `genius_agent`, with the same field set",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R039.9",
+      "title": "Replace the `agent_utilities.core.config` and `agent_utilities.security.identity` imports in `_dashboard_capabilities` in graph_os/gateway/dashboard_api.py with a public `agent_utilities.api` capability resolver. Cross-repo prerequisite (owner: agent-utilities): export it under `AU-BOUNDARY-R013`",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040",
+      "title": "Live Artifacts routes (replaces AU-BOUNDARY-R001.3, commit 902f906ca)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R040.1",
+        "GRAPHOS-OPS-R040.2",
+        "GRAPHOS-OPS-R040.3",
+        "GRAPHOS-OPS-R040.4",
+        "GRAPHOS-OPS-R040.5",
+        "GRAPHOS-OPS-R040.6",
+        "GRAPHOS-OPS-R040.7",
+        "GRAPHOS-OPS-R040.8",
+        "GRAPHOS-OPS-R040.9",
+        "GRAPHOS-OPS-R040.10"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.1",
+      "title": "Cross-repo prerequisite (owner: agent-utilities)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.2",
+      "title": "Add one typed model: create-artifact request in graph_os/gateway/artifacts_api.py, rejecting empty template and oversize data",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.3",
+      "title": "Add one port: artifact store and refresh ports plus a resolver callable type in graph_os/gateway/ports.py",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.4",
+      "title": "Add one route: POST /api/artifacts, returning id and rendered output, 400 on a bounded-JSON error",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.5",
+      "title": "Add one route: GET /api/artifacts/{artifact_id}, 404 when absent",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.6",
+      "title": "Add one route: POST /api/artifacts/{artifact_id}/refresh with inline data or resolver, 404 when absent, prior render preserved on failure",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.7",
+      "title": "Wire one call site: a register function in graph_os/gateway/artifacts_api.py called where the host mounts the graph and usage routes, reusing `_require_dashboard_read` on GET and `_require_dashboard_write` on POST from graph_os/gateway/dashboard_api.py (capabilities, not engine scopes; decision D3)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.8",
+      "title": "Wire one function: pass the exported `kg_source_resolver` (row R002.1) as the artifacts register function's resolver argument in graph_os/gateway/artifacts_api.py; no graph-os re-derivation code. Without it the default preserve-prior-data resolver is used",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.9",
+      "title": "Cross-repo prerequisite (owner: agent-utilities): add the proposed `AU-BOUNDARY-R013.<n>` row of plan.md D4 to specs/au-boundary-deconstruction/requirements.md; it is the concrete form of R002.1",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R040.10",
+      "title": "Add one test in tests/gateway/test_artifacts_route_mount.py asserting a caller without gateway:read gets 403 on GET and a caller with only gateway:read gets 403 on both POST routes, while API-key callers pass",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-OPS-R041",
+      "title": "Genius Agent widget dropped (replaces AU-BOUNDARY-R001.7, commit 7717d2e62)",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-OPS-R041.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-OPS-R041.1",
+      "title": "Add one test in tests/gateway/test_registry.py asserting genius_agent is absent from the widget registry and no fixed-value widget is registered",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     }
   ]

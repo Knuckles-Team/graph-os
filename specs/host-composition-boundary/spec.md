@@ -1,4 +1,4 @@
-# GraphOS host composition and ownership boundary
+# GRAPHOS-HOST — GraphOS host composition and ownership boundary
 
 **Owner:** graph-os. **Requirement IDs:** GRAPHOS-HOST-R014, GRAPHOS-HOST-R015, GRAPHOS-HOST-R001, GRAPHOS-HOST-R002, GRAPHOS-HOST-R003, GRAPHOS-HOST-R004, GRAPHOS-HOST-R005, GRAPHOS-HOST-R006, GRAPHOS-HOST-R007, GRAPHOS-HOST-R008, GRAPHOS-HOST-R009, GRAPHOS-HOST-R010, GRAPHOS-HOST-R011, GRAPHOS-HOST-R012, GRAPHOS-HOST-R013. **Delivery:** implemented in part; **acceptance:** pending. Existing package extraction is released, while the strict import boundary, retired duplicate hosts, and served parity have not been verified as a set.
 
@@ -22,7 +22,7 @@ One GraphOS process authenticates, authorizes, composes, routes, supervises and 
 ## Acceptance
 
 - Import-boundary census reaches zero forbidden dependency-internal imports in `graph_os/**`; a planted forbidden import fails the same check in CI.
-- A served test invokes the same representative read, governed write, cancellation and refusal through at least two entrypoints and compares principal, tenant, policy decision, receipt ID, result and error code. A2A parity additionally follows the [A2A spec](../a2a-task-projection/spec.md).
+- A served test invokes the same representative read, governed write, cancellation and refusal through at least two entrypoints and compares principal, tenant, policy decision, receipt ID, result and error code. A2A parity additionally follows the [A2A spec](../a2a/spec.md).
 - Removing optional dependencies yields explicit feature-unavailable behavior and leaves core serving operational. A missing graph-engine contract cannot be replaced with a fabricated success.
 - Exactly one runtime owns the event loop/multiplexer, and duplicate AU host entrypoints are absent from the packaged command inventory.
 - Exact commit, wheel hash, focused/full gate results and served receipts are recorded in `tasks.md` before the state advances to `Verified`, `Released` or `Accepted`.

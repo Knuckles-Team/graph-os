@@ -52,7 +52,7 @@ def admit_tool_subset(
 ) -> ToolSubsetAdmissionDecision:
     """Admit the request, or fail closed with a typed, provenanced refusal.
 
-    ``GRAPHOS-A2A-R002.1``: epistemic-graph's ``AgentAssemble`` operation
+    ``GRAPHOS-A2A-R017.1``: epistemic-graph's ``AgentAssemble`` operation
     returns unavailable today, so no context-budget-bound tool subset can be
     derived or cryptographically carried. This refuses closed rather than
     returning an advisory, cached, or partial subset.

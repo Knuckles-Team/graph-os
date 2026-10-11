@@ -1,4 +1,4 @@
-# GRAPHOS-MESSAGING-001 requirements
+# GRAPHOS-MESSAGING requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

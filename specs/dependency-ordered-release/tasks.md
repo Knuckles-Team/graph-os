@@ -1,4 +1,4 @@
-# GRAPHOS-RELEASE-001 — Implementation tasks
+# GRAPHOS-RELEASE — Implementation tasks
 
 Status: SPECIFIED. Governing [spec](spec.md) and [plan](plan.md).
 

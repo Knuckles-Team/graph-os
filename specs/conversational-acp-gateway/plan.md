@@ -1,4 +1,4 @@
-# GRAPHOS-ACP-001 — Design and implementation plan
+# GRAPHOS-ACP — Design and implementation plan
 
 Status: BUILDING. Governing [spec](spec.md).
 

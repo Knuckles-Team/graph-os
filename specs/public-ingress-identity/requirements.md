@@ -1,4 +1,4 @@
-# GRAPHOS-INGRESS-001 requirements
+# GRAPHOS-INGRESS requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

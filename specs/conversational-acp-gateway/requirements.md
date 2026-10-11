@@ -1,4 +1,4 @@
-# GRAPHOS-ACP-001 requirements
+# GRAPHOS-ACP requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

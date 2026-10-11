@@ -151,7 +151,7 @@ async def test_context_budget_fails_closed_while_agent_assemble_is_unavailable()
         await router.route(_message(), context_budget_tokens=4096)
 
 
-@pytest.mark.spec("GRAPHOS-A2A-R004.2")
+@pytest.mark.spec("GRAPHOS-A2A-R012.2")
 def test_transition_history_unavailable_has_distinct_privacy_safe_error() -> None:
     response = _application_error("rid", A2ATransitionHistoryUnavailable())
     assert response.status_code == 501

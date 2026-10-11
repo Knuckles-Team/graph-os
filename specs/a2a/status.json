@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
-  "spec_id": "GRAPHOS-A2A-001",
-  "owner_repo": "graph-os",
+  "spec_id": "a2a",
+  "owner_repo": "spec-standard-conform",
   "delivery_state": "SPECIFIED",
   "requirement_ids": [
     "GRAPHOS-A2A-R001",
@@ -21,7 +21,25 @@
     "GRAPHOS-A2A-R006.2",
     "GRAPHOS-A2A-R006.2.1",
     "GRAPHOS-A2A-R007",
-    "GRAPHOS-A2A-R008"
+    "GRAPHOS-A2A-R008",
+    "GRAPHOS-A2A-R009",
+    "GRAPHOS-A2A-R009.1",
+    "GRAPHOS-A2A-R010",
+    "GRAPHOS-A2A-R011",
+    "GRAPHOS-A2A-R012",
+    "GRAPHOS-A2A-R012.1",
+    "GRAPHOS-A2A-R012.2",
+    "GRAPHOS-A2A-R012.3",
+    "GRAPHOS-A2A-R013",
+    "GRAPHOS-A2A-R014",
+    "GRAPHOS-A2A-R015",
+    "GRAPHOS-A2A-R016",
+    "GRAPHOS-A2A-R016.1",
+    "GRAPHOS-A2A-R017",
+    "GRAPHOS-A2A-R018",
+    "GRAPHOS-A2A-R019",
+    "GRAPHOS-A2A-R020",
+    "GRAPHOS-A2A-R021"
   ],
   "requirements": [
     {
@@ -92,7 +110,6 @@
       "title": "No duplicate skill or prompt harvesting in the multiplexer",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "0c897f1a3736",
         "2cbed24252ec",
         "deb2b45bf83d"
       ],
@@ -105,7 +122,6 @@
       "title": "Served MCP bridge runs FastMCP 4, matching its declared version",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "17fcab3404c0",
         "d5bff77ba836",
         "d60b46fc6984"
       ],
@@ -225,7 +241,6 @@
       "title": "First-party A2A facade, not a vendored wrapper",
       "delivery_state": "VERIFIED",
       "landed_in": [
-        "20f773df9ddd",
         "d5bff77ba836"
       ],
       "verified_by": [
@@ -233,6 +248,183 @@
         "tests/a2a/test_first_party_facade.py:66",
         "tests/a2a/test_first_party_facade.py:84"
       ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R009",
+      "title": "Advertise only what is wired",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "35257e780f7c"
+      ],
+      "verified_by": [
+        "tests/a2a/test_models.py:38",
+        "tests/a2a/test_models.py:47",
+        "tests/a2a/test_models.py:56",
+        "tests/a2a/test_models.py:67",
+        "tests/a2a/test_models.py:88"
+      ],
+      "rollup_of": [
+        "GRAPHOS-A2A-R009.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R009.1",
+      "title": "Typed Agent Card capability-advertisement model",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "35257e780f7c"
+      ],
+      "verified_by": [
+        "tests/a2a/test_models.py:39",
+        "tests/a2a/test_models.py:48",
+        "tests/a2a/test_models.py:57",
+        "tests/a2a/test_models.py:68",
+        "tests/a2a/test_models.py:89"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R010",
+      "title": "WorkItem stream projection, not a shadow log",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R011",
+      "title": "Transition history is read-through to epistemic-graph",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R012",
+      "title": "Typed refusal when the durable history authority is absent",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-A2A-R012.1",
+        "GRAPHOS-A2A-R012.2",
+        "GRAPHOS-A2A-R012.3"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R012.1",
+      "title": "Landed: the protocol exists, the error does not",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "35257e780f7c"
+      ],
+      "verified_by": [
+        "tests/a2a/test_models.py:97"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R012.2",
+      "title": "Add the `A2ATransitionHistoryUnavailable` error type",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "35257e780f7c"
+      ],
+      "verified_by": [
+        "tests/a2a/test_authority.py:154"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R012.3",
+      "title": "Blocked: wire `tasks/get`'s typed refusal",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R013",
+      "title": "Push notifications are best-effort over a durable outbox",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R014",
+      "title": "No capability advertised before GRAPHOS-A2A lands",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R015",
+      "title": "Caller-visible card matches served behavior",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R016",
+      "title": "Typed admission request/decision model",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "35257e780f7c"
+      ],
+      "verified_by": [
+        "tests/a2a/test_admission.py:15"
+      ],
+      "rollup_of": [
+        "GRAPHOS-A2A-R016.1"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R016.1",
+      "title": "Fail-closed admission function proven against today's unavailable upstreams",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "35257e780f7c"
+      ],
+      "verified_by": [
+        "tests/a2a/test_admission.py:16"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R017",
+      "title": "Context-budget-bound subset sourced from EG assembly",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R018",
+      "title": "Cryptographic enforcement via the signed AU envelope",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-A2A-R019",
+      "title": "Typed refusal reason and provenance on every decision",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "35257e780f7c"
+      ],
+      "verified_by": [
+        "tests/a2a/test_admission.py:34"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R020",
+      "title": "No advisory, cached, or partial substitute",
+      "delivery_state": "VERIFIED",
+      "landed_in": [
+        "35257e780f7c"
+      ],
+      "verified_by": [
+        "tests/a2a/test_admission.py:53"
+      ]
+    },
+    {
+      "id": "GRAPHOS-A2A-R021",
+      "title": "Fresh checkout",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
     }
   ]
 }

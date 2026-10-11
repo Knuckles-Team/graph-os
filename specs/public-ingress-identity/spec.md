@@ -1,4 +1,4 @@
-# GRAPHOS-INGRESS-001 — Portable public ingress and identity cutover
+# GRAPHOS-INGRESS — Portable public ingress and identity cutover
 
 **Owner:** graph-os. **Requirement ID:** GRAPHOS-INGRESS-R001 (GraphOS deployment-consumer partition). **Delivery:** SPECIFIED. **Acceptance:** NOT_AUDITED.
 

@@ -1,4 +1,4 @@
-# GRAPHOS-ACP-001 — Conversational ACP gateway session projection and policy
+# GRAPHOS-ACP — Conversational ACP gateway session projection and policy
 
 **Owner:** graph-os. **Requirement ID:** GRAPHOS-ACP-R001 (GraphOS session-admission partition). **Delivery:** SPECIFIED. **Acceptance:** NOT_AUDITED.
 

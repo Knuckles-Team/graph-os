@@ -1,4 +1,4 @@
-# Messaging channel supervision lifecycle
+# GRAPHOS-MESSAGING — Messaging channel supervision lifecycle
 
 ## Status legend
 

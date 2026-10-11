@@ -1,4 +1,4 @@
-# GRAPHOS-INGRESS-001 — Implementation tasks
+# GRAPHOS-INGRESS — Implementation tasks
 
 Status: SPECIFIED. Governing [spec](spec.md) and [plan](plan.md).
 
