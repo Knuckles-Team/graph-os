@@ -1,4 +1,4 @@
-# GRAPHOS-DATA-MARKET-001 requirements
+# GRAPHOS-DATA-MARKET requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

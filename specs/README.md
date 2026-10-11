@@ -1,5 +1,7 @@
 # graph-os specifications
 
+These specs follow the ecosystem [spec standard](https://github.com/Knuckles-Team/pipelines/blob/main/reference/spec-standard.md): one owning spec per capability, extend an existing spec before creating one, audits and reviews land in the owning spec, one ID and title form, one file set. The `spec-standard` gate enforces it.
+
 This tracked `specs/` directory is the public build contract for **GRAPHOS** owned work. Every
 spec must contain the behavior, architecture, interfaces, tests, quality gates, and acceptance
 criteria needed to implement it from this repository. External program notes may inform a draft,
@@ -85,3 +87,21 @@ corresponding gates actually pass. Use the [universal-skills spec-generator](htt
 and [task-planner](https://github.com/Knuckles-Team/universal-skills/tree/main/universal_skills/development/task-planner)
 and the [graph-os-development](https://github.com/Knuckles-Team/graph-os/blob/main/graph_os/skills/graph-os-development/SKILL.md)
 bootstrap skill, together with the [SDD full lifecycle](https://github.com/Knuckles-Team/universal-skills/tree/main/universal_skills/development-workflows/sdd-full-lifecycle) workflow.
+
+- [`GRAPHOS-A2A`](a2a-capability-and-history-projection/spec.md) — A2A streaming, push notifications and transition-history projection
+- [`GRAPHOS-A2A`](a2a-task-projection/spec.md) — A2A task and approval projection
+- [`GRAPHOS-ACCEPTANCE`](acceptance-evidence-freeze/spec.md) — evidence acceptance freeze
+- [`GRAPHOS-CAPACITY`](adaptive-capacity/spec.md) — Adaptive capacity control
+- [`GRAPHOS-ACP`](conversational-acp-gateway/spec.md) — Conversational ACP gateway session projection and policy
+- [`GRAPHOS-DATA-MARKET`](data-and-market-projections/spec.md) — Schema context, source admission, and finance projection
+- [`GRAPHOS-RELEASE`](dependency-ordered-release/spec.md) — Dependency-ordered, digest-pinned GraphOS rollout
+- [`GRAPHOS-FLEET`](fleet-catalog-and-tools/spec.md) — Fleet catalog, intent tools, and policy safe reload
+- [`GRAPHOS-GWC`](gateway-carryover/spec.md) — Gateway carry-over from agent-utilities
+- [`GRAPHOS-A2A-002`](graphos-a2a-002/spec.md) — A2A context-budget tool-subset admission
+- [`GRAPHOS-HOST`](host-composition-boundary/spec.md) — GraphOS host composition and ownership boundary
+- [`GRAPHOS-OPS`](hosted-api-operations/spec.md) — Hosted API and intent operations
+- [`GRAPHOS-IDENTITY`](identity-access/spec.md) — ACCESS — identity, authorization, and access operations
+- [`GRAPHOS-MCP-RESOURCES`](mcp-resource-publication-reconciliation/spec.md) — MCP resource/template publication reconciliation
+- [`GRAPHOS-MESSAGING`](messaging-channel-supervision/spec.md) — Messaging channel supervision lifecycle
+- [`GRAPHOS-DEPLOY`](portable-deployment/spec.md) — Portable GraphOS development and deployment
+- [`GRAPHOS-INGRESS`](public-ingress-identity/spec.md) — Portable public ingress and identity cutover

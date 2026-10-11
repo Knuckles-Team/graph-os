@@ -1,4 +1,4 @@
-# GRAPHOS-ACCEPTANCE-001 requirements
+# GRAPHOS-ACCEPTANCE requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

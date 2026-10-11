@@ -1,4 +1,4 @@
-# GRAPHOS-HOST-001 requirements
+# GRAPHOS-HOST requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

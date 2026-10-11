@@ -1,4 +1,4 @@
-# GRAPHOS-GWC-001 — Test specification
+# GRAPHOS-GWC — Test specification
 
 Status: PROPOSED. This file lists the tests for [spec.md](spec.md); each row names the requirement it proves.
 

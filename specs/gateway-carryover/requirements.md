@@ -1,4 +1,4 @@
-# GRAPHOS-GWC-001 requirements
+# GRAPHOS-GWC requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

@@ -1,6 +1,6 @@
-# MCP resource/template publication reconciliation
+# GRAPHOS-MCP-RESOURCES — MCP resource/template publication reconciliation
 
-**Spec ID:** GRAPHOS-MCP-RESOURCES-001
+**Spec ID:** GRAPHOS-MCP-RESOURCES
 
 **Owner:** graph-os
 

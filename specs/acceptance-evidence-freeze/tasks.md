@@ -1,4 +1,4 @@
-# GRAPHOS-ACCEPTANCE-001 — Implementation tasks
+# GRAPHOS-ACCEPTANCE — Implementation tasks
 
 Status: SPECIFIED. Governing spec: [spec.md](spec.md). Design: [plan.md](plan.md).
 

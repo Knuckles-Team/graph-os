@@ -1,4 +1,4 @@
-# GRAPHOS-IDENTITY-ACCESS — identity, authorization, and access operations
+# GRAPHOS-IDENTITY — ACCESS — identity, authorization, and access operations
 
 ## State legend
 

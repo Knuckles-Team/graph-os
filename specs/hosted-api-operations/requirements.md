@@ -1,4 +1,4 @@
-# GRAPHOS-OPS-001 requirements
+# GRAPHOS-OPS requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

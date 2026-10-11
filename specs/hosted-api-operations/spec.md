@@ -1,4 +1,4 @@
-# Hosted API and intent operations
+# GRAPHOS-OPS — Hosted API and intent operations
 
 ## Status legend
 

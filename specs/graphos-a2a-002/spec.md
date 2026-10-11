@@ -1,4 +1,4 @@
-# A2A context-budget tool-subset admission
+# GRAPHOS-A2A-002 — A2A context-budget tool-subset admission
 
 ## Status legend
 

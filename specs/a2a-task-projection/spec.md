@@ -1,4 +1,4 @@
-# A2A task and approval projection
+# GRAPHOS-A2A — A2A task and approval projection
 
 ## Status legend
 

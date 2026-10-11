@@ -1,4 +1,4 @@
-# GRAPHOS-GWC-001 — Design and implementation plan
+# GRAPHOS-GWC — Design and implementation plan
 
 Status: PROPOSED. Governing spec: [spec.md](spec.md).
 

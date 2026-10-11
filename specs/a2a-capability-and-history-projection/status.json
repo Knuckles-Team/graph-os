@@ -120,7 +120,7 @@
     },
     {
       "id": "GRAPHOS-A2A-R006",
-      "title": "No capability advertised before GRAPHOS-A2A-002 lands",
+      "title": "No capability advertised before GRAPHOS-A2A lands",
       "delivery_state": "LANDED",
       "landed_in": [
         "9a79acee8b6c"

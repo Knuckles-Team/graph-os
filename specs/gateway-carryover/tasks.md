@@ -1,4 +1,4 @@
-# GRAPHOS-GWC-001 — Implementation tasks
+# GRAPHOS-GWC — Implementation tasks
 
 Status: PROPOSED. Governing spec: [spec.md](spec.md). Design: [plan.md](plan.md).
 

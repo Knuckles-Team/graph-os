@@ -1,4 +1,4 @@
-# GRAPHOS-RELEASE-001 requirements
+# GRAPHOS-RELEASE requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

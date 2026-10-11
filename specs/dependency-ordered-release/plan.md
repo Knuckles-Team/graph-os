@@ -1,4 +1,4 @@
-# GRAPHOS-RELEASE-001 — Design and implementation plan
+# GRAPHOS-RELEASE — Design and implementation plan
 
 Status: SPECIFIED. Governing [spec](spec.md).
 

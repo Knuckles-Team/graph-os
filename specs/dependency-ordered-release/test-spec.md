@@ -1,4 +1,4 @@
-# GRAPHOS-RELEASE-001 — Test specification
+# GRAPHOS-RELEASE — Test specification
 
 Status: SPECIFIED. Governing [spec](spec.md). Evidence remains PENDING.
 

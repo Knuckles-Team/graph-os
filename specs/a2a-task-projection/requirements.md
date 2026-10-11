@@ -1,4 +1,4 @@
-# GRAPHOS-A2A-001 requirements
+# GRAPHOS-A2A requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

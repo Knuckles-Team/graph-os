@@ -1,4 +1,4 @@
-# GRAPHOS-GWC-001 — Gateway carry-over from agent-utilities
+# GRAPHOS-GWC — Gateway carry-over from agent-utilities
 
 Status: PROPOSED. Owner: graph-os. Cross-repo IDs: AU-BOUNDARY-R001.2, AU-BOUNDARY-R001.3, AU-BOUNDARY-R001.7 (agent-utilities deletions); GRAPHOS-HOST-R005 (gateway reconciliation parent).
 Public provenance: agent-utilities deletion commits 0eb67c99c (dashboard router), 902f906ca (Live Artifacts router), 7717d2e62 (genius_agent widget).

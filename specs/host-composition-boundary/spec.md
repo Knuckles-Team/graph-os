@@ -1,4 +1,4 @@
-# GraphOS host composition and ownership boundary
+# GRAPHOS-HOST — GraphOS host composition and ownership boundary
 
 **Owner:** graph-os. **Requirement IDs:** GRAPHOS-HOST-R014, GRAPHOS-HOST-R015, GRAPHOS-HOST-R001, GRAPHOS-HOST-R002, GRAPHOS-HOST-R003, GRAPHOS-HOST-R004, GRAPHOS-HOST-R005, GRAPHOS-HOST-R006, GRAPHOS-HOST-R007, GRAPHOS-HOST-R008, GRAPHOS-HOST-R009, GRAPHOS-HOST-R010, GRAPHOS-HOST-R011, GRAPHOS-HOST-R012, GRAPHOS-HOST-R013. **Delivery:** implemented in part; **acceptance:** pending. Existing package extraction is released, while the strict import boundary, retired duplicate hosts, and served parity have not been verified as a set.
 

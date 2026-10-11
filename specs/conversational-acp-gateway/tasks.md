@@ -1,4 +1,4 @@
-# GRAPHOS-ACP-001 — Implementation tasks
+# GRAPHOS-ACP — Implementation tasks
 
 Status: BUILDING. Governing [spec](spec.md) and [plan](plan.md).
 
