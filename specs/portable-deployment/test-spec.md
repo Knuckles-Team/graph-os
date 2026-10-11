@@ -32,3 +32,13 @@ Repository scanner checks include CCCC, jscpd, dupehound and KISS alongside Pyth
 | Engine sharing | `GRAPH_SERVICE_ENDPOINTS` names the shared Unix socket. The resolver selects connect-only mode, so no second engine starts. |
 | Server-side dry run | The API server accepts the deployment. |
 | Live host lock | The daemon status command reports this container as the host-lock holder. |
+
+## GRAPHOS-DEPLOY-R017 backend deployment planner
+
+| Check | Expected result |
+|---|---|
+| Plan models and registry | Frozen models; unknown backend and empty target refused. |
+| Renderers | Parsed YAML and unit text match the composition; floating images refused; no secret values. |
+| Plan-only backends | `apply(dry_run=False)` raises `PlanOnlyBackendError`; plan never dispatches a fleet call. |
+| in_process | Dry run returns the plan; live apply needs a verified session and starts the supervisor. |
+| Command | `setup-config deploy-plan` prints valid JSON per backend and refuses a malformed override. |
