@@ -32,3 +32,14 @@ Repository scanner checks include CCCC, jscpd, dupehound and KISS alongside Pyth
 | Engine sharing | `GRAPH_SERVICE_ENDPOINTS` names the shared Unix socket. The resolver selects connect-only mode, so no second engine starts. |
 | Server-side dry run | The API server accepts the deployment. |
 | Live host lock | The daemon status command reports this container as the host-lock holder. |
+
+## GRAPHOS-DEPLOY-R017 engine-routed deployment placement and assembly
+
+| Check | Expected result |
+|---|---|
+| Placement Decide | One typed request; engine decision returned verbatim; graph-os names no backend. |
+| Assembly, view, confirm | Assembled graph shown read-only and executed only after `graphos.plan/confirm`. |
+| Refusal | Stubbed assemble or confirm yields a distinct typed refusal with no side effect. |
+| Existing artifacts | compose, helm, swarm resolve to files under `deploy/`, digest-pinned; systemd refused as unsupported. |
+| In-process | Live start calls `start_composed_services`. |
+| Command | `setup-config deploy` prints the engine's decision and graph and imports no planning code. |

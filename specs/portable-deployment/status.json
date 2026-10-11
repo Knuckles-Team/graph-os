@@ -2,7 +2,7 @@
   "schema_version": 2,
   "spec_id": "GRAPHOS-DEPLOY-001",
   "owner_repo": "graph-os",
-  "delivery_state": "LANDED",
+  "delivery_state": "SPECIFIED",
   "requirement_ids": [
     "GRAPHOS-DEPLOY-R001",
     "GRAPHOS-DEPLOY-R002",
@@ -25,7 +25,24 @@
     "GRAPHOS-DEPLOY-R013",
     "GRAPHOS-DEPLOY-R014",
     "GRAPHOS-DEPLOY-R015",
-    "GRAPHOS-DEPLOY-R016"
+    "GRAPHOS-DEPLOY-R016",
+    "GRAPHOS-DEPLOY-R017",
+    "GRAPHOS-DEPLOY-R017.1",
+    "GRAPHOS-DEPLOY-R017.2",
+    "GRAPHOS-DEPLOY-R017.3",
+    "GRAPHOS-DEPLOY-R017.4",
+    "GRAPHOS-DEPLOY-R017.5",
+    "GRAPHOS-DEPLOY-R017.6",
+    "GRAPHOS-DEPLOY-R017.7",
+    "GRAPHOS-DEPLOY-R017.8",
+    "GRAPHOS-DEPLOY-R017.9",
+    "GRAPHOS-DEPLOY-R017.10",
+    "GRAPHOS-DEPLOY-R017.11",
+    "GRAPHOS-DEPLOY-R017.12",
+    "GRAPHOS-DEPLOY-R017.13",
+    "GRAPHOS-DEPLOY-R017.14",
+    "GRAPHOS-DEPLOY-R017.15",
+    "GRAPHOS-DEPLOY-R017.16"
   ],
   "requirements": [
     {
@@ -279,6 +296,143 @@
         "eb31b7757681",
         "f3bcee6dfbcf"
       ],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017",
+      "title": "Deployment placement and sequencing go through the engine decision functionality",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": [],
+      "rollup_of": [
+        "GRAPHOS-DEPLOY-R017.1",
+        "GRAPHOS-DEPLOY-R017.2",
+        "GRAPHOS-DEPLOY-R017.3",
+        "GRAPHOS-DEPLOY-R017.4",
+        "GRAPHOS-DEPLOY-R017.5",
+        "GRAPHOS-DEPLOY-R017.6",
+        "GRAPHOS-DEPLOY-R017.7",
+        "GRAPHOS-DEPLOY-R017.8",
+        "GRAPHOS-DEPLOY-R017.9",
+        "GRAPHOS-DEPLOY-R017.10",
+        "GRAPHOS-DEPLOY-R017.11",
+        "GRAPHOS-DEPLOY-R017.12",
+        "GRAPHOS-DEPLOY-R017.13",
+        "GRAPHOS-DEPLOY-R017.14",
+        "GRAPHOS-DEPLOY-R017.15",
+        "GRAPHOS-DEPLOY-R017.16"
+      ]
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.1",
+      "title": "Placement Decide mapping",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.2",
+      "title": "Request assembly for a deployment task",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.3",
+      "title": "Present the assembled graph read-only",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.4",
+      "title": "Confirm through plan/confirm",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.5",
+      "title": "Typed refusal while unavailable",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.6",
+      "title": "Existing artifact per target",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.7",
+      "title": "In-process unchanged",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.8",
+      "title": "Thin setup-config subcommand",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.9",
+      "title": "Checker dispatches on document shape",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.10",
+      "title": "Compose/Swarm literal images use the existing grammar",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.11",
+      "title": "Template mode accepts the required-variable form",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.12",
+      "title": "Resolve mode checks the supplied value",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.13",
+      "title": "Run the checker on the shipped Compose and Swarm files",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.14",
+      "title": "Helm pinned and default renders",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.15",
+      "title": "systemd stays refused",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
+      "verified_by": []
+    },
+    {
+      "id": "GRAPHOS-DEPLOY-R017.16",
+      "title": "Environment policy drives the check",
+      "delivery_state": "SPECIFIED",
+      "landed_in": [],
       "verified_by": []
     }
   ]
