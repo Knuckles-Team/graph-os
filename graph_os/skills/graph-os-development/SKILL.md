@@ -34,9 +34,9 @@ Specs are already designed. The work is implementation, delivered in very small,
 
 **Time and size**
 - One agent delivers one PR in 5 minutes or less. No agent or sub-agent runs longer than 5 minutes; an orchestrator dispatches the next slice to a fresh agent.
-- Self-timer (hard): run `date +%s > /tmp/agent-start-$$` as your FIRST command, and before every later step check elapsed with `echo $(( $(date +%s) - $(cat /tmp/agent-start-*) ))`. At 300 s, stop starting new work. At 480 s, commit what passes, push it, open the PR, report and STOP. Never exceed 600 s. Never wait on CI or background jobs; use `git commit --no-verify` and `git push --no-verify` after running pre-commit on the changed files yourself.
+- Self-timer (hard): run "date +%s > /tmp/agent-start-$$" as your FIRST command, and before every later step check elapsed with "echo $(( $(date +%s) - $(cat /tmp/agent-start-*) ))". At 300 s, stop starting new work. At 480 s, commit what passes, push it, open the PR, report and STOP. Never exceed 600 s. Never wait on CI or background jobs; use `git commit --no-verify` and `git push --no-verify` after running pre-commit on the changed files yourself.
 - CI turns around in 5 minutes or less. PR CI runs the fast subset: lint, type check, the spec check, and only the tests and crates the diff touches. Pushes to main run the full suite.
-- CI timer (hard): every PR-path job carries `timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}`, so a PR gate is killed at 10 minutes and a slow gate shows up as a failure instead of a silent queue.
+- CI timer (hard): every PR-path job carries "timeout-minutes: ${{ github.event_name == 'pull_request' && 10 || 60 }}", so a PR gate is killed at 10 minutes and a slow gate shows up as a failure instead of a silent queue.
 - Never spawn sub-agents from a delivery agent.
 
 **Investigation budget**
@@ -50,12 +50,12 @@ Specs are already designed. The work is implementation, delivered in very small,
 - Cross-repo moves split into one child per repo: the destination copies the behavior first, then the source switches importers and deletes.
 
 **Specs update themselves (land VERIFIED, not just LANDED)**
-- Every commit that delivers a requirement ends with the trailer `Spec: <ID>[, <ID>...]`. A commit that touches code without delivering one says `Spec: none (ci|deps|refactor|fix-forward)`.
+- Every commit that delivers a requirement ends with the trailer "Spec: <ID>[, <ID>...]". A commit that touches code without delivering one says "Spec: none (ci|deps|refactor|fix-forward)".
 - Every delivered ID gets at least one test bound to it in the same PR. Python: `@pytest.mark.spec("<ID>")`. Rust/TypeScript: a `// spec: <ID>` line directly above the test.
 - Never hand-edit `status.json`; it is generated (`spec-status`). Never write placeholder SHAs. If the work is only part of a requirement, decompose it into `<ID>.<n>` children first and deliver whole children.
 - Write the marker with the literal ID, never a variable. Put `Spec:` and `Co-Authored-By:` on consecutive lines in the last paragraph of the commit message, or `Spec:` is not read as a trailer.
-- Generated status depends on the commit: run `pipelines-hook spec-status --write` again after committing and commit the result.
-- The full rules are in `plans/refactor/reconciliation-20261006/SPEC-STATUS-LIFECYCLE.md`.
+- Generated status depends on the commit: run "pipelines-hook spec-status --write" again after committing and commit the result.
+- The full rules are in "plans/refactor/reconciliation-20261006/SPEC-STATUS-LIFECYCLE.md".
 
 **Delivered means the row's acceptance is met**
 - Never delete or stub out behaviour whose replacement is not wired. Never make a caller "fail closed" in place of repointing it. Never substitute a scope, weaken an assertion or add an allowlist entry to pass a gate.
@@ -65,7 +65,7 @@ Specs are already designed. The work is implementation, delivered in very small,
 
 **Where progress shows**
 - `https://knuckles-team.github.io/<repo>/spec-delivery/` is rebuilt from `specs/*/status.json` on each push to main. SPECIFIED is written, LANDED is on main, VERIFIED is on main with a bound test, RETIRED is withdrawn.
-- Orchestrating a session (resuming, running waves, landing trains): `plans/refactor/reconciliation-20261006/SPEC-DELIVERY-PLAYBOOK.md` and the prompt templates in `lane-prompts/` beside it.
+- Orchestrating a session (resuming, running waves, landing trains): "plans/refactor/reconciliation-20261006/SPEC-DELIVERY-PLAYBOOK.md" and the prompt templates in `lane-prompts/` beside it.
 
 **Before every push**
 - Work in a real `git worktree add` from `origin/main`. Never edit a shared checkout, never `git stash`, never `git add -A`, never force-push.
@@ -74,7 +74,7 @@ Specs are already designed. The work is implementation, delivered in very small,
 
 **Landing**
 - Every PR lands within minutes of going green; no PR sits idle. Mechanical conflicts (generated files, Markdown, `status.json`) are resolved automatically by the merge-train tool. Real conflicts are additive in most cases and are resolved, not deferred.
-- Many open PRs land together as a merge train (one integration branch, one CI run), built with `plans/tools/l9/eg-bulk-merge.sh`.
+- Many open PRs land together as a merge train (one integration branch, one CI run), built with "plans/tools/l9/eg-bulk-merge.sh".
 - Full CI on main catches what the fast subset missed; regressions are fixed forward immediately.
 - Landing in this repo: `gh pr merge --auto --merge` when the PR opens. The required checks are the fast PR subset. If the PR goes DIRTY, merge `origin/main` into it and push.
 
