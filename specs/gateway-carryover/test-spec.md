@@ -1,8 +1,8 @@
 # GRAPHOS-GWC-001 — Test specification
 
-Status: PROPOSED. Governing spec: [spec.md](spec.md).
+Status: PROPOSED. This file lists the tests for [spec.md](spec.md); each row names the requirement it proves.
 
-| Test ID | Requirement | Level | Setup and input | Expected observation | Evidence |
+| Test | Proves | Level | Setup and input | Expected observation | Evidence |
 |---|---|---|---|---|---|
 | T-001 | FR-001 | Unit | Build the dashboard router | All 15 old method and path pairs present | PENDING |
 | T-002 | FR-001 | Contract | Read-only caller on mutating routes | 403; API-key caller passes; health open | PENDING |
