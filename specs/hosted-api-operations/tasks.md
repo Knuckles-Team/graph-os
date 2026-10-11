@@ -77,3 +77,14 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. See [design](p
 - [ ] **GRAPHOS-OPS-R035:** Multiplexer registration reduced to four resident tools
 - [ ] **GRAPHOS-OPS-R035.1:** Remaining scope of GRAPHOS-OPS-R035 (slice .1): Multiplexer registration reduced to four resident tools
 - [ ] **GRAPHOS-OPS-R035.2:** Remaining scope of GRAPHOS-OPS-R035 (slice .2): Multiplexer registration reduced to four resident tools
+- [ ] **GRAPHOS-OPS-R039:** Dashboard route parity
+- [ ] **GRAPHOS-OPS-R039.5:** Add one test in tests/gateway/test_dashboard_api
+- [ ] **GRAPHOS-OPS-R039.6:** Replace the `agent_utilities
+- [ ] **GRAPHOS-OPS-R039.7:** Replace `_active_engine` and `_hydration_manager` in graph_os/gateway/dashboard_api
+- [ ] **GRAPHOS-OPS-R039.8:** Add one test in tests/gateway/test_registry
+- [ ] **GRAPHOS-OPS-R039.9:** Replace the `agent_utilities
+- [ ] **GRAPHOS-OPS-R040:** Live Artifacts routes
+- [ ] **GRAPHOS-OPS-R040.1:** Cross-repo prerequisite
+- [ ] **GRAPHOS-OPS-R040.9:** Cross-repo prerequisite (owner: agent-utilities): add the proposed `AU-BOUNDARY-R013
+- [ ] **GRAPHOS-OPS-R040.10:** Add one test in tests/gateway/test_artifacts_route_mount
+- [ ] **GRAPHOS-OPS-R041:** Genius Agent widget dropped

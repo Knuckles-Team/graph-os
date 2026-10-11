@@ -17,6 +17,14 @@ Status: **READY FOR IMPLEMENTATION**. Delivery: **NOT ACCEPTED**. Governing [spe
 | HO-T11 | HO-09 | On clean public checkout, install pinned dependencies and run focused tests without private endpoints/sibling trees. In CI provision ephemeral local services, call served MCP and HTTP on the same request, and verify one durable result and audit pair. |
 | HO-T12 | HO-10 | Generate the former-tool/route inventory; every name is mapped or has reviewed drop reason. Use the generated Python and TypeScript clients in a real caller test. Search published source for retired names and verify no active consumer uses an old route. |
 | HO-T13 | HO-11 | Boot with one FastMCP loop and multiplexer. Enumerate tools/routes/methods and compare to registry plus explicit protocol list; remove any one resident registration in a fixture and assert startup fails. A loaded forwarder is the only runtime addition and its body calls `invoke`. |
+| HO-T14 | GRAPHOS-OPS-R039 | Build the dashboard router. All 15 old method and path pairs present |
+| HO-T15 | GRAPHOS-OPS-R039 | Read-only caller on mutating routes. 403; API-key caller passes; health open |
+| HO-T16 | GRAPHOS-OPS-R040 | Create with empty template or oversize data. Typed validation or 400 refusal |
+| HO-T17 | GRAPHOS-OPS-R040 | Create then get. Id and rendered output returned; same artifact read back |
+| HO-T18 | GRAPHOS-OPS-R040 | Get unknown id. 404 |
+| HO-T19 | GRAPHOS-OPS-R040 | Refresh with inline data, with resolver, and with a failing resolver. New render; resolver render; prior render preserved with ok false |
+| HO-T20 | GRAPHOS-OPS-R040 | Mount on the host app; read-only caller POSTs. Routes present; 403 on POST |
+| HO-T21 | GRAPHOS-OPS-R041 | Discover registry widgets. genius_agent absent |
 
 ## Drift and scanner acceptance
 

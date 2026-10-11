@@ -1,4 +1,4 @@
-# GRAPHOS-DEPLOY-001 requirements
+# GRAPHOS-DEPLOY requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

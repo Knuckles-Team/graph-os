@@ -1,6 +1,6 @@
-# Fleet catalog, intent tools, and policy safe reload
+# GRAPHOS-FLEET — Fleet catalog, intent tools, and policy safe reload
 
-**Spec ID:** GRAPHOS-FLEET-001
+**Spec ID:** GRAPHOS-FLEET
 
 **Owner:** graph-os
 

@@ -1,5 +1,7 @@
 # graph-os specifications
 
+These specs follow the ecosystem [spec standard](https://github.com/Knuckles-Team/pipelines/blob/main/reference/spec-standard.md): one owning spec per capability, extend an existing spec before creating one, audits and reviews land in the owning spec, one ID and title form, one file set. The `spec-standard` gate enforces it.
+
 This tracked `specs/` directory is the public build contract for **GRAPHOS** owned work. Every
 spec must contain the behavior, architecture, interfaces, tests, quality gates, and acceptance
 criteria needed to implement it from this repository. External program notes may inform a draft,
@@ -45,9 +47,7 @@ An obligation can be landed while acceptance remains open.
 
 | Directory | Spec ID | Owned requirement IDs |
 |---|---|---|
-| [`a2a-task-projection/spec.md`](a2a-task-projection/spec.md) | `GRAPHOS-A2A-001` | `A2A-01`–`A2A-07` (defined in [requirements.md](a2a-task-projection/requirements.md) as `GRAPHOS-A2A-R001`–`R008`) |
-| [`a2a-capability-and-history-projection/spec.md`](a2a-capability-and-history-projection/spec.md) | `GRAPHOS-A2A-003` | `A2A-H01`–`A2A-H07` (defined in [requirements.md](a2a-capability-and-history-projection/requirements.md) as `GRAPHOS-A2A-R001`, `R001.1`–`R007`); depends on `GRAPHOS-A2A-002` |
-| [`graphos-a2a-002/spec.md`](graphos-a2a-002/spec.md) | `GRAPHOS-A2A-002` | `GRAPHOS-A2A-002-R001`–`R006` (incl. `GRAPHOS-A2A-002-R001.1`) |
+| [`a2a/spec.md`](a2a/spec.md) | `GRAPHOS-A2A` | `GRAPHOS-A2A-R001`–`R021` (defined in [requirements.md](a2a/requirements.md)) |
 | [`adaptive-capacity/spec.md`](adaptive-capacity/spec.md) | `GRAPHOS-CAPACITY-001` | `GRAPHOS-CAPACITY-R001`–`R002` |
 | [`conversational-acp-gateway/spec.md`](conversational-acp-gateway/spec.md) | `GRAPHOS-ACP-001` | `GRAPHOS-ACP-R001` |
 | [`data-and-market-projections/spec.md`](data-and-market-projections/spec.md) | `GRAPHOS-DATA-MARKET-001` | `GRAPHOS-DATA-MARKET-R001`–`R006` |
@@ -85,3 +85,18 @@ corresponding gates actually pass. Use the [universal-skills spec-generator](htt
 and [task-planner](https://github.com/Knuckles-Team/universal-skills/tree/main/universal_skills/development/task-planner)
 and the [graph-os-development](https://github.com/Knuckles-Team/graph-os/blob/main/graph_os/skills/graph-os-development/SKILL.md)
 bootstrap skill, together with the [SDD full lifecycle](https://github.com/Knuckles-Team/universal-skills/tree/main/universal_skills/development-workflows/sdd-full-lifecycle) workflow.
+
+- [`GRAPHOS-A2A`](a2a/spec.md) — A2A projection, streaming, history and tool-subset admission
+- [`GRAPHOS-ACCEPTANCE`](acceptance-evidence-freeze/spec.md) — evidence acceptance freeze
+- [`GRAPHOS-CAPACITY`](adaptive-capacity/spec.md) — Adaptive capacity control
+- [`GRAPHOS-ACP`](conversational-acp-gateway/spec.md) — Conversational ACP gateway session projection and policy
+- [`GRAPHOS-DATA-MARKET`](data-and-market-projections/spec.md) — Schema context, source admission, and finance projection
+- [`GRAPHOS-RELEASE`](dependency-ordered-release/spec.md) — Dependency-ordered, digest-pinned GraphOS rollout
+- [`GRAPHOS-FLEET`](fleet-catalog-and-tools/spec.md) — Fleet catalog, intent tools, and policy safe reload
+- [`GRAPHOS-HOST`](host-composition-boundary/spec.md) — GraphOS host composition and ownership boundary
+- [`GRAPHOS-OPS`](hosted-api-operations/spec.md) — Hosted API and intent operations
+- [`GRAPHOS-IDENTITY`](identity-access/spec.md) — ACCESS — identity, authorization, and access operations
+- [`GRAPHOS-MCP-RESOURCES`](mcp-resource-publication-reconciliation/spec.md) — MCP resource/template publication reconciliation
+- [`GRAPHOS-MESSAGING`](messaging-channel-supervision/spec.md) — Messaging channel supervision lifecycle
+- [`GRAPHOS-DEPLOY`](portable-deployment/spec.md) — Portable GraphOS development and deployment
+- [`GRAPHOS-INGRESS`](public-ingress-identity/spec.md) — Portable public ingress and identity cutover

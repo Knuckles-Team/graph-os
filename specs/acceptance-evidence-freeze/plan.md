@@ -1,4 +1,4 @@
-# GRAPHOS-ACCEPTANCE-001 — Design and implementation plan
+# GRAPHOS-ACCEPTANCE — Design and implementation plan
 
 Status: SPECIFIED. Governing spec: [spec.md](spec.md).
 

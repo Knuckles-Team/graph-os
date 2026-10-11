@@ -1,4 +1,4 @@
-# GRAPHOS-ACCEPTANCE-001 — evidence acceptance freeze
+# GRAPHOS-ACCEPTANCE — evidence acceptance freeze
 
 **Owner:** graph-os for its own requirement acceptance gate. **Status:** SPECIFIED; acceptance NOT_AUDITED. See [requirements.md](requirements.md) for the definition of every requirement ID and [status.json](status.json) for its delivery state and evidence. This spec does not change `scripts/check_public_specs.py`'s evidence schema; it freezes the exact subset of that schema a GraphOS requirement must carry before a human auditor may move its `acceptance_state` from `NOT_AUDITED` to `ACCEPTED`.
 

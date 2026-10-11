@@ -1,4 +1,4 @@
-# GRAPHOS-CAPACITY-001 requirements
+# GRAPHOS-CAPACITY requirements
 
 | ID | Requirement | Verification |
 |---|---|---|

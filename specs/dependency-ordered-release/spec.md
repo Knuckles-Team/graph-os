@@ -1,4 +1,4 @@
-# GRAPHOS-RELEASE-001 — Dependency-ordered, digest-pinned GraphOS rollout
+# GRAPHOS-RELEASE — Dependency-ordered, digest-pinned GraphOS rollout
 
 **Owner:** graph-os. **Requirement ID:** GRAPHOS-RELEASE-R001 (GraphOS deployment-consumer partition). **Delivery:** SPECIFIED. **Acceptance:** NOT_AUDITED.
 

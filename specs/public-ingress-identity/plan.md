@@ -1,4 +1,4 @@
-# GRAPHOS-INGRESS-001 — Design and implementation plan
+# GRAPHOS-INGRESS — Design and implementation plan
 
 Status: SPECIFIED. Governing [spec](spec.md).
 

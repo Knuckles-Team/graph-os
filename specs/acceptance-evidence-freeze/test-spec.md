@@ -1,4 +1,4 @@
-# GRAPHOS-ACCEPTANCE-001 — Test specification
+# GRAPHOS-ACCEPTANCE — Test specification
 
 Status: SPECIFIED. Governing spec: [spec.md](spec.md).
 

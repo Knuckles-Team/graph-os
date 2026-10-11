@@ -105,7 +105,7 @@ Extend the existing script rather than add a checker. Compose/Swarm `${NAME:?...
 
 ### D2 to D4 and D5
 
-Dashboard parity, artifact authentication and the agent-utilities export are resolved in `specs/gateway-carryover/plan.md`.
+Dashboard parity, artifact authentication and the agent-utilities export are resolved in `specs/hosted-api-operations/plan.md` (GRAPHOS-OPS-R039 to R041).
 
 ### D5 systemd target (DECIDED: keep unsupported)
 
