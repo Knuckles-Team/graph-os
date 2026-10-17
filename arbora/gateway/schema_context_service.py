@@ -1,4 +1,4 @@
-"""Schema-context application service (GRAPHOS-DATA-MARKET-R005, GDM-02).
+"""Schema-context application service (ARBORA-DATA-MARKET-R005, GDM-02).
 
 One owning service between a validated :class:`SchemaContextRequest` and a
 published graph-engine schema-context answer. Arbora composes and projects;

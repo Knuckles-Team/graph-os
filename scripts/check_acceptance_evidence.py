@@ -1,6 +1,6 @@
 """List LANDED/CLOSED requirements that are not yet ready for ACCEPTED.
 
-Implements GRAPHOS-ACCEPTANCE-R001 (specs/acceptance-evidence-freeze). This
+Implements ARBORA-ACCEPTANCE-R001 (specs/acceptance-evidence-freeze). This
 is deliberately a separate, informational tool from ``check_public_specs.py``:
 that script refuses a ``status.json`` that already *claims* ``ACCEPTED``
 without the required evidence; this one answers a different question for a
@@ -92,7 +92,7 @@ def _merged_head_commit(records: list[EvidenceRecord]) -> str | None:
     if not passed:
         return None
     # The current merged head is the one most recently appended; status.json
-    # evidence arrays are append-only (GRAPHOS-ACCEPTANCE-R003), so the last
+    # evidence arrays are append-only (ARBORA-ACCEPTANCE-R003), so the last
     # passing merged_head entry is authoritative.
     return passed[-1].commit
 
@@ -126,7 +126,7 @@ def gaps_for_requirement(requirement: dict) -> RequirementGap | None:
 
 @dataclass(frozen=True)
 class ReviewDecision:
-    """GRAPHOS-ACCEPTANCE-R002: who flipped a requirement to ACCEPTED, and why it was allowed."""
+    """ARBORA-ACCEPTANCE-R002: who flipped a requirement to ACCEPTED, and why it was allowed."""
 
     requirement_id: str
     auditor_identity: str
@@ -155,7 +155,7 @@ def validate_review_trail(decision: ReviewDecision) -> None:
 
 
 def evidence_is_append_only(old_evidence: object, new_evidence: object) -> bool:
-    """GRAPHOS-ACCEPTANCE-R003: True iff `new_evidence` only appends to `old_evidence`.
+    """ARBORA-ACCEPTANCE-R003: True iff `new_evidence` only appends to `old_evidence`.
 
     Every existing entry (by position) must be byte-for-byte unchanged; a
     correction must be a newly appended entry, never a rewrite in place.

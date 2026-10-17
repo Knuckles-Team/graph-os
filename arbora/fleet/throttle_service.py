@@ -1,6 +1,6 @@
 """In-process read/config facade over the pure AIMD controller state.
 
-Part of GRAPHOS-CAPACITY-R002 and the GRAPHOS-CAPACITY-R001 build sequence:
+Part of ARBORA-CAPACITY-R002 and the ARBORA-CAPACITY-R001 build sequence:
 holds the latest recorded
 :class:`~arbora.fleet.error_budget.ThrottleDecision` and the selected
 :class:`~arbora.fleet.error_budget.ThrottleMode` per partition, so a
@@ -11,7 +11,7 @@ capacity model.
 
 This module never calls a child or the engine itself. Recording a decision
 is the job of the limiter that will sit at a real fleet dispatch point
-(GRAPHOS-CAPACITY-R001.2, not yet built); this facade only stores and
+(ARBORA-CAPACITY-R001.2, not yet built); this facade only stores and
 reports what it is given. A partition with no recorded decision yet reports
 an explicit ``no_decision_recorded`` reason and no limit, never a fabricated
 healthy status.

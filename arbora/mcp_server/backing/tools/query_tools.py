@@ -698,7 +698,7 @@ def _engine_nl_query(text: str, *, limit: int, operation: str) -> EvidenceBundle
     Arbora has no natural-language planner of its own: the request goes
     through the governed ``engine_query`` dispatch to EG
     ``QueryClient.nl_query``, whose planner emits UQL that the engine executes
-    on its deterministic UQL pipeline (``GRAPHOS-HOST-R001.8``).
+    on its deterministic UQL pipeline (``ARBORA-HOST-R001.8``).
     """
     from arbora.mcp_server.backing.tools import engine_tools
 

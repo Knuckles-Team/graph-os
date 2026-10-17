@@ -208,7 +208,7 @@ def items_from_eg_catalog(snapshot: Any) -> tuple[CatalogItem, ...]:
 def compute_schema_fingerprint(schema: Mapping[str, Any]) -> str:
     """Canonical SHA-256 digest of a tool's actual served input schema.
 
-    GRAPHOS-FLEET-R002: every fleet tool pin's schema fingerprint must be
+    ARBORA-FLEET-R002: every fleet tool pin's schema fingerprint must be
     computed from the tool's real served schema rather than an empty
     placeholder. An empty mapping never had a schema served for it, so
     fingerprinting one would certify a placeholder as if it were real;
@@ -275,7 +275,7 @@ PACK_ANNOTATION_FIELDS: tuple[str, ...] = (
 
 
 def _pack_annotations(entry: Mapping[str, Any]) -> dict[str, Any]:
-    """Required catalog annotations for a fleet pack item (GRAPHOS-FLEET-R004).
+    """Required catalog annotations for a fleet pack item (ARBORA-FLEET-R004).
 
     Every connector pack item's catalog entry must carry its capability,
     schema digest, modality, cost and latency so pack items are comparable

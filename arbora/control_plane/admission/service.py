@@ -1,4 +1,4 @@
-"""Dry-run admission planner (GRAPHOS-DATA-MARKET-R004, GDM-04, AD-01/AD-03).
+"""Dry-run admission planner (ARBORA-DATA-MARKET-R004, GDM-04, AD-01/AD-03).
 
 A pure computation over an already-supplied :class:`AdmissionIntent`: it
 reads no source, calls no connector, and performs no attach, retirement, or

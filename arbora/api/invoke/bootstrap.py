@@ -1,6 +1,6 @@
 """Production ``InvokeServices``/``BoundOperationRuntime`` composition.
 
-Assemble the GRAPHOS-OPS-R009 operation runtime from Arbora's existing
+Assemble the ARBORA-OPS-R009 operation runtime from Arbora's existing
 epistemic-graph adapter, audit adapter and plan store. The serving process
 must separately compose and admit these authorities before mounting them.
 
@@ -265,7 +265,7 @@ def build_invoke_services(
     audit_client_factory: ClientFactory,
     **changes: Any,
 ) -> InvokeServices:
-    """Wire the real EG audit adapter (GRAPHOS-HOST-R024.1); no fake audit sink.
+    """Wire the real EG audit adapter (ARBORA-HOST-R024.1); no fake audit sink.
 
     ``audit_client_factory`` need not be ``runtime``'s own caller/service
     factory -- the audit log can live on a different graph than operation

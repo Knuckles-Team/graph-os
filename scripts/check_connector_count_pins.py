@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail when a fleet connector count-pin site disagrees with the live count.
 
-Real CLI entry point for ``GRAPHOS-FLEET-R023.1`` (producer slice, see
+Real CLI entry point for ``ARBORA-FLEET-R023.1`` (producer slice, see
 ``specs/fleet-catalog-and-tools``). The comparison itself is the pure
 ``arbora.fleet.connector_count_pins.check_connector_count_pins``; this
 script parses ``--site`` arguments into ``CountPinSite`` values, runs the
@@ -17,7 +17,7 @@ bundle-catalog schema, ``ontology.lock`` and the federated IRI do not exist
 anywhere in the fleet today; and the live connector count itself is only
 known to ``agent_connector_sdk`` / the cross-repo fleet registry, not to
 arbora in isolation. Wiring real sites in is cross-repo follow-up tracked
-under ``GRAPHOS-FLEET-R023``.
+under ``ARBORA-FLEET-R023``.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Arbora-owned hosting/deployment configuration settings (GRAPHOS-HOST-R010).
+"""Arbora-owned hosting/deployment configuration settings (ARBORA-HOST-R010).
 
 A typed, validated model for the hosting and deployment settings that
 Arbora owns in its own right -- split out of the agent runtime's
@@ -9,7 +9,7 @@ importing ``agent_utilities.core.config`` internals.
 
 Existing call sites across ``arbora/gateway`` and ``arbora/messaging``
 still read settings through ``agent_utilities.core.config`` directly; this
-is the typed model for the first slice of the migration (GRAPHOS-HOST-R010
+is the typed model for the first slice of the migration (ARBORA-HOST-R010
 ``.1``). Routing each call site onto this module is follow-up work.
 """
 

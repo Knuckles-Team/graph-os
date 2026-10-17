@@ -1,4 +1,4 @@
-"""Optional identity e-mail capability (GRAPHOS-IDENTITY-R016.1).
+"""Optional identity e-mail capability (ARBORA-IDENTITY-R016.1).
 
 Arbora optionally sends password-reset, verification, and invitation
 e-mail through a configurable SMTP adapter. This module is the arbora
@@ -9,7 +9,7 @@ administrator-issued reset and recovery-code path.
 
 The SMTP/listmonk transport itself, and its wiring into the password
 reset / verification / invitation send pipeline, is
-GRAPHOS-IDENTITY-R016.2 -- pinned to the epistemic-graph >=2.28 engine
+ARBORA-IDENTITY-R016.2 -- pinned to the epistemic-graph >=2.28 engine
 release, which this repository does not yet depend on (current pin is
 ``epistemic-graph>=2.27.0,<3.0.0`` in ``pyproject.toml``).
 """
@@ -67,7 +67,7 @@ class EmailAffordances:
     email_invitation: bool
 
     # These paths must stay available regardless of mail configuration
-    # (GRAPHOS-IDENTITY-R016: "administrator reset and recovery-code
+    # (ARBORA-IDENTITY-R016: "administrator reset and recovery-code
     # paths remain available").
     admin_issued_reset: bool = True
     recovery_code: bool = True

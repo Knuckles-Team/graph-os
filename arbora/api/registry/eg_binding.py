@@ -122,7 +122,7 @@ def load_generated_scopes(contract_root: Path | None = None) -> dict[str, str]:
 
     This is the single generated scope registry: every scope Arbora itself
     advertises must match a name and class recorded here rather than a
-    separately maintained list (GRAPHOS-IDENTITY-R002). ``contract_root`` is
+    separately maintained list (ARBORA-IDENTITY-R002). ``contract_root`` is
     for fixture and wheel integration tests; production uses the pinned wheel.
     """
 

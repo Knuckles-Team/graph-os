@@ -89,7 +89,7 @@ class A2ARouteDecision(_WireModel):
 
 
 class A2AOperationInvokeParams(_WireModel):
-    """``arbora.op/invoke`` params (GRAPHOS-A2A-R006.1).
+    """``arbora.op/invoke`` params (ARBORA-A2A-R006.1).
 
     Mirrors the shared hosted-operation registry's ``invoke`` call shape so
     the eventual bridge passes these fields through unchanged.
@@ -102,7 +102,7 @@ class A2AOperationInvokeParams(_WireModel):
 
 
 class A2APlanConfirmParams(_WireModel):
-    """``arbora.plan/confirm`` params (GRAPHOS-A2A-R005.1/R006.1).
+    """``arbora.plan/confirm`` params (ARBORA-A2A-R005.1/R006.1).
 
     The signed human approval exchange this carries is not implemented yet;
     see ``A2AOperationBridgeUnavailable``.
@@ -141,7 +141,7 @@ class A2AListResult(_WireModel):
 class A2AStreamingAuthority(Protocol):
     """Durable, restart-safe event-cursor-backed task-streaming authority.
 
-    GRAPHOS-A2A-R001's open streaming slice; no implementation is wired yet.
+    ARBORA-A2A-R001's open streaming slice; no implementation is wired yet.
     """
 
     def resume_from_cursor(self, task_id: str, cursor: str | None) -> Any: ...
@@ -158,7 +158,7 @@ class A2APushNotificationAuthority(Protocol):
 class A2ATransitionHistoryAuthority(Protocol):
     """Durable, append-only WorkItem transition-history authority.
 
-    Owned by epistemic-graph, not Arbora; see GRAPHOS-A2A-R011.
+    Owned by epistemic-graph, not Arbora; see ARBORA-A2A-R011.
     """
 
     def transition_history(self, task_id: str) -> Any: ...

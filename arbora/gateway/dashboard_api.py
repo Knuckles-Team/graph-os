@@ -1,4 +1,4 @@
-"""Service dashboard REST and WebSocket surface (GRAPHOS-HOST-R019).
+"""Service dashboard REST and WebSocket surface (ARBORA-HOST-R019).
 
 CONCEPT:AU-OS.config.gateway-service-dashboard — Gateway Service Dashboard
 

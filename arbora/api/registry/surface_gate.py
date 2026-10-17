@@ -1,4 +1,4 @@
-"""API-surface and backward-compatibility drift detection (GRAPHOS-OPS-R026).
+"""API-surface and backward-compatibility drift detection (ARBORA-OPS-R026).
 
 Both pre-commit gates compare a reviewed baseline against the live
 registry's current public shape. Neither gate talks to a production
@@ -27,9 +27,9 @@ _PRINCIPAL_WIDTH = {
 def public_surface(ops: list[OpSpec]) -> dict[str, dict[str, Any]]:
     """Project each op's public wire shape: MCP verb, surfaces, HTTP route.
 
-    This is the GRAPHOS-OPS-R026.1 surface: operation ids, HTTP routes, and
+    This is the ARBORA-OPS-R026.1 surface: operation ids, HTTP routes, and
     the MCP verb set. Authority fields (scopes, principals) are
-    deliberately excluded -- those are GRAPHOS-OPS-R026.2's concern.
+    deliberately excluded -- those are ARBORA-OPS-R026.2's concern.
     """
     surface: dict[str, dict[str, Any]] = {}
     for op in ops:
@@ -47,7 +47,7 @@ def public_surface(ops: list[OpSpec]) -> dict[str, dict[str, Any]]:
 
 @dataclass(frozen=True)
 class SurfaceDrift:
-    """GRAPHOS-OPS-R026.1 result: any undisclosed change to the public surface."""
+    """ARBORA-OPS-R026.1 result: any undisclosed change to the public surface."""
 
     added: tuple[str, ...]
     removed: tuple[str, ...]
@@ -89,7 +89,7 @@ def diff_public_surface(
 
 @dataclass(frozen=True)
 class CompatBreak:
-    """GRAPHOS-OPS-R026.2 result: an incompatible narrowing of a published op."""
+    """ARBORA-OPS-R026.2 result: an incompatible narrowing of a published op."""
 
     removed_ops: tuple[str, ...]
     narrowed_scopes: tuple[str, ...]

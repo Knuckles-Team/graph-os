@@ -1,4 +1,4 @@
-"""Composition root for Arbora's served MCP intent surface (GRAPHOS-HOST-R023).
+"""Composition root for Arbora's served MCP intent surface (ARBORA-HOST-R023).
 
 Arbora serves its eight-tool MCP contract itself: the six intent verbs
 (``ask``, ``find``, ``why``, ``write``, ``act``, ``manage``) over its own
@@ -10,8 +10,8 @@ other library dependency.
 
 ``arbora.mcp_server.server`` calls :func:`register_intent_surface` instead
 of the agent runtime's ``arbora.mcp_server.backing.arbora_surface.register_arbora_surface``
-(GRAPHOS-HOST-R024); that cutover, and the agent runtime's MCP-serving removal
-(GRAPHOS-HOST-R025), are separate, later changes.
+(ARBORA-HOST-R024); that cutover, and the agent runtime's MCP-serving removal
+(ARBORA-HOST-R025), are separate, later changes.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ def register_intent_surface(
     """Register Arbora's served tools on ``mcp``; return the built projection.
 
     Registers the six intent verbs over ``registry``/``services``/``invoke``
-    (the shared operation chokepoint, GRAPHOS-OPS-R007) and the two MCP Apps
+    (the shared operation chokepoint, ARBORA-OPS-R007) and the two MCP Apps
     launcher tools from the agent runtime's reusable registrar. The returned
     :class:`~arbora.api.mcp.verbs.MCPProjection` lets a caller read
     ``registry.digest`` or build :func:`~arbora.api.mcp.verbs.mcp_instructions`.

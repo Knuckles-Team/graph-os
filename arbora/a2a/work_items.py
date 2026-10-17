@@ -1,6 +1,6 @@
-"""Typed projection of a durable WorkItem record (GRAPHOS-FLEET-R005.1).
+"""Typed projection of a durable WorkItem record (ARBORA-FLEET-R005.1).
 
-Producer slice for GRAPHOS-FLEET-R005: before ``GetWorkItem``/``ListWorkItems``
+Producer slice for ARBORA-FLEET-R005: before ``GetWorkItem``/``ListWorkItems``
 can route inbound A2A tasks through a typed operation, the durable work-item
 record each of them reads needs a typed, validated shape instead of a bare
 ``dict``. This module defines that shape and projects it from the same

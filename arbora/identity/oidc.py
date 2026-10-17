@@ -1,4 +1,4 @@
-"""Typed model for ordered OIDC mapping rules (GRAPHOS-IDENTITY-R009).
+"""Typed model for ordered OIDC mapping rules (ARBORA-IDENTITY-R009).
 
 Slice .1: the typed model and construction validation.
 Slice .2.1: pure ordered claim-to-rule evaluation (``select_mapping_rule``).

@@ -1,4 +1,4 @@
-"""Typed model for an LDAPS bind configuration (GRAPHOS-IDENTITY-R010).
+"""Typed model for an LDAPS bind configuration (ARBORA-IDENTITY-R010).
 
 Slice .1: the typed model, construction validation, and refusal tests only.
 The directory bind, filter escaping, and nested-group sync are later slices.
@@ -52,7 +52,7 @@ def map_groups_to_roles(
     group_dns: Collection[str],
     mapping: Mapping[str, Collection[str]],
 ) -> frozenset[str]:
-    """Roles granted by a directory user's groups (GRAPHOS-IDENTITY-R010.2.1).
+    """Roles granted by a directory user's groups (ARBORA-IDENTITY-R010.2.1).
 
     ``mapping`` is group DN to roles; DNs compare case-insensitively. Fails
     closed: no matching group, or a matching group yielding no role, is refused.
@@ -82,7 +82,7 @@ def escape_filter_value(value: str) -> str:
 
 
 def bind_directory(port: DirectoryPort | None, config: LdapBindConfig) -> None:
-    """Bind through the injected port (GRAPHOS-IDENTITY-R010.2.2).
+    """Bind through the injected port (ARBORA-IDENTITY-R010.2.2).
 
     Fails closed: a missing port or any bind failure is ``IdentityUnavailable``.
     """
@@ -107,7 +107,7 @@ class DirectoryUser:
 
 @dataclass(frozen=True, slots=True)
 class SyncPlan:
-    """Typed result of a directory sync (GRAPHOS-IDENTITY-R010.2.3.1)."""
+    """Typed result of a directory sync (ARBORA-IDENTITY-R010.2.3.1)."""
 
     assignments: Mapping[str, frozenset[str]]
     deprovision: tuple[str, ...]
@@ -118,7 +118,7 @@ def plan_directory_sync(
     snapshot: Collection[DirectoryUser],
     mapping: Mapping[str, Collection[str]],
 ) -> SyncPlan:
-    """Pure sync plan from a directory snapshot (GRAPHOS-IDENTITY-R010.2.3.1).
+    """Pure sync plan from a directory snapshot (ARBORA-IDENTITY-R010.2.3.1).
 
     Disabled users are deprovisioned; enabled users get the roles their groups
     map to, or are listed as unmapped when no group maps. Fails closed on an

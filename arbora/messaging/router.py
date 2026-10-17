@@ -69,7 +69,7 @@ class InboundRouter:
         self._default_handler: EventHandler | None = None
         self._running = False
         self._tasks: list[asyncio.Task[None]] = []
-        # CONCEPT:GRAPHOS-MESSAGING-R001 — typed per-backend supervision state
+        # CONCEPT:ARBORA-MESSAGING-R001 — typed per-backend supervision state
         # (arbora.messaging.supervision), read by state_of().
         self._states: dict[str, ChannelSupervisionState] = {}
 
@@ -137,7 +137,7 @@ class InboundRouter:
         """Advance one backend through STARTING to RUNNING (or back to
         STOPPED when unconnected) and return its supervisor task, if any.
 
-        CONCEPT:GRAPHOS-MESSAGING-R002 — a backend observed unconnected at
+        CONCEPT:ARBORA-MESSAGING-R002 — a backend observed unconnected at
         start is never promoted to RUNNING.
         """
         self._states[backend.id] = transition(
@@ -246,7 +246,7 @@ class InboundRouter:
         CONCEPT:AU-ECO.messaging.native-backend-abstraction
         """
         self._running = False
-        # CONCEPT:GRAPHOS-MESSAGING-R004 — drain, don't abandon: mark every
+        # CONCEPT:ARBORA-MESSAGING-R004 — drain, don't abandon: mark every
         # supervised backend STOPPING before cancellation, STOPPED only once
         # its tasks have actually been awaited below.
         self._advance_states(ChannelSupervisionState.STOPPING)

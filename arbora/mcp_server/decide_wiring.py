@@ -2,7 +2,7 @@
 
 Arbora owns the policy inputs the consumers need. Each install step is
 guarded: a missing input logs a reason and skips that consumer. A failure here
-never stops serving (GRAPHOS-HOST-R020, GRAPHOS-HOST-R021, GRAPHOS-HOST-R022).
+never stops serving (ARBORA-HOST-R020, ARBORA-HOST-R021, ARBORA-HOST-R022).
 """
 
 from __future__ import annotations

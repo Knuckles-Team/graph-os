@@ -1,4 +1,4 @@
-"""Deduplicated flip-alert delivery record (GRAPHOS-DATA-MARKET-R001, FI-06/07).
+"""Deduplicated flip-alert delivery record (ARBORA-DATA-MARKET-R001, FI-06/07).
 
 ``FlipAlertDelivery`` is the typed, durable delivery record for one finance
 flip event delivered to one subscriber over one channel. ``record_alert_delivery``

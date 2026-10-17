@@ -1,4 +1,4 @@
-"""Idempotent finance-schedule run record (GRAPHOS-DATA-MARKET-R002, FI-04).
+"""Idempotent finance-schedule run record (ARBORA-DATA-MARKET-R002, FI-04).
 
 ``FinanceScheduleEntry`` records one backfill/scan/DCA-due/explanation job's
 tenant, owner, authorized action, timezone, trigger, and idempotency key, per

@@ -1,6 +1,6 @@
 """arbora's MCP client surface for the harness: client toolsets and sessions.
 
-CONCEPT:GRAPHOS-HOST.harness.host-bindings
+CONCEPT:ARBORA-HOST.harness.host-bindings
 
 agent-utilities carries no MCP client. When it needs a toolset bound to one
 fleet endpoint, the toolsets a client configuration file declares, or one

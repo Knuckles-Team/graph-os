@@ -29,7 +29,7 @@ from arbora.security.error_surface import public_error_payload
 
 logger = logging.getLogger(__name__)
 
-# GRAPHOS-FLEET-R032: the service authority the aggregator binds around
+# ARBORA-FLEET-R032: the service authority the aggregator binds around
 # every widget fetch, lazily minted and cached process-wide (same shape as
 # agent_webui.graph_admission's `_SERVICE_SESSION` cache). Guarded by
 # `_SERVICE_SESSION_LOCK`, a plain non-reentrant lock held only for the

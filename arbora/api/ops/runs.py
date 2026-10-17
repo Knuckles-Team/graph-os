@@ -1,4 +1,4 @@
-"""Run read operations: the current-plan read boundary (GRAPHOS-OPS-R021.4.5.1).
+"""Run read operations: the current-plan read boundary (ARBORA-OPS-R021.4.5.1).
 
 ``runs.current_plan`` serves the ``current_plan`` projection of one run. The
 run harness owns the plan scaffold; Arbora owns admission and the served

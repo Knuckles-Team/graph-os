@@ -1,4 +1,4 @@
-"""Tenant-scoped market read service (GRAPHOS-DATA-MARKET-R003, FI-01/FI-02).
+"""Tenant-scoped market read service (ARBORA-DATA-MARKET-R003, FI-01/FI-02).
 
 Server-side market read logic consumed by the not-yet-registered
 ``arbora/api/ops/finance.py`` operation (deferred for the same reason

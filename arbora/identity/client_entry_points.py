@@ -1,11 +1,11 @@
-"""Client entry-point token registry (GRAPHOS-IDENTITY-R017.1).
+"""Client entry-point token registry (ARBORA-IDENTITY-R017.1).
 
 Enumerates every Arbora client path -- bootstrap, REST, MCP, A2A, CLI,
 and background service calls -- and records whether that path carries a
 verified local-issuer or permitted service token on every call to the
 engine. This registry is the arbora-side half of
-GRAPHOS-IDENTITY-R017: it is the audited precondition the engine
-opt-out removal (GRAPHOS-IDENTITY-R017.2, pinned to the epistemic-graph
+ARBORA-IDENTITY-R017: it is the audited precondition the engine
+opt-out removal (ARBORA-IDENTITY-R017.2, pinned to the epistemic-graph
 >=2.28 engine release) will be checked against. It does not itself
 change engine enforcement -- that flip happens once Arbora depends on
 an epistemic-graph release that removes the unauthenticated opt-out.
@@ -44,7 +44,7 @@ class TokenRequirement:
 # local-issuer or permitted service token before calling the engine.
 # Arbora still relies on the engine's unauthenticated opt-out only as
 # the defense-in-depth fallback for the loopback bootstrap principal
-# (GRAPHOS-IDENTITY-R004); no other entry point ever exercises an
+# (ARBORA-IDENTITY-R004); no other entry point ever exercises an
 # unsigned retry or fallback path.
 CLIENT_TOKEN_REQUIREMENTS: tuple[TokenRequirement, ...] = (
     TokenRequirement(ClientEntryPoint.BOOTSTRAP, True, "local-issuer"),
@@ -60,7 +60,7 @@ def entry_points_without_verified_tokens() -> tuple[ClientEntryPoint, ...]:
     """Entry points that do not yet carry a verified token on every call.
 
     Empty once every client path has migrated -- the precondition
-    GRAPHOS-IDENTITY-R017 requires before Arbora can stop relying on
+    ARBORA-IDENTITY-R017 requires before Arbora can stop relying on
     the engine's unauthenticated opt-out.
     """
     return tuple(

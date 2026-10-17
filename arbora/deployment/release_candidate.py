@@ -101,12 +101,12 @@ class ExitCriteriaMatrix(_Closed):
 
 
 def read_exit_criteria_matrix(raw_rows: list[dict[str, Any]]) -> ExitCriteriaMatrix:
-    """Validate and index a candidate exit-criteria matrix (GRAPHOS-RELEASE-R003.1).
+    """Validate and index a candidate exit-criteria matrix (ARBORA-RELEASE-R003.1).
 
     Refuses a duplicate obligation ID and an empty matrix. ``ExitCriterionRow``'s
     own field patterns refuse a malformed test reference. This is the typed-model
     slice only: loading a real matrix from a committed fixture or CLI entry point
-    is GRAPHOS-RELEASE-R003.2 onward (tasks.md).
+    is ARBORA-RELEASE-R003.2 onward (tasks.md).
     """
     if not raw_rows:
         raise ExitCriteriaError("exit_criteria_empty")
@@ -315,7 +315,7 @@ def gate_release(
 ) -> dict[str, Any]:
     """Refuse push/deploy until every local Kubernetes validation gate is green.
 
-    GRAPHOS-RELEASE-R002: local Kubernetes validation runs in a dedicated test
+    ARBORA-RELEASE-R002: local Kubernetes validation runs in a dedicated test
     namespace as part of release qualification (that runner is a separate
     adapter, see tasks.md); this is the pure, offline-testable aggregation
     decision it must feed: any one red gate blocks the push deterministically,

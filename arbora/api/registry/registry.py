@@ -26,7 +26,7 @@ class Caller(Protocol):
 
 PolicyDecision = Callable[[OpSpec, Caller], bool]
 
-# The single invocation chokepoint (GRAPHOS-OPS-R007): one op id, its params,
+# The single invocation chokepoint (ARBORA-OPS-R007): one op id, its params,
 # a verified caller and the serving surface in, an OpResult or OpError-shaped
 # outcome out. Surface adapters depend on this shape rather than importing
 # the invocation pipeline's own module, so an HTTP or MCP projection can land

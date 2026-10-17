@@ -1,6 +1,6 @@
 """Governed direct fleet call; dynamic effect comes from gateway_ops.
 
-GRAPHOS-FLEET-R015/R018: the registry-facing fleet operation family. These
+ARBORA-FLEET-R015/R018: the registry-facing fleet operation family. These
 operations declare typed, scoped access to the dynamic fleet catalog (the
 four resident tools: ``fleet.catalog.search``/``fleet.catalog.list`` project
 ``find_tools``'s browse and query modes, ``fleet.tools.load``/

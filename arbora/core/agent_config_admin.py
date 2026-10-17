@@ -1,6 +1,6 @@
 """Governed read/describe/diff/reload/set core for ``AgentConfig``.
 
-CONCEPT:GRAPHOS-HOST.config.graph-config-operation
+CONCEPT:ARBORA-HOST.config.graph-config-operation
 
 arbora owns the ``graph_config`` operation: the harness keeps the
 ``AgentConfig`` model and its one write-back (``save_config_item``), while the

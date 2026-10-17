@@ -1,4 +1,4 @@
-"""Typed model for optional multi-factor enrollment (GRAPHOS-IDENTITY-R006).
+"""Typed model for optional multi-factor enrollment (ARBORA-IDENTITY-R006).
 
 Slice .1: the typed model, construction validation, and refusal tests only.
 The TOTP/WebAuthn/recovery-code ceremonies themselves are later slices.

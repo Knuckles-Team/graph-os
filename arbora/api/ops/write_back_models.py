@@ -1,4 +1,4 @@
-"""Typed write-back request/preview/receipt models (GRAPHOS-FLEET-R003.1).
+"""Typed write-back request/preview/receipt models (ARBORA-FLEET-R003.1).
 
 Pure pydantic models for the D18 write-back producer: a caller first
 previews a write-back (``WriteBackPreviewParams`` -> ``WriteBackPreview``),
@@ -7,7 +7,7 @@ commit's idempotency key must match the key on the preview it is
 committing, so a stray or replayed commit against the wrong preview is
 refused rather than silently applied.
 
-No registry or tool wiring lives here yet (that is GRAPHOS-FLEET-R003.2);
+No registry or tool wiring lives here yet (that is ARBORA-FLEET-R003.2);
 this module is deliberately free of any ``OpSpec``/registry import so it
 can be reviewed and tested in isolation, and so it merges cleanly with the
 ``arbora/api/ops/write_back.py`` module introduced by a parallel PR.

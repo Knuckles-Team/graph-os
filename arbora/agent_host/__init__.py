@@ -1,4 +1,4 @@
-"""First-party connector agent host (GRAPHOS-HOST-R009, AU-BOUNDARY-R015).
+"""First-party connector agent host (ARBORA-HOST-R009, AU-BOUNDARY-R015).
 
 A fleet connector's ``agent_server.py`` previously called
 ``agent_utilities.create_agent_server(...)`` to start a standalone HTTP/A2A
@@ -14,13 +14,13 @@ agent-utilities' public API (``agent_utilities.create_graph_agent`` /
 ``initialize_graph_from_workspace`` and ``agent_utilities.graph.execute_graph``),
 which remains the agent orchestration authority per both repositories'
 ``AGENTS.md``. Deliberately NOT ported in this increment, matching
-GRAPHOS-HOST-R009's own scope cut:
+ARBORA-HOST-R009's own scope cut:
 
 - the EG-backed broker/durable task store AU's ``protocols/a2a_epistemic``
   implements (a second task store is not created here either -- a task is a
   single bounded run, not a durable resource);
 - the Agent Client Protocol adapter (stays with the agent runtime's harness
-  integration per GRAPHOS-HOST-R009);
+  integration per ARBORA-HOST-R009);
 - the multi-worker gateway fork/spawn pool and the terminal UI launcher.
 
 See ``plans/refactor/reconciliation-20261006/FLEET-SDK-MIGRATION-RECIPE.md``
@@ -157,7 +157,7 @@ def build_agent_host_app(
     @app.post("/a2a")
     def a2a_rpc(request: _A2ARequest) -> dict[str, Any]:
         if request.method != "message/send":
-            # No durable task store is created here (GRAPHOS-HOST-R009 does
+            # No durable task store is created here (ARBORA-HOST-R009 does
             # not port AU's second broker), so there is nothing for
             # ``tasks/get``/``tasks/cancel`` to look up yet.
             return {

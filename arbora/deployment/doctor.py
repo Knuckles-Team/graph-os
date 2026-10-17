@@ -1828,7 +1828,7 @@ def _resolve_prepush_shim_config(shim_text: str) -> str | None:
 
 
 def audit_prepush_shim(shim_text: str | None, *, repo_root: Any) -> dict[str, Any]:
-    """GRAPHOS-DEPLOY-R003: a relocated config path or missing hook is a failure.
+    """ARBORA-DEPLOY-R003: a relocated config path or missing hook is a failure.
 
     Never a silent pass-through: a missing shim, a shim that does not invoke
     pre-commit, a shim with no ``--config`` reference, or a reference whose

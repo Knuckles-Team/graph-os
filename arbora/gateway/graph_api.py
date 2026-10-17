@@ -290,7 +290,7 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
 
     register_ontology_routes(app, prefix=prefix)
 
-    # Schema-context query surface (GRAPHOS-DATA-MARKET-R005, GDM-03) — same
+    # Schema-context query surface (ARBORA-DATA-MARKET-R005, GDM-03) — same
     # owning service a future MCP graph_schema action will share (SC-05).
     from arbora.gateway.schema_context_api import register_schema_context_routes
 
@@ -313,7 +313,7 @@ def register_graph_routes(app, prefix: str = "/api") -> None:
     register_remote_oauth_routes(app, prefix=prefix)
 
     # Service dashboard REST reads and the /ws/dashboard stream
-    # (GRAPHOS-HOST-R019). agent-webui composes these from Arbora.
+    # (ARBORA-HOST-R019). agent-webui composes these from Arbora.
     from arbora.gateway.dashboard_api import register_dashboard_routes
 
     register_dashboard_routes(app, prefix=prefix)

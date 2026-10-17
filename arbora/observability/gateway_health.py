@@ -1,4 +1,4 @@
-"""Gateway self-telemetry → the shared health-intelligence kernels (GRAPHOS-HOST-R008).
+"""Gateway self-telemetry → the shared health-intelligence kernels (ARBORA-HOST-R008).
 
 CONCEPT:AU-OS.observability.unified-health-kernels (gateway producer) /
 AU-KG.identity.evidence-spine-convergence (``MetricWindow`` locus).
@@ -30,7 +30,7 @@ affect the request/response path it's decoupled from (fire-and-forget via
 
 Ported from the agent runtime's
 ``arbora.observability.gateway_health`` (moved wholesale, no
-behavior change) per the GRAPHOS-HOST-R008 boundary move. The health
+behavior change) per the ARBORA-HOST-R008 boundary move. The health
 kernel and KG-ingest modules it calls (``arbora.observability.health``
 / ``health_ingest``) and the KG memory store
 (``agent_utilities.knowledge_graph.memory.native_ingest``) have not moved

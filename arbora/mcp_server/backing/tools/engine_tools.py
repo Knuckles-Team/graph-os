@@ -350,7 +350,7 @@ _READ_VERB_PREFIXES: tuple[str, ...] = (
     # SPARQL (CONCEPT:AU-KG.query.au-engine-execution-path).
     "uql",
     # EG ``QueryClient.nl_query``: the engine's NL planner emits UQL that rides
-    # the same read pipeline as ``uql`` (GRAPHOS-HOST-R001.8).
+    # the same read pipeline as ``uql`` (ARBORA-HOST-R001.8).
     "nl_query",
     # Structured UnifiedQuery is the same read-only query:unified operation
     # that the UQL text surface lowers to.

@@ -1263,7 +1263,7 @@ def _unresolved_secret_refs(cfg: Any, *, resolve: bool = True) -> list[str]:
 
 
 def hosting_deployment_settings() -> HostingDeploymentSettings:
-    """Arbora's own hosting/deployment settings (GRAPHOS-DEPLOY-R009.1).
+    """Arbora's own hosting/deployment settings (ARBORA-DEPLOY-R009.1).
 
     Thin wiring point: deployment tooling resolves hosting/deployment
     settings from ``arbora.core.config_admin`` rather than any agent

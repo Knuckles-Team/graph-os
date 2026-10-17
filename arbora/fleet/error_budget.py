@@ -1,7 +1,7 @@
 """Pure, partitioned AIMD error-budget controller.
 
 Implements the decision rule in ``specs/adaptive-capacity/plan.md`` for
-GRAPHOS-CAPACITY-R001.1: additive-increase, multiplicative-decrease (AIMD)
+ARBORA-CAPACITY-R001.1: additive-increase, multiplicative-decrease (AIMD)
 concurrency control driven by a bounded window of real outcome classes.
 
 This module holds no clock, no I/O, and no fleet dispatch wiring. ``decide``
@@ -11,7 +11,7 @@ receipt was durably recorded) is idempotent: the same inputs always produce
 the same :class:`ThrottleDecision`. Inserting a limiter into the real fleet
 dispatch path, and the hosted ``capacity.throttle.*`` operations that expose
 status and mode control, are separate, larger requirements
-(GRAPHOS-CAPACITY-R001.2 and GRAPHOS-CAPACITY-R002); this module is their
+(ARBORA-CAPACITY-R001.2 and ARBORA-CAPACITY-R002); this module is their
 shared, independently testable producer.
 """
 

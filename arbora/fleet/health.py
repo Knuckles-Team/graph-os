@@ -1,4 +1,4 @@
-"""Truthful fleet-supervision evidence (GRAPHOS-FLEET-R750).
+"""Truthful fleet-supervision evidence (ARBORA-FLEET-R750).
 
 The supervisory REST and MCP surfaces read the same operational authorities:
 the durable session/control store, the engine-backed goal registry, and the

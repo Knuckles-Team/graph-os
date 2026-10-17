@@ -1,6 +1,6 @@
 """D18 write-back: a typed, idempotent, previewed registry operation.
 
-GRAPHOS-FLEET-R003 (.1 slice): the typed preview model and its refusal rule —
+ARBORA-FLEET-R003 (.1 slice): the typed preview model and its refusal rule —
 D18 write-back must never execute without a prior preview and an idempotency
 key, so it can never be reached as an unguarded native child tool. Wiring a
 live handler/binding into the operation registry is a further slice.
@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from arbora.api.registry import Confirm, Idempotency
 
 #: The registry binding this preview is written for once wired into the
-#: registry (GRAPHOS-FLEET-R003 follow-up): always previewed, always keyed.
+#: registry (ARBORA-FLEET-R003 follow-up): always previewed, always keyed.
 WRITE_BACK_CONFIRM = Confirm.PLAN
 WRITE_BACK_IDEMPOTENCY = Idempotency.KEY_REQUIRED
 

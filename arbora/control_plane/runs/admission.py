@@ -48,7 +48,7 @@ class CapacityDeniedError(NativeAdmissionError):
 class CapacityAcquisition:
     """All-or-nothing capacity acquisition with one re-decision on denial.
 
-    GRAPHOS-FLEET-R009.1: a candidate run acquires every requested resource
+    ARBORA-FLEET-R009.1: a candidate run acquires every requested resource
     unit or none at all. The first denial consumes that run's single
     re-decision and returns ``False`` so the caller may retry once against a
     revised resource set; a second denial for the same run fails closed with

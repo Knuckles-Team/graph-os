@@ -1,4 +1,4 @@
-"""Pre-commit gate: fail closed on backward-incompatible narrowing (GRAPHOS-FLEET-R016).
+"""Pre-commit gate: fail closed on backward-incompatible narrowing (ARBORA-FLEET-R016).
 
 Thin CLI over ``arbora.api.registry.surface_gate.diff_backward_compat``:
 the baseline only needs the two fields that gate inspects duck-typed

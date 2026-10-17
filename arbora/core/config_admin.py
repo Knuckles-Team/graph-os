@@ -1,4 +1,4 @@
-"""Arbora-owned hosting/deployment configuration settings (GRAPHOS-DEPLOY-R009.1).
+"""Arbora-owned hosting/deployment configuration settings (ARBORA-DEPLOY-R009.1).
 
 The former agent runtime's monolithic configuration module (``agent_utilities.
 core.config``) mixed hosting/deployment settings in with connector-base and
@@ -38,7 +38,7 @@ class HostingDeploymentSettings:
         host: Bind host for the serving container.
         port: Bind port for the serving container.
         deploy_profile: One of ``dev``, ``test``, ``prod`` (see
-            ``GRAPHOS-DEPLOY-R013``'s development/production profiles).
+            ``ARBORA-DEPLOY-R013``'s development/production profiles).
         data_dir: Absolute path to Arbora's persistent data directory.
     """
 
@@ -57,7 +57,7 @@ def load_hosting_deployment_settings(
     ``ARBORA_DATA_DIR``, falling back to Arbora-owned defaults. This never
     imports ``agent_utilities.core.config`` (or any agent-runtime
     configuration internals) — the hosting/deployment slice is owned here,
-    split out of that former monolithic module per ``GRAPHOS-DEPLOY-R009``.
+    split out of that former monolithic module per ``ARBORA-DEPLOY-R009``.
 
     Raises:
         InvalidHostingDeploymentSettings: if the port is not a positive

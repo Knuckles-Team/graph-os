@@ -1,5 +1,5 @@
 """Strict request/response models for the schema-context query surface
-(GRAPHOS-DATA-MARKET-R005, ``specs/data-and-market-projections``).
+(ARBORA-DATA-MARKET-R005, ``specs/data-and-market-projections``).
 
 GDM-02 (``specs/data-and-market-projections/tasks.md``): these models and
 ``arbora.gateway.schema_context_service`` are the typed prerequisite for

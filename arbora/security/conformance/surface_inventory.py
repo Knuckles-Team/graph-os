@@ -22,7 +22,7 @@ default/local path (Cypher) — is included as ``"local"`` unconditionally: its
 absence of a branch is itself the signal it is the fallthrough, not a
 surface this function could fail to find.
 
-GRAPHOS-HOST-R008 NOTE: this module now lives in arbora, but the surface it
+ARBORA-HOST-R008 NOTE: this module now lives in arbora, but the surface it
 introspects (``arbora/mcp_server/backing/tools/query_tools/py``) has not moved yet
 (AU-BOUNDARY-R003, a different seed group). ``QUERY_TOOLS_MODULE`` is
 therefore resolved through agent-utilities' INSTALLED package location

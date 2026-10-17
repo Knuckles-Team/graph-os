@@ -1,4 +1,4 @@
-"""Typed ACP session-policy model and admission check (GRAPHOS-ACP-001, R001.1).
+"""Typed ACP session-policy model and admission check (ARBORA-ACP-001, R001.1).
 
 Covers only Arbora's session-admission and policy partition of the
 conversational ACP gateway: admitting a session for a verified principal,
@@ -43,7 +43,7 @@ class AcpRefusal(Exception):
 class PrincipalContext:
     """The verified identity snapshot bound to an ACP session at admission.
 
-    Produced by the existing Arbora identity path (GRAPHOS-IDENTITY-001);
+    Produced by the existing Arbora identity path (ARBORA-IDENTITY-001);
     this model does not itself verify a credential.
     """
 

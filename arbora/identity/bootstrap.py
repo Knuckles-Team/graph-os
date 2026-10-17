@@ -1,4 +1,4 @@
-"""Typed model for the loopback bootstrap principal (GRAPHOS-IDENTITY-R004).
+"""Typed model for the loopback bootstrap principal (ARBORA-IDENTITY-R004).
 
 Slice .1: the typed model, construction validation, and refusal tests only.
 The resolution path that binds this principal into the ordinary RBAC/scope

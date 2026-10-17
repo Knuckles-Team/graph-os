@@ -1,4 +1,4 @@
-"""Finance application-service domain (GRAPHOS-DATA-MARKET-R001/R002/R003/R006).
+"""Finance application-service domain (ARBORA-DATA-MARKET-R001/R002/R003/R006).
 
 Server-side market reads (:mod:`arbora.finance.markets`), idempotent
 finance-schedule run records (:mod:`arbora.finance.schedule`), deduplicated

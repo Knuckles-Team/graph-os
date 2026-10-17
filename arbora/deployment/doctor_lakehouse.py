@@ -27,7 +27,7 @@ def _cpu_has_avx2(cpuinfo_text: str) -> bool:
     """Parse ``/proc/cpuinfo``-style text for the ``avx2`` CPU flag.
 
     Pure string parsing (no I/O): this is the feature-detection logic
-    GRAPHOS-DEPLOY-R015 guards. It is exercised in tests only against
+    ARBORA-DEPLOY-R015 guards. It is exercised in tests only against
     synthetic fixture text, never against the real execution host, so the
     guard test passes identically on an AVX2-capable or non-AVX2 runner.
     """

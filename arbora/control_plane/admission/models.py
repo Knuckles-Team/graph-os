@@ -1,4 +1,4 @@
-"""Strict dry-run admission contracts (GRAPHOS-DATA-MARKET-R004, GDM-04).
+"""Strict dry-run admission contracts (ARBORA-DATA-MARKET-R004, GDM-04).
 
 ``AdmissionIntent`` describes one proposed application/source admission.
 ``AdmissionPlan`` is the dry-run answer: FR-04 requires the plan to list

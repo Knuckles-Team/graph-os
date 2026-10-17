@@ -1,4 +1,4 @@
-"""Typed model for admin-console identity tabs (GRAPHOS-IDENTITY-R007).
+"""Typed model for admin-console identity tabs (ARBORA-IDENTITY-R007).
 
 Slice .1: the typed model, construction validation, and refusal tests only.
 The dry-run preview and mode wizard behaviors are later slices.

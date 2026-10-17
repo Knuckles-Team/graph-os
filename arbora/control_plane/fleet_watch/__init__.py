@@ -1,4 +1,4 @@
-"""Fleet deploy-watch verdict logic (GRAPHOS-FLEET-R024.1).
+"""Fleet deploy-watch verdict logic (ARBORA-FLEET-R024.1).
 
 See :mod:`arbora.control_plane.fleet_watch.service` for the ported
 decision rule and :mod:`arbora.api.ops.fleet_deploy_watch` for the typed

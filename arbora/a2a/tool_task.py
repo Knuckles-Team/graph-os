@@ -1,4 +1,4 @@
-"""Reference-bound single-tool tasks run inside one WorkItem lease (GRAPHOS-A2A-R002.2.2).
+"""Reference-bound single-tool tasks run inside one WorkItem lease (ARBORA-A2A-R002.2.2).
 
 A tool task is one admitted operation call. The queue carrier holds only a
 content-addressed reference to the immutable request. Arbora resolves the
