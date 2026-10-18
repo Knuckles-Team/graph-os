@@ -125,7 +125,7 @@ class ArboraBrowserAuthority:
         if state.mfa_at_ms is not None and state.mfa_at_ms > now_ms:
             raise PermissionError("browser session MFA timestamp is in the future")
         # agent_utilities.VerifiedLocalBearer is a frozen, fully self-validated
-        # snapshot (GRAPHOS-IDENTITY-R003): every required claim is checked in
+        # snapshot (ARBORA-IDENTITY-R003): every required claim is checked in
         # its own __post_init__ and it carries no live authority to re-check,
         # so it has no ensure_current method. Only call it when a VerifiedToken
         # implementation actually offers live revalidation (mirrors the

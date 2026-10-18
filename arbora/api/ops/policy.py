@@ -1,4 +1,4 @@
-"""Policy read operation (GRAPHOS-OPS-R021.3, policy slice).
+"""Policy read operation (ARBORA-OPS-R021.3, policy slice).
 
 ``policy.read`` hands back the caller's own tenant's active policy state
 from the composed ``policy_reader`` port. The OpSpec wiring, the

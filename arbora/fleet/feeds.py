@@ -1,6 +1,6 @@
 """Typed events for the RUM, security-audit and CI/CD fleet feeds.
 
-GRAPHOS-FLEET-R008 (.1 slice): a typed model per feed kind, each refusing an
+ARBORA-FLEET-R008 (.1 slice): a typed model per feed kind, each refusing an
 unsanitized payload or a missing tenant boundary before it can become a
 catalog item. Wiring these into live connector ingestion and the catalog's
 ``connector_items``/``_pack_annotations`` path is a further slice.
@@ -82,7 +82,7 @@ def cicd_event(*, tenant: str, source: str, payload: dict[str, Any]) -> FeedEven
 
 
 def catalog_annotation_fields() -> tuple[str, ...]:
-    """Annotation fields a feed event's catalog entry will need (GRAPHOS-FLEET-R004)."""
+    """Annotation fields a feed event's catalog entry will need (ARBORA-FLEET-R004)."""
 
     return PACK_ANNOTATION_FIELDS
 

@@ -1,4 +1,4 @@
-"""Typed model for the native SAML service provider (GRAPHOS-IDENTITY-R012).
+"""Typed model for the native SAML service provider (ARBORA-IDENTITY-R012).
 
 Slice .1: the typed model, construction validation, and refusal tests only.
 Slice .2.1: the typed parsed-assertion model and the pure audience, recipient

@@ -1,4 +1,4 @@
-"""Telemetry read operation (GRAPHOS-OPS-R024.1).
+"""Telemetry read operation (ARBORA-OPS-R024.1).
 
 ``telemetry.read`` is the engine's own tenant-scoped telemetry method,
 reached through the composed ``telemetry_reader`` port -- never a snapshot

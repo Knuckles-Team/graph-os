@@ -1,4 +1,4 @@
-"""Swarm topology read operation (GRAPHOS-OPS-R021.3, swarm slice).
+"""Swarm topology read operation (ARBORA-OPS-R021.3, swarm slice).
 
 ``swarm.topology.read`` reflects back whatever the composed
 ``swarm_topology_reader`` port currently holds for the caller's own tenant

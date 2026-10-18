@@ -66,7 +66,7 @@ def create_api_application(
     ``visibility`` must make the same policy decision as `invoke` for a caller.
     The composition root supplies ``authenticator`` (an object with
     ``authenticate(request)`` and ``is_console_request(request, caller)``)
-    and ``invoke`` (GRAPHOS-OPS-R007's single invocation chokepoint); neither
+    and ``invoke`` (ARBORA-OPS-R007's single invocation chokepoint); neither
     is constructed here so this module carries no dependency on the modules
     that build them. A missing visibility policy is never treated as an
     allow decision. No legacy Arbora route is mounted here.
@@ -149,7 +149,7 @@ def create_api_application(
     async def swagger_ui_route(request: Request) -> HTMLResponse:
         # Resolve the sibling ``openapi.json`` route relative to wherever this
         # sub-app is mounted, so the rendered page never hardcodes a mount
-        # prefix (GRAPHOS-OPS-R038).
+        # prefix (ARBORA-OPS-R038).
         openapi_url = f"{request.url.path.rsplit('/', 1)[0]}/openapi.json"
         return get_swagger_ui_html(
             openapi_url=openapi_url, title="Arbora API — Swagger UI"

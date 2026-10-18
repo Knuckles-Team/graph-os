@@ -656,7 +656,7 @@ for _bootstrap_name in _bootstrap.BOOTSTRAP_EXPORTS:
     globals()[_bootstrap_name] = getattr(_bootstrap, _bootstrap_name)
 
 
-#: The served intent surface (GRAPHOS-HOST-R024): every verb takes ``op``,
+#: The served intent surface (ARBORA-HOST-R024): every verb takes ``op``,
 #: ``intent`` and ``params``.
 SERVED_INSTRUCTIONS = (
     "Arbora MCP server. One tool contract: the intent tools find (discover), "
@@ -838,7 +838,7 @@ def _register_graph_tool_surface(
         if not isinstance(invocation, HostedInvocation):
             raise TypeError("admitted hosted invocation is required")
         invocation.validate()
-        # GRAPHOS-HOST-R024: Arbora serves its own intent surface over the
+        # ARBORA-HOST-R024: Arbora serves its own intent surface over the
         # shared operation registry and invocation pipeline, so every served
         # operation (``eg.*`` included) is discoverable and callable through
         # find/ask/act. The backing server still holds host tools reached by

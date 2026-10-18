@@ -105,7 +105,7 @@ def make_endpoint(
 ) -> Callable[[Request], Awaitable[JSONResponse]]:
     """Return the single handler used by every registered HTTP operation.
 
-    ``invoke`` is the single invocation chokepoint (GRAPHOS-OPS-R007),
+    ``invoke`` is the single invocation chokepoint (ARBORA-OPS-R007),
     supplied by the server composition root; this module never imports it
     directly so it does not need that pipeline to exist to be importable.
     """

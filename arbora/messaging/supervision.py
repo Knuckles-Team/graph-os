@@ -1,16 +1,16 @@
 """Typed messaging channel supervision state machine.
 
-CONCEPT:GRAPHOS-MESSAGING-R001.1 — typed supervision states, their legal
+CONCEPT:ARBORA-MESSAGING-R001.1 — typed supervision states, their legal
 transition table, and refusal of any transition not in that table.
 
 This module is the sole authority for what counts as a legal move in a
 supervised channel's lifecycle (``arbora.messaging.router.InboundRouter``
 and ``arbora.messaging.registry.MessagingRegistry``). It has no asyncio,
-no backend import, and no I/O: a later slice (``GRAPHOS-MESSAGING-R002``
+no backend import, and no I/O: a later slice (``ARBORA-MESSAGING-R002``
 through ``R005``) wires the router and registry to call :func:`transition`
 instead of mutating ad hoc booleans.
 
-Org boundary (GRAPHOS-MESSAGING-R006): Arbora owns this supervision model.
+Org boundary (ARBORA-MESSAGING-R006): Arbora owns this supervision model.
 agent-utilities owns the adapter contract (``arbora.messaging.base
 .MessagingBackend``) this model supervises; this module imports nothing from
 agent-utilities.
@@ -49,7 +49,7 @@ class AdapterMissing(ValueError):
     """Typed DEGRADED reason: the configured channel's adapter entry-point was
     never discovered (not installed).
 
-    CONCEPT:GRAPHOS-MESSAGING-R005 — subclasses ``ValueError`` and adds no
+    CONCEPT:ARBORA-MESSAGING-R005 — subclasses ``ValueError`` and adds no
     ``__init__`` of its own, so ``MessagingRegistry.create_backend`` keeps
     raising a message callers already match with ``except ValueError``, while
     ``MessagingRegistry.create_all_enabled`` can additionally recognize this
@@ -62,7 +62,7 @@ class AdapterImportFailed(ImportError):
     """Typed DEGRADED reason: the configured channel's adapter entry-point was
     discovered but its dependencies failed to import.
 
-    CONCEPT:GRAPHOS-MESSAGING-R005 — subclasses ``ImportError`` and adds no
+    CONCEPT:ARBORA-MESSAGING-R005 — subclasses ``ImportError`` and adds no
     ``__init__`` of its own, for the same reason as :class:`AdapterMissing`.
     """
 

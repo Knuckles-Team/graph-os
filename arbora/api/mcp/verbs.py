@@ -78,7 +78,7 @@ def _refusal(
 def _is_op_error(outcome: Any) -> bool:
     """Tell a refusal from a result without importing the invocation pipeline.
 
-    ``invoke`` (GRAPHOS-OPS-R007) returns either an ``OpResult``, which
+    ``invoke`` (ARBORA-OPS-R007) returns either an ``OpResult``, which
     always carries a ``value``, or an ``OpError``, which never does; a
     result with a non-``OK`` code (for example a bound confirmation plan)
     still reports through the result path below, matching the resident

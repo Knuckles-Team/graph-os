@@ -1,9 +1,9 @@
-"""Pure deploy-watch verdict decision (GRAPHOS-FLEET-R024.1).
+"""Pure deploy-watch verdict decision (ARBORA-FLEET-R024.1).
 
 Arbora-owned parity port of the verdict rule previously computed inside
 agent-utilities' ``agent_utilities.orchestration.deploy_watch.run_deploy_watch``,
 which sat beside the agent runner in that package's ``orchestration/``
-directory (GRAPHOS-FLEET-R024). That function's probe loop polls a fleet
+directory (ARBORA-FLEET-R024). That function's probe loop polls a fleet
 observer on a timer and then reduces the probes it collected to one of three
 verdicts; this module reproduces only that reduction, so it is testable
 without a live observer, durable task queue or sleep loop:
@@ -17,7 +17,7 @@ without a live observer, durable task queue or sleep loop:
 
 The probe-collection loop (observer polling, deadline/sleep bookkeeping) and
 the failure-triggered rollback dispatch stay out of this slice; they are
-Arbora service-skeleton work tracked under GRAPHOS-FLEET-R024.2.
+Arbora service-skeleton work tracked under ARBORA-FLEET-R024.2.
 """
 
 from __future__ import annotations

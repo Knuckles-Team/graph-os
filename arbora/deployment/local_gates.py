@@ -1,4 +1,4 @@
-"""Local gate enforcement for release qualification (GRAPHOS-RELEASE-R002).
+"""Local gate enforcement for release qualification (ARBORA-RELEASE-R002).
 
 Arbora refuses to push or deploy a release candidate until every local
 qualification gate -- including a local Kubernetes validation run in a

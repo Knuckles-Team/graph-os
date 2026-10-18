@@ -1,4 +1,4 @@
-"""Conversational ACP gateway: session policy and admission (GRAPHOS-ACP-001)."""
+"""Conversational ACP gateway: session policy and admission (ARBORA-ACP-001)."""
 
 from .coding_session import (
     ClientCapability,

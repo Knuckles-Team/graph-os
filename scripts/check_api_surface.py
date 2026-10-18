@@ -1,4 +1,4 @@
-"""Pre-commit gate: fail closed on undisclosed API-surface drift (GRAPHOS-FLEET-R016).
+"""Pre-commit gate: fail closed on undisclosed API-surface drift (ARBORA-FLEET-R016).
 
 Thin CLI over ``arbora.api.registry.surface_gate`` (``public_surface`` /
 ``diff_public_surface``): this script owns no comparison logic of its own,

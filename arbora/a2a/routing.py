@@ -22,13 +22,13 @@ class A2AAssemblyUnavailable(RuntimeError):
 class A2AOperationBridgeUnavailable(RuntimeError):
     """``arbora.op/invoke``/``arbora.plan/confirm`` are not wired yet.
 
-    GRAPHOS-A2A-R006 reuses the shared hosted-operation registry's
+    ARBORA-A2A-R006 reuses the shared hosted-operation registry's
     ``invoke`` path (``Surface.A2A``) so a representative operation has
     identical authorization and error semantics through A2A, MCP and HTTP.
     That bridge does not exist yet, so both methods are registered on the
     A2A method table with validated params but fail closed rather than
     silently succeeding or being reported as unrecognized methods. This
-    also keeps GRAPHOS-A2A-R005's human approval response
+    also keeps ARBORA-A2A-R005's human approval response
     (``arbora.plan/confirm``) disabled until the full signed exchange is
     implemented end to end.
     """

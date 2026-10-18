@@ -1,4 +1,4 @@
-"""Usage read operation (GRAPHOS-OPS-R024.3).
+"""Usage read operation (ARBORA-OPS-R024.3).
 
 ``usage.read`` sources its numbers from the engine's own ``usage_reader``
 port, not a counter Arbora keeps on the side. The OpSpec/refusal/params

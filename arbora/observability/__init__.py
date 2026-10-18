@@ -1,4 +1,4 @@
-"""Arbora's own observability modules (GRAPHOS-HOST-R008).
+"""Arbora's own observability modules (ARBORA-HOST-R008).
 
 Hosts the gateway-health producer and the shared health-intelligence kernels
 moved from the agent runtime (CONCEPT:AU-OS.observability.unified-health-kernels,
@@ -8,7 +8,7 @@ arbora telemetry producer (e.g. ``arbora.observability.gateway_health``)
 can wire a signal into. The knowledge engine owns anomaly and incident
 records; this package is reason-only.
 The gateway metrics, the runtime health core, the trace export setup and the
-correlation context live here too (GRAPHOS-HOST-R008).
+correlation context live here too (ARBORA-HOST-R008).
 """
 
 from __future__ import annotations

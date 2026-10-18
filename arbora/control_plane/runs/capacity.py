@@ -1,12 +1,12 @@
 """All-or-nothing run capacity acquisition with a one-re-decision contract.
 
-Standalone primitive for GRAPHOS-FLEET-R009.1: a bounded pool of capacity
+Standalone primitive for ARBORA-FLEET-R009.1: a bounded pool of capacity
 slots that a run holder acquires atomically (all requested units grant, or
 none do), with exactly one re-decision allowed after a denial, and release
 of held capacity back to the pool when the holding run stops. This module
 has no dependency on `admission.py`, `arbora/a2a/routing.py`, or
 `arbora/a2a/composition.py`; those wire against it separately
-(GRAPHOS-FLEET-R009.2 / R009.3).
+(ARBORA-FLEET-R009.2 / R009.3).
 """
 
 from __future__ import annotations

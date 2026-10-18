@@ -1,8 +1,8 @@
 """Typed ingestion-runner facade for the Arbora operation registry.
 
-GRAPHOS-OPS-R020.1/R020.2: Arbora exposes ingest operations for repository
+ARBORA-OPS-R020.1/R020.2: Arbora exposes ingest operations for repository
 indexing, source sync, pack and job management, drift listing and repair,
-and embedding admission (GRAPHOS-OPS-R020.3 through R020.5 remain), but
+and embedding admission (ARBORA-OPS-R020.3 through R020.5 remain), but
 calls the ingestion SDK only through one typed runner port. An uncomposed
 runner fails closed with a typed ``UNAVAILABLE`` refusal rather than an
 opaque error or a silent no-op, matching the ``arbora.access``/
@@ -98,7 +98,7 @@ class IngestJobRecord(BaseModel):
 class IngestRunner(Protocol):
     """The one typed port Arbora calls the ingestion SDK through.
 
-    GRAPHOS-OPS-R020.3 through R020.5 add further port methods (pack/job
+    ARBORA-OPS-R020.3 through R020.5 add further port methods (pack/job
     management, drift repair, embedding admission) as their own slices land;
     this port now covers the R020.1 source-sync entry point and the R020.2
     repository-indexing and source-inventory entry points.

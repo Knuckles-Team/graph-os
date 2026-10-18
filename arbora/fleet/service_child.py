@@ -234,7 +234,7 @@ class ServiceChildAdapter:
         _require_admitted_service_tool(item, caller)
         argument_digest = _digest(arguments)
         # The served invoke surface does not exist on this repository yet
-        # (GRAPHOS-FLEET-R012's remaining note); its canonical params digest
+        # (ARBORA-FLEET-R012's remaining note); its canonical params digest
         # would compute exactly this same sorted-JSON sha256, so this reuses
         # the one local canonical-digest helper rather than depend on a
         # module that is not buildable here.

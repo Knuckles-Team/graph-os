@@ -1,6 +1,6 @@
-"""Ingest operations for the Arbora intent registry (GRAPHOS-OPS-R020.1, R020.2).
+"""Ingest operations for the Arbora intent registry (ARBORA-OPS-R020.1, R020.2).
 
-GRAPHOS-OPS-R020 exposes ingest operations for repository indexing, source
+ARBORA-OPS-R020 exposes ingest operations for repository indexing, source
 sync, pack and job management, drift listing and repair, and embedding
 admission, calling the ingestion SDK only through a typed runner facade
 (:mod:`arbora.ingest.service`). R020.1 proved the port's first entry point,
@@ -9,7 +9,7 @@ admission, calling the ingestion SDK only through a typed runner facade
 ``ingest.repositories.index`` and ``ingest.sources.{list,status}`` through
 the same port. The remaining operation family (``ingest.packs.*``,
 ``ingest.jobs.*``, ``ingest.drift.*``, ``ingest.embedding.*``) is tracked as
-GRAPHOS-OPS-R020.3 through R020.5 in ``specs/hosted-api-operations/``.
+ARBORA-OPS-R020.3 through R020.5 in ``specs/hosted-api-operations/``.
 """
 
 from __future__ import annotations

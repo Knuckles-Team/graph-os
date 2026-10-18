@@ -1,7 +1,7 @@
-"""Import-boundary census for GRAPHOS-HOST-R001.
+"""Import-boundary census for ARBORA-HOST-R001.
 
 Loads the boundary seeds published in
-``architecture/component-registry-boundary-seeds.yml`` (GRAPHOS-HOST-R012) and
+``architecture/component-registry-boundary-seeds.yml`` (ARBORA-HOST-R012) and
 exposes a typed model that a continuous-integration check can use to confirm
 that every external dependency ``arbora`` imports from an owner repository
 is reached only through that owner's published ``public_import_surface`` --

@@ -82,7 +82,7 @@ class MessagingRegistry:
     def __init__(self) -> None:
         self._entry_points: dict[str, Any] = {}
         self._instances: dict[str, Any] = {}
-        # CONCEPT:GRAPHOS-MESSAGING-R005 — typed DEGRADED reason per backend id
+        # CONCEPT:ARBORA-MESSAGING-R005 — typed DEGRADED reason per backend id
         # that create_all_enabled() could not instantiate; reuses the existing
         # ChannelSupervisionState.DEGRADED value (arbora.messaging.supervision)
         # rather than a new record type, see degraded_backends()/degraded_reason().
@@ -279,7 +279,7 @@ class MessagingRegistry:
         auto-creates backend instances for each. Every OTHER configured
         channel is still created even when one fails.
 
-        CONCEPT:GRAPHOS-MESSAGING-R005 — a channel whose adapter is missing
+        CONCEPT:ARBORA-MESSAGING-R005 — a channel whose adapter is missing
         or fails to import is no longer only logged and omitted: it is also
         recorded DEGRADED with a typed reason, readable via
         :meth:`degraded_backends` / :meth:`degraded_reason`.
@@ -298,7 +298,7 @@ class MessagingRegistry:
                 except (AdapterMissing, AdapterImportFailed) as e:
                     self._degraded[backend_id] = e
                     logger.warning(
-                        "[CONCEPT:GRAPHOS-MESSAGING-R005] Channel '%s' DEGRADED (%s): %s",
+                        "[CONCEPT:ARBORA-MESSAGING-R005] Channel '%s' DEGRADED (%s): %s",
                         backend_id,
                         type(e).__name__,
                         e,
@@ -308,7 +308,7 @@ class MessagingRegistry:
     def degraded_backends(self) -> dict[str, ChannelSupervisionState]:
         """Configured channels :meth:`create_all_enabled` could not create.
 
-        CONCEPT:GRAPHOS-MESSAGING-R005 — reuses the existing
+        CONCEPT:ARBORA-MESSAGING-R005 — reuses the existing
         ``ChannelSupervisionState.DEGRADED`` value for every entry rather than
         a new record type; pair with :meth:`degraded_reason` for the typed
         reason (:class:`~arbora.messaging.supervision.AdapterMissing` or
@@ -327,7 +327,7 @@ class MessagingRegistry:
     ) -> AdapterMissing | AdapterImportFailed | None:
         """The typed reason ``backend_id`` is DEGRADED, or ``None``.
 
-        CONCEPT:GRAPHOS-MESSAGING-R005
+        CONCEPT:ARBORA-MESSAGING-R005
         """
         return self._degraded.get(backend_id)
 

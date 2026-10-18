@@ -1,4 +1,4 @@
-"""Security posture read operation (GRAPHOS-OPS-R024.2).
+"""Security posture read operation (ARBORA-OPS-R024.2).
 
 ``security.posture.read`` surfaces whatever the composed
 ``security_posture_reader`` port currently reports for the caller's own

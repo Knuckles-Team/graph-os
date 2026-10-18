@@ -154,7 +154,7 @@ def operations() -> tuple[OpSpec, ...]:
     ``approvals.list``/``get``/``grant``/``deny`` are implemented in
     :mod:`arbora.access.service` but intentionally not registered here:
     the installed EG contract does not yet publish the ``approvals:read``/
-    ``approvals:decide`` scopes they require (GRAPHOS-IDENTITY-R019 follow-up,
+    ``approvals:decide`` scopes they require (ARBORA-IDENTITY-R019 follow-up,
     tracked in ``specs/identity-access/tasks.md``).
     """
     return (

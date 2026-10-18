@@ -307,7 +307,7 @@ _LOCAL_BEARER_PRINCIPAL_KINDS: frozenset[str] = frozenset({"human", "service"})
 class VerifiedLocalBearer:
     """Verified claims from one locally-issued bearer JWT -- never an authority.
 
-    Returned by :func:`verify_local_bearer_token` (GRAPHOS-IDENTITY-R003's
+    Returned by :func:`verify_local_bearer_token` (ARBORA-IDENTITY-R003's
     agent-utilities consumer side). This is deliberately NOT a session or a
     :class:`VerifiedRequestAuthority`: it carries exactly the JWT claims that
     were cryptographically verified, plus the issuer/audience they were
@@ -1044,7 +1044,7 @@ async def verify_local_bearer_token(token: str) -> VerifiedLocalBearer:
     applies to served external bearer identity -- the same configured
     ``AUTH_JWT_JWKS_URI``/``AUTH_JWT_ISSUER``/``AUTH_JWT_AUDIENCE``. A local
     token issuer (for example Arbora's own persistent local issuer,
-    GRAPHOS-IDENTITY-R003) publishes its JWKS at that same configured
+    ARBORA-IDENTITY-R003) publishes its JWKS at that same configured
     endpoint in a deployment that uses one, so no second, independently
     configured JWKS source is introduced here. This never mints a session:
     the caller must combine the returned claims with its own qualified,

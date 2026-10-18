@@ -1,4 +1,4 @@
-"""Exported domain scope classes for the Arbora operation registry (GRAPHOS-OPS-R028).
+"""Exported domain scope classes for the Arbora operation registry (ARBORA-OPS-R028).
 
 Each class is a ``StrEnum`` whose members are the exact ``domain:action`` scope
 strings Arbora operations declare (``OpSpec.scopes`` / ``executor_scopes``) and

@@ -1,6 +1,6 @@
 """Engine-surface and graph-connection checks for the deployment doctor.
 
-CONCEPT:GRAPHOS-DEPLOY.doctor.engine-and-connections
+CONCEPT:ARBORA-DEPLOY.doctor.engine-and-connections
 
 arbora serves the ``engine_<domain>`` tool families and owns the graph
 connection registry, so arbora's doctor (not the agent harness) answers

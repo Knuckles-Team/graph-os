@@ -133,7 +133,7 @@ _LEDGER_SCAN_LIMIT = 500
 POLICY_RECEIPT_SCHEMA = "policy-receipt.v1"
 
 #: The durable control-lease ``kind`` an action approval is filed under
-#: (GRAPHOS-IDENTITY-R019: Arbora's ``approvals.*`` operations list, get and
+#: (ARBORA-IDENTITY-R019: Arbora's ``approvals.*`` operations list, get and
 #: decide leases of exactly this kind over the engine's generic control-lease
 #: surface). The schema-drift repair approval kind carries the identical literal.
 ACTION_APPROVAL_KIND = "action.approval"

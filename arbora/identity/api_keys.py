@@ -1,4 +1,4 @@
-"""Typed model for expiring API keys / service accounts (GRAPHOS-IDENTITY-R008).
+"""Typed model for expiring API keys / service accounts (ARBORA-IDENTITY-R008).
 
 Slice .1: the typed model, construction validation, and refusal tests only.
 Scope-intersection-at-use-time and revocation wiring are later slices.

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-"""Typed public-ingress identity profile model (GRAPHOS-INGRESS-R001.1).
+"""Typed public-ingress identity profile model (ARBORA-INGRESS-R001.1).
 
 CONCEPT:AU-OS.deployment.public-ingress-identity — see
 ``specs/public-ingress-identity/plan.md`` ("Profile and interface contract").
@@ -9,7 +9,7 @@ with its own load-time refusals (test-spec.md T-IN-01/T-IN-02). It is
 deliberately standalone: it does not yet extend
 :class:`arbora.deployment.genesis_environments.EnvironmentProfile`, is not
 wired into the gateway/MCP identity admission path, and renders no live
-config. That wiring is GRAPHOS-INGRESS-R001.2+.
+config. That wiring is ARBORA-INGRESS-R001.2+.
 """
 
 from __future__ import annotations

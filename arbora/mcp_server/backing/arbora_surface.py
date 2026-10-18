@@ -256,7 +256,7 @@ def register_arbora_surface(
     per-family ``<FAMILY>TOOL`` deployment toggles (catalog generation only).
     ``intent_tools=False`` builds only the backing server: the served process
     registers its own registry-backed intent surface instead
-    (GRAPHOS-HOST-R024).
+    (ARBORA-HOST-R024).
     """
     from fastmcp import FastMCP
 

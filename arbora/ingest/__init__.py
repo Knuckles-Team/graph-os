@@ -1,6 +1,6 @@
 """Ingestion services for the Arbora operation registry.
 
-GRAPHOS-OPS-R020.1: Arbora calls the ingestion SDK only through the typed
+ARBORA-OPS-R020.1: Arbora calls the ingestion SDK only through the typed
 :class:`~arbora.ingest.service.IngestRunner` port defined here. No handler
 imports a private ingestion implementation directly.
 """

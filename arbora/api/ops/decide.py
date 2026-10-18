@@ -1,10 +1,10 @@
-"""Decide operations: service-executed commit (GRAPHOS-OPS-R021.1).
+"""Decide operations: service-executed commit (ARBORA-OPS-R021.1).
 
 The commit path runs only under the service executor so no caller can
 materialize an agent decision using only a human-scoped token; the runner
 itself stays a typed seam (``agent_utilities.decide``) composed by the
 serving root, matching the ingest/runner-facade convention in
-``arbora/api/ops`` (see GRAPHOS-OPS-R020).
+``arbora/api/ops`` (see ARBORA-OPS-R020).
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Layered agent-capability model and harness abstraction (GRAPHOS-HOST-R015).
+"""Layered agent-capability model and harness abstraction (ARBORA-HOST-R015).
 
 Defines Arbora's ordered agent-capability layers, from its lowest defined
 layer to its highest, and a harness abstraction so a given layer's

@@ -58,7 +58,7 @@ class A2ATaskNotCancelable(RuntimeError):
 class A2AStreamingUnavailable(RuntimeError):
     """Durable task streaming/resubscribe has no event-cursor backing yet.
 
-    GRAPHOS-A2A-R001 adds durable task streaming and resubscribe without a
+    ARBORA-A2A-R001 adds durable task streaming and resubscribe without a
     second task store. That bounded, restart-safe event-cursor backing does
     not exist yet, so ``tasks/resubscribe`` must fail closed rather than
     silently succeed or be reported as an unrecognized method.
@@ -68,7 +68,7 @@ class A2AStreamingUnavailable(RuntimeError):
 class A2ATransitionHistoryUnavailable(RuntimeError):
     """No reachable durable transition-history authority backs ``tasks/get`` history.
 
-    GRAPHOS-A2A-R012.2: when no ``A2ATransitionHistoryAuthority`` is wired or
+    ARBORA-A2A-R012.2: when no ``A2ATransitionHistoryAuthority`` is wired or
     the wired one is unreachable, history requests fail closed with this
     distinct error rather than an empty or partially reconstructed history.
     """

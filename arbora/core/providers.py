@@ -1,6 +1,6 @@
 """Distribution-owned provider discovery and current runtime asset resolution.
 
-Arbora owns provider discovery for the platform (``GRAPHOS-HOST-R001.10``).
+Arbora owns provider discovery for the platform (``ARBORA-HOST-R001.10``).
 Connectors and sibling packages contribute skills, prompts, ontologies, source
 connector presets and other data through the ``agent_connector_sdk.<x>_providers``
 entry-point groups; this module reads only those groups and never the retired

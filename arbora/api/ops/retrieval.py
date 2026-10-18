@@ -1,4 +1,4 @@
-"""Retrieval read operations (GRAPHOS-OPS-R021.2.1, retrieval slice).
+"""Retrieval read operations (ARBORA-OPS-R021.2.1, retrieval slice).
 
 ``retrieval.search`` runs a context-budgeted retrieval through one typed port
 under the caller's own tenant and authority; there is no local cache

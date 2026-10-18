@@ -1,6 +1,6 @@
-"""Exit-criteria matrix registry and audit (GRAPHOS-RELEASE-R003.1).
+"""Exit-criteria matrix registry and audit (ARBORA-RELEASE-R003.1).
 
-GRAPHOS-RELEASE-R003 requires an exit-criteria matrix mapping each
+ARBORA-RELEASE-R003 requires an exit-criteria matrix mapping each
 release-readiness obligation to an executable test, and a test-suite audit
 confirming every row resolves to a *passing* automated test. The seven
 obligation rows named in ``specs/dependency-ordered-release/requirements.md``
@@ -8,7 +8,7 @@ span multiple repositories (ingestion receipts and SPARQL/natural-language
 query proofs live in epistemic-graph; the multi-agent orchestration graph in
 agent-utilities; connector certification in agent-connector-sdk; and so on),
 so wiring every row to a currently-passing test is cross-repo work tracked
-separately as ``GRAPHOS-RELEASE-R003.2`` and is not claimed here.
+separately as ``ARBORA-RELEASE-R003.2`` and is not claimed here.
 
 This module delivers the arbora side available against the currently
 pinned epistemic-graph: the typed matrix registry and the audit function a

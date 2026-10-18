@@ -1,7 +1,7 @@
 """Arbora's own domain scopes, kept consistent with the generated registry.
 
 Arbora advertises a handful of scopes it owns itself (fleet event delivery,
-Agent WebUI console roles). GRAPHOS-IDENTITY-R002 requires that these use the
+Agent WebUI console roles). ARBORA-IDENTITY-R002 requires that these use the
 engine's shared scope classes and stay consistent with the single generated
 scope registry (``epistemic_graph``'s pinned ``contract/scopes.json``) rather
 than a separately maintained list. This module is the one place Arbora
@@ -12,7 +12,7 @@ name and class.
 Not every scope Arbora code currently checks is registered yet. The ad hoc
 ``mcp:*`` fleet-supervision scopes (``arbora.fleet.multiplexer`` and
 ``arbora.api.policy.eunomia``) have no entry in the generated registry at
-all; that is a known, tracked gap (GRAPHOS-IDENTITY-R020 adds the missing
+all; that is a known, tracked gap (ARBORA-IDENTITY-R020 adds the missing
 upstream entries) and is not papered over here.
 """
 

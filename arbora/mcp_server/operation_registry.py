@@ -1,6 +1,6 @@
 """arbora's published operation registry: names, features and verbs as data.
 
-CONCEPT:GRAPHOS-HOST.registry.published-operation-vocabulary
+CONCEPT:ARBORA-HOST.registry.published-operation-vocabulary
 
 arbora is the operation authority. Consumers that only need the *vocabulary*
 of served operations (the agent harness's skill validation, which checks that

@@ -190,7 +190,7 @@ async def _get_task(service: A2AService, raw_params: Any, request_id: Any) -> An
 
 
 def _resubscribe_stub(raw_params: Any) -> Any:
-    # Registered in the method table (GRAPHOS-A2A-R001) but fail-closed:
+    # Registered in the method table (ARBORA-A2A-R001) but fail-closed:
     # durable streaming has no bounded, restart-safe event-cursor backing
     # yet. Params are still validated so a malformed call is rejected as
     # invalid, not treated as an unreachable method.
@@ -201,7 +201,7 @@ def _resubscribe_stub(raw_params: Any) -> Any:
 
 
 def _op_invoke_stub(raw_params: Any) -> Any:
-    # Registered in the method table (GRAPHOS-A2A-R006) but fail-closed:
+    # Registered in the method table (ARBORA-A2A-R006) but fail-closed:
     # the shared hosted-operation registry's invoke path is not bridged in
     # yet. Params are still validated so a malformed call is rejected as
     # invalid, not treated as an unreachable method.
@@ -212,7 +212,7 @@ def _op_invoke_stub(raw_params: Any) -> Any:
 
 
 def _plan_confirm_stub(raw_params: Any) -> Any:
-    # Registered in the method table (GRAPHOS-A2A-R005/R006) but
+    # Registered in the method table (ARBORA-A2A-R005/R006) but
     # fail-closed: the signed human approval exchange is not implemented
     # end to end yet, so no approval attempt may succeed.
     from .approval import verify_pending_signature

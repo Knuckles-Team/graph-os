@@ -1,4 +1,4 @@
-"""Typed model for the SCIM 2.0 service credential (GRAPHOS-IDENTITY-R011).
+"""Typed model for the SCIM 2.0 service credential (ARBORA-IDENTITY-R011).
 
 Slices .1 (credential) and .2.1 (User resource model); handlers and routes follow.
 The create/update/patch/deactivate server surface is a later slice.
@@ -36,7 +36,7 @@ SCIM_USER_SCHEMA = "urn:ietf:params:scim:schemas:core:2.0:User"
 
 @dataclass(frozen=True, slots=True)
 class ScimUser:
-    """A validated SCIM 2.0 User resource (GRAPHOS-IDENTITY-R011.2.1)."""
+    """A validated SCIM 2.0 User resource (ARBORA-IDENTITY-R011.2.1)."""
 
     user_name: str
     active: bool = True
@@ -79,7 +79,7 @@ def check_scim_credential(
     bearer_token: str | None,
     requested_provider_id: str,
 ) -> ScimServiceCredential:
-    """Gate a SCIM request on its bearer token (GRAPHOS-IDENTITY-R011.2.2).
+    """Gate a SCIM request on its bearer token (ARBORA-IDENTITY-R011.2.2).
 
     ``credentials`` maps bearer tokens to their provider-scoped credential.
     Fails closed with ``ScimCredentialRefused`` for a missing or unknown token
@@ -96,7 +96,7 @@ def check_scim_credential(
 
 
 class ScimIdentityPort(Protocol):
-    """Injected identity port the SCIM handlers drive (GRAPHOS-IDENTITY-R011.2.3)."""
+    """Injected identity port the SCIM handlers drive (ARBORA-IDENTITY-R011.2.3)."""
 
     def create_user(self, user: ScimUser) -> str: ...
 

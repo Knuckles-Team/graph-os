@@ -1,6 +1,6 @@
-"""Work-item and offer operations (GRAPHOS-OPS-R022.1).
+"""Work-item and offer operations (ARBORA-OPS-R022.1).
 
-GRAPHOS-OPS-R022 exposes work-item and offer operations plus evolution loop
+ARBORA-OPS-R022 exposes work-item and offer operations plus evolution loop
 operations, with Arbora's daemon acting only as a status/run/pause facade
 while durable state remains owned by the underlying service (see
 ``specs/hosted-api-operations/spec.md``'s ``work.{offers.*,items.*,status}``
@@ -8,7 +8,7 @@ row). This slice (R022.1) proves the work portion -- ``work.items.list``,
 ``work.items.get``, and ``work.offers.create`` -- through the same
 service-bound runner facade ``arbora.api.ops.decide`` already uses for
 ``decide.commit``; ``work.status`` and the ``evolution.*`` family are
-tracked as GRAPHOS-OPS-R022.2.
+tracked as ARBORA-OPS-R022.2.
 
 Each handler scopes its call to ``context.caller.tenant`` -- the verified
 caller identity the shared invoke pipeline already resolved -- so a work

@@ -1,4 +1,4 @@
-"""REST route for schema_context (GRAPHOS-DATA-MARKET-R005, GDM-03).
+"""REST route for schema_context (ARBORA-DATA-MARKET-R005, GDM-03).
 
 Mounts ``POST {prefix}/graph/schema/context`` and dispatches through the
 same :func:`arbora.gateway.schema_context_service.get_schema_context` a

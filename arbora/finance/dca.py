@@ -1,4 +1,4 @@
-"""Recurring DCA plan model and non-duplicating proposal key (GRAPHOS-DATA-MARKET-R006, FI-10).
+"""Recurring DCA plan model and non-duplicating proposal key (ARBORA-DATA-MARKET-R006, FI-10).
 
 ``DCAPlan`` is the typed, durable record of a recurring dollar-cost-averaging
 plan: owner, tenant, symbol, account binding, decimal amount and currency,

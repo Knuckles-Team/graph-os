@@ -1,9 +1,9 @@
-"""Security policy middleware (GRAPHOS-HOST-R008, OS-5.4/5.5/5.11/5.12 synthesis).
+"""Security policy middleware (ARBORA-HOST-R008, OS-5.4/5.5/5.11/5.12 synthesis).
 
 Combines jailbreak hardening, prompt-injection scanning, doom-loop tracking,
 and a tool-repetition guard into one gateway a caller runs over an incoming
 prompt or an outbound tool call. It moved from the agent runtime unchanged
-per the GRAPHOS-HOST-R008 boundary move:
+per the ARBORA-HOST-R008 boundary move:
 ``arbora`` hosts Arbora's own security boundary modules; the agent
 runtime no longer declares this one.
 """

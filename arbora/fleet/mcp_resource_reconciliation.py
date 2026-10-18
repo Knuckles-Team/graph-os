@@ -1,6 +1,6 @@
 """Typed publication gate for the durable four-family MCP resource/template set.
 
-GRAPHOS-MCP-RESOURCES-001 (R001.1): arbora does not maintain a second,
+ARBORA-MCP-RESOURCES-001 (R001.1): arbora does not maintain a second,
 process-local durability store for MCP tools/prompts/resources/resource
 templates. It only claims publication once epistemic-graph hands back a
 ``ReconciliationReceipt`` acknowledging the exact candidate generation and

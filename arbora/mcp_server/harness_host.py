@@ -1,6 +1,6 @@
 """arbora registers itself as the agent harness's host at startup.
 
-CONCEPT:GRAPHOS-HOST.harness.host-bindings
+CONCEPT:ARBORA-HOST.harness.host-bindings
 
 The harness (``agent_utilities``) never serves tools or parses the fleet
 catalog. Its thin client host (``agent_utilities.host_ports``) fails

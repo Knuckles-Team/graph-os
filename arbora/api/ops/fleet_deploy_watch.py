@@ -1,8 +1,8 @@
-"""Deploy-watch verdict operation (GRAPHOS-FLEET-R024.1).
+"""Deploy-watch verdict operation (ARBORA-FLEET-R024.1).
 
 Arbora-owned typed operation reproducing the deploy-watch verdict decision
 that previously sat beside the agent runner in agent-utilities'
-``orchestration/`` package (GRAPHOS-FLEET-R024). It runs behind the same
+``orchestration/`` package (ARBORA-FLEET-R024). It runs behind the same
 caller verification and policy filter as every other fleet operation: the
 registry's :func:`arbora.api.registry.authorized` chokepoint enforces the
 declared ``scopes`` and the served policy decision before this handler is
@@ -12,7 +12,7 @@ The durable watch-scheduling, observer-polling and rollback-dispatch pieces
 of the original module (``watch_deploy``/``run_deploy_watch``/
 ``default_on_fail``) are Arbora service-skeleton work for the sibling
 reconciler/autoscaler/scaling-authority behaviors tracked under
-GRAPHOS-FLEET-R024.2; this operation covers the verdict rule only.
+ARBORA-FLEET-R024.2; this operation covers the verdict rule only.
 """
 
 from __future__ import annotations

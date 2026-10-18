@@ -1,4 +1,4 @@
-"""Agent Manager Dashboard — single-pane governance view (GRAPHOS-HOST-R008).
+"""Agent Manager Dashboard — single-pane governance view (ARBORA-HOST-R008).
 
 CONCEPT:AU-ECO.ui.agent-manager-dashboard — Agent Manager Dashboard
 
@@ -10,7 +10,7 @@ permission policies, and usage statistics from the KG.
 
 Ported from the agent runtime's
 ``arbora.ecosystem.agent_manager_dashboard`` (moved wholesale, no
-behavior change) per the GRAPHOS-HOST-R008 boundary move: the
+behavior change) per the ARBORA-HOST-R008 boundary move: the
 AU-BOUNDARY-R014 seed names this module as owned by arbora.
 """
 

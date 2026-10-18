@@ -122,7 +122,7 @@ _ENGINE_CONFIG_FIELDS = frozenset(
         "enabledTools",
         "disabledTools",
         # Declares a child tool's owner-stamped service-credential path
-        # (GRAPHOS-FLEET-R015/R021; see arbora.fleet.gateway_ops and
+        # (ARBORA-FLEET-R015/R021; see arbora.fleet.gateway_ops and
         # arbora.fleet.service_child) instead of the caller's own
         # delegated credential. Absent or any other value means "delegated".
         "credential_mode",
@@ -2258,7 +2258,7 @@ class MCPMultiplexer:
     ):
         self._fleet_catalog_reader = catalog_reader
         self._fleet_catalog: _catalog_reader.FleetCatalog | None = None
-        # Wall-clock epoch of the installed snapshot above (GRAPHOS-FLEET-R031):
+        # Wall-clock epoch of the installed snapshot above (ARBORA-FLEET-R031):
         # a tool descriptor read FROM the snapshot (never probed live) stamps
         # its honest age from this, rather than claiming ``now`` like a fresh
         # probe would.
@@ -5480,7 +5480,7 @@ class MCPMultiplexer:
         probe_deadline: float | None = None,
     ) -> None:
         """Fill each entry's body from the resident local catalog when its
-        name is already admitted there (GRAPHOS-FLEET-R006.2); only the
+        name is already admitted there (ARBORA-FLEET-R006.2); only the
         remainder -- a name the resident local-skill catalog
         (``arbora.fleet.local_skill_catalog.build_local_skill_catalog``)
         does not resolve -- still costs the pre-existing live
@@ -6255,7 +6255,7 @@ class MCPMultiplexer:
 
     def _catalog_tool_probe_info(self) -> dict[str, dict[str, _typing.Any]]:
         """Per-server tool descriptors already admitted into the EG catalog
-        snapshot (GRAPHOS-FLEET-R031), read with NO live probe.
+        snapshot (ARBORA-FLEET-R031), read with NO live probe.
 
         Fleet onboarding (``arbora/fleet/onboarding.py``) imports each
         admitted server's content pack — its tools included — into the EG
@@ -6412,7 +6412,7 @@ class MCPMultiplexer:
         unavailable: dict[str, str] = {}
         now = time.time()
         ttl = self._probe_ttl()
-        # GRAPHOS-FLEET-R031: a server whose live probe errored (a timeout is
+        # ARBORA-FLEET-R031: a server whose live probe errored (a timeout is
         # the common case — see ``unavailable`` below) is not thereby invisible
         # to ranking. Its already-admitted catalog snapshot (never a probe) is
         # the fallback source, so ``find`` still surfaces its real tools,

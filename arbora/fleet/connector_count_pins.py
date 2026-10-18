@@ -1,13 +1,13 @@
 """Pure connector count-pin consistency checking.
 
-Producer slice for ``GRAPHOS-FLEET-R023.1`` (see
+Producer slice for ``ARBORA-FLEET-R023.1`` (see
 ``specs/fleet-catalog-and-tools``). This module holds only the typed model
 and a pure comparison: given the live fleet connector count and a list of
 count-pin sites, which sites disagree. It has no file I/O, no network, and no
 knowledge of where any real site lives -- wiring it to the fleet's actual
 count-pin sites (the compatibility matrix, the bundle-catalog schema,
 ``ontology.lock``, the federated IRI, ``genesis.yaml``) is tracked as
-follow-up under ``GRAPHOS-FLEET-R023``, not done here.
+follow-up under ``ARBORA-FLEET-R023``, not done here.
 """
 
 from __future__ import annotations
